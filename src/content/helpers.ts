@@ -11,7 +11,6 @@ export function lesson(input: LessonInput): Lesson {
   return {
     level: "debutant",
     status: "publie",
-    examples: [],
     summary: [],
     ...input,
     content: dedent(input.content),

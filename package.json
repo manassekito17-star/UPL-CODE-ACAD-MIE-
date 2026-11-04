@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "vitest run",
+    "typecheck": "next typegen && tsc --noEmit",
+    "seed:generate": "tsx scripts/generate-seed.ts",
+    "test:db": "node scripts/check-database.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.5.0",
@@ -23,6 +27,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.15",
     "@tailwindcss/turbopack": "^4",
     "@types/node": "^22.20.5",
     "@types/react": "^19",

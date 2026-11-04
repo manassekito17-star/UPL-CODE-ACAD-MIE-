@@ -112,9 +112,11 @@ security definer
 set search_path = ''
 as $$
 begin
+  -- S'applique aux requêtes d'utilisateurs finaux (JWT avec « sub ») ; le
+  -- serveur (service_role) et le SQL d'administration ne sont pas concernés.
   if (new.status is distinct from old.status or new.suspended_reason is distinct from old.suspended_reason)
-     and not public.is_admin()
-     and (select auth.role()) <> 'service_role' then
+     and (select auth.uid()) is not null
+     and not public.is_admin() then
     raise exception 'Seul un administrateur peut modifier le statut d''un compte.';
   end if;
   return new;

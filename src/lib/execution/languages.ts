@@ -12,11 +12,20 @@ export interface LanguageConfig {
   /** Gestion de plusieurs fichiers. */
   multiFile: boolean;
   template: string;
+  /** Squelette neutre proposé pour un exercice sans code de départ. */
+  exerciseTemplate: string;
 }
 
 export const LANGUAGES: Record<LanguageId, LanguageConfig> = {
   pseudocode: {
     id: "pseudocode",
+    exerciseTemplate: `ALGORITHME Exercice
+VARIABLES
+  // vos déclarations
+DEBUT
+  // votre algorithme
+FIN
+`,
     label: "Algorithmique (pseudocode)",
     shortLabel: "Pseudocode",
     monaco: "pseudocode",
@@ -36,6 +45,8 @@ FIN
   },
   python: {
     id: "python",
+    exerciseTemplate: `# Écrivez votre programme ici
+`,
     label: "Python",
     shortLabel: "Python",
     monaco: "python",
@@ -49,6 +60,13 @@ print(f"Bonjour {nom} !")
   },
   c: {
     id: "c",
+    exerciseTemplate: `#include <stdio.h>
+
+int main(void) {
+    // Votre code ici
+    return 0;
+}
+`,
     label: "Langage C",
     shortLabel: "C",
     monaco: "c",
@@ -69,6 +87,8 @@ int main(void) {
   },
   javascript: {
     id: "javascript",
+    exerciseTemplate: `// lireLigne() lit la ligne suivante de l'entrée
+`,
     label: "JavaScript",
     shortLabel: "JavaScript",
     monaco: "javascript",
@@ -83,6 +103,15 @@ console.log("Bonjour " + nom + " !");
   },
   java: {
     id: "java",
+    exerciseTemplate: `import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        // Votre code ici
+    }
+}
+`,
     label: "Java",
     shortLabel: "Java",
     monaco: "java",

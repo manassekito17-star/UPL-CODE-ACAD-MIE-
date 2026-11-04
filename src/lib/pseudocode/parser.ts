@@ -412,7 +412,8 @@ class Parser {
         this.error(`${this.describe(this.cur)} inattendu : ${expected} était attendu.`, "Vérifiez l'imbrication de vos blocs SI / POUR / TANT QUE.");
       }
       out.push(this.parseStatement());
-      if (!(this.cur.type === "nl" || this.cur.type === "eof" || this.isOp(";") || this.isAnyWord(BLOCK_WORDS))) {
+      const t = this.cur.type as Token["type"];
+      if (!(t === "nl" || t === "eof" || this.isOp(";") || this.isAnyWord(BLOCK_WORDS))) {
         this.error(`Fin d'instruction attendue, mais ${this.describe(this.cur)} trouvé.`, "Écrivez une seule instruction par ligne.");
       }
     }

@@ -1,0 +1,86 @@
+import { PGlite } from "@electric-sql/pglite";
+import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
+import { readFileSync, readdirSync } from "node:fs";
+/**
+ * Vérification de la base de données sans serveur (PGlite) :
+ * applique les migrations et le seed, puis teste les politiques RLS
+ * (isolation des données entre étudiants, rôles, résultats officiels).
+ * Usage : npm run test:db
+ */
+import { fileURLToPath } from "node:url";
+const root = fileURLToPath(new URL("..", import.meta.url));
+const db = new PGlite({ extensions: { pgcrypto } });
+const stub = `
+create role anon nologin; create role authenticated nologin; create role service_role nologin bypassrls;
+create schema auth; create schema storage;
+create table auth.users (id uuid primary key, email text, raw_user_meta_data jsonb default '{}');
+create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
+create function auth.role() returns text language sql stable as $$ select coalesce(nullif(current_setting('request.jwt.claim.role', true), ''), 'anon') $$;
+create table storage.buckets (id text primary key, name text, public boolean);
+create table storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text, name text);
+alter table storage.objects enable row level security;
+create function storage.foldername(name text) returns text[] language sql as $$ select string_to_array(name, '/') $$;
+grant usage on schema public, auth, storage to anon, authenticated, service_role;
+`;
+await db.exec(stub);
+for (const f of readdirSync(`${root}/supabase/migrations`).sort()) {
+  try { await db.exec(readFileSync(`${root}/supabase/migrations/${f}`, "utf8")); console.log("OK", f); }
+  catch (e) { console.error("ERREUR", f, e.message); process.exit(1); }
+}
+await db.exec(`grant select, insert, update, delete on all tables in schema public to anon, authenticated, service_role; grant usage on all sequences in schema public to authenticated, service_role;`);
+await db.exec(readFileSync(`${root}/supabase/seed.sql`, "utf8"));
+const c = await db.query("select (select count(*) from public.courses) c, (select count(*) from public.lessons) l, (select count(*) from public.exercises) e, (select count(*) from public.exercise_test_cases) t, (select count(*) from public.quiz_questions) q");
+console.log("seed", c.rows[0]);
+// seed idempotent
+await db.exec(readFileSync(`${root}/supabase/seed.sql`, "utf8"));
+console.log("seed relancé", (await db.query("select count(*) from public.lessons")).rows[0]);
+
+// --- Scénarios RLS ---
+const A = "11111111-1111-1111-1111-111111111111", B = "22222222-2222-2222-2222-222222222222", ADM = "33333333-3333-3333-3333-333333333333";
+for (const [id, name] of [[A, "Alice"], [B, "Bob"], [ADM, "Admin"]]) await db.query(`insert into auth.users (id, email, raw_user_meta_data) values ($1, $2, $3)`, [id, `${name}@x.cd`, { full_name: name }]);
+await db.query(`insert into public.user_roles (user_id, role) values ($1, 'administrateur')`, [ADM]);
+const as = async (uid, sql, params = []) => {
+  await db.exec(`reset role; select set_config('request.jwt.claim.sub', '${uid ?? ""}', false); select set_config('request.jwt.claim.role', '${uid ? "authenticated" : "anon"}', false); set role ${uid ? "authenticated" : "anon"};`);
+  try { return await db.query(sql, params); } finally { await db.exec("reset role"); }
+};
+const check = (label, cond) => { console.log(cond ? "✓" : "✗ ÉCHEC", label); if (!cond) process.exitCode = 1; };
+console.log("\nPolitiques de sécurité (RLS) :");
+
+const lang = "python";
+await as(A, `insert into public.programs (user_id, title, language_id, files) values ($1, 'secret A', $2, '[]')`, [A, lang]);
+check("Bob ne voit pas les programmes d'Alice", (await as(B, "select * from public.programs")).rows.length === 0);
+check("Alice voit son programme", (await as(A, "select * from public.programs")).rows.length === 1);
+let denied = false; try { await as(B, `insert into public.programs (user_id, title, language_id, files) values ($1, 'x', 'python', '[]')`, [A]); } catch { denied = true; }
+check("Bob ne peut pas créer un programme au nom d'Alice", denied);
+check("Bob ne peut pas modifier le programme d'Alice", (await as(B, "update public.programs set title = 'pirate' returning id")).rows.length === 0);
+denied = false; try { await as(A, `insert into public.submissions (user_id, exercise_id, language_id, code, status, score) select $1, id, 'python', 'x', 'reussi', 100 from public.exercises limit 1`, [A]); } catch { denied = true; }
+check("Un étudiant ne peut pas s'attribuer une note (soumission)", denied);
+check("Solutions invisibles pour un étudiant", (await as(A, "select * from public.exercise_solutions")).rows.length === 0);
+check("Solutions invisibles pour un visiteur", (await as(null, "select * from public.exercise_solutions")).rows.length === 0);
+check("Réponses des quiz invisibles", (await as(A, "select * from public.quiz_answer_keys")).rows.length === 0);
+const hiddenVisible = (await as(A, "select * from public.exercise_test_cases where is_hidden")).rows.length;
+check("Tests cachés invisibles pour un étudiant", hiddenVisible === 0);
+check("Tests visibles lisibles", (await as(null, "select * from public.exercise_test_cases")).rows.length > 0);
+check("Cours publiés lisibles par un visiteur", (await as(null, "select * from public.courses")).rows.length === 5);
+check("Bob ne voit pas le profil d'Alice", (await as(B, "select * from public.profiles where id = $1", [A])).rows.length === 0);
+denied = false; try { await as(A, "update public.profiles set status = 'actif', suspended_reason = 'x' where id = $1", [A]); } catch { denied = true; }
+check("Un étudiant ne peut pas modifier son statut", denied);
+denied = false; try { await as(A, "insert into public.user_roles (user_id, role) values ($1, 'administrateur')", [A]); } catch { denied = true; }
+check("Un étudiant ne peut pas s'attribuer le rôle administrateur", denied);
+check("Un étudiant ne lit pas les journaux", (await as(A, "select * from public.audit_logs")).rows.length === 0);
+check("L'administrateur voit les solutions", (await as(ADM, "select * from public.exercise_solutions")).rows.length > 0);
+check("L'administrateur voit tous les profils", (await as(ADM, "select * from public.profiles")).rows.length === 3);
+await as(ADM, "update public.profiles set status = 'suspendu' where id = $1", [B]);
+check("Un compte suspendu ne peut plus enregistrer de programme", await (async () => { try { await as(B, `insert into public.programs (user_id, title, language_id, files) values ($1, 'x', 'python', '[]')`, [B]); return false; } catch { return true; } })());
+// Progression : trigger
+const l = (await db.query("select id, course_id from public.lessons where status='publie' limit 1")).rows[0];
+await as(A, "insert into public.lesson_progress (user_id, lesson_id, course_id, status) values ($1, $2, $3, 'termine')", [A, l.id, l.course_id]);
+const cp = (await as(A, "select * from public.course_progress")).rows[0];
+check(`Progression du parcours recalculée (${cp?.completed_lessons}/${cp?.total_lessons})`, cp && cp.completed_lessons === 1 && cp.total_lessons > 1);
+check("Bob ne voit pas la progression d'Alice", (await as(B, "select * from public.course_progress")).rows.length === 0);
+// Enseignant avec permission « contenus » seulement
+await db.query(`insert into public.user_roles (user_id, role, permissions) values ($1, 'enseignant', '{contenus}')`, [B]);
+await db.exec("reset role; select set_config('request.jwt.claim.sub', '', false);"); await db.query(`update public.profiles set status='actif' where id=$1`, [B]);
+check("Enseignant (contenus) voit les solutions", (await as(B, "select * from public.exercise_solutions")).rows.length > 0);
+check("Enseignant (contenus) ne voit pas les profils (pas de « suivi »)", (await as(B, "select * from public.profiles where id = $1", [A])).rows.length === 0);
+check("Enseignant ne lit pas les paramètres", (await as(B, "select * from public.platform_settings")).rows.length === 0);

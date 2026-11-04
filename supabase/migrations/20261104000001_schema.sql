@@ -65,7 +65,7 @@ create table public.user_roles (
 
 -- ---------- Catalogue ----------
 create table public.languages (
-  id text primary key check (id ~ '^[a-z0-9_-]{2,20}$'),
+  id text primary key check (id ~ '^[a-z0-9_-]{1,20}$'),
   name text not null,
   description text,
   monaco_language text not null,

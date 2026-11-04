@@ -1,0 +1,159 @@
+"use client";
+
+import type { LanguageId } from "@/content/types";
+import type { ExecutionResult, SourceFile } from "./types";
+
+const TIMEOUT_MS: Record<string, number> = { pseudocode: 8000, javascript: 5000, python: 10000 };
+
+let pythonWorker: Worker | null = null;
+
+function createWorker(language: LanguageId): Worker {
+  switch (language) {
+    case "pseudocode":
+      return new Worker(new URL("../../workers/pseudocode.worker.ts", import.meta.url), { type: "module" });
+    case "javascript":
+      return new Worker(new URL("../../workers/javascript.worker.ts", import.meta.url), { type: "module" });
+    case "python":
+      // Fichier statique (public/workers) : Pyodide exige un worker de type module.
+      pythonWorker ??= new Worker("/workers/python-worker.mjs", { type: "module" });
+      return pythonWorker;
+    default:
+      throw new Error("Langage non exécutable dans le navigateur");
+  }
+}
+
+/** Précharge Python (Pyodide) pour accélérer la première exécution. */
+export function warmupPython() {
+  try {
+    createWorker("python").postMessage({ files: [], stdin: "", warmup: true });
+  } catch {
+    /* ignoré */
+  }
+}
+
+/**
+ * Exécute un programme dans un Web Worker isolé du reste de la page.
+ * Le worker est détruit si le temps limite est dépassé.
+ */
+export function runInBrowser(
+  language: LanguageId,
+  files: SourceFile[],
+  stdin: string,
+  onStatus?: (message: string) => void,
+): Promise<ExecutionResult> {
+  return new Promise((resolve) => {
+    const worker = createWorker(language);
+    const persistent = language === "python";
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    const finish = (r: ExecutionResult) => {
+      if (timer) clearTimeout(timer);
+      worker.onmessage = null;
+      if (!persistent) worker.terminate();
+      resolve(r);
+    };
+    const arm = () => {
+      timer = setTimeout(() => {
+        worker.terminate();
+        if (persistent) pythonWorker = null;
+        finish({
+          status: "temps_depasse",
+          stdout: "",
+          stderr: `Temps limite dépassé (${TIMEOUT_MS[language] / 1000} s) : le programme a été arrêté. Vérifiez qu'il n'y a pas de boucle infinie.`,
+          compileOutput: "",
+          timeMs: TIMEOUT_MS[language],
+          memoryKb: null,
+          engine: language === "pseudocode" ? "interpreteur" : "navigateur",
+        });
+      }, TIMEOUT_MS[language]);
+    };
+
+    worker.onmessage = (e: MessageEvent) => {
+      const d = e.data;
+      if (d?.type === "statut") {
+        onStatus?.(d.message);
+        return;
+      }
+      if (d?.type === "debut") {
+        arm();
+        return;
+      }
+      if (language === "pseudocode") {
+        const err = d.error as { kind: string; message: string; line: number; hint?: string } | null;
+        const msg = err ? `${err.kind === "syntaxe" ? "Erreur de syntaxe" : "Erreur"}${err.line ? ` (ligne ${err.line})` : ""} : ${err.message}` : "";
+        finish({
+          status: d.ok ? "ok" : /Limite d'exécution/.test(err?.message ?? "") ? "temps_depasse" : err?.kind === "syntaxe" ? "erreur_compilation" : "erreur_execution",
+          stdout: d.stdout,
+          stderr: err && err.kind !== "syntaxe" ? msg : "",
+          compileOutput: err?.kind === "syntaxe" ? msg : "",
+          timeMs: d.timeMs,
+          memoryKb: null,
+          engine: "interpreteur",
+          errorLine: err?.line || undefined,
+          hint: err?.hint,
+        });
+        return;
+      }
+      finish({
+        status: d.ok ? "ok" : "erreur_execution",
+        stdout: d.stdout ?? "",
+        stderr: d.stderr ?? "",
+        compileOutput: "",
+        timeMs: d.timeMs ?? null,
+        memoryKb: null,
+        engine: "navigateur",
+        errorLine: d.errorLine,
+      });
+    };
+    worker.onerror = (e) => {
+      finish({ status: "erreur_interne", stdout: "", stderr: e.message || "Erreur du moteur d'exécution.", compileOutput: "", timeMs: null, memoryKb: null, engine: "navigateur" });
+    };
+
+    if (language === "python") {
+      // Le délai ne démarre qu'au signal « debut » : le chargement de Python peut prendre quelques secondes.
+      worker.postMessage({ files, stdin });
+    } else {
+      arm();
+      worker.postMessage({ code: files[0]?.content ?? "", stdin });
+    }
+  });
+}
+
+export interface RunOutcome {
+  result: ExecutionResult | null;
+  error?: string;
+}
+
+/**
+ * Exécute un programme : sur le serveur (Judge0) quand c'est possible,
+ * sinon dans le navigateur pour le pseudocode, Python et JavaScript.
+ */
+export async function runProgram(
+  language: LanguageId,
+  files: SourceFile[],
+  stdin: string,
+  opts: { programId?: string; onStatus?: (m: string) => void } = {},
+): Promise<RunOutcome> {
+  if (language === "pseudocode") {
+    // L'interpréteur de la plateforme tourne directement dans le navigateur : réponse instantanée.
+    return { result: await runInBrowser("pseudocode", files, stdin) };
+  }
+  try {
+    const res = await fetch("/api/execute", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ language, files, stdin, programId: opts.programId }),
+    });
+    const data = await res.json();
+    if (res.ok) return { result: data as ExecutionResult };
+    if (data.fallback === "navigateur") {
+      return { result: await runInBrowser(language, files, stdin, opts.onStatus) };
+    }
+    return { result: null, error: data.error ?? "Exécution impossible." };
+  } catch {
+    if (language === "python" || language === "javascript") {
+      return { result: await runInBrowser(language, files, stdin, opts.onStatus) };
+    }
+    return { result: null, error: "Connexion au serveur impossible." };
+  }
+}
