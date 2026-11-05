@@ -42,9 +42,13 @@ Voir [AUDIT.md](AUDIT.md) et [ARCHITECTURE.md](ARCHITECTURE.md). Vulnérabilité
 ### Reste à faire dans la phase 1
 
 - Enrichir au même niveau les Parties 2 à 6 (12 chapitres actuellement à 33–42 % des composantes) et ajouter les chapitres prévus par l'addendum : **Structures de données**, **Optimisation**, **Exercices et projets de synthèse**.
-- Éditeur visuel (sans JSON) pour la structure pédagogique, et édition des interrogations / évaluations dans le CMS.
+- Éditeur visuel (sans JSON) pour la structure pédagogique (les interrogations et évaluations sont désormais éditables dans le CMS).
 - Durée des interrogations contrôlée côté serveur (aujourd'hui : chronomètre et envoi automatique côté navigateur).
 - Relecture et validation par l'équipe pédagogique avant publication officielle.
+
+## Module supplémentaire — UPL ACADEMY multiniveaux 🔵
+
+Livré et vérifié (unitaires, PGlite, E2E contre Supabase local) : sept parcours en quatre niveaux, positionnement, examens de niveau, passage de niveau côté serveur, bulletin et certificats internes, parcours HTML (niveau 1) et CSS (niveau 1) complets avec correction structurelle, aperçu web isolé dans UPL IDE, liaison cours ↔ IDE, projets pratiques, professeur IA spécialisé, administration des niveaux et ressources. Détail et reste à faire : [MULTINIVEAUX.md](MULTINIVEAUX.md).
 
 ## Phase 2 — Laboratoire d'algorithmique ⚪
 

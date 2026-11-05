@@ -11,6 +11,8 @@ import { LEVEL_STATUS_LABELS, type LevelStatus } from "@/lib/levels/rules";
 import { getLatestPlacement, getLevelStates } from "@/lib/levels/server";
 import { getCompletedLessons, getCourseProgressMap, getLastLesson } from "@/lib/student";
 
+const capitalize = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
+
 const STATUS_TONES: Record<LevelStatus, "vert" | "cyan" | "bleu" | "gris"> = {
   valide: "vert",
   dispense: "cyan",
@@ -109,7 +111,7 @@ export default async function CoursePage({ params }: PageProps<"/formations/[cou
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <p className="text-xs font-semibold uppercase tracking-wide text-electrique-600">Niveau {level.number} · {LEVEL_NAMES[level.number]}</p>
-                      <h2 className="text-xl font-bold text-nuit-900">{level.title.replace(/^Niveau \d — [^:]+: ?/, "")}</h2>
+                      <h2 className="text-xl font-bold text-nuit-900">{capitalize(level.title.replace(/^Niveau \d — [^:]+: ?/, ""))}</h2>
                       <p className="mt-1 text-sm text-gris-700">{level.description}</p>
                     </div>
                     <div className="flex flex-col items-end gap-2">

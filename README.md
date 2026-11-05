@@ -11,13 +11,13 @@ Plateforme universitaire d'apprentissage de l'informatique et de la programmatio
 | Domaine | Ce qui est livré |
 |---|---|
 | **Formation** | Rubrique `/formation` : programme d'algorithmique par parties. Chaque chapitre complet comporte 12 composantes (cours détaillé, définitions, algorithmes commentés ligne par ligne avec organigramme et tableau de suivi générés par l'interpréteur, erreurs fréquentes vérifiées, exercices corrigés, exercices notés, TD, interrogation minutée, évaluation finale, résumé PDF). Partie 1 complète (7 chapitres) ; état de chaque chapitre affiché. Voir [docs/FORMATION.md](docs/FORMATION.md). |
-| **Parcours** | 5 parcours : Algorithmique (18 leçons), Python (15), Langage C (13), JavaScript (11), Java (12). Chaque leçon a un niveau, des prérequis, des objectifs, une durée, des exemples exécutables, un résumé ; quiz de leçon et évaluation finale par parcours. |
-| **Exercices** | 54 exercices (débutant → avancé, 8 types : QCM, compléter, corriger, écrire un algorithme/programme, problème, mini-projet…) avec tests visibles et cachés, indices progressifs, correction pédagogique et solution révélées après réussite ou 5 tentatives. |
-| **Éditeur** | Monaco : coloration (y compris pseudocode), numéros de ligne, indentation, suggestions et extraits, erreurs soulignées en direct, Exécuter / Réinitialiser / Enregistrer, multi-fichiers (Python), console, zone d'entrée, historique, brouillon automatique, onglets Consignes / Code / Console sur mobile. |
+| **Parcours multiniveaux** | 7 parcours (Algorithmique, HTML, CSS, Python, C, JavaScript, Java), chacun en **4 niveaux** (très débutant → professionnel) avec critères de passage, examens de fin de niveau, test de positionnement, dispense des niveaux acquis, bulletin de progression (PDF) et certificats internes vérifiables. Les chapitres non rédigés sont affichés « au programme ». Voir [docs/MULTINIVEAUX.md](docs/MULTINIVEAUX.md). |
+| **Exercices** | 106 exercices (dont 28 HTML/CSS corrigés par analyse structurelle, et des projets pratiques notés rattachés aux chapitres) (débutant → avancé, 8 types : QCM, compléter, corriger, écrire un algorithme/programme, problème, mini-projet…) avec tests visibles et cachés, indices progressifs, correction pédagogique et solution révélées après réussite ou 5 tentatives. |
+| **Éditeur** | Monaco : coloration (y compris pseudocode), numéros de ligne, indentation, suggestions et extraits, erreurs soulignées en direct, Exécuter / Réinitialiser / Enregistrer, multi-fichiers (Python, projets web), **aperçu en direct HTML/CSS/JS** dans une iframe isolée avec console de la page, démonstrations ouvertes depuis un chapitre avec retour au cours, console, zone d'entrée, historique, brouillon automatique, onglets Consignes / Code / Console sur mobile. |
 | **Exécution** | Pseudocode : interpréteur maison (sans accès système, limites d'instructions, de récursivité et de sortie). Python, C, JavaScript, Java : Judge0 (bac à sable isolé, sans réseau, limites CPU/mémoire/taille). Repli dans un Web Worker du navigateur pour pseudocode, Python (Pyodide) et JavaScript. |
-| **Professeur IA** | Questions, explication ligne par ligne, analyse d'erreurs, indices progressifs (niveaux 1 à 5), génération d'exercices, pseudocode ↔ code, préparation aux évaluations ; français simple adapté au niveau ; jamais de solution complète pour un exercice évalué. Fournisseur interchangeable (`src/lib/ai`). |
+| **Professeur IA** | Spécialisé par parcours (programme, chapitre en cours et niveau mesuré relus côté serveur) ; modes enseigner, interroger, accompagner un projet, questions, explication ligne par ligne, analyse d'erreurs, indices progressifs (niveaux 1 à 5), génération d'exercices, pseudocode ↔ code, préparation aux évaluations ; français simple adapté au niveau ; jamais de solution complète pour un exercice évalué. Fournisseur interchangeable (`src/lib/ai`). |
 | **Progression** | Leçons commencées/terminées, temps passé, reprise à la dernière position, soumissions, notes, tentatives, progression par langage, compétences maîtrisées / à améliorer, badges, certificats. |
-| **Administration** | Comptes et rôles (étudiant, enseignant avec permissions `contenus` / `corrections` / `suivi`, administrateur), suspension, formations / modules / leçons / quiz, exercices et tests, publication avec validation pédagogique, corrections enseignant, suivi, annonces, langages et catégories, paramètres et **contrôle des coûts IA**, journaux d'activité. |
+| **Administration** | Comptes et rôles (étudiant, enseignant avec permissions `contenus` / `corrections` / `suivi`, administrateur), suspension, formations / modules / leçons / quiz, **niveaux (critères, examens, positionnement, statistiques)**, interrogations et évaluations de chapitre, ressources (liens, fichiers), exercices et tests, publication avec validation pédagogique, corrections enseignant, suivi, annonces, langages et catégories, paramètres et **contrôle des coûts IA**, journaux d'activité. |
 
 ## Architecture
 
@@ -88,7 +88,7 @@ Auto-hébergement recommandé ([judge0/judge0](https://github.com/judge0/judge0)
 
 ### 3. Professeur IA
 
-Renseigner `ANTHROPIC_API_KEY` (et éventuellement `AI_MODEL`). Les limites (questions par jour et par étudiant, budget mensuel en dollars, jetons par réponse, effort) se règlent dans **Administration → Paramètres**. Chaque réponse est enregistrée avec ses jetons et son coût estimé. Pour ajouter un autre fournisseur, implémenter l'interface `AiProvider` (`src/lib/ai/types.ts`) et l'enregistrer dans `src/lib/ai/index.ts`.
+Renseigner `ANTHROPIC_API_KEY` (et éventuellement `AI_MODEL`). Les limites (questions par jour et par étudiant, budget mensuel en dollars, jetons par réponse, effort) se règlent dans **Administration → Paramètres**. Chaque réponse est enregistrée avec ses jetons et son coût estimé. Pour les tests de bout en bout uniquement, `AI_PROVIDER=test` et `UPL_ALLOW_TEST_AI=true` activent un fournisseur déterministe qui n'appelle aucune IA (il l'annonce dans sa réponse). Pour ajouter un autre fournisseur, implémenter l'interface `AiProvider` (`src/lib/ai/types.ts`) et l'enregistrer dans `src/lib/ai/index.ts`.
 
 ### 4. Déploiement (Vercel)
 
@@ -112,8 +112,8 @@ Importer le dépôt GitHub dans Vercel, définir les variables d'environnement d
 npm test          # interpréteur, formats d'édition, Judge0 (simulé), comparaison,
                   # et contrôle qualité du contenu : chaque exemple de leçon et chaque
                   # solution de référence sont exécutés (pseudocode, Python, C, JS, Java)
-npm run test:db   # migrations + seed + 23 scénarios RLS sur PostgreSQL (PGlite)
-npm run build && npm run test:e2e   # 23 scénarios navigateur (ordinateur + mobile, Playwright) ;
+npm run test:db   # migrations + seed + 41 contrôles (RLS, niveaux, certificats) sur PostgreSQL (PGlite)
+npm run build && npm run test:e2e   # 37 scénarios navigateur (ordinateur + mobile, Playwright) ;
                                     # avec Supabase configuré : parcours réels avec comptes
 npm run lint
 npm run build
@@ -121,7 +121,7 @@ npm run build
 
 L'intégration continue (`.github/workflows/ci.yml`) rejoue l'ensemble à chaque push, en mode démonstration **et** contre un Supabase réel démarré dans la CI.
 
-Documentation : [formation](docs/FORMATION.md) · [audit](docs/AUDIT.md) · [architecture](docs/ARCHITECTURE.md) · [plan d'exécution](docs/PLAN.md) · [critères d'acceptation](docs/CRITERES-ACCEPTATION.md) · [pseudocode](docs/PSEUDOCODE.md).
+Documentation : [multiniveaux](docs/MULTINIVEAUX.md) · [formation](docs/FORMATION.md) · [audit](docs/AUDIT.md) · [architecture](docs/ARCHITECTURE.md) · [plan d'exécution](docs/PLAN.md) · [critères d'acceptation](docs/CRITERES-ACCEPTATION.md) · [pseudocode](docs/PSEUDOCODE.md).
 
 ## Contribuer au contenu
 

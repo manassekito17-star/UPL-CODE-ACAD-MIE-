@@ -248,7 +248,7 @@ export function CodeWorkspace({
           mise à jour automatique
         </label>
       </div>
-      <WebPreview doc={previewDoc} onConsole={onPreviewConsole} className="min-h-[45dvh] w-full flex-1 rounded-md border border-white/10 bg-white lg:min-h-0" />
+      <WebPreview doc={previewDoc} onConsole={onPreviewConsole} className="min-h-[45dvh] w-full flex-1 rounded-md border border-white/10 bg-white lg:min-h-[22rem]" />
       <div>
         <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Console de la page</span>
         <pre className="mt-1 max-h-32 min-h-10 overflow-auto whitespace-pre-wrap rounded-md border border-white/10 bg-black/60 p-2 font-mono text-xs text-gray-100" aria-live="polite" data-testid="console-apercu">

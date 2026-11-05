@@ -28,21 +28,23 @@ test("l'équipe pédagogique définit un examen de niveau, ses critères et des 
   await page.getByRole("button", { name: "Enregistrer le test de positionnement" }).click();
   await expect(page.getByText("sans « @ niveau n »")).toBeVisible();
 
-  // Ressources de chapitre : lien https, fichier PDF, lien dangereux refusé
+  // Ressources de chapitre : lien https, fichier PDF, lien dangereux refusé (titres uniques : test rejouable)
+  const doc = `Documentation officielle ${Date.now()}`;
+  const fiche = `Fiche de cours PDF ${Date.now()}`;
   await page.goto("/admin/formations/java");
   await page.getByRole("link", { name: "Présentation de Java" }).first().click();
   const res = page.getByTestId("ressources-lecon");
-  await res.getByLabel("Titre").fill("Documentation officielle");
+  await res.getByLabel("Titre").fill(doc);
   await res.getByLabel("Adresse (https://…)").fill("https://docs.oracle.com/javase/tutorial/");
   await res.getByRole("button", { name: "Ajouter la ressource" }).click();
   await expect(res).toContainText("Ressource ajoutée.");
 
   await res.getByLabel("Type").selectOption("document");
-  await res.getByLabel("Titre").fill("Fiche de cours PDF");
+  await res.getByLabel("Titre").fill(fiche);
   await res.getByLabel("Adresse (https://…)").fill("");
   await res.getByLabel("… ou fichier (20 Mo max.)").setInputFiles({ name: "fiche.pdf", mimeType: "application/pdf", buffer: Buffer.from("%PDF-1.4\n%fiche de test\n") });
   await res.getByRole("button", { name: "Ajouter la ressource" }).click();
-  await expect(res.getByRole("link", { name: "Fiche de cours PDF" })).toBeVisible();
+  await expect(res.getByRole("link", { name: fiche })).toBeVisible();
 
   await res.getByLabel("Titre").fill("Lien piégé");
   await res.getByLabel("… ou fichier (20 Mo max.)").setInputFiles([]);
@@ -53,7 +55,7 @@ test("l'équipe pédagogique définit un examen de niveau, ses critères et des 
 
   await page.goto("/formations/java/presentation");
   const section = page.locator("section#ressources");
-  await expect(section.getByRole("link", { name: "Documentation officielle" })).toHaveAttribute("href", "https://docs.oracle.com/javase/tutorial/");
-  const pdfHref = await section.getByRole("link", { name: "Fiche de cours PDF" }).getAttribute("href");
+  await expect(section.getByRole("link", { name: doc })).toHaveAttribute("href", "https://docs.oracle.com/javase/tutorial/");
+  const pdfHref = await section.getByRole("link", { name: fiche }).getAttribute("href");
   expect((await page.request.get(pdfHref!)).status()).toBe(200);
 });
