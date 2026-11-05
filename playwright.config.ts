@@ -20,7 +20,8 @@ export default defineConfig({
   webServer: {
     command: "npx next start -p 3100",
     // Les tests créent plusieurs comptes depuis la même adresse IP.
-    env: { AUTH_RATE_LIMIT_PER_10MIN: "200" },
+    // Professeur IA de test (déterministe, aucune IA appelée) : vérifie le câblage du contexte.
+    env: { AUTH_RATE_LIMIT_PER_10MIN: "200", AI_PROVIDER: "test", UPL_ALLOW_TEST_AI: "true" },
     url: "http://localhost:3100",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

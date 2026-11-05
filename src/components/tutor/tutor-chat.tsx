@@ -5,10 +5,23 @@ import type { LanguageId, Level } from "@/content/types";
 import { Markdown } from "../learning/markdown";
 import { Button, cn } from "../ui";
 
-export type TutorMode = "question" | "expliquer_code" | "analyser_erreur" | "indice" | "generer_exercice" | "pseudocode_vs_code" | "preparer_evaluation";
+export type TutorMode =
+  | "question"
+  | "enseigner"
+  | "expliquer_code"
+  | "analyser_erreur"
+  | "indice"
+  | "interroger"
+  | "generer_exercice"
+  | "pseudocode_vs_code"
+  | "preparer_evaluation"
+  | "mentor_projet";
 
 export const TUTOR_MODES: Array<{ id: TutorMode; label: string; placeholder: string; needsCode?: boolean }> = [
   { id: "question", label: "Poser une question", placeholder: "Ex. : quelle est la différence entre TANT QUE et RÉPÉTER ?" },
+  { id: "enseigner", label: "M'enseigner une notion", placeholder: "Ex. : explique-moi les boucles POUR depuis le début" },
+  { id: "interroger", label: "M'interroger", placeholder: "Ex. : interroge-moi sur ce chapitre" },
+  { id: "mentor_projet", label: "Accompagner mon projet", placeholder: "Ex. : comment découper mon projet en étapes ?" },
   { id: "expliquer_code", label: "Expliquer mon code", placeholder: "Ex. : explique-moi ce programme ligne par ligne", needsCode: true },
   { id: "analyser_erreur", label: "Analyser une erreur", placeholder: "Ex. : pourquoi ai-je cette erreur ?", needsCode: true },
   { id: "indice", label: "Un indice", placeholder: "Ex. : je ne sais pas par où commencer" },
@@ -23,6 +36,8 @@ export interface TutorContext {
   output?: string;
   error?: string;
   exerciseSlug?: string;
+  courseSlug?: string;
+  lessonSlug?: string;
   lessonTitle?: string;
 }
 
@@ -33,6 +48,7 @@ interface Msg {
 
 export function TutorChat({
   getContext,
+  baseContext,
   compact = false,
   defaultMode = "question",
   modes,
@@ -40,6 +56,8 @@ export function TutorChat({
   intro,
 }: {
   getContext?: () => TutorContext;
+  /** Contexte fixe (sérialisable) : parcours, chapitre… */
+  baseContext?: TutorContext;
   compact?: boolean;
   defaultMode?: TutorMode;
   modes?: TutorMode[];
@@ -79,7 +97,7 @@ export function TutorChat({
     if (!message || loading) return;
     setError(null);
     setInput("");
-    const ctx = getContext?.() ?? {};
+    const ctx = { ...baseContext, ...(getContext?.() ?? {}) };
     const history = messages.slice(-10);
     setMessages((m) => [...m, { role: "user", content: message }, { role: "assistant", content: "" }]);
     setLoading(true);

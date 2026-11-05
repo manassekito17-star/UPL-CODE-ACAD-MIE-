@@ -4,7 +4,10 @@ import { checkAiQuota } from "@/lib/ai/quota";
 import { estimateCostUsd, type AiMessage, type AiUsage } from "@/lib/ai/types";
 import { jsonError, parseBody, sameOrigin } from "@/lib/api";
 import { getCurrentUser } from "@/lib/auth";
-import { getPublicExercise } from "@/lib/content/repository";
+import { buildCurriculumContext, vocabularyForLevel } from "@/lib/ai/curriculum";
+import { getCourse, getPublicExercise } from "@/lib/content/repository";
+import { currentLevel } from "@/lib/levels/rules";
+import { getLevelStates } from "@/lib/levels/server";
 import { isSupabaseConfigured } from "@/lib/env";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { serverEnv } from "@/lib/server-env";
@@ -39,7 +42,21 @@ export async function POST(request: Request) {
   if (!quota.ok) return jsonError(429, quota.reason ?? "Quota atteint.");
 
   const exercise = req.context.exerciseSlug ? await getPublicExercise(req.context.exerciseSlug) : null;
-  const userContent = buildUserMessage(req, exercise);
+  // Spécialisation : programme du parcours et niveau réel de l'étudiant, relus côté serveur.
+  const courseSlug = exercise?.courseSlug || req.context.courseSlug;
+  const course = courseSlug ? await getCourse(courseSlug) : null;
+  let curriculum: { text: string; vocabulary?: "debutant" | "intermediaire" | "avance" } | undefined;
+  if (course && (course.status === "publie" || user?.isAdmin || user?.isTeacher)) {
+    const states = await getLevelStates(user, course);
+    const placedOrValidated = states.some((s) => s.status === "valide" || s.status === "dispense");
+    const current = currentLevel(states);
+    curriculum = {
+      text: buildCurriculumContext(course, { lessonSlug: req.context.lessonSlug ?? exercise?.lessonSlug, states: user ? states : undefined, current: user ? current : undefined }),
+      // Le niveau mesuré (positionnement ou niveau validé) prime sur la préférence de l'interface.
+      vocabulary: placedOrValidated ? vocabularyForLevel(current) : undefined,
+    };
+  }
+  const userContent = buildUserMessage(req, exercise, curriculum);
 
   // Historique : lu en base si la conversation existe (on ne fait pas confiance au client).
   const db = user && hasAdminClient() ? createAdminClient() : null;
@@ -61,7 +78,11 @@ export async function POST(request: Request) {
     } else {
       const { data: conv } = await db
         .from("ai_conversations")
-        .insert({ user_id: user.id, title: req.message.slice(0, 80), context: { exerciseSlug: req.context.exerciseSlug ?? null, language: req.context.language ?? null } })
+        .insert({
+          user_id: user.id,
+          title: req.message.slice(0, 80),
+          context: { exerciseSlug: req.context.exerciseSlug ?? null, language: req.context.language ?? null, courseSlug: course?.slug ?? null, lessonSlug: req.context.lessonSlug ?? null },
+        })
         .select("id")
         .single();
       conversationId = conv?.id ?? null;

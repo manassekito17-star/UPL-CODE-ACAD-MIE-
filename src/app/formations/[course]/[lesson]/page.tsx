@@ -6,6 +6,7 @@ import { ExampleRunner } from "@/components/learning/example-runner";
 import { LessonTracker } from "@/components/learning/lesson-tracker";
 import { Markdown } from "@/components/learning/markdown";
 import { QuizBlock } from "@/components/learning/quiz-block";
+import { TutorChat } from "@/components/tutor/tutor-chat";
 import { Badge, ButtonLink, Card, Container } from "@/components/ui";
 import { formatDuration, LEVEL_TONES } from "@/components/ui/labels";
 import { LEVEL_LABELS } from "@/content/types";
@@ -136,6 +137,23 @@ export default async function LessonPage({ params }: PageProps<"/formations/[cou
           )}
           </>
         )}
+
+        <section id="professeur" className="scroll-mt-24 space-y-3">
+          <h2 className="text-xl font-bold text-nuit-900">Professeur IA du parcours {course.title}</h2>
+          {user ? (
+            <TutorChat
+              compact
+              defaultMode="enseigner"
+              modes={["enseigner", "question", "interroger", "generer_exercice", "preparer_evaluation", "mentor_projet"]}
+              baseContext={{ courseSlug: course.slug, lessonSlug: lesson.slug, lessonTitle: lesson.title, language: course.language }}
+              intro={`Je connais le programme de « ${course.title} » et votre niveau. Je peux vous réexpliquer « ${lesson.title} », vous interroger, vous proposer un exercice ou accompagner votre projet — sans faire le travail à votre place.`}
+            />
+          ) : (
+            <p className="text-sm text-gris-700">
+              <Link href={`/connexion?suite=/formations/${course.slug}/${lesson.slug}`} className="text-electrique-600 underline">Connectez-vous</Link> pour être accompagné par le professeur IA, spécialiste de ce parcours.
+            </p>
+          )}
+        </section>
 
         <footer className="flex flex-col gap-4 border-t border-gris-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
           <LessonTracker

@@ -47,7 +47,18 @@ export const programSchema = z.object({
   stdin: z.string().max(EXECUTION_LIMITS.maxStdinChars).default(""),
 });
 
-export const tutorModes = ["question", "expliquer_code", "analyser_erreur", "indice", "generer_exercice", "pseudocode_vs_code", "preparer_evaluation"] as const;
+export const tutorModes = [
+  "question",
+  "enseigner",
+  "expliquer_code",
+  "analyser_erreur",
+  "indice",
+  "interroger",
+  "generer_exercice",
+  "pseudocode_vs_code",
+  "preparer_evaluation",
+  "mentor_projet",
+] as const;
 
 export const tutorSchema = z.object({
   conversationId: z.string().uuid().optional(),
@@ -61,6 +72,9 @@ export const tutorSchema = z.object({
       output: z.string().max(5_000).optional(),
       error: z.string().max(5_000).optional(),
       exerciseSlug: z.string().regex(/^[a-z0-9-]{2,80}$/).optional(),
+      // Parcours et chapitre : le programme et le niveau réel sont relus côté serveur.
+      courseSlug: z.string().regex(/^[a-z0-9-]{2,80}$/).optional(),
+      lessonSlug: z.string().regex(/^[a-z0-9-]{2,80}$/).optional(),
       lessonTitle: z.string().max(200).optional(),
       hintLevel: z.number().int().min(1).max(5).optional(),
     })
