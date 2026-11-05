@@ -1,8 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import type { CommentedAlgorithm } from "@/content/types";
+import { buildPreviewDocument } from "@/lib/execution/web-document";
 import type { TraceStep } from "@/lib/pseudocode";
+import { WebPreview } from "../editor/web-preview";
 import { Button, cn } from "../ui";
 
 /**
@@ -16,14 +19,17 @@ export function CommentedAlgorithmView({
   trace,
   traceTruncated,
   traceOutput,
+  editorHref,
 }: {
   algo: CommentedAlgorithm;
   flowcharts: Array<{ title: string; svg: string }>;
   trace: TraceStep[];
   traceTruncated: boolean;
   traceOutput: string;
+  /** Ouvrir ce code dans UPL IDE (démonstration modifiable). */
+  editorHref?: string;
 }) {
-  const [view, setView] = useState<"commentaires" | "organigramme" | "trace">("commentaires");
+  const [view, setView] = useState<"commentaires" | "organigramme" | "trace" | "apercu">("commentaires");
   const lines = algo.code.split("\n");
   const varNames = [...new Set(trace.flatMap((s) => s.variables.map((v) => v.name)))];
 
@@ -31,10 +37,18 @@ export function CommentedAlgorithmView({
     <div className="overflow-hidden rounded-xl border border-gris-200 bg-white">
       <div className="flex flex-wrap items-center gap-2 border-b border-gris-100 bg-gris-50 px-4 py-2">
         <p className="mr-auto font-semibold text-nuit-900">{algo.title}</p>
+        {editorHref && (
+          <Link href={editorHref} className="text-xs font-medium text-electrique-600 hover:underline">
+            Ouvrir dans UPL IDE
+          </Link>
+        )}
         <div className="-mx-1 flex max-w-full gap-1 overflow-x-auto px-1 [&>button]:whitespace-nowrap" role="tablist" aria-label="Affichage">
           <Button size="sm" variant={view === "commentaires" ? "primaire" : "secondaire"} role="tab" aria-selected={view === "commentaires"} onClick={() => setView("commentaires")}>Ligne par ligne</Button>
           {algo.showFlowchart && flowcharts.length > 0 && (
             <Button size="sm" variant={view === "organigramme" ? "primaire" : "secondaire"} role="tab" aria-selected={view === "organigramme"} onClick={() => setView("organigramme")}>Organigramme</Button>
+          )}
+          {algo.showPreview && (
+            <Button size="sm" variant={view === "apercu" ? "primaire" : "secondaire"} role="tab" aria-selected={view === "apercu"} onClick={() => setView("apercu")}>Aperçu</Button>
           )}
           {algo.showTrace && trace.length > 0 && (
             <Button size="sm" variant={view === "trace" ? "primaire" : "secondaire"} role="tab" aria-selected={view === "trace"} onClick={() => setView("trace")}>Tableau de suivi</Button>
@@ -57,6 +71,13 @@ export function CommentedAlgorithmView({
             );
           })}
         </ol>
+      )}
+
+      {view === "apercu" && (
+        <div className="p-4">
+          <WebPreview doc={buildPreviewDocument([{ name: "index.html", content: algo.code }])} title={`Aperçu — ${algo.title}`} className="h-72 w-full rounded-md border border-gris-200 bg-white" />
+          <p className="mt-1 text-xs text-gris-500">Rendu réel du code ci-dessus, dans un cadre isolé.</p>
+        </div>
       )}
 
       {view === "organigramme" && (

@@ -2,7 +2,7 @@ import "server-only";
 
 import { cache } from "react";
 import { staticCourses, staticExercises } from "@/content";
-import type { Course, Exercise, Lesson, Module, PublicExercise, PublicQuiz, Quiz } from "@/content/types";
+import type { Course, Exercise, Lesson, LevelDefinition, LevelNumber, Module, PublicExercise, PublicQuiz, Quiz, WebCheck } from "@/content/types";
 import { isSupabaseConfigured } from "../env";
 import { createAdminClient, hasAdminClient } from "../supabase/admin";
 import { createClient } from "../supabase/server";
@@ -63,6 +63,7 @@ function mapQuiz(q: Row, questions: Row[], keys: Map<string, Row> | null): Quiz 
         choices: x.choices as string[],
         correct: ((keys?.get(x.id as string)?.correct as number[]) ?? []) as number[],
         explanation: (keys?.get(x.id as string)?.explanation as string) ?? undefined,
+        level: (x.level_number as LevelNumber | null) ?? undefined,
       })),
   };
 }
@@ -71,11 +72,12 @@ async function dbCourse(slug: string, withAnswers = false): Promise<Course | nul
   const supabase = await createClient();
   const { data: c } = await supabase.from("courses").select("*, course_categories(slug)").eq("slug", slug).maybeSingle();
   if (!c) return null;
-  const [{ data: modules }, { data: lessons }, { data: quizzes }, { data: exercises }] = await Promise.all([
+  const [{ data: modules }, { data: lessons }, { data: quizzes }, { data: exercises }, { data: levelRows }] = await Promise.all([
     supabase.from("modules").select("*").eq("course_id", c.id).order("position"),
     supabase.from("lessons").select("*").eq("course_id", c.id).order("position"),
     supabase.from("quizzes").select("*").eq("course_id", c.id),
     supabase.from("exercises").select("slug, lesson_id, status").eq("course_id", c.id).order("position"),
+    supabase.from("course_levels").select("*").eq("course_id", c.id).order("number"),
   ]);
   const quizIds = (quizzes ?? []).map((q) => q.id);
   const { data: questions } = quizIds.length
@@ -95,6 +97,7 @@ async function dbCourse(slug: string, withAnswers = false): Promise<Course | nul
     slug: m.slug,
     title: m.title,
     description: m.description ?? undefined,
+    level: (m.level_number as LevelNumber | null) ?? undefined,
     lessons: (lessons ?? [])
       .filter((l) => l.module_id === m.id)
       .map((l): Lesson => {
@@ -122,12 +125,29 @@ async function dbCourse(slug: string, withAnswers = false): Promise<Course | nul
           summary: l.summary ?? [],
           status: l.status,
           quiz: quizRow ? mapQuiz(quizRow, questions ?? [], keys) : undefined,
-          exerciseSlugs: (exercises ?? []).filter((e) => e.lesson_id === l.id && isVisible(e.status) && !pedagogy?.td?.exerciseSlugs.includes(e.slug)).map((e) => e.slug),
+          // Exercices d'application : ceux du chapitre, hors TD et hors projet (affichés dans leur propre section).
+          exerciseSlugs: (exercises ?? [])
+            .filter((e) => e.lesson_id === l.id && isVisible(e.status) && !pedagogy?.td?.exerciseSlugs.includes(e.slug) && pedagogy?.project?.exerciseSlug !== e.slug)
+            .map((e) => e.slug),
           pedagogy,
         };
       }),
   }));
   const finalRow = (quizzes ?? []).find((q) => q.is_final);
+  const placementRow = (quizzes ?? []).find((q) => q.kind === "positionnement");
+  const levels: LevelDefinition[] = (levelRows ?? []).map((lv) => {
+    const examRow = (quizzes ?? []).find((q) => q.kind === "examen_niveau" && q.level_number === lv.number);
+    return {
+      number: lv.number as LevelNumber,
+      title: lv.title,
+      description: lv.description ?? "",
+      objectives: lv.objectives ?? [],
+      moduleSlugs: mods.filter((m) => m.level === lv.number).map((m) => m.slug),
+      plannedChapters: lv.planned_chapters ?? [],
+      criteria: { chaptersValidatedPct: lv.chapters_validated_pct, examPassScore: lv.exam_pass_score },
+      exam: examRow ? mapQuiz(examRow, questions ?? [], keys) : undefined,
+    };
+  });
   return {
     id: c.id,
     slug: c.slug,
@@ -144,6 +164,8 @@ async function dbCourse(slug: string, withAnswers = false): Promise<Course | nul
     status: c.status,
     modules: mods,
     finalQuiz: finalRow ? mapQuiz(finalRow, questions ?? [], keys) : undefined,
+    levels,
+    placementTest: placementRow ? mapQuiz(placementRow, questions ?? [], keys) : undefined,
   };
 }
 
@@ -162,6 +184,8 @@ function mapExercise(e: Row, tests: Row[], solution: Row | null, courseSlug: str
     examples: (e.examples as Exercise["examples"]) ?? [],
     constraints: (e.constraints as string[]) ?? [],
     starterCode: (e.starter_code as string) ?? "",
+    starterFiles: (e.starter_files as Exercise["starterFiles"]) ?? undefined,
+    activeFile: (e.active_file as string) ?? undefined,
     hints: (e.hints as string[]) ?? [],
     tests: tests
       .sort((a, b) => (a.position as number) - (b.position as number))
@@ -171,6 +195,7 @@ function mapExercise(e: Row, tests: Row[], solution: Row | null, courseSlug: str
         expected: t.expected_output as string,
         hidden: t.is_hidden as boolean,
         weight: t.weight as number,
+        check: (t.check as WebCheck | null) ?? undefined,
       })),
     solution: (solution?.solution_code as string) ?? "",
     correction: (solution?.correction as string) ?? "",
@@ -372,6 +397,8 @@ export async function getQuizForGrading(slug: string): Promise<{ quiz: Quiz; cou
   if (contentSource() === "static") {
     for (const course of staticCourses) {
       if (course.finalQuiz?.slug === slug) return { quiz: course.finalQuiz, course };
+      const lq = courseLevelQuiz(course, slug);
+      if (lq) return { quiz: lq, course };
       for (const m of course.modules)
         for (const l of m.lessons) {
           for (const q of [l.quiz, l.pedagogy?.interrogation, l.pedagogy?.evaluation]) if (q?.slug === slug) return { quiz: q, course, lesson: l };
@@ -386,6 +413,8 @@ export async function getQuizForGrading(slug: string): Promise<{ quiz: Quiz; cou
   const course = await dbCourse((q.courses as { slug: string }).slug, true);
   if (!course) return null;
   if (q.is_final && course.finalQuiz) return { quiz: course.finalQuiz, course };
+  const lq = courseLevelQuiz(course, slug);
+  if (lq) return { quiz: lq, course };
   for (const m of course.modules)
     for (const l of m.lessons) {
       for (const qz of [l.quiz, l.pedagogy?.interrogation, l.pedagogy?.evaluation]) if (qz?.slug === slug) return { quiz: qz, course, lesson: l };
@@ -396,4 +425,11 @@ export async function getQuizForGrading(slug: string): Promise<{ quiz: Quiz; cou
 /** Quiz qui valide un chapitre : son évaluation, ou à défaut son quiz de vérification. */
 export function validatingQuizSlug(lesson: Lesson): string | null {
   return lesson.pedagogy?.evaluation?.slug ?? lesson.quiz?.slug ?? null;
+}
+
+/** Test de positionnement ou examen de niveau d'un parcours. */
+function courseLevelQuiz(course: Course, slug: string): Quiz | null {
+  if (course.placementTest?.slug === slug) return course.placementTest;
+  for (const lv of course.levels ?? []) if (lv.exam?.slug === slug) return lv.exam;
+  return null;
 }

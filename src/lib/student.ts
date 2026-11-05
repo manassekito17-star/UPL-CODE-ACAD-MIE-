@@ -54,7 +54,7 @@ export async function getDashboard(user: CurrentUser) {
       .order("created_at", { ascending: false })
       .limit(50),
     supabase.from("user_achievements").select("earned_at, achievements(code, title, description, icon)").eq("user_id", user.id),
-    supabase.from("certificates").select("verification_code, issued_at, score, courses(title)").eq("user_id", user.id),
+    supabase.from("certificates").select("verification_code, issued_at, score, level_number, courses(title)").eq("user_id", user.id),
     supabase.from("profiles").select("learning_goal, weekly_goal_minutes, level").eq("id", user.id).maybeSingle(),
     supabase.from("announcements").select("id, title, body, created_at, audience").order("created_at", { ascending: false }).limit(3),
   ]);
@@ -79,7 +79,7 @@ export async function getDashboard(user: CurrentUser) {
     solvedCount: solved.size,
     attemptsCount: subs.length,
     badges: (badges.data ?? []).map((b) => ({ ...(b.achievements as unknown as { code: string; title: string; description: string; icon: string }), at: b.earned_at })),
-    certificates: (certificates.data ?? []).map((c) => ({ code: c.verification_code, at: c.issued_at, score: c.score, course: (c.courses as unknown as { title: string }).title })),
+    certificates: (certificates.data ?? []).map((c) => ({ code: c.verification_code, at: c.issued_at, score: c.score, level: c.level_number as number | null, course: (c.courses as unknown as { title: string }).title })),
     profile: profile.data,
     announcements: (announcements.data ?? []).filter((a) => a.audience !== "enseignants" || user.isTeacher || user.isAdmin),
   };

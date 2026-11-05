@@ -67,6 +67,17 @@ describe("UPL ACADEMY multiniveaux", () => {
     }
   }
 
+  it("chaque exercice rattaché à un chapitre y est affiché (application, TD ou projet) : mêmes listes en base et en statique", () => {
+    for (const c of staticCourses) {
+      for (const l of c.modules.flatMap((m) => m.lessons)) {
+        const shown = new Set([...(l.exerciseSlugs ?? []), ...(l.pedagogy?.td?.exerciseSlugs ?? []), ...(l.pedagogy?.project?.exerciseSlug ? [l.pedagogy.project.exerciseSlug] : [])]);
+        for (const e of staticExercises.filter((x) => x.courseSlug === c.slug && x.lessonSlug === l.slug && x.status === "publie")) {
+          expect(shown.has(e.slug), `${c.slug}/${l.slug} : ${e.slug} rattaché mais non affiché`).toBe(true);
+        }
+      }
+    }
+  });
+
   it("le niveau recommandé est le premier niveau non acquis", () => {
     expect(recommendedLevel({ 1: { good: 1, total: 3 } })).toBe(1);
     expect(recommendedLevel({ 1: { good: 3, total: 3 }, 2: { good: 1, total: 3 } })).toBe(2);

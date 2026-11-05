@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { isSupabaseConfigured, publicEnv } from "../env";
 
 /** Chemins qui exigent une session (vérification « optimiste » ; le contrôle réel est fait côté serveur). */
-const PROTECTED_PREFIXES = ["/tableau-de-bord", "/progression", "/mes-programmes", "/profil", "/admin", "/professeur-ia"];
+const PROTECTED_PREFIXES = ["/tableau-de-bord", "/progression", "/bulletin", "/mes-programmes", "/profil", "/admin", "/professeur-ia"];
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });

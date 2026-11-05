@@ -6,7 +6,9 @@ import type { LanguageId } from "@/content/types";
 import { runProgram, warmupPython } from "@/lib/execution/browser";
 import { LANGUAGE_IDS, LANGUAGES } from "@/lib/execution/languages";
 import { STATUS_LABELS, type ExecutionResult, type SourceFile } from "@/lib/execution/types";
+import { buildPreviewDocument } from "@/lib/execution/web-document";
 import { Button, cn, inputClass } from "../ui";
+import { WebPreview, type PreviewConsoleLine } from "./web-preview";
 
 const CodeEditor = dynamic(() => import("./code-editor").then((m) => m.CodeEditor), {
   ssr: false,
@@ -43,6 +45,7 @@ export function CodeWorkspace({
   initialLanguage = "pseudocode",
   initialFiles,
   initialStdin = "",
+  initialActiveFile,
   languageLocked = false,
   instructions,
   toolbarExtra,
@@ -57,6 +60,8 @@ export function CodeWorkspace({
   initialLanguage?: LanguageId;
   initialFiles?: SourceFile[];
   initialStdin?: string;
+  /** Fichier ouvert au départ (ex. style.css pour un exercice CSS). */
+  initialActiveFile?: string;
   languageLocked?: boolean;
   instructions?: ReactNode;
   toolbarExtra?: (api: WorkspaceApi) => ReactNode;
@@ -70,12 +75,12 @@ export function CodeWorkspace({
   height?: string;
 }) {
   const defaultFiles = useCallback(
-    (lang: LanguageId): SourceFile[] => [{ name: LANGUAGES[lang].mainFile, content: LANGUAGES[lang].template }],
+    (lang: LanguageId): SourceFile[] => LANGUAGES[lang].defaultFiles?.map((f) => ({ ...f })) ?? [{ name: LANGUAGES[lang].mainFile, content: LANGUAGES[lang].template }],
     [],
   );
   const [language, setLanguage] = useState<LanguageId>(initialLanguage);
   const [files, setFiles] = useState<SourceFile[]>(initialFiles?.length ? initialFiles : defaultFiles(initialLanguage));
-  const [active, setActive] = useState(0);
+  const [active, setActive] = useState(() => Math.max(0, (initialFiles ?? []).findIndex((f) => f.name === initialActiveFile)));
   const [stdin, setStdin] = useState(initialStdin);
   const [result, setResult] = useState<ExecutionResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -123,6 +128,20 @@ export function CodeWorkspace({
 
   const lang = LANGUAGES[language];
   const current = files[Math.min(active, files.length - 1)];
+  // Projets web : aperçu en direct (mis à jour 600 ms après la dernière frappe).
+  const isWeb = Boolean(lang.preview);
+  const [previewDoc, setPreviewDoc] = useState(() => (isWeb ? buildPreviewDocument(files) : ""));
+  const [previewConsole, setPreviewConsole] = useState<PreviewConsoleLine[]>([]);
+  const [livePreview, setLivePreview] = useState(true);
+  useEffect(() => {
+    if (!isWeb || !livePreview) return;
+    const t = setTimeout(() => {
+      setPreviewConsole([]);
+      setPreviewDoc(buildPreviewDocument(files));
+    }, 600);
+    return () => clearTimeout(t);
+  }, [files, isWeb, livePreview]);
+  const onPreviewConsole = useCallback((l: PreviewConsoleLine) => setPreviewConsole((c) => [...c.slice(-199), l]), []);
 
   const updateContent = (v: string) => {
     setFiles((fs) => fs.map((f, i) => (i === active ? { ...f, content: v } : f)));
@@ -141,6 +160,12 @@ export function CodeWorkspace({
   };
 
   const run = async () => {
+    if (isWeb) {
+      setPreviewConsole([]);
+      setPreviewDoc(buildPreviewDocument(files));
+      setMobileTab("console");
+      return;
+    }
     setRunning(true);
     setError(null);
     setResult(null);
@@ -213,6 +238,32 @@ export function CodeWorkspace({
   };
 
   const api: WorkspaceApi = useMemo(() => ({ files, stdin, language, setResult, setMarkers }), [files, stdin, language]);
+
+  const previewBody = (
+    <div className="flex h-full min-h-0 flex-col gap-2">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Aperçu</span>
+        <label className="flex items-center gap-1.5 text-xs text-gray-300">
+          <input type="checkbox" checked={livePreview} onChange={(e) => setLivePreview(e.target.checked)} />
+          mise à jour automatique
+        </label>
+      </div>
+      <WebPreview doc={previewDoc} onConsole={onPreviewConsole} className="min-h-[45dvh] w-full flex-1 rounded-md border border-white/10 bg-white lg:min-h-0" />
+      <div>
+        <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Console de la page</span>
+        <pre className="mt-1 max-h-32 min-h-10 overflow-auto whitespace-pre-wrap rounded-md border border-white/10 bg-black/60 p-2 font-mono text-xs text-gray-100" aria-live="polite" data-testid="console-apercu">
+          {previewConsole.length === 0 && <span className="text-gray-500">Les messages de console.log() de script.js s&apos;afficheront ici.</span>}
+          {previewConsole.map((l, i) => (
+            <span key={i} className={cn("block", l.level === "error" && "text-red-300", l.level === "warn" && "text-amber-300")}>
+              {l.text}
+            </span>
+          ))}
+        </pre>
+      </div>
+      <p className="text-[11px] text-gray-500">Page affichée dans un cadre isolé : aucun accès au réseau, aux cookies ni à la plateforme.</p>
+      {belowConsole}
+    </div>
+  );
 
   const consoleBody = (
     <div className="flex h-full min-h-0 flex-col gap-3">
@@ -298,7 +349,7 @@ export function CodeWorkspace({
           </select>
         )}
         <Button size="sm" onClick={run} disabled={running} aria-keyshortcuts="Control+Enter">
-          {running ? "Exécution…" : "▶ Exécuter"}
+          {running ? "Exécution…" : isWeb ? "↻ Actualiser l'aperçu" : "▶ Exécuter"}
         </Button>
         <Button size="sm" variant="sombre" onClick={reset}>
           Réinitialiser
@@ -331,7 +382,7 @@ export function CodeWorkspace({
             onClick={() => setMobileTab(t)}
             className={cn("flex-1 py-2.5 text-sm font-medium capitalize", mobileTab === t ? "border-b-2 border-cyan-accent text-white" : "text-gray-400")}
           >
-            {t}
+            {t === "console" && isWeb ? "aperçu" : t}
           </button>
         ))}
       </div>
@@ -374,7 +425,7 @@ export function CodeWorkspace({
             <CodeEditor language={language} value={current?.content ?? ""} onChange={updateContent} markers={markers} path={`${language}/${current?.name}`} />
           </div>
         </div>
-        <div className={cn("min-h-0 overflow-auto border-white/10 p-3 lg:border-l", mobileTab !== "console" && "max-lg:hidden")}>{consoleBody}</div>
+        <div className={cn("min-h-0 overflow-auto border-white/10 p-3 lg:border-l", mobileTab !== "console" && "max-lg:hidden")}>{isWeb ? previewBody : consoleBody}</div>
       </div>
     </div>
   );

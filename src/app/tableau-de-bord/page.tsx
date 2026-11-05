@@ -135,11 +135,17 @@ export default async function DashboardPage({ searchParams }: PageProps<"/tablea
               <h2 className="mb-2 font-bold text-nuit-900">Certificats</h2>
               <ul className="space-y-2 text-sm">
                 {d.certificates.map((c) => (
-                  <li key={c.code}>🎓 {c.course} <span className="block text-xs text-gris-500">Code de vérification : {c.code}</span></li>
+                  <li key={c.code}>
+                    🎓 {c.course}
+                    {c.level ? ` — niveau ${c.level}` : ""}{" "}
+                    <a href={`/certificats/${c.code}`} className="text-electrique-600 hover:underline">vérifier</a>
+                    <span className="block text-xs text-gris-500">Certificat interne · code {c.code}</span>
+                  </li>
                 ))}
               </ul>
             </Card>
           )}
+          <ButtonLink href="/bulletin" className="w-full">Mon bulletin de progression</ButtonLink>
           <ButtonLink href="/progression" variant="secondaire" className="w-full">Voir mes statistiques détaillées</ButtonLink>
         </aside>
       </Container>

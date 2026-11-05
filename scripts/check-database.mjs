@@ -61,7 +61,7 @@ check("Réponses des quiz invisibles", (await as(A, "select * from public.quiz_a
 const hiddenVisible = (await as(A, "select * from public.exercise_test_cases where is_hidden")).rows.length;
 check("Tests cachés invisibles pour un étudiant", hiddenVisible === 0);
 check("Tests visibles lisibles", (await as(null, "select * from public.exercise_test_cases")).rows.length > 0);
-check("Cours publiés lisibles par un visiteur", (await as(null, "select * from public.courses")).rows.length === 5);
+check("Cours publiés lisibles par un visiteur", (await as(null, "select * from public.courses")).rows.length === 7);
 check("Bob ne voit pas le profil d'Alice", (await as(B, "select * from public.profiles where id = $1", [A])).rows.length === 0);
 denied = false; try { await as(A, "update public.profiles set status = 'actif', suspended_reason = 'x' where id = $1", [A]); } catch { denied = true; }
 check("Un étudiant ne peut pas modifier son statut", denied);
@@ -84,3 +84,36 @@ await db.exec("reset role; select set_config('request.jwt.claim.sub', '', false)
 check("Enseignant (contenus) voit les solutions", (await as(B, "select * from public.exercise_solutions")).rows.length > 0);
 check("Enseignant (contenus) ne voit pas les profils (pas de « suivi »)", (await as(B, "select * from public.profiles where id = $1", [A])).rows.length === 0);
 check("Enseignant ne lit pas les paramètres", (await as(B, "select * from public.platform_settings")).rows.length === 0);
+
+console.log("\nMultiniveaux :");
+const lv = (await db.query("select c.slug, count(cl.*)::int n from public.courses c left join public.course_levels cl on cl.course_id = c.id group by c.slug")).rows;
+check("Chaque parcours a quatre niveaux", lv.length === 7 && lv.every((r) => r.n === 4));
+check("Chaque module est rattaché à un niveau", (await db.query("select count(*)::int n from public.modules where level_number is null")).rows[0].n === 0);
+check("Aucun module vide hérité de l'ancienne organisation", (await db.query("select count(*)::int n from public.modules m where not exists (select 1 from public.lessons l where l.module_id = m.id)")).rows[0].n === 0);
+check("Un test de positionnement par parcours", (await db.query("select count(*)::int n from public.quizzes where kind = 'positionnement'")).rows[0].n === 7);
+check("Questions de positionnement étiquetées par niveau", (await db.query("select count(*)::int n from public.quiz_questions qq join public.quizzes q on q.id = qq.quiz_id where q.kind = 'positionnement' and qq.level_number is null")).rows[0].n === 0);
+check("Examens de niveau rattachés à un niveau", (await db.query("select count(*)::int n from public.quizzes where kind = 'examen_niveau' and level_number is not null")).rows[0].n >= 7);
+check("Vérifications web enregistrées", (await db.query(`select count(*)::int n from public.exercise_test_cases where "check" is not null`)).rows[0].n > 0);
+const course = (await db.query("select id from public.courses where slug = 'algorithmique'")).rows[0].id;
+denied = false; try { await as(A, "insert into public.level_progress (user_id, course_id, level_number, status) values ($1, $2, 1, 'valide')", [A, course]); } catch { denied = true; }
+check("Un étudiant ne peut pas valider lui-même un niveau", denied);
+denied = false; try { await as(A, "insert into public.placement_results (user_id, course_id, scores, recommended_level) values ($1, $2, '{}', 4)", [A, course]); } catch { denied = true; }
+check("Un étudiant ne peut pas écrire son résultat de positionnement", denied);
+denied = false; try { await as(A, "insert into public.certificates (user_id, course_id, level_number) values ($1, $2, 1)", [A, course]); } catch { denied = true; }
+check("Un étudiant ne peut pas s'attribuer un certificat", denied);
+await db.query("insert into public.level_progress (user_id, course_id, level_number, status, exam_score) values ($1, $2, 1, 'valide', 85)", [A, course]);
+await db.query("insert into public.certificates (user_id, course_id, level_number, score) values ($1, $2, 1, 85)", [A, course]);
+await db.query("insert into public.certificates (user_id, course_id, level_number, score) values ($1, $2, 2, 80)", [A, course]);
+denied = false; try { await db.query("insert into public.certificates (user_id, course_id, level_number) values ($1, $2, 1)", [A, course]); } catch { denied = true; }
+check("Un seul certificat par niveau", denied);
+await db.query("insert into public.certificates (user_id, course_id, level_number) values ($1, $2, null)", [A, course]);
+denied = false; try { await db.query("insert into public.certificates (user_id, course_id, level_number) values ($1, $2, null)", [A, course]); } catch { denied = true; }
+check("Un seul certificat de parcours complet", denied);
+check("Alice voit son niveau validé", (await as(A, "select * from public.level_progress")).rows.length === 1);
+check("Bob ne voit pas les niveaux d'Alice", (await as(B, "select * from public.level_progress where user_id = $1", [A])).rows.length === 0);
+const code = (await db.query("select verification_code from public.certificates where user_id = $1 and level_number = 1", [A])).rows[0].verification_code;
+const v = (await as(null, "select * from public.verify_certificate($1)", [code])).rows;
+check("Certificat vérifiable publiquement par son code", v.length === 1 && v[0].level_number === 1 && v[0].course_title.length > 0);
+check("La vérification ne révèle ni identifiant ni e-mail", v.length === 1 && !("user_id" in v[0]) && !("email" in v[0]));
+check("Code de certificat inconnu → aucun résultat", (await as(null, "select * from public.verify_certificate('deadbeefdeadbeef')")).rows.length === 0);
+check("Un visiteur ne lit pas la table des certificats", (await as(null, "select * from public.certificates")).rows.length === 0);

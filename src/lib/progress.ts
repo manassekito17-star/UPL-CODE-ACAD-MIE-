@@ -125,7 +125,7 @@ async function issueCertificate(userId: string, courseId: string) {
     if (!best) return;
     score = Number(best.score);
   }
-  await admin.from("certificates").upsert({ user_id: userId, course_id: courseId, score }, { onConflict: "user_id,course_id", ignoreDuplicates: true });
+  await admin.from("certificates").upsert({ user_id: userId, course_id: courseId, score }, { onConflict: "user_id,course_id,level_number", ignoreDuplicates: true });
 }
 
 export async function recordSubmission(user: CurrentUser, exercise: Exercise, files: SourceFile[], grade: GradeResult) {

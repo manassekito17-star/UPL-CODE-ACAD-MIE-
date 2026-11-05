@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { PublicQuiz } from "@/content/types";
+import { LEVEL_NAMES, type LevelNumber, type PublicQuiz } from "@/content/types";
 import { Button, Card, cn, Notice } from "../ui";
 
 interface Correction {
@@ -12,9 +12,23 @@ interface Correction {
   explanation: string | null;
 }
 
+interface QuizResult {
+  score: number;
+  passed: boolean;
+  passScore: number;
+  good: number;
+  total: number;
+  corrections: Correction[];
+  saved: boolean;
+  lessonCompleted?: boolean;
+  levelsValidated?: number[];
+  placement?: { recommended: LevelNumber; scores: Partial<Record<LevelNumber, { good: number; total: number }>> };
+}
+
 export function QuizBlock({ quiz }: { quiz: PublicQuiz }) {
   const [answers, setAnswers] = useState<Record<string, number[]>>({});
-  const [result, setResult] = useState<null | { score: number; passed: boolean; passScore: number; good: number; total: number; corrections: Correction[]; saved: boolean; lessonCompleted?: boolean }>(null);
+  const [result, setResult] = useState<null | QuizResult>(null);
+  const isPlacement = quiz.kind === "positionnement";
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -48,9 +62,9 @@ export function QuizBlock({ quiz }: { quiz: PublicQuiz }) {
     if (!res.ok) setError(data.error ?? "Correction impossible.");
     else {
       setResult(data);
-      if (quiz.kind === "evaluation" || data.lessonCompleted) router.refresh();
+      if (quiz.kind === "evaluation" || quiz.kind === "examen_niveau" || isPlacement || data.lessonCompleted) router.refresh();
     }
-  }, [quiz.slug, quiz.kind, router]);
+  }, [quiz.slug, quiz.kind, isPlacement, router]);
 
   // Compte à rebours de l'interrogation : envoi automatique à la fin du temps.
   useEffect(() => {
@@ -84,7 +98,7 @@ export function QuizBlock({ quiz }: { quiz: PublicQuiz }) {
       <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
         <h3 className="text-lg font-bold text-nuit-900">{quiz.title}</h3>
         <span className="text-sm text-gris-500">
-          {quiz.questions.length} question(s) · réussite à {quiz.passScore} %
+          {quiz.questions.length} question(s){isPlacement ? " · aucun minimum requis" : ` · réussite à ${quiz.passScore} %`}
           {timed && !result && (
             <span className={cn("ml-2 rounded-full px-2 py-0.5 font-mono font-semibold", remaining < 60 ? "bg-red-100 text-red-800" : "bg-electrique-100 text-electrique-600")} aria-live="polite">
               ⏱ {Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, "0")}
@@ -94,7 +108,8 @@ export function QuizBlock({ quiz }: { quiz: PublicQuiz }) {
       </div>
       <ol className="space-y-5">
         {quiz.questions.map((q, i) => {
-          const c = byId.get(q.id);
+          // Positionnement : pas de correction question par question (le test resterait sinon repassable à l'identique).
+          const c = isPlacement ? undefined : byId.get(q.id);
           const multiple = q.type === "choix_multiples";
           return (
             <li key={q.id}>
@@ -141,11 +156,26 @@ export function QuizBlock({ quiz }: { quiz: PublicQuiz }) {
           </Button>
         ) : (
           <>
-            <Notice tone={result.passed ? "succes" : "alerte"}>
-              Score : <strong>{result.score} %</strong> ({result.good}/{result.total}) — {result.passed ? "quiz réussi, bravo !" : `il faut ${result.passScore} % pour valider. Relisez la leçon et réessayez.`}
-              {!result.saved && " (résultat non enregistré : connectez-vous pour suivre votre progression)"}
-              {result.lessonCompleted && " · Chapitre validé ✓"}
-            </Notice>
+            {result.placement ? (
+              <Notice tone="info">
+                <span data-testid="placement-result">
+                  Niveau recommandé : <strong>Niveau {result.placement.recommended} — {LEVEL_NAMES[result.placement.recommended]}</strong>.{" "}
+                  {([1, 2, 3, 4] as LevelNumber[])
+                    .filter((n) => result.placement!.scores[n])
+                    .map((n) => `N${n} : ${result.placement!.scores[n]!.good}/${result.placement!.scores[n]!.total}`)
+                    .join(" · ")}
+                  {result.placement.recommended > 1 && result.saved && ` Les niveaux 1 à ${result.placement.recommended - 1} sont marqués « dispensés » ; leurs chapitres restent accessibles pour réviser.`}
+                  {!result.saved && " (résultat non enregistré : connectez-vous pour l'enregistrer)"}
+                </span>
+              </Notice>
+            ) : (
+              <Notice tone={result.passed ? "succes" : "alerte"}>
+                Score : <strong>{result.score} %</strong> ({result.good}/{result.total}) — {result.passed ? "réussi, bravo !" : `il faut ${result.passScore} % pour valider. Relisez le cours et réessayez.`}
+                {!result.saved && " (résultat non enregistré : connectez-vous pour suivre votre progression)"}
+                {result.lessonCompleted && " · Chapitre validé ✓"}
+                {result.levelsValidated?.length ? ` · Niveau ${result.levelsValidated.join(", ")} validé ✓ — certificat interne délivré` : ""}
+              </Notice>
+            )}
             <Button variant="secondaire" onClick={() => { setResult(null); setAnswers({}); setRemaining((quiz.durationMinutes ?? 0) * 60); setStarted(!timed); }}>
               Recommencer
             </Button>

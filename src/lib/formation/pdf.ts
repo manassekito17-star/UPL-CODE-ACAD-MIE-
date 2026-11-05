@@ -42,7 +42,7 @@ export function plain(md: string): string {
     .trim();
 }
 
-class Writer {
+export class Writer {
   page!: PDFPage;
   y = 0;
   pageNo = 0;
@@ -117,6 +117,24 @@ class Writer {
     this.y -= 6;
   }
 }
+
+/** Document A4 avec les polices DejaVu (accents et symboles) intégrées. */
+export async function newDocument() {
+  const doc = await PDFDocument.create();
+  doc.registerFontkit(fontkit);
+  const raw = await fonts();
+  const f = {
+    regular: await doc.embedFont(raw.regular, { subset: true }),
+    bold: await doc.embedFont(raw.bold, { subset: true }),
+    mono: await doc.embedFont(raw.mono, { subset: true }),
+  };
+  doc.setAuthor("UPL Code Academy");
+  doc.setLanguage("fr-FR");
+  doc.setCreator("UPL Code Academy");
+  return { doc, f };
+}
+
+export const PDF_COLORS = { NUIT, BLEU, GRIS, A4, M };
 
 export async function buildChapterSummaryPdf(course: Course, lesson: Lesson): Promise<Uint8Array> {
   const doc = await PDFDocument.create();

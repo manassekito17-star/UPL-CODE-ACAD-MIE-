@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useState } from "react";
 import type { CodeExample } from "@/content/types";
 import { runProgram } from "@/lib/execution/browser";
+import { buildPreviewDocument } from "@/lib/execution/web-document";
+import { WebPreview } from "../editor/web-preview";
 import { LANGUAGES } from "@/lib/execution/languages";
 import type { ExecutionResult } from "@/lib/execution/types";
 import { Button } from "../ui";
@@ -14,8 +16,14 @@ export function ExampleRunner({ example, editorHref }: { example: CodeExample; e
   const [error, setError] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const isWeb = Boolean(LANGUAGES[example.language].preview);
 
   const run = async () => {
+    if (isWeb) {
+      setPreview(preview ? null : buildPreviewDocument([{ name: "index.html", content: example.code }]));
+      return;
+    }
     setRunning(true);
     setError(null);
     const lang = LANGUAGES[example.language];
@@ -32,7 +40,7 @@ export function ExampleRunner({ example, editorHref }: { example: CodeExample; e
         <span className="mr-auto text-sm font-semibold text-white">{example.title}</span>
         <span className="text-xs text-gray-400">{LANGUAGES[example.language].shortLabel}</span>
         <Button size="sm" onClick={run} disabled={running}>
-          {running ? (status ?? "…") : "▶ Exécuter"}
+          {running ? (status ?? "…") : isWeb ? (preview ? "Masquer l'aperçu" : "👁 Aperçu") : "▶ Exécuter"}
         </Button>
         <Link href={editorHref} className="text-xs font-medium text-cyan-accent hover:underline">
           Ouvrir dans l&apos;éditeur
@@ -44,6 +52,7 @@ export function ExampleRunner({ example, editorHref }: { example: CodeExample; e
           Entrée : <span className="font-mono text-gray-200">{example.stdin.replace(/\n/g, " ⏎ ")}</span>
         </div>
       )}
+      {preview && <WebPreview doc={preview} className="h-64 w-full border-t border-white/10 bg-white" title={`Aperçu — ${example.title}`} />}
       {(result || error) && (
         <pre className="max-h-72 overflow-auto whitespace-pre-wrap border-t border-white/10 bg-black/60 p-4 font-mono text-[13px] text-gray-100" aria-live="polite">
           {error && <span className="text-red-300">{error}</span>}

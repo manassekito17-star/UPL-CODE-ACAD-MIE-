@@ -27,6 +27,7 @@ const SECTIONS = [
   ["corriges", "Exercices corrigés"],
   ["exercices", "Exercices"],
   ["td", "TD"],
+  ["projet", "Projet"],
   ["interrogation", "Interrogation"],
   ["evaluation", "Évaluation"],
   ["resume", "Résumé"],
@@ -75,6 +76,8 @@ export function ChapterSections({
   validated: boolean;
 }) {
   const p = lesson.pedagogy!;
+  const web = course.language === "html" || course.language === "css";
+  const pseudo = course.language === "pseudocode";
   const completeness = chapterCompleteness(lesson);
   const bySlug = new Map(exercises.map((e) => [e.slug, e]));
 
@@ -139,16 +142,34 @@ export function ChapterSections({
         <DefinitionsView definitions={p.definitions} />
       </Section>
 
-      <Section id="exemples" title="Exemples à exécuter">
+      <Section id="exemples" title={web ? "Exemples et démonstrations" : "Exemples à exécuter"} subtitle={web ? "Affichez l'aperçu ici, ou ouvrez l'exemple dans UPL IDE pour le modifier." : "Exécutez ici, ou ouvrez l'exemple dans UPL IDE pour le modifier."}>
         <div className="space-y-4">
           {lesson.examples.map((ex, i) => <ExampleRunner key={i} example={ex} editorHref={`/editeur?exemple=${course.slug}/${lesson.slug}/${i}`} />)}
         </div>
       </Section>
 
-      <Section id="algorithmes" title="Algorithmes commentés ligne par ligne" subtitle="Changez d'onglet pour voir l'organigramme et le tableau de suivi des variables, calculés par l'interpréteur.">
+      <Section
+        id="algorithmes"
+        title={pseudo ? "Algorithmes commentés ligne par ligne" : "Code commenté ligne par ligne"}
+        subtitle={
+          pseudo
+            ? "Changez d'onglet pour voir l'organigramme et le tableau de suivi des variables, calculés par l'interpréteur."
+            : web
+              ? "Changez d'onglet pour voir le rendu réel de la page."
+              : "Chaque ligne importante est expliquée."
+        }
+      >
         <div className="space-y-4">
-          {algos.map((a) => (
-            <CommentedAlgorithmView key={a.algo.title} algo={a.algo} flowcharts={a.flowcharts} trace={a.trace} traceTruncated={a.truncated} traceOutput={a.output} />
+          {algos.map((a, i) => (
+            <CommentedAlgorithmView
+              key={a.algo.title}
+              algo={a.algo}
+              flowcharts={a.flowcharts}
+              trace={a.trace}
+              traceTruncated={a.truncated}
+              traceOutput={a.output}
+              editorHref={`/editeur?algorithme=${course.slug}/${lesson.slug}/${i}`}
+            />
           ))}
         </div>
       </Section>
@@ -171,6 +192,38 @@ export function ChapterSections({
         <Section id="td" title={p.td.title}>
           <Markdown className="text-sm">{p.td.instructions}</Markdown>
           <div className="grid gap-3 sm:grid-cols-2">{p.td.exerciseSlugs.map(exerciseCard)}</div>
+        </Section>
+      )}
+
+      {p.project && (
+        <Section id="projet" title={`Projet pratique — ${p.project.title}`} subtitle="Mettez en œuvre le chapitre dans une situation réaliste, étape par étape.">
+          <Card className="space-y-4 p-5">
+            <Markdown className="text-sm">{p.project.context}</Markdown>
+            <div>
+              <h3 className="text-sm font-bold uppercase tracking-wide text-electrique-600">Étapes</h3>
+              <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-gris-700">
+                {p.project.steps.map((st) => (
+                  <li key={st}>{st}</li>
+                ))}
+              </ol>
+            </div>
+            {p.project.deliverables.length > 0 && (
+              <div>
+                <h3 className="text-sm font-bold uppercase tracking-wide text-electrique-600">À rendre</h3>
+                <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-gris-700">
+                  {p.project.deliverables.map((d) => (
+                    <li key={d}>{d}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {p.project.exerciseSlug && (
+              <div>
+                <p className="mb-2 text-sm text-gris-700">Le rendu final est vérifié automatiquement :</p>
+                <div className="grid gap-3 sm:grid-cols-2">{exerciseCard(p.project.exerciseSlug)}</div>
+              </div>
+            )}
+          </Card>
         </Section>
       )}
 

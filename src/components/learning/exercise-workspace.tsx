@@ -14,6 +14,7 @@ import { Markdown } from "./markdown";
 
 interface TestOutcome {
   index: number;
+  description?: string;
   hidden: boolean;
   passed: boolean;
   input?: string;
@@ -48,7 +49,10 @@ export function ExerciseWorkspace({ exercise, loggedIn, authRequired }: { exerci
   const [hintsShown, setHintsShown] = useState(0);
   const [showSolution, setShowSolution] = useState(false);
 
-  const initialFiles: SourceFile[] = [{ name: LANGUAGES[exercise.language].mainFile, content: exercise.starterCode || LANGUAGES[exercise.language].exerciseTemplate }];
+  const isWeb = Boolean(LANGUAGES[exercise.language].preview);
+  const initialFiles: SourceFile[] = exercise.starterFiles?.length
+    ? exercise.starterFiles.map((f) => ({ ...f }))
+    : [{ name: LANGUAGES[exercise.language].mainFile, content: exercise.starterCode || LANGUAGES[exercise.language].exerciseTemplate }];
 
   const localCheck = async (files: SourceFile[]): Promise<GradeResponse> => {
     const tests: TestOutcome[] = [];
@@ -155,7 +159,9 @@ export function ExerciseWorkspace({ exercise, loggedIn, authRequired }: { exerci
         )}
       </div>
       <p className="text-xs text-gris-500">
-        {exercise.tests.length} test(s) visible(s){exercise.hiddenTestCount > 0 && ` et ${exercise.hiddenTestCount} test(s) caché(s)`} vérifient votre programme.
+        {exercise.tests.length} {isWeb ? "vérification(s) visible(s)" : "test(s) visible(s)"}
+        {exercise.hiddenTestCount > 0 && ` et ${exercise.hiddenTestCount} ${isWeb ? "vérification(s) cachée(s)" : "test(s) caché(s)"}`}{" "}
+        {isWeb ? "contrôlent la structure de votre page (le JavaScript n'est jamais exécuté par le correcteur)." : "vérifient votre programme."}
       </p>
     </div>
   );
@@ -181,9 +187,10 @@ export function ExerciseWorkspace({ exercise, loggedIn, authRequired }: { exerci
             {grade.tests.map((t) => (
               <li key={t.index} className={cn("rounded-md border p-3 text-sm", t.passed ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50")}>
                 <p className="font-semibold">
-                  {t.passed ? "✓" : "✗"} Test {t.index} {t.hidden && "(caché)"}
+                  {t.passed ? "✓" : "✗"} {isWeb && t.description ? t.description : `Test ${t.index}`} {t.hidden && "(caché)"}
                 </p>
-                {!t.passed && !t.hidden && (
+                {isWeb && !t.passed && !t.hidden && t.error && <p className="mt-1 text-xs">{t.error}</p>}
+                {!isWeb && !t.passed && !t.hidden && (
                   <div className="mt-2 grid gap-2 text-xs sm:grid-cols-3">
                     <div>
                       <p className="font-semibold text-gris-500">Entrée</p>
@@ -240,6 +247,7 @@ export function ExerciseWorkspace({ exercise, loggedIn, authRequired }: { exerci
         <CodeWorkspace
           initialLanguage={exercise.language}
           initialFiles={initialFiles}
+          initialActiveFile={exercise.activeFile}
           initialStdin={exercise.tests[0]?.input ?? ""}
           languageLocked
           storageKey={`exercice:${exercise.slug}`}
@@ -275,7 +283,13 @@ export function ExerciseWorkspace({ exercise, loggedIn, authRequired }: { exerci
               language: exercise.language,
               exerciseSlug: exercise.slug,
               code: api?.files.map((f) => (api.files.length > 1 ? `# ${f.name}\n${f.content}` : f.content)).join("\n\n"),
-              error: grade?.compileError ?? (failed ? `Test échoué. Entrée : ${failed.input}\nAttendu : ${failed.expected}\nObtenu : ${failed.error ?? failed.got}` : undefined),
+              error:
+                grade?.compileError ??
+                (failed
+                  ? isWeb
+                    ? `Vérification échouée : ${failed.description ?? ""} (${failed.error ?? ""})`
+                    : `Test échoué. Entrée : ${failed.input}\nAttendu : ${failed.expected}\nObtenu : ${failed.error ?? failed.got}`
+                  : undefined),
             };
           }}
         />

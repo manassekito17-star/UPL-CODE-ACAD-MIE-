@@ -14,6 +14,7 @@ export class ExecutionUnavailableError extends Error {
 
 /** Exécute un programme côté serveur (interpréteur pour le pseudocode, Judge0 pour les autres). */
 export async function executeOnServer(req: ExecutionRequest, limits: { cpuTimeLimitSeconds?: number; memoryLimitKb?: number } = {}): Promise<ExecutionResult> {
+  if (LANGUAGES[req.language].preview) throw new Error("Les projets web ne s'exécutent pas sur le serveur.");
   if (req.language === "pseudocode") {
     const started = performance.now();
     // L'interpréteur ne fait aucun appel système : il ne lit et n'écrit que

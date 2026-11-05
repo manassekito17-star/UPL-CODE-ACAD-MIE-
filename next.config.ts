@@ -11,6 +11,8 @@ const nextConfig: NextConfig = {
   // Polices embarquées dans les résumés PDF (lues à l'exécution).
   outputFileTracingIncludes: {
     "/formations/[course]/[lesson]/resume": ["./assets/fonts/**"],
+    "/bulletin/pdf": ["./assets/fonts/**"],
+    "/certificats/[code]/pdf": ["./assets/fonts/**"],
   },
   turbopack: {
     rules: {
