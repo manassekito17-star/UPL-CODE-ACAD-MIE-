@@ -30,6 +30,8 @@ export interface QuizQuestion {
   explanation?: string;
 }
 
+export type QuizKind = "verification" | "interrogation" | "evaluation";
+
 export interface Quiz {
   /** Identifiant en base (absent pour le contenu statique). */
   id?: string;
@@ -37,7 +39,70 @@ export interface Quiz {
   title: string;
   passScore: number;
   isFinal?: boolean;
+  /** verification (quiz de leçon), interrogation (minutée), evaluation (validation du chapitre). */
+  kind?: QuizKind;
+  /** Durée conseillée / limite pour une interrogation, en minutes. */
+  durationMinutes?: number;
   questions: QuizQuestion[];
+}
+
+export interface Definition {
+  term: string;
+  definition: string;
+}
+
+/** Algorithme commenté ligne par ligne : clé = numéro de ligne (1 = première ligne). */
+export interface CommentedAlgorithm {
+  title: string;
+  code: string;
+  stdin?: string;
+  comments: Record<number, string>;
+  /** Afficher le tableau de suivi des variables (trace). */
+  showTrace?: boolean;
+  /** Afficher l'organigramme généré. */
+  showFlowchart?: boolean;
+}
+
+export interface CommonError {
+  title: string;
+  wrong: string;
+  right: string;
+  explanation: string;
+  /** La version fautive est un programme complet : on affiche le résultat réel de l'interpréteur. */
+  run?: boolean;
+  /** Entrées fournies lors de l'exécution des deux versions. */
+  stdin?: string;
+}
+
+/** Exercice corrigé : la correction est consultable après réflexion. */
+export interface SolvedExercise {
+  title: string;
+  statement: string;
+  solution: string;
+  explanation: string;
+  stdin?: string;
+}
+
+/** Travaux dirigés : série d'exercices notés (correction après réussite). */
+export interface TutorialSession {
+  title: string;
+  instructions: string;
+  exerciseSlugs: string[];
+}
+
+/**
+ * Structure pédagogique complète d'un chapitre de la Formation
+ * (objectifs et cours dans Lesson ; le reste ici).
+ */
+export interface ChapterPedagogy {
+  competences: string[];
+  definitions: Definition[];
+  commentedAlgorithms: CommentedAlgorithm[];
+  commonErrors: CommonError[];
+  solvedExercises: SolvedExercise[];
+  td?: TutorialSession;
+  interrogation?: Quiz;
+  evaluation?: Quiz;
 }
 
 export interface Lesson {
@@ -55,6 +120,8 @@ export interface Lesson {
   quiz?: Quiz;
   exerciseSlugs?: string[];
   status: ContentStatus;
+  /** Structure pédagogique détaillée (chapitres de la Formation). */
+  pedagogy?: ChapterPedagogy;
 }
 
 export interface Module {

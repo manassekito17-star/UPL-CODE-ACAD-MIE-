@@ -8,6 +8,10 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Polices embarquées dans les résumés PDF (lues à l'exécution).
+  outputFileTracingIncludes: {
+    "/formations/[course]/[lesson]/resume": ["./assets/fonts/**"],
+  },
   turbopack: {
     rules: {
       "*.css": {

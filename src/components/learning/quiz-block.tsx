@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { PublicQuiz } from "@/content/types";
 import { Button, Card, cn, Notice } from "../ui";
 
@@ -13,9 +14,17 @@ interface Correction {
 
 export function QuizBlock({ quiz }: { quiz: PublicQuiz }) {
   const [answers, setAnswers] = useState<Record<string, number[]>>({});
-  const [result, setResult] = useState<null | { score: number; passed: boolean; passScore: number; good: number; total: number; corrections: Correction[]; saved: boolean }>(null);
+  const [result, setResult] = useState<null | { score: number; passed: boolean; passScore: number; good: number; total: number; corrections: Correction[]; saved: boolean; lessonCompleted?: boolean }>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+  const timed = quiz.kind === "interrogation" && Boolean(quiz.durationMinutes);
+  const [started, setStarted] = useState(!timed);
+  const [remaining, setRemaining] = useState((quiz.durationMinutes ?? 0) * 60);
+  const answersRef = useRef(answers);
+  useEffect(() => {
+    answersRef.current = answers;
+  }, [answers]);
 
   const toggle = (qid: string, idx: number, multiple: boolean) => {
     if (result) return;
@@ -26,22 +35,49 @@ export function QuizBlock({ quiz }: { quiz: PublicQuiz }) {
     });
   };
 
-  const submit = async () => {
+  const submit = useCallback(async () => {
     setLoading(true);
     setError(null);
     const res = await fetch(`/api/quiz/${quiz.slug}/submit`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ answers }),
+      body: JSON.stringify({ answers: answersRef.current }),
     });
     const data = await res.json().catch(() => ({}));
     setLoading(false);
     if (!res.ok) setError(data.error ?? "Correction impossible.");
-    else setResult(data);
-  };
+    else {
+      setResult(data);
+      if (quiz.kind === "evaluation" || data.lessonCompleted) router.refresh();
+    }
+  }, [quiz.slug, quiz.kind, router]);
+
+  // Compte à rebours de l'interrogation : envoi automatique à la fin du temps.
+  useEffect(() => {
+    if (!timed || !started || result || loading) return;
+    const t = setTimeout(() => {
+      if (remaining <= 1) {
+        setRemaining(0);
+        submit();
+      } else setRemaining((r) => r - 1);
+    }, 1000);
+    return () => clearTimeout(t);
+  }, [timed, started, remaining, result, loading, submit]);
 
   const byId = new Map(result?.corrections.map((c) => [c.id, c]));
   const answered = quiz.questions.every((q) => (answers[q.id] ?? []).length > 0);
+
+  if (!started) {
+    return (
+      <Card className="p-5">
+        <h3 className="text-lg font-bold text-nuit-900">{quiz.title}</h3>
+        <p className="mt-2 text-sm text-gris-700">
+          {quiz.questions.length} questions · {quiz.durationMinutes} minutes · réussite à {quiz.passScore} %. Le chronomètre démarre quand vous cliquez ; vos réponses sont envoyées automatiquement à la fin du temps.
+        </p>
+        <Button className="mt-4" onClick={() => setStarted(true)}>Commencer l&apos;interrogation</Button>
+      </Card>
+    );
+  }
 
   return (
     <Card className="p-5">
@@ -49,6 +85,11 @@ export function QuizBlock({ quiz }: { quiz: PublicQuiz }) {
         <h3 className="text-lg font-bold text-nuit-900">{quiz.title}</h3>
         <span className="text-sm text-gris-500">
           {quiz.questions.length} question(s) · réussite à {quiz.passScore} %
+          {timed && !result && (
+            <span className={cn("ml-2 rounded-full px-2 py-0.5 font-mono font-semibold", remaining < 60 ? "bg-red-100 text-red-800" : "bg-electrique-100 text-electrique-600")} aria-live="polite">
+              ⏱ {Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, "0")}
+            </span>
+          )}
         </span>
       </div>
       <ol className="space-y-5">
@@ -103,8 +144,9 @@ export function QuizBlock({ quiz }: { quiz: PublicQuiz }) {
             <Notice tone={result.passed ? "succes" : "alerte"}>
               Score : <strong>{result.score} %</strong> ({result.good}/{result.total}) — {result.passed ? "quiz réussi, bravo !" : `il faut ${result.passScore} % pour valider. Relisez la leçon et réessayez.`}
               {!result.saved && " (résultat non enregistré : connectez-vous pour suivre votre progression)"}
+              {result.lessonCompleted && " · Chapitre validé ✓"}
             </Notice>
-            <Button variant="secondaire" onClick={() => { setResult(null); setAnswers({}); }}>
+            <Button variant="secondaire" onClick={() => { setResult(null); setAnswers({}); setRemaining((quiz.durationMinutes ?? 0) * 60); setStarted(!timed); }}>
               Recommencer
             </Button>
           </>

@@ -22,7 +22,7 @@ export default async function HomePage() {
         <Container className="relative grid gap-10 py-16 sm:py-24 lg:grid-cols-2 lg:items-center">
           <div>
             <p className="mb-4 inline-block rounded-full border border-cyan-accent/40 bg-cyan-accent/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-cyan-accent">
-              Académie numérique de formation informatique
+              LEARN. CODE. PRACTICE. MASTER.
             </p>
             <h1 className="text-4xl font-extrabold leading-tight sm:text-5xl">
               Apprendre à programmer, <span className="bg-gradient-to-r from-electrique-400 to-cyan-accent bg-clip-text text-transparent">de la théorie à la pratique.</span>
@@ -31,8 +31,8 @@ export default async function HomePage() {
               UPL Code Academy réunit cours, éditeur de code, exercices corrigés automatiquement et professeur IA pour développer votre logique et maîtriser l&apos;algorithmique, Python, le C, JavaScript et Java.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <ButtonLink href={user ? "/tableau-de-bord" : "/formations/algorithmique"} size="lg">
-                {user ? "Reprendre ma formation" : "Commencer par l'algorithmique"}
+              <ButtonLink href={user ? "/tableau-de-bord" : "/formation"} size="lg">
+                {user ? "Reprendre ma formation" : "Commencer la formation"}
               </ButtonLink>
               <ButtonLink href="/editeur" size="lg" variant="clair">
                 Ouvrir l&apos;éditeur

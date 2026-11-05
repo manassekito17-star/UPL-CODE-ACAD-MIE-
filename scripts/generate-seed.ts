@@ -33,21 +33,26 @@ on conflict (course_id, slug) do update set title = excluded.title, description 
     );
     const mod = `(select id from public.modules where course_id = ${course} and slug = ${q(m.slug)})`;
     m.lessons.forEach((l, li) => {
+      // La structure pédagogique est stockée sans les quiz (qui ont leurs propres tables).
+      const pedagogy = l.pedagogy ? (({ interrogation: _i, evaluation: _e, ...rest }) => (void _i, void _e, rest))(l.pedagogy) : null;
       out.push(
-        `insert into public.lessons (module_id, course_id, slug, title, level, duration_minutes, objectives, prerequisites, content, summary, examples, status, position, validated_at)
-values (${mod}, ${course}, ${q(l.slug)}, ${q(l.title)}, ${q(l.level)}, ${l.durationMinutes}, ${arr(l.objectives)}, ${arr(l.prerequisites)}, ${q(l.content)}, ${arr(l.summary)}, ${json(l.examples)}, ${q(l.status)}, ${li + 1}, ${l.status === "publie" ? "now()" : "null"})
-on conflict (course_id, slug) do update set module_id = excluded.module_id, title = excluded.title, level = excluded.level, duration_minutes = excluded.duration_minutes, objectives = excluded.objectives, prerequisites = excluded.prerequisites, content = excluded.content, summary = excluded.summary, examples = excluded.examples, status = excluded.status, position = excluded.position;`,
+        `insert into public.lessons (module_id, course_id, slug, title, level, duration_minutes, objectives, prerequisites, content, summary, examples, pedagogy, status, position, validated_at)
+values (${mod}, ${course}, ${q(l.slug)}, ${q(l.title)}, ${q(l.level)}, ${l.durationMinutes}, ${arr(l.objectives)}, ${arr(l.prerequisites)}, ${q(l.content)}, ${arr(l.summary)}, ${json(l.examples)}, ${pedagogy ? json(pedagogy) : "null"}, ${q(l.status)}, ${li + 1}, ${l.status === "publie" ? "now()" : "null"})
+on conflict (course_id, slug) do update set module_id = excluded.module_id, title = excluded.title, level = excluded.level, duration_minutes = excluded.duration_minutes, objectives = excluded.objectives, prerequisites = excluded.prerequisites, content = excluded.content, summary = excluded.summary, examples = excluded.examples, pedagogy = excluded.pedagogy, status = excluded.status, position = excluded.position;`,
       );
-      if (l.quiz) quizSql(l.quiz, course, `(select id from public.lessons where course_id = ${course} and slug = ${q(l.slug)})`, false);
+      const lessonRef = `(select id from public.lessons where course_id = ${course} and slug = ${q(l.slug)})`;
+      if (l.quiz) quizSql(l.quiz, course, lessonRef, false, "verification");
+      if (l.pedagogy?.interrogation) quizSql(l.pedagogy.interrogation, course, lessonRef, false, "interrogation");
+      if (l.pedagogy?.evaluation) quizSql(l.pedagogy.evaluation, course, lessonRef, false, "evaluation");
     });
   });
-  if (c.finalQuiz) quizSql(c.finalQuiz, course, "null", true);
+  if (c.finalQuiz) quizSql(c.finalQuiz, course, "null", true, "verification");
 });
 
-function quizSql(quiz: NonNullable<(typeof staticCourses)[number]["finalQuiz"]>, course: string, lesson: string, isFinal: boolean) {
+function quizSql(quiz: NonNullable<(typeof staticCourses)[number]["finalQuiz"]>, course: string, lesson: string, isFinal: boolean, kind: string) {
   out.push(
-    `insert into public.quizzes (course_id, lesson_id, slug, title, is_final, pass_score, status) values (${course}, ${lesson}, ${q(quiz.slug)}, ${q(quiz.title)}, ${isFinal}, ${quiz.passScore}, 'publie')
-on conflict (slug) do update set title = excluded.title, is_final = excluded.is_final, pass_score = excluded.pass_score, lesson_id = excluded.lesson_id;`,
+    `insert into public.quizzes (course_id, lesson_id, slug, title, is_final, pass_score, status, kind, duration_minutes) values (${course}, ${lesson}, ${q(quiz.slug)}, ${q(quiz.title)}, ${isFinal}, ${quiz.passScore}, 'publie', ${q(kind)}, ${quiz.durationMinutes ?? "null"})
+on conflict (slug) do update set title = excluded.title, is_final = excluded.is_final, pass_score = excluded.pass_score, lesson_id = excluded.lesson_id, kind = excluded.kind, duration_minutes = excluded.duration_minutes;`,
     `delete from public.quiz_questions where quiz_id = (select id from public.quizzes where slug = ${q(quiz.slug)});`,
   );
   quiz.questions.forEach((qq, i) => {

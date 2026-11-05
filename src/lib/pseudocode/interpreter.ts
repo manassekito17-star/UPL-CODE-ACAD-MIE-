@@ -44,6 +44,25 @@ export const DEFAULT_LIMITS: RunLimits = {
   maxOutput: 100_000,
 };
 
+export interface TraceVariable {
+  name: string;
+  type: string;
+  value: string;
+}
+
+/** État de l'algorithme juste AVANT l'exécution de l'instruction de la ligne indiquée. */
+export interface TraceStep {
+  index: number;
+  line: number;
+  kind: Stmt["kind"] | "fin";
+  /** Pile d'appels, du programme principal à la routine courante. */
+  stack: string[];
+  /** Variables visibles : locales de la routine courante puis globales. */
+  variables: TraceVariable[];
+  /** Sortie produite jusqu'ici. */
+  output: string;
+}
+
 export interface RunResult {
   ok: boolean;
   stdout: string;
@@ -92,6 +111,9 @@ class Interpreter {
   private routines = new Map<string, Routine>();
   private inputTokens: string[];
   private inputPos = 0;
+
+  private stack: string[] = ["Programme principal"];
+  tracer: ((step: Omit<TraceStep, "index">) => void) | null = null;
 
   constructor(
     private program: Program & { implicitVars: boolean },
@@ -305,8 +327,38 @@ class Interpreter {
     for (const s of stmts) this.exec(s);
   }
 
+  /** Photographie des variables visibles (pour la trace et le laboratoire). */
+  snapshot(): TraceVariable[] {
+    const out: TraceVariable[] = [];
+    const describeType = (t: TypeSpec | null, v: Value | undefined) => {
+      if (t?.isArray || (v && typeof v === "object")) return `TABLEAU DE ${t?.base ?? (v as ArrayValue).base}`;
+      return t?.base ?? (v === undefined ? "?" : typeName(v));
+    };
+    const add = (frame: Frame, seen: Set<string>) => {
+      for (const [name, entry] of frame.vars) {
+        if (seen.has(name)) continue;
+        seen.add(name);
+        if ("ref" in entry) {
+          const v = entry.ref.get();
+          out.push({ name: entry.ref.display, type: `${describeType(entry.ref.type, v)} (réf.)`, value: v === undefined ? "?" : formatValue(v) });
+        } else {
+          out.push({ name: entry.display + (entry.isConst ? " (const.)" : ""), type: describeType(entry.type, entry.value), value: entry.value === undefined ? "?" : formatValue(entry.value) });
+        }
+      }
+    };
+    const seen = new Set<string>();
+    add(this.frame, seen);
+    if (this.frame !== this.globals) add(this.globals, seen);
+    return out;
+  }
+
+  traceEnd(line: number) {
+    this.tracer?.({ line, kind: "fin", stack: [...this.stack], variables: this.snapshot(), output: this.stdout });
+  }
+
   private exec(s: Stmt) {
     this.tick(s.line);
+    this.tracer?.({ line: s.line, kind: s.kind, stack: [...this.stack], variables: this.snapshot(), output: this.stdout });
     switch (s.kind) {
       case "assign": {
         const ref = this.lvalueRef(s.target);
@@ -499,6 +551,7 @@ class Interpreter {
     const saved = this.frame;
     this.frame = frame;
     this.depth++;
+    this.stack.push(`${routine.display}(${routine.params.map((p) => p.display).join(", ")})`);
     try {
       for (const c of routine.consts) this.declareConst(frame, c.name, c.display, c.value, c.type, c.line);
       for (const v of routine.vars) this.declareVar(frame, v.name, v.display, v.type, v.line);
@@ -515,6 +568,7 @@ class Interpreter {
     } finally {
       this.frame = saved;
       this.depth--;
+      this.stack.pop();
     }
     if (routine.kind === "fonction") {
       throw new PseudoError(
@@ -797,6 +851,50 @@ export function runPseudocode(source: string, stdin = "", limits: Partial<RunLim
     }
     return { ok: false, stdout, steps, error: { kind: "execution", message: `Erreur interne : ${(e as Error).message}`, line: 0 } };
   }
+}
+
+export interface TraceResult extends RunResult {
+  trace: TraceStep[];
+  truncated: boolean;
+}
+
+/**
+ * Exécute l'algorithme en enregistrant l'état avant chaque instruction
+ * (tableau de suivi des variables, exécution pas à pas).
+ */
+export function traceExecution(source: string, stdin = "", maxSteps = 5000, limits: Partial<RunLimits> = {}): TraceResult {
+  const trace: TraceStep[] = [];
+  let truncated = false;
+  let interp: Interpreter | null = null;
+  const lastLine = source.replace(/\r\n?/g, "\n").split("\n").length;
+  try {
+    const program = parse(source);
+    interp = new Interpreter(program, stdin, { ...DEFAULT_LIMITS, maxSteps: Math.min(DEFAULT_LIMITS.maxSteps, 200_000), ...limits });
+    interp.tracer = (step) => {
+      if (trace.length >= maxSteps) {
+        truncated = true;
+        return;
+      }
+      trace.push({ ...step, index: trace.length });
+    };
+    interp.run();
+    if (!truncated) interp.traceEnd(lastLine);
+    return { ok: true, stdout: interp.stdout, error: null, steps: interp.stepCount, trace, truncated };
+  } catch (e) {
+    const base = runResultFromError(e, interp);
+    if (interp && !truncated) interp.traceEnd(base.error?.line || lastLine);
+    return { ...base, trace, truncated };
+  }
+}
+
+function runResultFromError(e: unknown, interp: Interpreter | null): RunResult {
+  const stdout = interp?.stdout ?? "";
+  const steps = interp?.stepCount ?? 0;
+  if (e instanceof PseudoError) return { ok: false, stdout, steps, error: { kind: e.kind, message: e.message, line: e.line, hint: e.hint } };
+  if (e instanceof RangeError) {
+    return { ok: false, stdout, steps, error: { kind: "execution", message: "Récursivité trop profonde.", line: 0, hint: "Vérifiez le cas de base de votre fonction récursive." } };
+  }
+  return { ok: false, stdout, steps, error: { kind: "execution", message: `Erreur interne : ${(e as Error).message}`, line: 0 } };
 }
 
 /** Vérifie uniquement la syntaxe (utilisé par l'éditeur pour souligner les erreurs). */

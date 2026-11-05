@@ -1,118 +1,81 @@
 # Plan d'exécution — UPL Code Academy
 
-Chaque étape suit le même cycle : annoncer, identifier les fichiers, modifier, tester, corriger, vérifier dans le navigateur, documenter, lister le reste à faire. Une étape n'est close que si `lint`, `typecheck`, `test`, `test:db`, `build` et `test:e2e` passent.
+La plateforme réunit trois produits : **UPL ACADEMY** (formation), **UPL IDE** (environnement de développement) et **UPL STUDIO** (création de sites et d'applications). L'addendum au master prompt fixe sept phases ; les treize étapes techniques du master prompt s'y répartissent.
+
+Chaque phase suit le même cycle : annoncer, identifier les fichiers, modifier, tester, corriger, vérifier dans le navigateur, documenter, lister le reste à faire. Une phase n'est close que si `lint`, `typecheck`, `test`, `test:db`, `build` et `test:e2e` passent, y compris contre Supabase réel.
 
 Légende : 🟢 terminé et vérifié · 🔵 en cours · ⚪ à faire · 🔌 dépend d'une configuration externe
 
-| Étape | Contenu | État |
+| Phase | Contenu | État |
 |---|---|---|
-| 1 | Audit, architecture, base de tests | 🟢 |
-| 2 | UI/UX et navigation | ⚪ |
-| 3 | Authentification, rôles, base de données | ⚪ |
-| 4 | Cours et contenus pédagogiques | ⚪ |
-| 5 | Éditeur Monaco | ⚪ |
-| 6 | Interpréteur de pseudocode | ⚪ |
-| 7 | Exécution Python, C, JavaScript, Java | ⚪ 🔌 |
-| 8 | Exercices et évaluations | ⚪ |
-| 9 | Professeur IA | ⚪ 🔌 |
-| 10 | Progression et statistiques | ⚪ |
-| 11 | Administration | ⚪ |
-| 12 | Sécurité et tests | ⚪ |
-| 13 | Déploiement et documentation | ⚪ 🔌 |
+| 0 | Audit, architecture, base de tests, CI (étape 1 du master prompt) | 🟢 |
+| 1 | Formation complète en algorithmique et pseudocode | 🔵 Partie 1 (7 chapitres) terminée et vérifiée ; Parties 2 à 6 à enrichir |
+| 2 | Laboratoire d'exécution et visualisation des algorithmes | ⚪ (moteur de trace et organigrammes déjà livrés en phase 1) |
+| 3 | Formation Python et éditeur de programmation (UPL IDE, 1re version) | ⚪ |
+| 4 | Intégration des autres langages (C, JavaScript, Java) | ⚪ 🔌 Judge0 |
+| 5 | UPL Studio et création de sites web | ⚪ |
+| 6 | Environnements cloud, projets complets et déploiement | ⚪ 🔌 |
+| 7 | Tests globaux, sécurité, optimisation et mise en production | ⚪ 🔌 |
 
-## Étape 1 — Audit et architecture 🟢
+## Phase 0 — Audit et architecture 🟢
 
-- Audit du dépôt, de la configuration et des écarts : [AUDIT.md](AUDIT.md).
-- Architecture cible et décisions : [ARCHITECTURE.md](ARCHITECTURE.md).
-- Correction de la vulnérabilité critique DOMPurify (surcharge `dompurify@3.4.17`).
-- Suite de bout en bout Playwright versionnée (`e2e/`, 20 scénarios, ordinateur et mobile).
-- Intégration continue GitHub Actions (`.github/workflows/ci.yml`) : audit, lint, types, tests unitaires et de contenu, base de données, build, e2e.
+Voir [AUDIT.md](AUDIT.md) et [ARCHITECTURE.md](ARCHITECTURE.md). Vulnérabilité critique corrigée, suite e2e Playwright, intégration continue.
 
-## Étape 2 — UI/UX et navigation ⚪
+## Phase 1 — Formation en algorithmique 🔵
 
-- Slogan « LEARN. CODE. PRACTICE. MASTER. » dans l'identité.
-- Coque applicative : **barre latérale** sur ordinateur (repliable) pour les espaces connectés et l'administration ; barre inférieure ou tiroir sur mobile.
-- Bibliothèque de composants : onglets, boîte de dialogue, panneaux redimensionnables, fil d'Ariane, état vide, squelettes de chargement.
-- Accessibilité : contrastes, focus, navigation clavier.
-- Tests : captures ordinateur et mobile, débordement horizontal, navigation clavier.
+### Livré et vérifié
 
-## Étape 3 — Authentification, rôles, base de données ⚪
+- **Rubrique FORMATION** (`/formation`) : programme par parties, état de chaque chapitre, progression de l'étudiant.
+- **Modèle de chapitre à 12 composantes** (`ChapterPedagogy`) : objectifs, cours, définitions, explications progressives, exemples exécutables, algorithmes commentés ligne par ligne, schémas, exercices corrigés, exercices notés, TD et interrogation, évaluation finale, résumé PDF.
+- **Contrôle de complétude** (`src/content/completeness.ts`) : affiché aux étudiants (« Chapitre complet » ou « Enrichissement en cours · n % ») et **exigé à 100 % par les tests** pour les chapitres déclarés complets.
+- **Partie 1 complète** : Introduction à l'algorithmique, Logique mathématique et raisonnement, Analyse et résolution des problèmes, Variables et constantes, Types de données, Opérateurs et expressions, Entrées et sorties.
+  - 36 définitions, 7 algorithmes commentés, 15 erreurs fréquentes, 14 exercices corrigés, 17 nouveaux exercices notés (TD et application), 7 interrogations minutées, 7 évaluations de chapitre (56 questions).
+- **Organigrammes générés** automatiquement depuis le pseudocode (symboles normalisés, SVG).
+- **Tableau de suivi des variables** produit par l'interpréteur (trace réelle avant chaque instruction, pile d'appels).
+- **Erreurs fréquentes vérifiées** : le message affiché est celui, réel, de l'interpréteur.
+- **Résumé PDF** téléchargeable par chapitre (police embarquée : accents et symboles ← ≤ ≥).
+- **Validation par activité vérifiée** : un chapitre n'est validé que par la réussite de son évaluation (côté serveur) ; la validation par simple clic est refusée ; le badge « Premier chapitre validé » repose sur cette validation.
+- **Progression** : chapitres validés, meilleurs scores d'interrogation et d'évaluation, exercices réussis, points à retravailler (évaluations échouées, exercices non réussis après plusieurs tentatives), compétences acquises.
+- **CMS** : la structure pédagogique d'un chapitre est éditable dans l'administration (JSON validé).
+- **Vérification réelle** : migrations et seed appliqués sur Supabase local ; parcours e2e avec un vrai compte (inscription → chapitre → évaluation → validation → progression → badge).
 
-- Lancer **Supabase local** (Docker) dans l'environnement de développement et la CI.
-- Migrations : `student_projects` + `project_files` (avec reprise de `programs`), `deleted_at`, `teacher_assignments`, `cohorts`, `cohort_members`, type d'exercice `detecter_erreur`.
-- RLS : un enseignant ne voit que les étudiants de ses parcours ou groupes.
-- Gestion des sessions : liste et déconnexion des autres appareils.
-- Extraction des services métier et des dépôts de données (`src/server`).
-- Tests réels : inscription, vérification d'e-mail (Inbucket local), connexion, mot de passe oublié, accès étudiant / enseignant / administrateur, isolation des données.
+### Reste à faire dans la phase 1
 
-## Étape 4 — Cours et contenus ⚪
+- Enrichir au même niveau les Parties 2 à 6 (12 chapitres actuellement à 33–42 % des composantes) et ajouter les chapitres prévus par l'addendum : **Structures de données**, **Optimisation**, **Exercices et projets de synthèse**.
+- Éditeur visuel (sans JSON) pour la structure pédagogique, et édition des interrogations / évaluations dans le CMS.
+- Durée des interrogations contrôlée côté serveur (aujourd'hui : chronomètre et envoi automatique côté navigateur).
+- Relecture et validation par l'équipe pédagogique avant publication officielle.
 
-- Niveau **chapitres** : modules → chapitres → leçons (migration et reprise).
-- Leçons structurées par notion : définition, explication simple, exemple, **explication ligne par ligne**, **erreur fréquente**, exercice, correction, vérification. Composants dédiés et contrôle automatique de complétude.
-- Réécriture progressive du contenu, priorité Algorithmique puis Python.
-- CMS : prévisualisation, archivage, historique des modifications.
+## Phase 2 — Laboratoire d'algorithmique ⚪
 
-## Étape 5 — Éditeur Monaco ⚪
+Exécution pas à pas (avancer, reculer, pause, réinitialiser) sur la trace déjà produite par l'interpréteur ; table des variables en direct ; visualisation des boucles, conditions et appels ; organigramme synchronisé avec la ligne courante ; saisie interactive de `LIRE` ; explication de l'algorithme par le professeur IA.
 
-- Projets : nouveau, ouvrir, renommer, dupliquer, supprimer (logique), fichiers multiples pour tous les langages, privés par défaut.
-- Barre d'outils : annuler, rétablir, rechercher, copier, coller, réinitialiser, enregistrer, exécuter.
-- Trois zones redimensionnables (consignes, éditeur, console) ; modèles par langage.
-- Auto-hébergement de Monaco (risque R2).
+## Phase 3 — Python et UPL IDE ⚪
 
-## Étape 6 — Interpréteur de pseudocode ⚪
+Explorateur de fichiers et dossiers, onglets multiples, projets (`student_projects`, `project_files`), sauvegarde automatique, recherche dans les fichiers, import/export, thèmes clair et sombre, terminal et débogueur (Python), formation Python au niveau de la Formation algorithmique.
 
-- **Saisie interactive** : `LIRE` demande la valeur dans la console pendant l'exécution.
-- Exécution pas à pas et visualisation des variables (aide pédagogique).
-- Documentation de la grammaire, nouveaux messages d'erreur, tests supplémentaires.
+## Phase 4 — Autres langages ⚪ 🔌
 
-## Étape 7 — Exécution des langages ⚪ 🔌
+Judge0 réel (testable en Docker dans l'environnement de développement), langages pilotés par la table `languages`, C, JavaScript, Java.
 
-- Instance **Judge0 réelle** en Docker dans l'environnement de test ; vérification de Python, C, JavaScript, Java, des erreurs de compilation, des délais et de la mémoire.
-- Langages et versions pilotés par la table `languages` (fin de l'incohérence actuelle).
-- Interface `ExecutionProvider` ; guide d'hébergement Judge0 (risque R1).
-- 🔌 En production : une VM Judge0 à fournir.
+## Phase 5 — UPL Studio ⚪
 
-## Étape 8 — Exercices et évaluations ⚪
+Assistant de création de projet, modèles (HTML/CSS/JS, React, Next.js, API), prévisualisation en direct, variables d'environnement, historique des versions, intégration Git/GitHub, export.
 
-- Bibliothèque filtrable par langage, chapitre, niveau, type ; QCM et vrai-faux comme exercices.
-- Tests de cas limites et d'entrées invalides dans chaque exercice ; explications par test.
-- Évaluations notées avec fenêtre de temps (mode examen).
+## Phase 6 — Cloud et déploiement des projets ⚪ 🔌
 
-## Étape 9 — Professeur IA ⚪ 🔌
+Environnements isolés par projet (conteneurs éphémères), quotas par utilisateur, nettoyage, surveillance ; séparation stricte avec l'exécution des petits exercices ; architecture progressive et économique.
 
-- Cinq modes : professeur, assistant, révision, examen, débogage.
-- **Consentement explicite** avant l'envoi du code de l'éditeur.
-- Consigne : ne pas inventer de résultats d'exécution, distinguer hypothèse et certitude.
-- Historique des conversations consultable et supprimable.
-- Fournisseur de test déterministe pour les tests automatisés ; test réel limité avec une clé.
-- 🔌 En production : une clé API.
+## Phase 7 — Tests globaux et mise en production ⚪ 🔌
 
-## Étape 10 — Progression et statistiques ⚪
-
-- Achèvement d'une leçon fondé sur une activité vérifiée (quiz réussi ou exercice associé), pas sur un clic.
-- Badges vérifiés : premier cours terminé, premier programme exécuté, 10 exercices réussis, maître des conditions, maître des boucles, premier projet terminé.
-- Compétences par notion (étiquettes sur les exercices).
-
-## Étape 11 — Administration ⚪
-
-- Tableau de bord : étudiants, enseignants, formations publiées, exercices, activité, apprentissage, IA, erreurs d'exécution, **état des services**.
-- Affectations enseignants, groupes, statistiques par groupe.
-
-## Étape 12 — Sécurité et tests ⚪
-
-- Audit de sécurité complet ; CSP ; limitation des requêtes persistée ; surveillance des erreurs ; tests des 20 scénarios obligatoires.
-
-## Étape 13 — Déploiement et documentation ⚪ 🔌
-
-- Guide pas à pas pour débutant (Supabase, Judge0, IA, Vercel, domaine, HTTPS) ; sauvegarde **et restauration testée** ; guide d'utilisation étudiant, enseignant, administrateur.
-- 🔌 Le déploiement ne sera déclaré réalisé qu'après vérification en production.
+Audit de sécurité complet (CSP, limitation persistée, surveillance des erreurs), tests des 20 scénarios obligatoires, sauvegarde et **restauration testée**, déploiement vérifié en production, guides d'utilisation.
 
 ## Décisions à confirmer
 
 | # | Question | Proposition par défaut |
 |---|---|---|
-| Q1 | Ajouter un niveau « chapitres » entre modules et leçons ? | Oui : modules → chapitres → leçons |
-| Q2 | Périmètre d'un enseignant | Affectation à des parcours **et** à des groupes d'étudiants (promotions) |
-| Q3 | Quand une leçon est-elle « terminée » ? | Quiz de la leçon réussi, ou exercice associé réussi si la leçon n'a pas de quiz |
-| Q4 | Modèle IA par défaut | Configurable dans l'administration ; défaut actuel `claude-opus-5-5`, avec la possibilité d'un modèle plus économique pour les questions simples |
-| Q5 | Hébergement de Judge0 | VM dédiée (cgroups v1) chez l'hébergeur de votre choix |
+| Q1 | Niveau « chapitres » | La Formation utilise **Partie → Chapitre** (modules → leçons en base) ; pas de niveau supplémentaire |
+| Q2 | Périmètre d'un enseignant | Affectation à des parcours **et** à des groupes d'étudiants |
+| Q3 | Validation d'un chapitre | Réussite de l'évaluation finale (70 %) — **appliqué** |
+| Q4 | Modèle IA par défaut | Configurable ; défaut `claude-opus-5-5` |
+| Q5 | Hébergement de Judge0 / des environnements Studio | VM dédiée, puis conteneurs éphémères |

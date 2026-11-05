@@ -22,7 +22,7 @@ export default async function AdminLesson({ params, searchParams }: PageProps<"/
 
   let quizText = "";
   if (lesson) {
-    const { data: quiz } = await supabase.from("quizzes").select("id").eq("lesson_id", lesson.id).eq("is_final", false).maybeSingle();
+    const { data: quiz } = await supabase.from("quizzes").select("id").eq("lesson_id", lesson.id).eq("is_final", false).eq("kind", "verification").maybeSingle();
     if (quiz) {
       const { data: qs } = await supabase.from("quiz_questions").select("id, prompt, choices").eq("quiz_id", quiz.id).order("position");
       const keys = hasAdminClient() ? (await createAdminClient().from("quiz_answer_keys").select("*").in("question_id", (qs ?? []).map((q) => q.id))).data ?? [] : [];
@@ -70,6 +70,13 @@ export default async function AdminLesson({ params, searchParams }: PageProps<"/
           </Field>
           <Field label="Exemples exécutables (JSON)" htmlFor="examples" hint='[{"title": "…", "language": "python", "code": "print(1)", "stdin": "", "explanation": "…"}]'>
             <textarea id="examples" name="examples" rows={8} defaultValue={JSON.stringify(l.examples, null, 2)} className={`${inputClass} font-mono`} />
+          </Field>
+          <Field
+            label="Structure pédagogique du chapitre (JSON)"
+            htmlFor="pedagogy"
+            hint="Compétences, définitions, algorithmes commentés, erreurs fréquentes, exercices corrigés, TD. Vide : leçon simple. Le format est validé à l'enregistrement ; l'interrogation et l'évaluation sont des quiz distincts."
+          >
+            <textarea id="pedagogy" name="pedagogy" rows={14} defaultValue={lesson?.pedagogy ? JSON.stringify(lesson.pedagogy, null, 2) : ""} className={`${inputClass} font-mono`} />
           </Field>
           <Field label="Quiz de compréhension" htmlFor="quiz" hint="« ? question », « + bonne réponse », « - mauvaise réponse », « > explication ». Laisser vide : pas de quiz.">
             <textarea id="quiz" name="quiz" rows={8} defaultValue={quizText} className={`${inputClass} font-mono`} />

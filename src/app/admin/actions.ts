@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { linesToArray, parseQuizText, parseTestsText } from "@/lib/admin/formats";
+import { parsePedagogy } from "@/lib/admin/pedagogy-schema";
 import { audit } from "@/lib/audit";
 import { requireAdmin, requireStaff } from "@/lib/auth";
 import { clientIp } from "@/lib/rate-limit";
@@ -144,6 +145,7 @@ export async function saveLesson(_prev: ActionState, form: FormData): Promise<Ac
       examples: z.string().max(100_000).optional(),
       status,
       quiz: z.string().max(50_000).optional(),
+      pedagogy: z.string().max(300_000).optional(),
     })
     .safeParse(Object.fromEntries(form));
   if (!parsed.success) return fail(parsed.error);
@@ -155,6 +157,8 @@ export async function saveLesson(_prev: ActionState, form: FormData): Promise<Ac
   } catch {
     return { error: "Les exemples doivent être un tableau JSON valide : [{\"title\", \"language\", \"code\", \"stdin\"}]." };
   }
+  const pedagogy = parsePedagogy(d.pedagogy ?? "");
+  if (!pedagogy.ok) return { error: pedagogy.error };
   const quiz = d.quiz?.trim() ? parseQuizText(d.quiz) : null;
   if (quiz?.errors.length) return { error: `Quiz : ${quiz.errors.join(" ")}` };
 
@@ -172,6 +176,7 @@ export async function saveLesson(_prev: ActionState, form: FormData): Promise<Ac
     summary: linesToArray(d.summary ?? ""),
     content: d.content,
     examples,
+    pedagogy: pedagogy.value,
     status: d.status,
     ...(d.status === "publie" ? { validated_by: user.id, validated_at: new Date().toISOString() } : {}),
   };
@@ -181,11 +186,12 @@ export async function saveLesson(_prev: ActionState, form: FormData): Promise<Ac
   if (error) return { error: error.code === "23505" ? "Ce slug de leçon existe déjà dans ce cours." : error.message };
 
   // Quiz de la leçon (questions publiques + réponses dans la table réservée)
-  const { data: existing } = await supabase.from("quizzes").select("id").eq("lesson_id", saved.id).eq("is_final", false).maybeSingle();
+  // Quiz de vérification uniquement : interrogation et évaluation ne sont pas touchées ici.
+  const { data: existing } = await supabase.from("quizzes").select("id").eq("lesson_id", saved.id).eq("is_final", false).eq("kind", "verification").maybeSingle();
   if (quiz?.questions.length) {
     const quizId =
       existing?.id ??
-      (await supabase.from("quizzes").insert({ course_id: d.course_id, lesson_id: saved.id, slug: `${d.courseSlug}-${d.slug}-quiz`.slice(0, 120), title: "Vérifier sa compréhension", status: "publie" }).select("id").single()).data?.id;
+      (await supabase.from("quizzes").insert({ course_id: d.course_id, lesson_id: saved.id, slug: `${d.courseSlug}-${d.slug}-quiz`.slice(0, 120), title: "Vérifier sa compréhension", status: "publie", kind: "verification" }).select("id").single()).data?.id;
     if (quizId) {
       await supabase.from("quiz_questions").delete().eq("quiz_id", quizId);
       for (const [i, q] of quiz.questions.entries()) {

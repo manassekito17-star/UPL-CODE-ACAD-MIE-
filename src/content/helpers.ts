@@ -89,3 +89,38 @@ export function makeExercise(base: Pick<Exercise, "language" | "courseSlug">, in
   };
 }
 
+
+// ---------- Formation : chapitres structurés ----------
+
+/**
+ * Algorithme commenté construit ligne par ligne : chaque entrée est
+ * [ligne de code, explication facultative]. Les numéros de ligne des
+ * commentaires sont donc toujours exacts.
+ */
+export function annotated(
+  title: string,
+  rows: Array<[string] | [string, string]>,
+  opts: { stdin?: string; showTrace?: boolean; showFlowchart?: boolean } = {},
+): import("./types").CommentedAlgorithm {
+  const comments: Record<number, string> = {};
+  rows.forEach((r, i) => {
+    if (r[1]) comments[i + 1] = r[1];
+  });
+  return { title, code: rows.map((r) => r[0]).join("\n"), comments, ...opts };
+}
+
+export function commonError(title: string, wrong: string, right: string, explanation: string, run = false, stdin?: string): import("./types").CommonError {
+  return { title, wrong: dedent(wrong), right: dedent(right), explanation: dedent(explanation), run, stdin };
+}
+
+export function solved(title: string, statement: string, solution: string, explanation: string, stdin?: string): import("./types").SolvedExercise {
+  return { title, statement: dedent(statement), solution: dedent(solution), explanation: dedent(explanation), stdin };
+}
+
+export function interrogation(slug: string, title: string, questions: QuizQuestion[], durationMinutes = 10): Quiz {
+  return { ...quiz(slug, title, questions, 60), kind: "interrogation", durationMinutes };
+}
+
+export function chapterEvaluation(slug: string, title: string, questions: QuizQuestion[]): Quiz {
+  return { ...quiz(slug, title, questions, 70), kind: "evaluation" };
+}

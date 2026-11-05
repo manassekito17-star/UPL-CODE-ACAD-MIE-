@@ -1,5 +1,7 @@
 # UPL Code Academy
 
+**LEARN. CODE. PRACTICE. MASTER.**
+
 Plateforme universitaire d'apprentissage de l'informatique et de la programmation assistée par intelligence artificielle : cours structurés, éditeur de code intégré, exécution sécurisée, exercices corrigés automatiquement, professeur IA et suivi de progression.
 
 > Destinée aux étudiants de l'UPL et aux étudiants en informatique. Les contenus ne constituent pas le programme officiel de l'université sans validation de celle-ci.
@@ -8,6 +10,7 @@ Plateforme universitaire d'apprentissage de l'informatique et de la programmatio
 
 | Domaine | Ce qui est livré |
 |---|---|
+| **Formation** | Rubrique `/formation` : programme d'algorithmique par parties. Chaque chapitre complet comporte 12 composantes (cours détaillé, définitions, algorithmes commentés ligne par ligne avec organigramme et tableau de suivi générés par l'interpréteur, erreurs fréquentes vérifiées, exercices corrigés, exercices notés, TD, interrogation minutée, évaluation finale, résumé PDF). Partie 1 complète (7 chapitres) ; état de chaque chapitre affiché. Voir [docs/FORMATION.md](docs/FORMATION.md). |
 | **Parcours** | 5 parcours : Algorithmique (18 leçons), Python (15), Langage C (13), JavaScript (11), Java (12). Chaque leçon a un niveau, des prérequis, des objectifs, une durée, des exemples exécutables, un résumé ; quiz de leçon et évaluation finale par parcours. |
 | **Exercices** | 54 exercices (débutant → avancé, 8 types : QCM, compléter, corriger, écrire un algorithme/programme, problème, mini-projet…) avec tests visibles et cachés, indices progressifs, correction pédagogique et solution révélées après réussite ou 5 tentatives. |
 | **Éditeur** | Monaco : coloration (y compris pseudocode), numéros de ligne, indentation, suggestions et extraits, erreurs soulignées en direct, Exécuter / Réinitialiser / Enregistrer, multi-fichiers (Python), console, zone d'entrée, historique, brouillon automatique, onglets Consignes / Code / Console sur mobile. |
@@ -52,6 +55,13 @@ npm run dev                    # http://localhost:3000
 ```
 
 Sans aucune variable, l'application démarre en **mode démonstration** : cours, éditeur et exercices fonctionnent (pseudocode, Python et JavaScript dans le navigateur) ; les comptes, la sauvegarde et le professeur IA sont désactivés.
+
+### Développement local avec Supabase (Docker)
+
+```bash
+npx supabase start -x studio,imgproxy,edge-runtime,logflare,vector,realtime,supavisor   # migrations + seed
+npx supabase status -o env    # copier API_URL, ANON_KEY et SERVICE_ROLE_KEY dans .env.local
+```
 
 ### 1. Supabase
 
@@ -103,14 +113,15 @@ npm test          # interpréteur, formats d'édition, Judge0 (simulé), compara
                   # et contrôle qualité du contenu : chaque exemple de leçon et chaque
                   # solution de référence sont exécutés (pseudocode, Python, C, JS, Java)
 npm run test:db   # migrations + seed + 23 scénarios RLS sur PostgreSQL (PGlite)
-npm run build && npm run test:e2e   # 20 scénarios navigateur (ordinateur + mobile, Playwright)
+npm run build && npm run test:e2e   # 23 scénarios navigateur (ordinateur + mobile, Playwright) ;
+                                    # avec Supabase configuré : parcours réels avec comptes
 npm run lint
 npm run build
 ```
 
-L'intégration continue (`.github/workflows/ci.yml`) rejoue l'ensemble à chaque push.
+L'intégration continue (`.github/workflows/ci.yml`) rejoue l'ensemble à chaque push, en mode démonstration **et** contre un Supabase réel démarré dans la CI.
 
-Documentation : [audit](docs/AUDIT.md) · [architecture](docs/ARCHITECTURE.md) · [plan d'exécution](docs/PLAN.md) · [critères d'acceptation](docs/CRITERES-ACCEPTATION.md) · [pseudocode](docs/PSEUDOCODE.md).
+Documentation : [formation](docs/FORMATION.md) · [audit](docs/AUDIT.md) · [architecture](docs/ARCHITECTURE.md) · [plan d'exécution](docs/PLAN.md) · [critères d'acceptation](docs/CRITERES-ACCEPTATION.md) · [pseudocode](docs/PSEUDOCODE.md).
 
 ## Contribuer au contenu
 

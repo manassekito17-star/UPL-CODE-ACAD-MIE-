@@ -5,7 +5,8 @@ import { buttonClass, Container } from "../ui";
 import { Logo } from "./logo";
 
 const PUBLIC_LINKS = [
-  { href: "/formations", label: "Formations" },
+  { href: "/formation", label: "Formation" },
+  { href: "/formations", label: "Parcours" },
   { href: "/exercices", label: "Exercices" },
   { href: "/editeur", label: "Éditeur" },
   { href: "/professeur-ia", label: "Professeur IA" },

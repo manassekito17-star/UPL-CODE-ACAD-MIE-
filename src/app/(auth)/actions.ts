@@ -30,7 +30,9 @@ function safeNext(value: FormDataEntryValue | null): string {
 
 async function limited(kind: string): Promise<string | null> {
   const ip = clientIp(await headers());
-  const r = rateLimit(`auth:${kind}:${ip}`, 8, 10 * 60_000);
+  // 8 tentatives / 10 min par adresse IP (ajustable pour les environnements de test).
+  const max = Number(process.env.AUTH_RATE_LIMIT_PER_10MIN ?? 8);
+  const r = rateLimit(`auth:${kind}:${ip}`, Number.isFinite(max) && max > 0 ? max : 8, 10 * 60_000);
   return r.ok ? null : `Trop de tentatives. Réessayez dans ${Math.ceil(r.retryAfterSeconds / 60)} min.`;
 }
 

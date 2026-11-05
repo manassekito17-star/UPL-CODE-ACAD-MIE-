@@ -50,6 +50,8 @@ function mapQuiz(q: Row, questions: Row[], keys: Map<string, Row> | null): Quiz 
     title: q.title as string,
     passScore: q.pass_score as number,
     isFinal: q.is_final as boolean,
+    kind: ((q.kind as string) ?? "verification") as Quiz["kind"],
+    durationMinutes: (q.duration_minutes as number) ?? undefined,
     questions: questions
       .filter((x) => x.quiz_id === q.id)
       .sort((a, b) => (a.position as number) - (b.position as number))
@@ -96,7 +98,17 @@ async function dbCourse(slug: string, withAnswers = false): Promise<Course | nul
     lessons: (lessons ?? [])
       .filter((l) => l.module_id === m.id)
       .map((l): Lesson => {
-        const quizRow = (quizzes ?? []).find((q) => q.lesson_id === l.id && !q.is_final);
+        const lessonQuizzes = (quizzes ?? []).filter((q) => q.lesson_id === l.id && !q.is_final);
+        const quizRow = lessonQuizzes.find((q) => (q.kind ?? "verification") === "verification");
+        const interroRow = lessonQuizzes.find((q) => q.kind === "interrogation");
+        const evalRow = lessonQuizzes.find((q) => q.kind === "evaluation");
+        const pedagogy = l.pedagogy
+          ? {
+              ...(l.pedagogy as Omit<NonNullable<Lesson["pedagogy"]>, "interrogation" | "evaluation">),
+              interrogation: interroRow ? mapQuiz(interroRow, questions ?? [], keys) : undefined,
+              evaluation: evalRow ? mapQuiz(evalRow, questions ?? [], keys) : undefined,
+            }
+          : undefined;
         return {
           id: l.id,
           slug: l.slug,
@@ -110,7 +122,8 @@ async function dbCourse(slug: string, withAnswers = false): Promise<Course | nul
           summary: l.summary ?? [],
           status: l.status,
           quiz: quizRow ? mapQuiz(quizRow, questions ?? [], keys) : undefined,
-          exerciseSlugs: (exercises ?? []).filter((e) => e.lesson_id === l.id && isVisible(e.status)).map((e) => e.slug),
+          exerciseSlugs: (exercises ?? []).filter((e) => e.lesson_id === l.id && isVisible(e.status) && !pedagogy?.td?.exerciseSlugs.includes(e.slug)).map((e) => e.slug),
+          pedagogy,
         };
       }),
   }));
@@ -359,7 +372,10 @@ export async function getQuizForGrading(slug: string): Promise<{ quiz: Quiz; cou
   if (contentSource() === "static") {
     for (const course of staticCourses) {
       if (course.finalQuiz?.slug === slug) return { quiz: course.finalQuiz, course };
-      for (const m of course.modules) for (const l of m.lessons) if (l.quiz?.slug === slug) return { quiz: l.quiz, course, lesson: l };
+      for (const m of course.modules)
+        for (const l of m.lessons) {
+          for (const q of [l.quiz, l.pedagogy?.interrogation, l.pedagogy?.evaluation]) if (q?.slug === slug) return { quiz: q, course, lesson: l };
+        }
     }
     return null;
   }
@@ -370,6 +386,14 @@ export async function getQuizForGrading(slug: string): Promise<{ quiz: Quiz; cou
   const course = await dbCourse((q.courses as { slug: string }).slug, true);
   if (!course) return null;
   if (q.is_final && course.finalQuiz) return { quiz: course.finalQuiz, course };
-  for (const m of course.modules) for (const l of m.lessons) if (l.quiz?.slug === slug) return { quiz: l.quiz, course, lesson: l };
+  for (const m of course.modules)
+    for (const l of m.lessons) {
+      for (const qz of [l.quiz, l.pedagogy?.interrogation, l.pedagogy?.evaluation]) if (qz?.slug === slug) return { quiz: qz, course, lesson: l };
+    }
   return null;
+}
+
+/** Quiz qui valide un chapitre : son évaluation, ou à défaut son quiz de vérification. */
+export function validatingQuizSlug(lesson: Lesson): string | null {
+  return lesson.pedagogy?.evaluation?.slug ?? lesson.quiz?.slug ?? null;
 }

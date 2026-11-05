@@ -223,7 +223,9 @@ class Parser {
     const out: ConstDecl[] = [];
     for (;;) {
       this.skipNewlines();
-      if (this.cur.type !== "ident" || this.isAnyWord(SECTION_WORDS)) break;
+      // Un mot-clé d'instruction (ECRIRE, SI…) termine la section : l'erreur sera
+      // signalée au bon endroit (« instructions entre DEBUT et FIN »).
+      if (this.cur.type !== "ident" || this.isAnyWord(SECTION_WORDS) || RESERVED.has(this.cur.norm)) break;
       const nameTok = this.expectIdentifier("Un nom de constante");
       let type: TypeSpec | undefined;
       if (this.isOp(":")) {
@@ -244,7 +246,9 @@ class Parser {
     const out: VarDecl[] = [];
     for (;;) {
       this.skipNewlines();
-      if (this.cur.type !== "ident" || this.isAnyWord(SECTION_WORDS)) break;
+      // Un mot-clé d'instruction (ECRIRE, SI…) termine la section : l'erreur sera
+      // signalée au bon endroit (« instructions entre DEBUT et FIN »).
+      if (this.cur.type !== "ident" || this.isAnyWord(SECTION_WORDS) || RESERVED.has(this.cur.norm)) break;
       const names: Token[] = [this.expectIdentifier("Un nom de variable")];
       while (this.isOp(",")) {
         this.next();

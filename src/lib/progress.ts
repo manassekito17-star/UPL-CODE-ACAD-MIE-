@@ -35,6 +35,12 @@ export async function recordLessonActivity(
     .eq("lesson_id", lesson.id)
     .maybeSingle();
 
+  // Un chapitre doté d'un quiz ou d'une évaluation se valide en réussissant
+  // celle-ci (côté serveur) ; le bouton « terminer » ne suffit pas.
+  if (action === "terminer") {
+    const { count } = await supabase.from("quizzes").select("id", { count: "exact", head: true }).eq("lesson_id", lesson.id);
+    if ((count ?? 0) > 0) return { ok: false as const, error: "Ce chapitre se valide en réussissant son évaluation." };
+  }
   const status = action === "terminer" || existing?.status === "termine" ? "termine" : "commence";
   const { error } = await supabase.from("lesson_progress").upsert(
     {
@@ -56,7 +62,6 @@ export async function recordLessonActivity(
   );
 
   if (action === "terminer") {
-    await awardAchievement(user.id, "premiere-lecon");
     const { data: cp } = await supabase.from("course_progress").select("percent").eq("user_id", user.id).eq("course_id", course.id).maybeSingle();
     if (cp && Number(cp.percent) >= 100) {
       await awardAchievement(user.id, "parcours-termine");
@@ -64,6 +69,33 @@ export async function recordLessonActivity(
     }
   }
   return { ok: true as const, status };
+}
+
+/**
+ * Valide un chapitre après la réussite de son évaluation (appelé par le
+ * serveur uniquement, après correction).
+ */
+export async function markLessonValidated(userId: string, courseId: string, lessonId: string) {
+  if (!hasAdminClient()) return false;
+  const admin = createAdminClient();
+  const { data: existing } = await admin.from("lesson_progress").select("status").eq("user_id", userId).eq("lesson_id", lessonId).maybeSingle();
+  if (existing?.status === "termine") return true;
+  const { error } = await admin.from("lesson_progress").upsert(
+    { user_id: userId, lesson_id: lessonId, course_id: courseId, status: "termine", completed_at: new Date().toISOString() },
+    { onConflict: "user_id,lesson_id" },
+  );
+  if (error) {
+    console.error("[progress] validation du chapitre", error.message);
+    return false;
+  }
+  await admin.from("enrollments").upsert({ user_id: userId, course_id: courseId, last_lesson_id: lessonId, last_activity_at: new Date().toISOString() }, { onConflict: "user_id,course_id" });
+  await awardAchievement(userId, "premiere-lecon");
+  const { data: cp } = await admin.from("course_progress").select("percent").eq("user_id", userId).eq("course_id", courseId).maybeSingle();
+  if (cp && Number(cp.percent) >= 100) {
+    await awardAchievement(userId, "parcours-termine");
+    await issueCertificate(userId, courseId);
+  }
+  return true;
 }
 
 export async function awardAchievement(userId: string, code: string) {
