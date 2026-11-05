@@ -3,6 +3,7 @@ import "server-only";
 import type { Exercise } from "@/content/types";
 import { firstDifference, outputsMatch } from "./compare";
 import { executeOnServer } from "./run";
+import { checkWebProject } from "./web";
 import type { ExecutionResult, SourceFile } from "./types";
 
 export interface TestOutcome {
@@ -36,6 +37,7 @@ function errorText(r: ExecutionResult): string {
 
 /** Exécute le code sur chaque test (y compris les tests cachés) et calcule la note pondérée. */
 export async function gradeExercise(exercise: Exercise, files: SourceFile[]): Promise<GradeResult> {
+  if (exercise.language === "html" || exercise.language === "css") return gradeWebExercise(exercise, files);
   const outcomes: TestOutcome[] = [];
   let weightTotal = 0;
   let weightPassed = 0;
@@ -92,6 +94,42 @@ export async function gradeExercise(exercise: Exercise, files: SourceFile[]): Pr
     status: passedCount === outcomes.length ? "reussi" : passedCount > 0 ? "partiel" : "echoue",
     score,
     passed: passedCount,
+    total: outcomes.length,
+    tests: outcomes,
+  };
+}
+
+/**
+ * Exercices HTML / CSS : chaque test est une vérification structurelle du
+ * document (éléments, textes, attributs, règles CSS). Aucun script n'est exécuté.
+ */
+export async function gradeWebExercise(exercise: Exercise, files: SourceFile[]): Promise<GradeResult> {
+  // Chaque test web porte une vérification structurelle ; un test sans vérification est compté comme échoué.
+  const checked = await checkWebProject(files, exercise.tests.flatMap((t) => (t.check ? [t.check] : [])));
+  let k = 0;
+  const results = exercise.tests.map((t) => (t.check ? checked[k++] : undefined));
+  let weightTotal = 0;
+  let weightPassed = 0;
+  const outcomes: TestOutcome[] = exercise.tests.map((t, i) => {
+    const r = results[i];
+    const weight = t.weight ?? 1;
+    weightTotal += weight;
+    if (r?.passed) weightPassed += weight;
+    const hidden = Boolean(t.hidden);
+    return {
+      index: i + 1,
+      hidden,
+      passed: Boolean(r?.passed),
+      description: hidden ? undefined : r?.message ?? t.description,
+      error: r?.passed || hidden ? undefined : r?.detail,
+      timeMs: null,
+    };
+  });
+  const passed = outcomes.filter((o) => o.passed).length;
+  return {
+    status: passed === outcomes.length ? "reussi" : passed > 0 ? "partiel" : "echoue",
+    score: weightTotal ? Math.round((weightPassed / weightTotal) * 10000) / 100 : 0,
+    passed,
     total: outcomes.length,
     tests: outcomes,
   };

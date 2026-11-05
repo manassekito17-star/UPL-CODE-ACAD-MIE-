@@ -54,7 +54,7 @@ export async function runOnJudge0(
   req: ExecutionRequest,
   limits: { cpuTimeLimitSeconds?: number; memoryLimitKb?: number } = {},
 ): Promise<ExecutionResult> {
-  const language = req.language as Exclude<LanguageId, "pseudocode">;
+  const language = req.language as Exclude<LanguageId, "pseudocode" | "html" | "css">;
   const languageId = serverEnv.judge0LanguageIds[language];
   const body = {
     language_id: languageId,

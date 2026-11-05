@@ -16,11 +16,13 @@ export const pedagogySchema = z
         z
           .object({
             title: text(200),
+            language: z.enum(["pseudocode", "python", "c", "javascript", "java", "html", "css"]).optional(),
             code: text(20_000),
             stdin: z.string().max(5000).optional(),
             comments: z.record(z.string().regex(/^\d+$/), text(500)),
             showTrace: z.boolean().optional(),
             showFlowchart: z.boolean().optional(),
+            showPreview: z.boolean().optional(),
           })
           .strict(),
       )
@@ -31,6 +33,16 @@ export const pedagogySchema = z
     solvedExercises: z
       .array(z.object({ title: text(200), statement: text(10_000), solution: text(20_000), explanation: text(5000), stdin: z.string().max(5000).optional() }).strict())
       .max(20),
+    project: z
+      .object({
+        title: text(200),
+        context: text(5000),
+        steps: z.array(text(1000)).min(1).max(20),
+        deliverables: z.array(text(500)).max(20),
+        exerciseSlug: z.string().regex(/^[a-z0-9-]{2,80}$/).optional(),
+      })
+      .strict()
+      .optional(),
     td: z.object({ title: text(200), instructions: text(3000), exerciseSlugs: z.array(z.string().regex(/^[a-z0-9-]{2,80}$/)).max(20) }).strict().optional(),
   })
   .strict();

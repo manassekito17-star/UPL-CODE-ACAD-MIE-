@@ -12,6 +12,8 @@ export const LANGUAGE_COLORS: Record<LanguageId, string> = {
   c: "from-slate-500 to-electrique-700",
   javascript: "from-yellow-400 to-amber-500",
   java: "from-orange-500 to-red-600",
+  html: "from-orange-500 to-amber-400",
+  css: "from-electrique-600 to-cyan-accent",
 };
 
 export const LANGUAGE_INITIALS: Record<LanguageId, string> = {
@@ -20,6 +22,8 @@ export const LANGUAGE_INITIALS: Record<LanguageId, string> = {
   c: "C",
   javascript: "JS",
   java: "JV",
+  html: "HTML",
+  css: "CSS",
 };
 
 export function formatDuration(minutes: number): string {

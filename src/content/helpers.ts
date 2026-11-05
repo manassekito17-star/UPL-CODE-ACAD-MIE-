@@ -100,7 +100,7 @@ export function makeExercise(base: Pick<Exercise, "language" | "courseSlug">, in
 export function annotated(
   title: string,
   rows: Array<[string] | [string, string]>,
-  opts: { stdin?: string; showTrace?: boolean; showFlowchart?: boolean } = {},
+  opts: { stdin?: string; showTrace?: boolean; showFlowchart?: boolean; showPreview?: boolean; language?: import("./types").LanguageId } = {},
 ): import("./types").CommentedAlgorithm {
   const comments: Record<number, string> = {};
   rows.forEach((r, i) => {
@@ -123,4 +123,50 @@ export function interrogation(slug: string, title: string, questions: QuizQuesti
 
 export function chapterEvaluation(slug: string, title: string, questions: QuizQuestion[]): Quiz {
   return { ...quiz(slug, title, questions, 70), kind: "evaluation" };
+}
+
+// ---------- Exercices web (HTML / CSS) ----------
+
+/** Test d'un exercice web : une vérification structurelle (pas d'entrée ni de sortie). */
+export function webTest(check: import("./types").WebCheck, hidden = false): import("./types").TestCase {
+  return { input: "", expected: "", check, hidden, description: check.message };
+}
+
+/**
+ * Dans le texte Markdown (hors blocs ~~~), transforme les balises citées
+ * (<p>, </a>, <img src="…">) en code : le rendu Markdown ignore le HTML brut
+ * par sécurité, elles seraient sinon invisibles.
+ */
+export function codifyTags(md: string): string {
+  let inFence = false;
+  return md
+    .split("\n")
+    .map((line) => {
+      if (/^\s*~~~/.test(line)) {
+        inFence = !inFence;
+        return line;
+      }
+      if (inFence) return line;
+      return line.replace(/(`[^`]*`)|(<\/?[a-zA-Z!][^<>]*>)/g, (m, code) => (code ? m : "`" + m + "`"));
+    })
+    .join("\n");
+}
+
+/** Applique codifyTags à tous les textes Markdown d'un parcours web. */
+export function webMarkdown<T extends { modules: Array<{ lessons: import("./types").Lesson[] }> }>(course: T): T {
+  for (const m of course.modules) {
+    for (const l of m.lessons) {
+      l.content = codifyTags(l.content);
+      const p = l.pedagogy;
+      if (!p) continue;
+      for (const d of p.definitions) d.definition = codifyTags(d.definition);
+      for (const e of p.commonErrors) e.explanation = codifyTags(e.explanation);
+      for (const s of p.solvedExercises) {
+        s.statement = codifyTags(s.statement);
+        s.explanation = codifyTags(s.explanation);
+      }
+      if (p.td) p.td.instructions = codifyTags(p.td.instructions);
+    }
+  }
+  return course;
 }

@@ -14,9 +14,40 @@ export interface LanguageConfig {
   template: string;
   /** Squelette neutre proposé pour un exercice sans code de départ. */
   exerciseTemplate: string;
+  /** Rendu par un aperçu en direct (HTML / CSS) plutôt qu'exécuté. */
+  preview?: boolean;
+  /** Fichiers d'un nouveau projet (projets web multi-fichiers). */
+  defaultFiles?: Array<{ name: string; content: string }>;
 }
 
-export const LANGUAGES: Record<LanguageId, LanguageConfig> = {
+const WEB_HTML = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>Ma page</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>Bonjour UPL !</h1>
+  <p>Modifiez ce code : l'aperçu se met à jour automatiquement.</p>
+  <script src="script.js"></script>
+</body>
+</html>
+`;
+const WEB_CSS = `body {
+  font-family: Arial, sans-serif;
+  margin: 2rem;
+}
+
+h1 {
+  color: #1d5fe0;
+}
+`;
+const WEB_JS = `// Les messages console.log s'affichent dans la console de l'éditeur.
+console.log("Page chargée");
+`
+
+export const LANGUAGES = {
   pseudocode: {
     id: "pseudocode",
     exerciseTemplate: `ALGORITHME Exercice
@@ -131,6 +162,43 @@ public class Main {
 }
 `,
   },
+} as Record<LanguageId, LanguageConfig>;
+
+LANGUAGES.html = {
+  id: "html",
+  exerciseTemplate: `<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>Exercice</title>
+</head>
+<body>
+
+</body>
+</html>
+`,
+  label: "HTML",
+  shortLabel: "HTML",
+  monaco: "html",
+  extension: "html",
+  mainFile: "index.html",
+  browserFallback: true,
+  multiFile: true,
+  preview: true,
+  template: WEB_HTML,
+  defaultFiles: [
+    { name: "index.html", content: WEB_HTML },
+    { name: "style.css", content: WEB_CSS },
+    { name: "script.js", content: WEB_JS },
+  ],
+};
+
+LANGUAGES.css = {
+  ...LANGUAGES.html,
+  id: "css",
+  label: "CSS",
+  shortLabel: "CSS",
+  exerciseTemplate: WEB_CSS,
 };
 
 export const LANGUAGE_IDS = Object.keys(LANGUAGES) as LanguageId[];

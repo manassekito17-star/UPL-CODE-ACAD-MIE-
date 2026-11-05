@@ -26,6 +26,9 @@ const TOOLS: Record<LanguageId, boolean> = {
   c: has("gcc"),
   javascript: has("node"),
   java: has("javac") && has("java"),
+  // HTML / CSS : vérifiés par le correcteur web (voir web-grader.test.ts).
+  html: false,
+  css: false,
 };
 
 function runLocal(language: LanguageId, code: string, stdin: string): { stdout: string; ok: boolean; err: string } {
@@ -67,8 +70,8 @@ function runLocal(language: LanguageId, code: string, stdin: string): { stdout: 
 }
 
 describe("structure du contenu", () => {
-  it("contient les cinq parcours", () => {
-    expect(staticCourses.map((c) => c.language).sort()).toEqual(["c", "java", "javascript", "pseudocode", "python"]);
+  it("contient les sept parcours", () => {
+    expect(staticCourses.map((c) => c.language).sort()).toEqual(["c", "css", "html", "java", "javascript", "pseudocode", "python"]);
   });
 
   it("a des identifiants uniques et des références valides", () => {

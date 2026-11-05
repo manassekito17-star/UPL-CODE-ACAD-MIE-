@@ -7,7 +7,19 @@
  * depuis l'administration.
  */
 
-export type LanguageId = "pseudocode" | "python" | "c" | "javascript" | "java";
+export type LanguageId = "pseudocode" | "python" | "c" | "javascript" | "java" | "html" | "css";
+
+/** Niveaux de chaque parcours : 1 très débutant, 2 débutant, 3 intermédiaire, 4 professionnel. */
+export type LevelNumber = 1 | 2 | 3 | 4;
+
+export const LEVEL_NUMBERS: LevelNumber[] = [1, 2, 3, 4];
+
+export const LEVEL_NAMES: Record<LevelNumber, string> = {
+  1: "Très débutant",
+  2: "Débutant",
+  3: "Intermédiaire",
+  4: "Professionnel",
+};
 export type Level = "debutant" | "intermediaire" | "avance";
 export type ContentStatus = "brouillon" | "en_revision" | "publie" | "archive";
 
@@ -28,9 +40,11 @@ export interface QuizQuestion {
   /** Index des bonnes réponses (jamais envoyé au navigateur). */
   correct: number[];
   explanation?: string;
+  /** Niveau évalué par la question (test de positionnement). */
+  level?: LevelNumber;
 }
 
-export type QuizKind = "verification" | "interrogation" | "evaluation";
+export type QuizKind = "verification" | "interrogation" | "evaluation" | "positionnement" | "examen_niveau";
 
 export interface Quiz {
   /** Identifiant en base (absent pour le contenu statique). */
@@ -54,6 +68,8 @@ export interface Definition {
 /** Algorithme commenté ligne par ligne : clé = numéro de ligne (1 = première ligne). */
 export interface CommentedAlgorithm {
   title: string;
+  /** Langage du code (pseudocode par défaut). */
+  language?: LanguageId;
   code: string;
   stdin?: string;
   comments: Record<number, string>;
@@ -61,6 +77,8 @@ export interface CommentedAlgorithm {
   showTrace?: boolean;
   /** Afficher l'organigramme généré. */
   showFlowchart?: boolean;
+  /** Afficher l'aperçu rendu (HTML / CSS). */
+  showPreview?: boolean;
 }
 
 export interface CommonError {
@@ -94,6 +112,16 @@ export interface TutorialSession {
  * Structure pédagogique complète d'un chapitre de la Formation
  * (objectifs et cours dans Lesson ; le reste ici).
  */
+/** Projet pratique d'un chapitre : réalisation guidée, évaluée par un exercice noté. */
+export interface PracticalProject {
+  title: string;
+  context: string;
+  steps: string[];
+  deliverables: string[];
+  /** Exercice noté (type mini_projet) qui vérifie le projet. */
+  exerciseSlug?: string;
+}
+
 export interface ChapterPedagogy {
   competences: string[];
   definitions: Definition[];
@@ -101,6 +129,7 @@ export interface ChapterPedagogy {
   commonErrors: CommonError[];
   solvedExercises: SolvedExercise[];
   td?: TutorialSession;
+  project?: PracticalProject;
   interrogation?: Quiz;
   evaluation?: Quiz;
 }
@@ -127,9 +156,32 @@ export interface Lesson {
 export interface Module {
   id?: string;
   slug: string;
+  /** Niveau auquel appartient le module (déduit des niveaux du parcours). */
+  level?: LevelNumber;
   title: string;
   description?: string;
   lessons: Lesson[];
+}
+
+/** Critères de passage au niveau suivant. */
+export interface LevelCriteria {
+  /** Pourcentage minimal de chapitres validés dans le niveau. */
+  chaptersValidatedPct: number;
+  /** Note minimale à l'examen final du niveau. */
+  examPassScore: number;
+}
+
+export interface LevelDefinition {
+  number: LevelNumber;
+  title: string;
+  description: string;
+  objectives: string[];
+  /** Modules (parties) rédigés qui composent ce niveau. */
+  moduleSlugs: string[];
+  /** Chapitres prévus mais pas encore rédigés (programme détaillé, affiché comme tel). */
+  plannedChapters: string[];
+  criteria: LevelCriteria;
+  exam?: Quiz;
 }
 
 export interface Course {
@@ -148,6 +200,11 @@ export interface Course {
   status: ContentStatus;
   modules: Module[];
   finalQuiz?: Quiz;
+  /** Les quatre niveaux du parcours. */
+  /** Quatre niveaux (renseignés par withLevels dans src/content/index.ts). */
+  levels?: LevelDefinition[];
+  /** Test de positionnement (questions étiquetées par niveau). */
+  placementTest?: Quiz;
 }
 
 export type ExerciseType =
@@ -160,8 +217,20 @@ export type ExerciseType =
   | "probleme"
   | "mini_projet";
 
+/**
+ * Vérification d'un exercice HTML / CSS, évaluée côté serveur sur le
+ * document analysé (aucun script n'est exécuté).
+ */
+export type WebCheck =
+  | { type: "element"; selector: string; min?: number; max?: number; message: string }
+  | { type: "text"; selector: string; contains?: string; equals?: string; message: string }
+  | { type: "attribute"; selector: string; name: string; equals?: string; contains?: string; message: string }
+  | { type: "css"; selector: string; property: string; equals?: string; oneOf?: string[]; message: string };
+
 export interface TestCase {
   description?: string;
+  /** Exercices HTML / CSS : vérification structurelle au lieu d'une sortie attendue. */
+  check?: WebCheck;
   input: string;
   expected: string;
   hidden?: boolean;
@@ -183,6 +252,10 @@ export interface Exercise {
   examples: Array<{ input: string; output: string; explanation?: string }>;
   constraints: string[];
   starterCode: string;
+  /** Projets web : fichiers de départ (index.html, style.css…) ; le premier est principal. */
+  starterFiles?: Array<{ name: string; content: string }>;
+  /** Fichier ouvert en premier dans l'éditeur (ex. style.css pour un exercice CSS). */
+  activeFile?: string;
   hints: string[];
   tests: TestCase[];
   /** Solution de référence (jamais envoyée au navigateur avant réussite). */
