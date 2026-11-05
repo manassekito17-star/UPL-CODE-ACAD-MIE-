@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { saveLesson } from "@/app/admin/actions";
+import { addLessonResource, deleteLessonResource, saveLesson } from "@/app/admin/actions";
 import { ActionForm } from "@/components/admin/action-form";
-import { Card, Field, inputClass } from "@/components/ui";
+import { Button, Card, Field, inputClass } from "@/components/ui";
+import { quizAsText } from "@/lib/admin/quizzes";
 import { serializeQuiz } from "@/lib/admin/formats";
 import { requireStaff } from "@/lib/auth";
 import { createAdminClient, hasAdminClient } from "@/lib/supabase/admin";
@@ -31,6 +32,18 @@ export default async function AdminLesson({ params, searchParams }: PageProps<"/
         return { prompt: q.prompt, choices: q.choices as string[], correct: (k?.correct as number[]) ?? [], explanation: k?.explanation ?? undefined };
       }));
     }
+  }
+  let interrogationText = "";
+  let evaluationText = "";
+  let evaluationPass = 70;
+  let resources: Array<{ id: string; kind: string; title: string; url: string | null }> = [];
+  if (lesson) {
+    const { data: qz } = await supabase.from("quizzes").select("id, kind, pass_score").eq("lesson_id", lesson.id).in("kind", ["interrogation", "evaluation"]);
+    interrogationText = await quizAsText(supabase, qz?.find((q) => q.kind === "interrogation")?.id);
+    const ev = qz?.find((q) => q.kind === "evaluation");
+    evaluationText = await quizAsText(supabase, ev?.id);
+    evaluationPass = ev?.pass_score ?? 70;
+    resources = (await supabase.from("lesson_resources").select("id, kind, title, url").eq("lesson_id", lesson.id).order("position")).data ?? [];
   }
   const l = lesson ?? { module_id: typeof sp.module === "string" ? sp.module : modules?.[0]?.id, level: "debutant", duration_minutes: 20, position: 1, status: "brouillon", objectives: [], prerequisites: [], summary: [], content: "", examples: [] };
 
@@ -81,8 +94,60 @@ export default async function AdminLesson({ params, searchParams }: PageProps<"/
           <Field label="Quiz de compréhension" htmlFor="quiz" hint="« ? question », « + bonne réponse », « - mauvaise réponse », « > explication ». Laisser vide : pas de quiz.">
             <textarea id="quiz" name="quiz" rows={8} defaultValue={quizText} className={`${inputClass} font-mono`} />
           </Field>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Field label="Interrogation (minutée, 10 min)" htmlFor="interrogation" hint="Même format que le quiz. Vide : pas d'interrogation.">
+              <textarea id="interrogation" name="interrogation" rows={8} defaultValue={interrogationText} className={`${inputClass} font-mono`} />
+            </Field>
+            <Field label="Évaluation finale du chapitre (valide le chapitre)" htmlFor="evaluation" hint="Même format. Sa réussite valide le chapitre et compte pour le passage de niveau.">
+              <textarea id="evaluation" name="evaluation" rows={8} defaultValue={evaluationText} className={`${inputClass} font-mono`} />
+            </Field>
+          </div>
+          <Field label="Note minimale de l'évaluation (%)" htmlFor="evaluation_pass_score">
+            <input id="evaluation_pass_score" name="evaluation_pass_score" type="number" min={1} max={100} defaultValue={evaluationPass} className={`${inputClass} w-32`} />
+          </Field>
         </ActionForm>
       </Card>
+      {lesson && (
+        <Card className="space-y-4 p-5" data-testid="ressources-lecon">
+          <h2 className="font-bold text-nuit-900">Ressources du chapitre (vidéos, documents, liens)</h2>
+          {resources.length ? (
+            <ul className="divide-y divide-gris-100 text-sm">
+              {resources.map((r) => (
+                <li key={r.id} className="flex items-center gap-3 py-2">
+                  <span className="w-20 text-xs uppercase text-gris-500">{r.kind}</span>
+                  <a href={r.url ?? "#"} className="flex-1 text-electrique-600 hover:underline" target="_blank" rel="noopener noreferrer">{r.title}</a>
+                  <form action={deleteLessonResource}>
+                    <input type="hidden" name="id" value={r.id} />
+                    <input type="hidden" name="courseSlug" value={course.slug} />
+                    <Button size="sm" variant="secondaire">Supprimer</Button>
+                  </form>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-gris-500">Aucune ressource.</p>
+          )}
+          <ActionForm action={addLessonResource} submitLabel="Ajouter la ressource">
+            <input type="hidden" name="lesson_id" value={lesson.id} />
+            <input type="hidden" name="courseSlug" value={course.slug} />
+            <div className="grid gap-4 sm:grid-cols-[10rem_1fr]">
+              <Field label="Type" htmlFor="res-kind">
+                <select id="res-kind" name="kind" className={inputClass}>
+                  <option value="video">Vidéo</option>
+                  <option value="document">Document</option>
+                  <option value="lien">Lien</option>
+                  <option value="image">Image</option>
+                </select>
+              </Field>
+              <Field label="Titre" htmlFor="res-title"><input id="res-title" name="title" required className={inputClass} /></Field>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Adresse (https://…)" htmlFor="res-url" hint="Vidéo en ligne, document partagé, page de référence."><input id="res-url" name="url" type="url" className={inputClass} /></Field>
+              <Field label="… ou fichier (20 Mo max.)" htmlFor="res-file" hint="PDF, image, MP4, DOCX, PPTX."><input id="res-file" name="file" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.mp4,.docx,.pptx" className={inputClass} /></Field>
+            </div>
+          </ActionForm>
+        </Card>
+      )}
     </div>
   );
 }

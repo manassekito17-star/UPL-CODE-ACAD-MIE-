@@ -27,3 +27,16 @@ describe("formats d'édition", () => {
     expect(parseTestsText(serializeTests(tests)).tests).toEqual(tests);
   });
 });
+
+describe("quiz étiqueté par niveau (test de positionnement)", () => {
+  it("lit et réécrit l'étiquette « @ niveau n »", () => {
+    const text = "? Que vaut 7 MOD 3 ?\n@ niveau 1\n- 2\n+ 1\n\n? Que contient un pointeur ?\n@ Niveau 3\n+ une adresse\n- une valeur";
+    const r = parseQuizText(text);
+    expect(r.errors).toEqual([]);
+    expect(r.questions.map((q) => q.level)).toEqual([1, 3]);
+    expect(parseQuizText(serializeQuiz(r.questions)).questions).toEqual(r.questions);
+  });
+  it("refuse un niveau invalide", () => {
+    expect(parseQuizText("? Q\n@ niveau 7\n+ a\n- b").errors.join(" ")).toContain("@ niveau 1");
+  });
+});

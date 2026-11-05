@@ -38,3 +38,26 @@ export async function signUpStudent(page: Page, name = "Étudiant Test") {
   await expect(page).toHaveURL(/tableau-de-bord/);
   return email;
 }
+
+/**
+ * Donne le rôle administrateur à un compte de test (clé service_role lue
+ * dans l'environnement ou dans .env.local — uniquement côté test, jamais
+ * dans le navigateur).
+ */
+export async function promoteToAdmin(email: string) {
+  const { readFileSync, existsSync } = await import("node:fs");
+  const env: Record<string, string> = { ...(process.env as Record<string, string>) };
+  if (existsSync(".env.local")) {
+    for (const line of readFileSync(".env.local", "utf8").split("\n")) {
+      const m = line.match(/^([A-Z0-9_]+)=(.*)$/);
+      if (m && !env[m[1]]) env[m[1]] = m[2].replace(/^"|"$/g, "");
+    }
+  }
+  const { createClient } = await import("@supabase/supabase-js");
+  const admin = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
+  const { data } = await admin.auth.admin.listUsers({ perPage: 1000 });
+  const user = data.users.find((u) => u.email === email);
+  if (!user) throw new Error(`compte ${email} introuvable`);
+  const { error } = await admin.from("user_roles").insert({ user_id: user.id, role: "administrateur" });
+  if (error) throw new Error(error.message);
+}

@@ -32,14 +32,21 @@ export default async function AdminCourse({ params }: PageProps<"/admin/formatio
       </div>
       <Card className="p-5"><CourseForm course={course as CourseRow} /></Card>
 
-      <h2 className="text-xl font-bold text-nuit-900">Modules et leçons</h2>
+      <div className="flex flex-wrap items-center gap-3">
+        <h2 className="mr-auto text-xl font-bold text-nuit-900">Modules et leçons</h2>
+        <ButtonLink href={`/admin/formations/${course.slug}/niveaux`} size="sm" variant="secondaire">Niveaux, critères, examens et positionnement →</ButtonLink>
+      </div>
       {(modules ?? []).map((m) => (
         <Card key={m.id} className="p-4">
-          <form action={saveModule} className="grid gap-2 sm:grid-cols-[1fr_10rem_5rem_auto]">
+          <form action={saveModule} className="grid gap-2 sm:grid-cols-[1fr_10rem_9rem_5rem_auto]">
             <input type="hidden" name="id" value={m.id} /><input type="hidden" name="course_id" value={course.id} /><input type="hidden" name="courseSlug" value={course.slug} />
             <input type="hidden" name="description" value={m.description ?? ""} />
             <input name="title" defaultValue={m.title} className={inputClass} aria-label="Titre du module" />
             <input name="slug" defaultValue={m.slug} className={inputClass} aria-label="Slug du module" />
+            <select name="level_number" defaultValue={m.level_number ?? ""} className={inputClass} aria-label="Niveau du module">
+              <option value="">Sans niveau</option>
+              {[1, 2, 3, 4].map((n) => <option key={n} value={n}>Niveau {n}</option>)}
+            </select>
             <input name="position" type="number" defaultValue={m.position} className={inputClass} aria-label="Position" />
             <Button size="sm" variant="secondaire">Enregistrer</Button>
           </form>
@@ -57,10 +64,13 @@ export default async function AdminCourse({ params }: PageProps<"/admin/formatio
       ))}
       <Card className="p-4">
         <h3 className="mb-2 font-semibold text-nuit-900">Nouveau module</h3>
-        <form action={saveModule} className="grid gap-2 sm:grid-cols-[1fr_10rem_5rem_auto]">
+        <form action={saveModule} className="grid gap-2 sm:grid-cols-[1fr_10rem_9rem_5rem_auto]">
           <input type="hidden" name="course_id" value={course.id} /><input type="hidden" name="courseSlug" value={course.slug} />
           <input name="title" required placeholder="Titre du module" className={inputClass} />
           <input name="slug" required placeholder="slug-du-module" className={inputClass} />
+          <select name="level_number" defaultValue="1" className={inputClass} aria-label="Niveau du nouveau module">
+            {[1, 2, 3, 4].map((n) => <option key={n} value={n}>Niveau {n}</option>)}
+          </select>
           <input name="position" type="number" defaultValue={(modules?.length ?? 0) + 1} className={inputClass} />
           <Button size="sm">Ajouter</Button>
         </form>

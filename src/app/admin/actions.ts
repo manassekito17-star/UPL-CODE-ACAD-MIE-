@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { linesToArray, parseQuizText, parseTestsText } from "@/lib/admin/formats";
 import { parsePedagogy } from "@/lib/admin/pedagogy-schema";
+import { saveQuizQuestions } from "@/lib/admin/quizzes";
 import { audit } from "@/lib/audit";
 import { requireAdmin, requireStaff } from "@/lib/auth";
 import { clientIp } from "@/lib/rate-limit";
@@ -114,10 +115,20 @@ export async function setCourseStatus(form: FormData) {
 export async function saveModule(form: FormData) {
   const user = await requireStaff("contenus");
   const parsed = z
-    .object({ id: z.string().uuid().optional().or(z.literal("")), course_id: z.string().uuid(), courseSlug: slug, slug, title: z.string().trim().min(2).max(200), description: z.string().max(2000).optional(), position: z.coerce.number().int().min(0).max(1000) })
+    .object({
+      id: z.string().uuid().optional().or(z.literal("")),
+      course_id: z.string().uuid(),
+      courseSlug: slug,
+      slug,
+      title: z.string().trim().min(2).max(200),
+      description: z.string().max(2000).optional(),
+      position: z.coerce.number().int().min(0).max(1000),
+      level_number: z.enum(["", "1", "2", "3", "4"]).optional(),
+    })
     .safeParse(Object.fromEntries(form));
   if (!parsed.success) return;
-  const { id, courseSlug, ...row } = parsed.data;
+  const { id, courseSlug, level_number, ...rest } = parsed.data;
+  const row = { ...rest, level_number: level_number ? Number(level_number) : null };
   const supabase = await createClient();
   if (id) await supabase.from("modules").update(row).eq("id", id);
   else await supabase.from("modules").insert(row);
@@ -145,11 +156,18 @@ export async function saveLesson(_prev: ActionState, form: FormData): Promise<Ac
       examples: z.string().max(100_000).optional(),
       status,
       quiz: z.string().max(50_000).optional(),
+      interrogation: z.string().max(50_000).optional(),
+      evaluation: z.string().max(50_000).optional(),
+      evaluation_pass_score: z.coerce.number().int().min(1).max(100).default(70),
       pedagogy: z.string().max(300_000).optional(),
     })
     .safeParse(Object.fromEntries(form));
   if (!parsed.success) return fail(parsed.error);
   const d = parsed.data;
+  const interrogation = d.interrogation?.trim() ? parseQuizText(d.interrogation) : null;
+  if (interrogation?.errors.length) return { error: `Interrogation : ${interrogation.errors.join(" ")}` };
+  const evaluation = d.evaluation?.trim() ? parseQuizText(d.evaluation) : null;
+  if (evaluation?.errors.length) return { error: `Évaluation : ${evaluation.errors.join(" ")}` };
   let examples: unknown = [];
   try {
     examples = d.examples?.trim() ? JSON.parse(d.examples) : [];
@@ -205,6 +223,28 @@ export async function saveLesson(_prev: ActionState, form: FormData): Promise<Ac
     }
   } else if (existing) {
     await supabase.from("quizzes").delete().eq("id", existing.id);
+  }
+
+  // Interrogation (minutée) et évaluation (valide le chapitre)
+  for (const [kind, parsedQuiz, title, passScore, duration] of [
+    ["interrogation", interrogation, `Interrogation — ${d.title}`, 60, 10],
+    ["evaluation", evaluation, `Évaluation — ${d.title}`, d.evaluation_pass_score, null],
+  ] as const) {
+    const { data: ex } = await supabase.from("quizzes").select("id").eq("lesson_id", saved.id).eq("kind", kind).maybeSingle();
+    if (parsedQuiz?.questions.length) {
+      try {
+        await saveQuizQuestions(
+          supabase,
+          { courseId: d.course_id, lessonId: saved.id, slug: ex ? "" : `${d.courseSlug}-${d.slug}-${kind}`.slice(0, 120), title, kind, passScore, durationMinutes: duration },
+          parsedQuiz.questions,
+          ex?.id,
+        );
+      } catch (e) {
+        return { error: `${kind === "evaluation" ? "Évaluation" : "Interrogation"} : ${(e as Error).message}` };
+      }
+    } else if (ex) {
+      await supabase.from("quizzes").delete().eq("id", ex.id);
+    }
   }
 
   await audit(user.id, d.id ? "lecon.modifiee" : "lecon.creee", { type: "lecon", id: `${d.courseSlug}/${d.slug}` }, { status: d.status }, await ip());
@@ -389,4 +429,159 @@ export async function saveCategory(form: FormData) {
   await supabase.from("course_categories").upsert(parsed.data, { onConflict: "slug" });
   await audit(admin.id, "categorie.enregistree", { type: "categorie", id: parsed.data.slug }, {}, await ip());
   revalidatePath("/admin/parametres");
+}
+
+// ---------------- Niveaux, examens et positionnement ----------------
+
+export async function saveLevel(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const user = await requireStaff("contenus");
+  const parsed = z
+    .object({
+      course_id: z.string().uuid(),
+      courseSlug: slug,
+      number: z.coerce.number().int().min(1).max(4),
+      title: z.string().trim().min(3).max(200),
+      description: z.string().max(3000).optional(),
+      objectives: z.string().max(5000).optional(),
+      planned_chapters: z.string().max(5000).optional(),
+      chapters_validated_pct: z.coerce.number().int().min(0).max(100),
+      exam_pass_score: z.coerce.number().int().min(1).max(100),
+      exam: z.string().max(80_000).optional(),
+    })
+    .safeParse(Object.fromEntries(form));
+  if (!parsed.success) return fail(parsed.error);
+  const d = parsed.data;
+  const exam = d.exam?.trim() ? parseQuizText(d.exam) : null;
+  if (exam?.errors.length) return { error: `Examen : ${exam.errors.join(" ")}` };
+  const supabase = await createClient();
+  const { error } = await supabase.from("course_levels").upsert(
+    {
+      course_id: d.course_id,
+      number: d.number,
+      title: d.title,
+      description: d.description ?? "",
+      objectives: linesToArray(d.objectives ?? ""),
+      planned_chapters: linesToArray(d.planned_chapters ?? ""),
+      chapters_validated_pct: d.chapters_validated_pct,
+      exam_pass_score: d.exam_pass_score,
+    },
+    { onConflict: "course_id,number" },
+  );
+  if (error) return { error: error.message };
+  const { data: existing } = await supabase.from("quizzes").select("id").eq("course_id", d.course_id).eq("kind", "examen_niveau").eq("level_number", d.number).maybeSingle();
+  if (exam?.questions.length) {
+    try {
+      await saveQuizQuestions(
+        supabase,
+        { courseId: d.course_id, slug: existing ? "" : `${d.courseSlug}-examen-niveau-${d.number}`, title: `Examen du niveau ${d.number} — ${d.title}`.slice(0, 200), kind: "examen_niveau", levelNumber: d.number, passScore: d.exam_pass_score },
+        exam.questions,
+        existing?.id,
+      );
+    } catch (e) {
+      return { error: `Examen : ${(e as Error).message}` };
+    }
+  } else if (existing) {
+    await supabase.from("quizzes").delete().eq("id", existing.id);
+  }
+  await audit(user.id, "niveau.modifie", { type: "niveau", id: `${d.courseSlug}/${d.number}` }, { criteria: [d.chapters_validated_pct, d.exam_pass_score], examQuestions: exam?.questions.length ?? 0 }, await ip());
+  revalidatePath(`/admin/formations/${d.courseSlug}/niveaux`);
+  revalidatePath(`/formations/${d.courseSlug}`, "layout");
+  return { success: `Niveau ${d.number} enregistré${exam?.questions.length ? ` avec un examen de ${exam.questions.length} question(s)` : " (sans examen : il ne pourra pas être validé)"}.` };
+}
+
+export async function savePlacement(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const user = await requireStaff("contenus");
+  const parsed = z.object({ course_id: z.string().uuid(), courseSlug: slug, placement: z.string().max(80_000) }).safeParse(Object.fromEntries(form));
+  if (!parsed.success) return fail(parsed.error);
+  const d = parsed.data;
+  const quiz = d.placement.trim() ? parseQuizText(d.placement) : null;
+  if (quiz?.errors.length) return { error: quiz.errors.join(" ") };
+  if (quiz) {
+    const missing = quiz.questions.filter((q) => !q.level).length;
+    if (missing) return { error: `${missing} question(s) sans « @ niveau n » : chaque question du positionnement doit indiquer le niveau qu'elle évalue.` };
+    const levels = new Set(quiz.questions.map((q) => q.level));
+    if (levels.size < 4) return { error: "Le test doit comporter des questions des quatre niveaux." };
+  }
+  const supabase = await createClient();
+  const { data: existing } = await supabase.from("quizzes").select("id").eq("course_id", d.course_id).eq("kind", "positionnement").maybeSingle();
+  if (quiz?.questions.length) {
+    try {
+      await saveQuizQuestions(supabase, { courseId: d.course_id, slug: existing ? "" : `${d.courseSlug}-positionnement`, title: "Test de positionnement", kind: "positionnement", passScore: 0 }, quiz.questions, existing?.id);
+    } catch (e) {
+      return { error: (e as Error).message };
+    }
+  } else if (existing) {
+    await supabase.from("quizzes").delete().eq("id", existing.id);
+  }
+  await audit(user.id, "positionnement.modifie", { type: "cours", id: d.courseSlug }, { questions: quiz?.questions.length ?? 0 }, await ip());
+  revalidatePath(`/admin/formations/${d.courseSlug}/niveaux`);
+  revalidatePath(`/formations/${d.courseSlug}`, "layout");
+  return { success: quiz ? `Test de positionnement enregistré (${quiz.questions.length} questions).` : "Test de positionnement supprimé." };
+}
+
+// ---------------- Ressources de leçon (vidéos, documents, liens) ----------------
+
+const RESOURCE_MAX_BYTES = 20 * 1024 * 1024;
+const RESOURCE_TYPES: Record<string, string> = {
+  "application/pdf": "pdf",
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/webp": "webp",
+  "video/mp4": "mp4",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation": "pptx",
+};
+
+export async function addLessonResource(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const user = await requireStaff("contenus");
+  const parsed = z
+    .object({
+      lesson_id: z.string().uuid(),
+      courseSlug: slug,
+      kind: z.enum(["video", "document", "lien", "image"]),
+      title: z.string().trim().min(2).max(200),
+      url: z.string().trim().max(1000).optional(),
+    })
+    .safeParse({ lesson_id: form.get("lesson_id"), courseSlug: form.get("courseSlug"), kind: form.get("kind"), title: form.get("title"), url: form.get("url") || undefined });
+  if (!parsed.success) return fail(parsed.error);
+  const d = parsed.data;
+  const file = form.get("file");
+  const supabase = await createClient();
+  let url: string | null = null;
+  let storagePath: string | null = null;
+  if (file instanceof File && file.size > 0) {
+    const ext = RESOURCE_TYPES[file.type];
+    if (!ext) return { error: "Type de fichier non accepté (PDF, PNG, JPEG, WebP, MP4, DOCX, PPTX)." };
+    if (file.size > RESOURCE_MAX_BYTES) return { error: "Fichier trop volumineux (20 Mo au maximum)." };
+    storagePath = `lecons/${d.lesson_id}/${crypto.randomUUID()}.${ext}`;
+    const { error } = await supabase.storage.from("ressources").upload(storagePath, file, { contentType: file.type, upsert: false });
+    if (error) return { error: `Envoi impossible : ${error.message}` };
+    url = supabase.storage.from("ressources").getPublicUrl(storagePath).data.publicUrl;
+  } else if (d.url) {
+    // Liens externes : https uniquement (pas de javascript:, data:, etc.).
+    if (!/^https:\/\/[^\s]+$/i.test(d.url)) return { error: "L'adresse doit commencer par https://." };
+    url = d.url;
+  } else {
+    return { error: "Indiquez une adresse https:// ou choisissez un fichier." };
+  }
+  const { count } = await supabase.from("lesson_resources").select("id", { count: "exact", head: true }).eq("lesson_id", d.lesson_id);
+  const { error } = await supabase.from("lesson_resources").insert({ lesson_id: d.lesson_id, kind: d.kind, title: d.title, url, storage_path: storagePath, position: count ?? 0 });
+  if (error) return { error: error.message };
+  await audit(user.id, "ressource.ajoutee", { type: "lecon", id: d.lesson_id }, { kind: d.kind, title: d.title }, await ip());
+  revalidatePath(`/admin/formations/${d.courseSlug}`, "layout");
+  revalidatePath(`/formations/${d.courseSlug}`, "layout");
+  return { success: "Ressource ajoutée." };
+}
+
+export async function deleteLessonResource(form: FormData) {
+  const user = await requireStaff("contenus");
+  const parsed = z.object({ id: z.string().uuid(), courseSlug: slug }).safeParse(Object.fromEntries(form));
+  if (!parsed.success) return;
+  const supabase = await createClient();
+  const { data: r } = await supabase.from("lesson_resources").select("storage_path").eq("id", parsed.data.id).maybeSingle();
+  if (r?.storage_path) await supabase.storage.from("ressources").remove([r.storage_path]);
+  await supabase.from("lesson_resources").delete().eq("id", parsed.data.id);
+  await audit(user.id, "ressource.supprimee", { type: "ressource", id: parsed.data.id }, {}, await ip());
+  revalidatePath(`/admin/formations/${parsed.data.courseSlug}`, "layout");
+  revalidatePath(`/formations/${parsed.data.courseSlug}`, "layout");
 }

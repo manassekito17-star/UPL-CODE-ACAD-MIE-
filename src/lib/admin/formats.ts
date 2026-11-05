@@ -7,6 +7,7 @@
  *   - mauvaise réponse
  *   + bonne réponse
  *   > explication (facultative)
+ *   @ niveau 2        (test de positionnement : niveau évalué, 1 à 4)
  *
  * Tests :
  *   ### Test 1        (ajouter « [caché] » pour un test caché)
@@ -21,6 +22,7 @@ export interface ParsedQuestion {
   choices: string[];
   correct: number[];
   explanation?: string;
+  level?: 1 | 2 | 3 | 4;
 }
 
 export function parseQuizText(text: string): { questions: ParsedQuestion[]; errors: string[] } {
@@ -39,6 +41,10 @@ export function parseQuizText(text: string): { questions: ParsedQuestion[]; erro
     } else if (line.startsWith("+") || line.startsWith("-")) {
       if (line.startsWith("+")) cur.correct.push(cur.choices.length);
       cur.choices.push(line.slice(1).trim());
+    } else if (line.startsWith("@")) {
+      const m = line.match(/^@\s*niveau\s*([1-4])$/i);
+      if (m) cur.level = Number(m[1]) as 1 | 2 | 3 | 4;
+      else errors.push(`Ligne ${i + 1} : écrivez « @ niveau 1 » à « @ niveau 4 ».`);
     } else if (line.startsWith(">")) {
       cur.explanation = `${cur.explanation ? `${cur.explanation} ` : ""}${line.slice(1).trim()}`;
     } else {
@@ -54,7 +60,9 @@ export function parseQuizText(text: string): { questions: ParsedQuestion[]; erro
 
 export function serializeQuiz(questions: ParsedQuestion[]): string {
   return questions
-    .map((q) => [`? ${q.prompt}`, ...q.choices.map((c, k) => `${q.correct.includes(k) ? "+" : "-"} ${c}`), ...(q.explanation ? [`> ${q.explanation}`] : [])].join("\n"))
+    .map((q) =>
+      [`? ${q.prompt}`, ...(q.level ? [`@ niveau ${q.level}`] : []), ...q.choices.map((c, k) => `${q.correct.includes(k) ? "+" : "-"} ${c}`), ...(q.explanation ? [`> ${q.explanation}`] : [])].join("\n"),
+    )
     .join("\n\n");
 }
 

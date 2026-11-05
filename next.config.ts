@@ -14,6 +14,10 @@ const nextConfig: NextConfig = {
     "/bulletin/pdf": ["./assets/fonts/**"],
     "/certificats/[code]/pdf": ["./assets/fonts/**"],
   },
+  // Ressources pédagogiques (jusqu'à 20 Mo) envoyées par les enseignants via une action serveur.
+  experimental: {
+    serverActions: { bodySizeLimit: "21mb" },
+  },
   turbopack: {
     rules: {
       "*.css": {

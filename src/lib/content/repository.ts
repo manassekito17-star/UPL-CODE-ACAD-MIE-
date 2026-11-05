@@ -3,7 +3,7 @@ import "server-only";
 import { cache } from "react";
 import { staticCourses, staticExercises } from "@/content";
 import type { Course, Exercise, Lesson, LevelDefinition, LevelNumber, Module, PublicExercise, PublicQuiz, Quiz, WebCheck } from "@/content/types";
-import { isSupabaseConfigured } from "../env";
+import { isSupabaseConfigured, publicEnv } from "../env";
 import { createAdminClient, hasAdminClient } from "../supabase/admin";
 import { createClient } from "../supabase/server";
 
@@ -432,4 +432,21 @@ function courseLevelQuiz(course: Course, slug: string): Quiz | null {
   if (course.placementTest?.slug === slug) return course.placementTest;
   for (const lv of course.levels ?? []) if (lv.exam?.slug === slug) return lv.exam;
   return null;
+}
+
+export interface LessonResource {
+  id: string;
+  kind: "video" | "document" | "lien" | "image";
+  title: string;
+  url: string;
+}
+
+/** Ressources publiées par l'équipe pédagogique pour un chapitre (vidéos, documents, liens). */
+export async function getLessonResources(lessonId?: string): Promise<LessonResource[]> {
+  if (!lessonId || contentSource() === "static") return [];
+  const supabase = await createClient();
+  const { data } = await supabase.from("lesson_resources").select("id, kind, title, url").eq("lesson_id", lessonId).order("position");
+  // Défense en profondeur : seules les adresses https et les fichiers du stockage de la plateforme sont affichés.
+  const storage = `${publicEnv.supabaseUrl}/storage/v1/object/public/ressources/`;
+  return (data ?? []).filter((r) => typeof r.url === "string" && (/^https:\/\//i.test(r.url) || (publicEnv.supabaseUrl && r.url.startsWith(storage)))) as LessonResource[];
 }

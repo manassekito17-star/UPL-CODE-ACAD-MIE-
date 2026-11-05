@@ -11,7 +11,7 @@ import { Badge, ButtonLink, Card, Container } from "@/components/ui";
 import { formatDuration, LEVEL_TONES } from "@/components/ui/labels";
 import { LEVEL_LABELS } from "@/content/types";
 import { getCurrentUser, isStaff } from "@/lib/auth";
-import { getLessonContext, listExercises, toPublicQuiz } from "@/lib/content/repository";
+import { getLessonContext, getLessonResources, listExercises, toPublicQuiz } from "@/lib/content/repository";
 import { getCompletedLessons, getSolvedExercises } from "@/lib/student";
 
 export async function generateMetadata({ params }: PageProps<"/formations/[course]/[lesson]">): Promise<Metadata> {
@@ -27,7 +27,7 @@ export default async function LessonPage({ params }: PageProps<"/formations/[cou
   const { course, module, lesson, previous, next, position, total } = ctx;
   if ((course.status !== "publie" || lesson.status !== "publie") && !isStaff(user)) notFound();
 
-  const [done, exercises, solved] = await Promise.all([getCompletedLessons(user, course.id), listExercises(), getSolvedExercises(user)]);
+  const [done, exercises, solved, resources] = await Promise.all([getCompletedLessons(user, course.id), listExercises(), getSolvedExercises(user), getLessonResources(lesson.id)]);
   const linked = exercises.filter((e) => lesson.exerciseSlugs?.includes(e.slug));
 
   return (
@@ -136,6 +136,22 @@ export default async function LessonPage({ params }: PageProps<"/formations/[cou
             </section>
           )}
           </>
+        )}
+
+        {resources.length > 0 && (
+          <section id="ressources" className="scroll-mt-24 space-y-3">
+            <h2 className="text-xl font-bold text-nuit-900">Ressources complémentaires</h2>
+            <ul className="grid gap-3 sm:grid-cols-2">
+              {resources.map((r) => (
+                <li key={r.id}>
+                  <a href={r.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 rounded-xl border border-gris-200 bg-white p-4 hover:border-electrique-400">
+                    <span aria-hidden className="text-xl">{r.kind === "video" ? "🎬" : r.kind === "document" ? "📄" : r.kind === "image" ? "🖼️" : "🔗"}</span>
+                    <span className="font-medium text-nuit-900">{r.title}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </section>
         )}
 
         <section id="professeur" className="scroll-mt-24 space-y-3">
