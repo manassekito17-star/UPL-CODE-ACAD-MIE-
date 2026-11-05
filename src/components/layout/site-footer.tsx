@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BRAND } from "@/lib/brand";
 import { Container } from "../ui";
 import { Logo } from "./logo";
 
@@ -28,7 +29,7 @@ export function SiteFooter() {
           </p>
         </div>
       </Container>
-      <div className="border-t border-white/10 py-4 text-center text-xs text-gray-500">© {new Date().getFullYear()} UPL Code Academy</div>
+      <div className="border-t border-white/10 py-4 text-center text-xs text-gray-500">© {new Date().getFullYear()} {BRAND.name}</div>
     </footer>
   );
 }

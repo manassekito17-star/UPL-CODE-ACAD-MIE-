@@ -128,9 +128,9 @@ export async function newDocument() {
     bold: await doc.embedFont(raw.bold, { subset: true }),
     mono: await doc.embedFont(raw.mono, { subset: true }),
   };
-  doc.setAuthor("UPL Code Academy");
+  doc.setAuthor("UPL CODE ACADEMY MK");
   doc.setLanguage("fr-FR");
-  doc.setCreator("UPL Code Academy");
+  doc.setCreator("UPL CODE ACADEMY MK");
   return { doc, f };
 }
 
@@ -146,13 +146,13 @@ export async function buildChapterSummaryPdf(course: Course, lesson: Lesson): Pr
     mono: await doc.embedFont(raw.mono, { subset: true }),
   };
   doc.setTitle(`Résumé — ${lesson.title}`);
-  doc.setAuthor("UPL Code Academy");
+  doc.setAuthor("UPL CODE ACADEMY MK");
   doc.setSubject(course.title);
   doc.setLanguage("fr-FR");
-  doc.setCreator("UPL Code Academy");
+  doc.setCreator("UPL CODE ACADEMY MK");
 
-  const w = new Writer(doc, f, `UPL Code Academy · ${course.title} · ${lesson.title}`);
-  w.text("UPL CODE ACADEMY — LEARN. CODE. PRACTICE. MASTER.", { size: 8.5, bold: true, color: BLEU, gap: 8 });
+  const w = new Writer(doc, f, `UPL CODE ACADEMY MK · ${course.title} · ${lesson.title}`);
+  w.text("UPL CODE ACADEMY MK — LEARN. CODE. PRACTICE. MASTER.", { size: 8.5, bold: true, color: BLEU, gap: 8 });
   w.text(lesson.title, { size: 20, bold: true, gap: 2 });
   w.text(`Résumé de chapitre · ${course.title} · durée indicative ${lesson.durationMinutes} min`, { size: 9.5, color: GRIS, gap: 10 });
 
@@ -189,6 +189,6 @@ export async function buildChapterSummaryPdf(course: Course, lesson: Lesson): Pr
     }
   }
   w.y -= 6;
-  w.text("Ce résumé ne remplace pas le cours complet ni les exercices. Contenu pédagogique d'UPL Code Academy, non officiel sauf validation par l'université.", { size: 8, color: GRIS });
+  w.text("Ce résumé ne remplace pas le cours complet ni les exercices. Contenu pédagogique d'UPL CODE ACADEMY MK, non officiel sauf validation par l'université.", { size: 8, color: GRIS });
   return doc.save();
 }

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { BRAND } from "@/lib/brand";
 import Link from "next/link";
 import { CourseCard } from "@/components/learning/course-card";
 import { Markdown } from "@/components/learning/markdown";
@@ -25,7 +26,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/tablea
     <>
       <section className="bg-nuit-950 text-white">
         <Container className="py-8">
-          <p className="text-sm text-cyan-accent">Tableau de bord</p>
+          <p className="text-sm text-cyan-accent">Tableau de bord · {BRAND.name}</p>
           <h1 className="mt-1 text-2xl font-bold sm:text-3xl">Bonjour {user.fullName.split(" ")[0]} 👋</h1>
           <p className="mt-1 text-gray-300">{d.profile?.learning_goal || "Fixez-vous un objectif dans votre profil pour rester motivé."}</p>
           <dl className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">

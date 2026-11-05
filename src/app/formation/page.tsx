@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { BRAND } from "@/lib/brand";
 import Link from "next/link";
 import { Badge, ButtonLink, Card, Container, ProgressBar } from "@/components/ui";
 import { formatDuration } from "@/components/ui/labels";
@@ -41,7 +42,7 @@ export default async function FormationPage() {
     <>
       <section className="bg-nuit-950 text-white">
         <Container className="py-10 sm:py-14">
-          <p className="text-xs font-bold tracking-[0.3em] text-cyan-accent">FORMATION · LEARN. CODE. PRACTICE. MASTER.</p>
+          <p className="text-xs font-bold tracking-[0.3em] text-cyan-accent">{BRAND.name} · FORMATION · {BRAND.slogan}</p>
           <h1 className="mt-3 text-3xl font-extrabold sm:text-4xl">Algorithmique et pseudocode</h1>
           <p className="mt-3 max-w-3xl text-gray-300">
             Un programme progressif, du premier algorithme jusqu&apos;aux structures de données et à l&apos;optimisation, conçu pour le niveau Bac 1. Chaque chapitre comporte un cours détaillé, des définitions, des algorithmes commentés ligne par ligne avec organigramme et tableau de suivi, des erreurs fréquentes, des exercices corrigés, des exercices notés, un TD, une interrogation, une évaluation finale et un résumé en PDF.

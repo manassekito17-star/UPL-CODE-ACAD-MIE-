@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
+import { BRAND } from "@/lib/brand";
 import "./globals.css";
 
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
@@ -11,10 +12,11 @@ const jetbrains = JetBrains_Mono({ variable: "--font-jetbrains", subsets: ["lati
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: { default: "UPL Code Academy", template: "%s · UPL Code Academy" },
-  description:
-    "Plateforme universitaire d'apprentissage de l'algorithmique et de la programmation (pseudocode, Python, C, JavaScript, Java) assistée par un professeur IA.",
-  applicationName: "UPL Code Academy",
+  title: { default: `${BRAND.name} — ${BRAND.slogan}`, template: `%s · ${BRAND.name}` },
+  description: BRAND.description,
+  applicationName: BRAND.name,
+  openGraph: { siteName: BRAND.name, title: BRAND.name, description: BRAND.description, locale: "fr_FR", type: "website" },
+  appleWebApp: { title: BRAND.name },
 };
 
 export const viewport: Viewport = {

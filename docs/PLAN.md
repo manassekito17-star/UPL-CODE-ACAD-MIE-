@@ -1,4 +1,4 @@
-# Plan d'exécution — UPL Code Academy
+# Plan d'exécution — UPL CODE ACADEMY MK
 
 La plateforme réunit trois produits : **UPL ACADEMY** (formation), **UPL IDE** (environnement de développement) et **UPL STUDIO** (création de sites et d'applications). L'addendum au master prompt fixe sept phases ; les treize étapes techniques du master prompt s'y répartissent.
 

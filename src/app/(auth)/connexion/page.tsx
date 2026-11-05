@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { BRAND } from "@/lib/brand";
 import Link from "next/link";
 import { AuthForm } from "@/components/auth/auth-form";
 import { Field, inputClass } from "@/components/ui";
@@ -11,7 +12,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/connexion"
   return (
     <>
       <h1 className="text-2xl font-bold text-nuit-900">Connexion</h1>
-      <p className="mb-6 mt-1 text-sm text-gris-700">Heureux de vous revoir ! Reprenez votre apprentissage.</p>
+      <p className="mb-6 mt-1 text-sm text-gris-700">Heureux de vous revoir sur {BRAND.name} ! Reprenez votre apprentissage.</p>
       {sp.erreur === "lien" && <p className="mb-4 text-sm text-erreur">Le lien est invalide ou a expiré.</p>}
       <AuthForm action={signIn} submitLabel="Se connecter">
         <input type="hidden" name="suite" value={typeof sp.suite === "string" ? sp.suite : ""} />

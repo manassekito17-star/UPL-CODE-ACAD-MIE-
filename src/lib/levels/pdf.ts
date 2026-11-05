@@ -10,14 +10,14 @@ const { NUIT, BLEU, GRIS, A4, M } = PDF_COLORS;
 const date = (iso: string) => new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric", timeZone: "Africa/Kinshasa" });
 
 export const INTERNAL_NOTICE =
-  "Document interne à UPL Code Academy. Il atteste une progression mesurée sur la plateforme et ne constitue ni un diplôme, ni un titre, ni des crédits académiques officiels de l'Université Protestante de Lubumbashi.";
+  "Document interne à UPL CODE ACADEMY MK. Il atteste une progression mesurée sur la plateforme et ne constitue ni un diplôme, ni un titre, ni des crédits académiques officiels de l'Université Protestante de Lubumbashi.";
 
 /** Bulletin de progression (A4). */
 export async function buildBulletinPdf(student: { name: string; email: string }, data: BulletinCourse[]): Promise<Uint8Array> {
   const { doc, f } = await newDocument();
   doc.setTitle(`Bulletin de progression — ${student.name}`);
-  const w = new Writer(doc, f, "UPL Code Academy — bulletin de progression (document interne)");
-  w.text("UPL CODE ACADEMY", { size: 10, bold: true, color: BLEU });
+  const w = new Writer(doc, f, "UPL CODE ACADEMY MK — bulletin de progression (document interne)");
+  w.text("UPL CODE ACADEMY MK", { size: 10, bold: true, color: BLEU });
   w.text("Bulletin de progression", { size: 22, bold: true, gap: 2 });
   w.text(`${student.name || student.email} · édité le ${date(new Date().toISOString())}`, { size: 10, color: GRIS, gap: 10 });
   if (!data.length) w.text("Aucun parcours commencé pour l'instant.");
@@ -59,10 +59,10 @@ export async function buildCertificatePdf(c: { fullName: string; courseTitle: st
     const font = bold ? f.bold : f.regular;
     page.drawText(t, { x: (W - font.widthOfTextAtSize(t, size)) / 2, y, size, font, color });
   };
-  center("UPL CODE ACADEMY", H - 80, 12, true, BLEU);
+  center("UPL CODE ACADEMY MK", H - 80, 12, true, BLEU);
   center("CERTIFICAT INTERNE DE RÉUSSITE", H - 120, 24, true);
   center("décerné à", H - 160, 11, false, GRIS);
-  center(c.fullName || "Étudiant(e) UPL Code Academy", H - 195, 26, true);
+  center(c.fullName || "Étudiant(e) UPL CODE ACADEMY MK", H - 195, 26, true);
   center(c.level ? `pour la validation du niveau ${c.level} — ${LEVEL_NAMES[c.level]}` : "pour l'achèvement complet du parcours", H - 235, 13);
   center(c.courseTitle, H - 262, 18, true, BLEU);
   if (c.levelTitle) center(c.levelTitle, H - 285, 10.5, false, GRIS);

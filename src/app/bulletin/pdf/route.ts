@@ -8,6 +8,6 @@ export async function GET() {
   if (!user) return new Response("Connexion requise.", { status: 401 });
   const pdf = await buildBulletinPdf({ name: user.fullName, email: user.email }, await getBulletin(user));
   return new Response(Buffer.from(pdf), {
-    headers: { "Content-Type": "application/pdf", "Content-Disposition": 'attachment; filename="bulletin-upl-code-academy.pdf"', "Cache-Control": "private, no-store" },
+    headers: { "Content-Type": "application/pdf", "Content-Disposition": 'attachment; filename="bulletin-upl-code-academy-mk.pdf"', "Cache-Control": "private, no-store" },
   });
 }

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { BRAND } from "@/lib/brand";
 import Link from "next/link";
 import { AuthForm } from "@/components/auth/auth-form";
 import { Field, inputClass } from "@/components/ui";
@@ -10,7 +11,7 @@ export default function SignUpPage() {
   return (
     <>
       <h1 className="text-2xl font-bold text-nuit-900">Créer un compte étudiant</h1>
-      <p className="mb-6 mt-1 text-sm text-gris-700">Gratuit. Suivez votre progression, enregistrez vos programmes et accédez au professeur IA.</p>
+      <p className="mb-6 mt-1 text-sm text-gris-700">Rejoignez {BRAND.name} gratuitement. Suivez votre progression, enregistrez vos programmes et accédez au professeur IA.</p>
       <AuthForm action={signUp} submitLabel="Créer mon compte">
         <Field label="Nom complet" htmlFor="fullName">
           <input id="fullName" name="fullName" autoComplete="name" required maxLength={120} className={inputClass} />

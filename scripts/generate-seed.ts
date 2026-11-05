@@ -14,7 +14,7 @@ const json = (v: unknown) => `${q(JSON.stringify(v))}::jsonb`;
 
 const out: string[] = [
   "-- Fichier généré par scripts/generate-seed.ts — ne pas modifier à la main.",
-  "-- Contenu pédagogique de référence d'UPL Code Academy.",
+  "-- Contenu pédagogique de référence d'UPL CODE ACADEMY MK.",
   "begin;",
 ];
 

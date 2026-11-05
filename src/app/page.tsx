@@ -28,7 +28,7 @@ export default async function HomePage() {
               Apprendre à programmer, <span className="bg-gradient-to-r from-electrique-400 to-cyan-accent bg-clip-text text-transparent">de la théorie à la pratique.</span>
             </h1>
             <p className="mt-5 max-w-xl text-lg text-gray-300">
-              UPL Code Academy réunit cours, éditeur de code, exercices corrigés automatiquement et professeur IA pour développer votre logique et maîtriser l&apos;algorithmique, Python, le C, JavaScript et Java.
+              UPL CODE ACADEMY MK réunit cours, éditeur de code, exercices corrigés automatiquement et professeur IA pour développer votre logique et maîtriser l&apos;algorithmique, HTML, CSS, Python, le C, JavaScript et Java, du niveau très débutant au niveau professionnel.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <ButtonLink href={user ? "/tableau-de-bord" : "/formation"} size="lg">
@@ -39,7 +39,7 @@ export default async function HomePage() {
               </ButtonLink>
             </div>
             <dl className="mt-10 grid max-w-md grid-cols-3 gap-4 text-center">
-              <div><dt className="text-xs text-gray-400">Parcours</dt><dd className="text-2xl font-bold">5</dd></div>
+              <div><dt className="text-xs text-gray-400">Parcours</dt><dd className="text-2xl font-bold">{courses.length}</dd></div>
               <div><dt className="text-xs text-gray-400">Leçons</dt><dd className="text-2xl font-bold">{courses.reduce((n, c) => n + c.lessonCount, 0)}</dd></div>
               <div><dt className="text-xs text-gray-400">Exercices</dt><dd className="text-2xl font-bold">{courses.reduce((n, c) => n + c.exerciseCount, 0)}</dd></div>
             </dl>

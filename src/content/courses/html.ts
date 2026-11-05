@@ -65,7 +65,7 @@ export const html: Course = {
             HTML entoure le contenu de **balises** écrites entre chevrons :
 
             ~~~html
-            <p>Bienvenue à UPL Code Academy</p>
+            <p>Bienvenue à UPL CODE ACADEMY MK</p>
             ~~~
 
             - **<p>** est la balise **ouvrante**, **</p>** la balise **fermante** (avec une barre oblique).
@@ -154,7 +154,7 @@ export const html: Course = {
                   ["  <title>Accueil</title>", "Titre affiché dans l'onglet du navigateur."],
                   ["</head>"],
                   ["<body>", "Corps : tout le contenu visible."],
-                  ["  <h1>UPL Code Academy</h1>", "Titre principal de la page."],
+                  ["  <h1>UPL CODE ACADEMY MK</h1>", "Titre principal de la page."],
                   ["  <p>Apprendre à coder, pas à pas.</p>", "Un paragraphe."],
                   ["</body>", "Fermeture du corps…"],
                   ["</html>", "… puis de la racine : le dernier ouvert est le premier fermé."],
@@ -238,7 +238,7 @@ export const html: Course = {
             | <title> | titre de l'onglet, des favoris et des résultats de recherche |
             | <link rel="stylesheet" href="style.css"> | feuille de style CSS (parcours CSS) |
 
-            Le **title** est obligatoire et doit décrire précisément la page : « Inscription — UPL Code Academy » plutôt que « Page ».
+            Le **title** est obligatoire et doit décrire précisément la page : « Inscription — UPL CODE ACADEMY MK » plutôt que « Page ».
 
             ## 5. Le corps : body
 
@@ -269,7 +269,7 @@ export const html: Course = {
               <head>
                 <meta charset="utf-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1">
-                <title>Inscription — UPL Code Academy</title>
+                <title>Inscription — UPL CODE ACADEMY MK</title>
               </head>
               <body>
                 <h1>Inscription</h1>
@@ -321,7 +321,7 @@ export const html: Course = {
             ],
             solvedExercises: [
               solved("Ordonner un squelette", "Remettez dans l'ordre : </body>, <head>, <!DOCTYPE html>, </html>, <body>, <html lang=\"fr\">, </head>, <title>T</title>.", "<!DOCTYPE html>\n<html lang=\"fr\">\n<head>\n  <title>T</title>\n</head>\n<body>\n</body>\n</html>", "DOCTYPE d'abord ; html contient head puis body ; chaque élément est fermé dans l'ordre inverse de son ouverture."),
-              solved("Choisir un bon titre", "Proposez un title pour la page des horaires de la bibliothèque du site UPL Code Academy.", "<title>Horaires de la bibliothèque — UPL Code Academy</title>", "Un bon titre décrit la page puis le site : il est lisible dans un onglet et utile dans les résultats de recherche."),
+              solved("Choisir un bon titre", "Proposez un title pour la page des horaires de la bibliothèque du site UPL CODE ACADEMY MK.", "<title>Horaires de la bibliothèque — UPL CODE ACADEMY MK</title>", "Un bon titre décrit la page puis le site : il est lisible dans un onglet et utile dans les résultats de recherche."),
             ],
             td: { title: "TD 2 — Squelettes de documents", instructions: "Chaque page doit être un document complet et valide.", exerciseSlugs: ["html-meta-viewport", "html-commentaire-titre"] },
             interrogation: interrogation("html-structure-interrogation", "Interrogation — Structure d'un document", [
@@ -602,7 +602,7 @@ export const html: Course = {
             On peut placer une image dans un lien : le texte alternatif décrit alors la **destination** du lien.
 
             ~~~html
-            <a href="index.html"><img src="logo.png" alt="Accueil d'UPL Code Academy"></a>
+            <a href="index.html"><img src="logo.png" alt="Accueil d'UPL CODE ACADEMY MK"></a>
             ~~~
 
             ## 7. Bonnes pratiques pour les liens et les images
@@ -669,7 +669,7 @@ export const html: Course = {
             ],
             solvedExercises: [
               solved("Écrire des chemins", "La page actuelle est **site/cours/index.html**. Écrivez les chemins relatifs vers (a) site/cours/python.html, (b) site/index.html, (c) site/images/logo.png.", "(a) python.html\n(b) ../index.html\n(c) ../images/logo.png", "« .. » remonte d'un dossier ; un nom seul désigne un fichier du dossier courant."),
-              solved("Rédiger des textes alternatifs", "Proposez un alt pour : (a) la photo d'un étudiant devant un ordinateur, (b) un trait décoratif, (c) un logo qui renvoie à l'accueil.", "(a) alt=\"Étudiant programmant sur un ordinateur portable\"\n(b) alt=\"\"\n(c) alt=\"Accueil d'UPL Code Academy\"", "Une image décorative reçoit un alt vide ; une image cliquable décrit la destination du lien."),
+              solved("Rédiger des textes alternatifs", "Proposez un alt pour : (a) la photo d'un étudiant devant un ordinateur, (b) un trait décoratif, (c) un logo qui renvoie à l'accueil.", "(a) alt=\"Étudiant programmant sur un ordinateur portable\"\n(b) alt=\"\"\n(c) alt=\"Accueil d'UPL CODE ACADEMY MK\"", "Une image décorative reçoit un alt vide ; une image cliquable décrit la destination du lien."),
             ],
             td: { title: "TD 4 — Navigation et images", instructions: "Vérifiez chaque lien et chaque image dans l'aperçu avant de soumettre.", exerciseSlugs: ["html-menu-navigation", "html-ancre-section"] },
             project: {

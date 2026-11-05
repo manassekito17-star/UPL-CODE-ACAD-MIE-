@@ -1,6 +1,6 @@
-# Audit du dépôt — UPL Code Academy
+# Audit du dépôt — UPL CODE ACADEMY MK
 
-Date : 5 novembre 2026 · Branche : `claude/upl-code-academy-specs-vl0z7e` · Référentiel : *Master prompt UPL Code Academy* (parties I à XVIII).
+Date : 5 novembre 2026 · Branche : `claude/upl-code-academy-specs-vl0z7e` · Référentiel : *Master prompt UPL CODE ACADEMY MK* (parties I à XVIII).
 
 ## 1. État constaté
 

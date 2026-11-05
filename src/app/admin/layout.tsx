@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BRAND } from "@/lib/brand";
 import { Container } from "@/components/ui";
 import { canTeach, requireStaff } from "@/lib/auth";
 
@@ -18,7 +19,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <Container className="grid gap-6 py-6 lg:grid-cols-[14rem_minmax(0,1fr)]">
       <nav aria-label="Administration" className="lg:sticky lg:top-24 lg:self-start">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gris-500">{user.isAdmin ? "Administrateur" : "Espace enseignant"}</p>
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gris-500">{BRAND.name} · {user.isAdmin ? "Administration" : "Espace enseignant"}</p>
         <ul className="flex gap-1 overflow-x-auto lg:flex-col">
           {links.map((l) => (
             <li key={l.href} className="shrink-0">

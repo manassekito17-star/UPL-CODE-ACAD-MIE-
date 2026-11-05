@@ -1,4 +1,4 @@
-# Architecture — UPL Code Academy
+# Architecture — UPL CODE ACADEMY MK
 
 ## 1. Vue d'ensemble
 

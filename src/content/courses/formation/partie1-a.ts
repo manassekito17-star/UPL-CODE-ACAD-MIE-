@@ -64,7 +64,7 @@ export const introduction: Lesson = lesson({
 
     ## 6. Le pseudocode utilisé sur la plateforme
 
-    Le **pseudocode** est une écriture structurée, proche du français, assez précise pour être exécutée, assez simple pour se concentrer sur la logique. Sur UPL Code Academy, il est **réellement interprété** : chaque exemple peut être exécuté avec le bouton **Exécuter**.
+    Le **pseudocode** est une écriture structurée, proche du français, assez précise pour être exécutée, assez simple pour se concentrer sur la logique. Sur UPL CODE ACADEMY MK, il est **réellement interprété** : chaque exemple peut être exécuté avec le bouton **Exécuter**.
 
     ~~~pseudocode
     ALGORITHME NomDeLAlgorithme
@@ -85,7 +85,7 @@ export const introduction: Lesson = lesson({
     example(P, "Premier algorithme", `
       ALGORITHME Bonjour
       DEBUT
-        ECRIRE("Bonjour et bienvenue à UPL Code Academy !")
+        ECRIRE("Bonjour et bienvenue à UPL CODE ACADEMY MK !")
         ECRIRE("Je suis votre premier algorithme.")
       FIN
     `, { explanation: "Deux instructions ECRIRE, exécutées dans l'ordre : deux lignes s'affichent." }),

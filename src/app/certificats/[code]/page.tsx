@@ -28,7 +28,7 @@ export default async function CertificatePage({ params }: PageProps<"/certificat
       ) : (
         <Card className="mt-6 space-y-2 p-6" data-testid="certificat-verifie">
           <p className="text-sm font-semibold uppercase tracking-wide text-green-700">✓ Certificat authentique</p>
-          <p className="text-xl font-bold text-nuit-900">{cert.fullName || "Étudiant(e) UPL Code Academy"}</p>
+          <p className="text-xl font-bold text-nuit-900">{cert.fullName || "Étudiant(e) UPL CODE ACADEMY MK"}</p>
           <p className="text-gris-700">
             {cert.level ? `Niveau ${cert.level} — ${LEVEL_NAMES[cert.level]} validé` : "Parcours complet achevé"} · <strong>{cert.courseTitle}</strong>
           </p>
