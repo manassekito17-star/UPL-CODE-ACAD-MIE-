@@ -14,6 +14,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     { href: "/admin/annonces", label: "Annonces", show: canTeach(user, "contenus") },
     { href: "/admin/utilisateurs", label: "Comptes et rôles", show: user.isAdmin },
     { href: "/admin/journaux", label: "Journaux d'activité", show: user.isAdmin },
+    { href: "/admin/consommation", label: "Consommation et coûts", show: user.isAdmin },
     { href: "/admin/parametres", label: "Paramètres et coûts IA", show: user.isAdmin },
   ].filter((l) => l.show);
   return (

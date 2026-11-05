@@ -15,6 +15,8 @@ const tag = (text: string, name: string) => text.match(new RegExp(`<${name}>([\\
 export const testProvider: AiProvider = {
   id: "test",
   model: "test",
+  billing: "test",
+  label: "Fournisseur de test (aucune IA)",
   isConfigured: () => process.env.UPL_ALLOW_TEST_AI === "true",
   async *stream({ messages }: AiStreamParams): AsyncGenerator<string, AiUsage> {
     const last = messages[messages.length - 1]?.content ?? "";

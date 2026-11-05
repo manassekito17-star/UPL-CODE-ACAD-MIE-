@@ -87,6 +87,8 @@ export function ExerciseWorkspace({ exercise, loggedIn, authRequired }: { exerci
         api.setMarkers(data.errorLine ? [{ line: data.errorLine, message: data.compileError ?? "Erreur" }] : []);
       } else if (data.fallback === "navigateur") {
         setGrade(await localCheck(api.files));
+        // Quota du service d'exécution atteint : on l'indique, la vérification locale reste possible.
+        if (res.status === 429 && data.error) setError(data.error);
       } else {
         setError(data.error ?? "Correction impossible.");
       }

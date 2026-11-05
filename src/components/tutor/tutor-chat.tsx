@@ -73,6 +73,23 @@ export function TutorChat({
   const [conversationId, setConversationId] = useState<string | undefined>();
   const [hintLevel, setHintLevel] = useState(1);
   const [remaining, setRemaining] = useState<string | null>(null);
+  const [aiStatus, setAiStatus] = useState<null | { available: boolean; reason?: string; provider?: string; billing?: string; dailyLimit?: number; remainingToday?: number }>(null);
+
+  // État réel du service (aucune réponse simulée si aucun modèle n'est connecté).
+  useEffect(() => {
+    let active = true;
+    fetch("/api/ai/status")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!active || !d) return;
+        setAiStatus(d);
+        if (d.remainingToday !== undefined) setRemaining(String(d.remainingToday));
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, []);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -199,6 +216,11 @@ export function TutorChat({
         )}
         <div ref={endRef} />
       </div>
+      {aiStatus && !aiStatus.available && (
+        <p className="mx-3 mb-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900" role="status" data-testid="ia-indisponible">
+          {aiStatus.reason}
+        </p>
+      )}
       {error && <p className="px-4 pb-2 text-sm text-erreur">{error}</p>}
       <form
         className="flex items-end gap-2 border-t border-gris-100 p-3"
@@ -222,11 +244,16 @@ export function TutorChat({
           aria-label="Votre message"
           className="min-h-10 flex-1 resize-none rounded-lg border border-gris-200 px-3 py-2 text-sm focus:border-electrique-500 focus:outline-none"
         />
-        <Button type="submit" disabled={loading}>
+        <Button type="submit" disabled={loading || aiStatus?.available === false}>
           {loading ? "…" : "Envoyer"}
         </Button>
       </form>
-      {remaining !== null && <p className="px-4 pb-2 text-right text-[11px] text-gris-500">{remaining} question(s) restante(s) aujourd&apos;hui</p>}
+      {(remaining !== null || aiStatus?.provider) && (
+        <p className="px-4 pb-2 text-right text-[11px] text-gris-500" data-testid="ia-limites">
+          {remaining !== null && `${remaining}${aiStatus?.dailyLimit ? ` / ${aiStatus.dailyLimit}` : ""} question(s) restante(s) aujourd'hui`}
+          {aiStatus?.provider && ` · ${aiStatus.provider}${aiStatus.billing === "gratuit" ? " (offre gratuite)" : aiStatus.billing === "test" ? " (test, aucune IA)" : ""}`}
+        </p>
+      )}
     </div>
   );
 }

@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { Card } from "@/components/ui";
+import { Card, Notice } from "@/components/ui";
 import { formatDateTime } from "@/components/ui/labels";
 import { requireStaff } from "@/lib/auth";
+import { getConsumption } from "@/lib/consumption";
 import { createAdminClient, hasAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -36,6 +37,8 @@ export default async function AdminHome() {
     aiMessages = (data ?? []).filter((r) => r.role === "user").length;
     recentLogs = (await admin.from("audit_logs").select("action, created_at").order("created_at", { ascending: false }).limit(8)).data ?? [];
   }
+  // Alertes de dépassement des limites gratuites (administrateur).
+  const alerts = user.isAdmin ? (await getConsumption()).alerts : [];
   const published = (courses.data ?? []).filter((c) => c.status === "publie").length;
   const stats = [
     ["Comptes", students.count ?? 0],
@@ -48,6 +51,11 @@ export default async function AdminHome() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-nuit-900">Vue d&apos;ensemble</h1>
+      {alerts.map((a) => (
+        <Notice key={a.text} tone={a.level === "critique" ? "erreur" : "alerte"}>
+          {a.text} <Link href="/admin/consommation" className="underline">Voir la consommation</Link>
+        </Notice>
+      ))}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {stats.map(([k, v]) => (
           <Card key={String(k)} className="p-4">

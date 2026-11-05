@@ -8,6 +8,8 @@ import { LANGUAGES } from "@/lib/execution/languages";
 import { ExecutionUnavailableError } from "@/lib/execution/run";
 import { countAttempts, hasSolved, recordSubmission } from "@/lib/progress";
 import { rateLimit } from "@/lib/rate-limit";
+import { isJudge0Configured } from "@/lib/server-env";
+import { consumeServerRuns } from "@/lib/usage";
 import { submitSchema } from "@/lib/validation";
 
 /** Nombre de tentatives après lequel le corrigé est proposé, même sans réussite. */
@@ -28,6 +30,15 @@ export async function POST(request: Request, ctx: RouteContext<"/api/exercises/[
 
   const exercise = await getExerciseForGrading(slug);
   if (!exercise || exercise.status !== "publie") return jsonError(404, "Exercice introuvable.");
+
+  // Correction par le service isolé externe : chaque test consomme une exécution du quota.
+  const external = exercise.language !== "pseudocode" && !LANGUAGES[exercise.language].preview && isJudge0Configured();
+  if (external) {
+    const quota = await consumeServerRuns(user, exercise.tests.length);
+    if (!quota.ok) {
+      return LANGUAGES[exercise.language].browserFallback ? jsonError(429, quota.reason!, { fallback: "navigateur" }) : jsonError(429, quota.reason!);
+    }
+  }
 
   let grade;
   try {

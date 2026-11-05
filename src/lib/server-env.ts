@@ -15,7 +15,13 @@ export const serverEnv = {
   },
   aiProvider: process.env.AI_PROVIDER ?? "anthropic",
   anthropicApiKey: process.env.ANTHROPIC_API_KEY ?? "",
-  aiModel: process.env.AI_MODEL ?? "claude-opus-5-5",
+  aiModel: process.env.AI_MODEL ?? (process.env.AI_PROVIDER === "openai_compatible" ? "" : "claude-opus-5-5"),
+  /** Fournisseur compatible OpenAI (Gemini, Groq, OpenRouter, Mistral, Ollama…). */
+  aiBaseUrl: process.env.AI_BASE_URL ?? "",
+  aiApiKey: process.env.AI_API_KEY ?? "",
+  /** Offre déclarée du fournisseur : « gratuit » (quotas gratuits) ou « payant » (facturé à l'usage). */
+  aiBilling: process.env.AI_BILLING === "gratuit" ? ("gratuit" as const) : ("payant" as const),
+  aiProviderLabel: process.env.AI_PROVIDER_LABEL ?? "",
   /** Autorise le professeur IA sans compte (développement local uniquement). */
   aiAllowAnonymous: process.env.AI_ALLOW_ANONYMOUS === "true",
 };

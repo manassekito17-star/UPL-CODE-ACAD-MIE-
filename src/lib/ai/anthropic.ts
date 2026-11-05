@@ -13,6 +13,8 @@ function getClient() {
 export const anthropicProvider: AiProvider = {
   id: "anthropic",
   model: serverEnv.aiModel,
+  billing: "payant",
+  label: "Anthropic (Claude)",
   isConfigured: () => Boolean(serverEnv.anthropicApiKey),
   async *stream({ system, messages, maxOutputTokens, effort, signal }: AiStreamParams): AsyncGenerator<string, AiUsage> {
     const stream = getClient().beta.messages.stream(

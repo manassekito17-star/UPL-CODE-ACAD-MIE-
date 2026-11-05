@@ -17,7 +17,7 @@ create table auth.users (id uuid primary key, email text, raw_user_meta_data jso
 create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
 create function auth.role() returns text language sql stable as $$ select coalesce(nullif(current_setting('request.jwt.claim.role', true), ''), 'anon') $$;
 create table storage.buckets (id text primary key, name text, public boolean);
-create table storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text, name text);
+create table storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text, name text, metadata jsonb);
 alter table storage.objects enable row level security;
 create function storage.foldername(name text) returns text[] language sql as $$ select string_to_array(name, '/') $$;
 grant usage on schema public, auth, storage to anon, authenticated, service_role;
@@ -137,3 +137,24 @@ check("L'équipe « suivi » ne lit pas les projets des étudiants", (await as(A
 await db.query(`update public.profiles set status = 'suspendu' where id = $1`, [C]);
 denied = false; try { await as(C, `update public.projects set name = 'x' where id = $1`, [proj]); } catch { denied = true; }
 check("Un compte suspendu ne peut plus modifier ses projets", denied);
+
+console.log("\nQuotas et consommation :");
+await db.exec("reset role");
+const q = async (user, units, ul, gl) => (await db.query("select * from public.consume_quota('judge0', $1, $2, $3, $4)", [user, units, ul, gl])).rows[0];
+check("Quota : réservation acceptée sous les plafonds", (await q(A, 3, 5, 10)).ok === true);
+check("Quota : plafond par utilisateur respecté", (await q(A, 3, 5, 10)).ok === false);
+check("Quota : un autre utilisateur garde son quota", (await q(B, 5, 5, 10)).ok === true);
+const g = await q(ADM, 3, 5, 10);
+check("Quota : plafond global du jour respecté", g.ok === false && g.global_used === 8);
+check("Quota : refus comptabilisés", (await db.query("select sum(refused)::int n from public.service_usage")).rows[0].n === 2);
+check("Quota : plafond 0 = illimité", (await q(A, 100, 0, 0)).ok === true);
+denied = false; try { await as(A, "select * from public.consume_quota('judge0', $1, 1, 0, 0)", [A]); } catch { denied = true; }
+check("Un étudiant ne peut pas appeler la réservation de quota", denied);
+denied = false; try { await as(A, "insert into public.service_usage (service, user_id, units) values ('judge0', $1, 0)", [A]); } catch { denied = true; }
+check("Un étudiant ne peut pas écrire ses compteurs", denied);
+check("Un étudiant ne lit que ses compteurs", (await as(A, "select distinct user_id from public.service_usage")).rows.every((r) => r.user_id === A));
+denied = false; try { await as(A, "update public.profiles set plan = 'premium' where id = $1", [A]); } catch { denied = true; }
+check("Un étudiant ne peut pas s'attribuer l'offre premium", denied);
+denied = false; try { await as(A, "select * from public.platform_usage()"); } catch { denied = true; }
+check("Mesure de l'espace réservée à l'administration", denied);
+check("L'administration mesure l'espace utilisé", Number((await as(ADM, "select * from public.platform_usage()")).rows[0].database_bytes) > 0);

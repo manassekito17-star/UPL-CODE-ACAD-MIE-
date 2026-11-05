@@ -381,10 +381,15 @@ export async function saveSettings(_prev: ActionState, form: FormData): Promise<
       ai_budget: z.coerce.number().min(0).max(100_000),
       ai_max_tokens: z.coerce.number().int().min(200).max(16_000),
       ai_effort: z.enum(["low", "medium", "high"]),
+      ai_global_daily: z.coerce.number().int().min(0).max(1_000_000),
+      ai_allow_paid: z.string().optional(),
       exec_enabled: z.string().optional(),
       exec_rpm: z.coerce.number().int().min(1).max(300),
       exec_cpu: z.coerce.number().min(1).max(15),
       exec_memory: z.coerce.number().int().min(16_000).max(512_000),
+      exec_user_daily: z.coerce.number().int().min(0).max(100_000),
+      exec_global_daily: z.coerce.number().int().min(0).max(10_000_000),
+      exec_browser_first: z.string().optional(),
       reg_open: z.string().optional(),
       reg_domains: z.string().max(2000).optional(),
     })
@@ -393,8 +398,8 @@ export async function saveSettings(_prev: ActionState, form: FormData): Promise<
   const d = parsed.data;
   const supabase = await createClient();
   const rows = [
-    { key: "ai", value: { enabled: d.ai_enabled === "on", daily_messages_per_user: d.ai_daily, monthly_budget_usd: d.ai_budget, max_output_tokens: d.ai_max_tokens, effort: d.ai_effort } },
-    { key: "execution", value: { enabled: d.exec_enabled === "on", max_runs_per_minute: d.exec_rpm, cpu_time_limit_s: d.exec_cpu, memory_limit_kb: d.exec_memory } },
+    { key: "ai", value: { enabled: d.ai_enabled === "on", daily_messages_per_user: d.ai_daily, monthly_budget_usd: d.ai_budget, max_output_tokens: d.ai_max_tokens, effort: d.ai_effort, global_daily_messages: d.ai_global_daily, allow_paid_providers: d.ai_allow_paid === "on" } },
+    { key: "execution", value: { enabled: d.exec_enabled === "on", max_runs_per_minute: d.exec_rpm, cpu_time_limit_s: d.exec_cpu, memory_limit_kb: d.exec_memory, server_runs_per_user_per_day: d.exec_user_daily, server_runs_global_per_day: d.exec_global_daily, browser_first: d.exec_browser_first === "on" } },
     { key: "registration", value: { open: d.reg_open === "on", allowed_email_domains: (d.reg_domains ?? "").split(/[\s,;]+/).map((x) => x.replace(/^@/, "").toLowerCase()).filter(Boolean) } },
   ];
   for (const r of rows) {

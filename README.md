@@ -88,9 +88,9 @@ npx supabase status -o env    # copier API_URL, ANON_KEY et SERVICE_ROLE_KEY dan
 
 Auto-hébergement recommandé ([judge0/judge0](https://github.com/judge0/judge0), Docker) sur une machine **distincte** du serveur web, avec `AUTHN_HEADER=X-Auth-Token` et `AUTHN_TOKEN` définis, puis `JUDGE0_URL` et `JUDGE0_AUTH_TOKEN`. L'offre RapidAPI est aussi prise en charge (`JUDGE0_RAPIDAPI_KEY`). Vérifiez les identifiants de langages de votre instance (`GET /languages`) et ajustez `JUDGE0_LANG_*`.
 
-### 3. Professeur IA
+### 3. Professeur IA (facultatif)
 
-Renseigner `ANTHROPIC_API_KEY` (et éventuellement `AI_MODEL`). Les limites (questions par jour et par étudiant, budget mensuel en dollars, jetons par réponse, effort) se règlent dans **Administration → Paramètres**. Chaque réponse est enregistrée avec ses jetons et son coût estimé. Pour les tests de bout en bout uniquement, `AI_PROVIDER=test` et `UPL_ALLOW_TEST_AI=true` activent un fournisseur déterministe qui n'appelle aucune IA (il l'annonce dans sa réponse). Pour ajouter un autre fournisseur, implémenter l'interface `AiProvider` (`src/lib/ai/types.ts`) et l'enregistrer dans `src/lib/ai/index.ts`.
+Lancement à budget zéro : utilisez un fournisseur à offre gratuite via l'API compatible OpenAI (`AI_PROVIDER=openai_compatible`, `AI_BASE_URL`, `AI_API_KEY`, `AI_MODEL`, `AI_BILLING=gratuit` — exemples Gemini, Groq, OpenRouter, Mistral dans `.env.example`). Un fournisseur payant (Anthropic, ou offre non déclarée gratuite) reste **bloqué** tant que l'administrateur ne l'autorise pas avec un budget mensuel. Sans modèle connecté, l'interface l'indique et les cours restent accessibles. Les limites (questions par jour par étudiant et pour la plateforme, budget, jetons) se règlent dans **Administration → Paramètres** ; la consommation se suit dans **Administration → Consommation et coûts**. Détails : [docs/COUTS.md](docs/COUTS.md).
 
 ### 4. Déploiement (Vercel)
 
@@ -114,8 +114,8 @@ Importer le dépôt GitHub dans Vercel, définir les variables d'environnement d
 npm test          # interpréteur, formats d'édition, Judge0 (simulé), comparaison,
                   # et contrôle qualité du contenu : chaque exemple de leçon et chaque
                   # solution de référence sont exécutés (pseudocode, Python, C, JS, Java)
-npm run test:db   # migrations + seed + 51 contrôles (RLS, niveaux, certificats, projets) sur PostgreSQL (PGlite)
-npm run build && npm run test:e2e   # 58 scénarios navigateur (ordinateur + mobile, Playwright) ;
+npm run test:db   # migrations + seed + 63 contrôles (RLS, niveaux, certificats, projets, quotas) sur PostgreSQL (PGlite)
+npm run build && npm run test:e2e   # 59 scénarios navigateur (ordinateur + mobile, Playwright) ;
                                     # avec Supabase configuré : parcours réels avec comptes
 npm run lint
 npm run build
@@ -123,7 +123,7 @@ npm run build
 
 L'intégration continue (`.github/workflows/ci.yml`) rejoue l'ensemble à chaque push, en mode démonstration **et** contre un Supabase réel démarré dans la CI.
 
-Documentation : [UPL IDE](docs/IDE.md) · [multiniveaux](docs/MULTINIVEAUX.md) · [formation](docs/FORMATION.md) · [audit](docs/AUDIT.md) · [architecture](docs/ARCHITECTURE.md) · [plan d'exécution](docs/PLAN.md) · [critères d'acceptation](docs/CRITERES-ACCEPTATION.md) · [pseudocode](docs/PSEUDOCODE.md).
+Documentation : [budget zéro et coûts](docs/COUTS.md) · [UPL IDE](docs/IDE.md) · [multiniveaux](docs/MULTINIVEAUX.md) · [formation](docs/FORMATION.md) · [audit](docs/AUDIT.md) · [architecture](docs/ARCHITECTURE.md) · [plan d'exécution](docs/PLAN.md) · [critères d'acceptation](docs/CRITERES-ACCEPTATION.md) · [pseudocode](docs/PSEUDOCODE.md).
 
 ## Contribuer au contenu
 

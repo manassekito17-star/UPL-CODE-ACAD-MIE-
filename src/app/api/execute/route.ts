@@ -4,6 +4,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { isSupabaseConfigured } from "@/lib/env";
 import { LANGUAGES } from "@/lib/execution/languages";
 import { ExecutionUnavailableError, executeOnServer } from "@/lib/execution/run";
+import { isJudge0Configured } from "@/lib/server-env";
+import { consumeServerRuns } from "@/lib/usage";
 import type { ExecutionRequest } from "@/lib/execution/types";
 import { recordExecution } from "@/lib/progress";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
@@ -36,6 +38,16 @@ export async function POST(request: Request) {
   const limit = rateLimit(key, settings.execution.max_runs_per_minute, 60_000);
   if (!limit.ok) {
     return jsonError(429, `Trop d'exécutions. Réessayez dans ${limit.retryAfterSeconds} s.`, { retryAfter: limit.retryAfterSeconds });
+  }
+
+  // Budget 0 : Python et JavaScript tournent dans le navigateur de l'étudiant (aucun coût serveur).
+  if (settings.execution.browser_first && lang.browserFallback && language !== "pseudocode") {
+    return jsonError(503, "Exécution dans le navigateur.", { fallback: "navigateur" });
+  }
+  // Service isolé externe : réservation dans les quotas avant l'appel.
+  if (language !== "pseudocode" && isJudge0Configured()) {
+    const quota = await consumeServerRuns(user, 1);
+    if (!quota.ok) return lang.browserFallback ? jsonError(429, quota.reason!, { fallback: "navigateur" }) : jsonError(429, quota.reason!);
   }
 
   try {

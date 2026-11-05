@@ -1,4 +1,4 @@
-import { getAiProvider } from "@/lib/ai";
+import { aiAvailability, getAiProvider, providerBilling } from "@/lib/ai";
 import { buildUserMessage, TUTOR_SYSTEM_PROMPT } from "@/lib/ai/prompts";
 import { checkAiQuota } from "@/lib/ai/quota";
 import { estimateCostUsd, type AiMessage, type AiUsage } from "@/lib/ai/types";
@@ -11,7 +11,9 @@ import { getLevelStates } from "@/lib/levels/server";
 import { isSupabaseConfigured } from "@/lib/env";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { serverEnv } from "@/lib/server-env";
+import { entitlements } from "@/lib/plans";
 import { getSettings } from "@/lib/settings";
+import { userPlan } from "@/lib/usage";
 import { createAdminClient, hasAdminClient } from "@/lib/supabase/admin";
 import { tutorSchema } from "@/lib/validation";
 
@@ -34,11 +36,14 @@ export async function POST(request: Request) {
   const burst = rateLimit(`ai:${user?.id ?? clientIp(request.headers)}`, 8, 60_000);
   if (!burst.ok) return jsonError(429, `Doucement ! Réessayez dans ${burst.retryAfterSeconds} s.`);
 
-  const provider = getAiProvider();
-  if (!provider) return jsonError(503, "Le professeur IA n'est pas encore configuré sur cette installation (clé API manquante).");
-
   const settings = await getSettings();
-  const quota = await checkAiQuota(user?.id ?? null, settings.ai);
+  // Aucun modèle connecté, ou fournisseur payant non autorisé : pas de réponse simulée.
+  const availability = aiAvailability(settings.ai);
+  const provider = getAiProvider();
+  if (!availability.available || !provider) return jsonError(503, availability.reason ?? "Professeur IA indisponible.");
+  const billing = providerBilling(provider);
+  const ent = entitlements(await userPlan(user?.id ?? null), settings);
+  const quota = await checkAiQuota(user?.id ?? null, settings.ai, billing, ent.aiMessagesPerDay);
   if (!quota.ok) return jsonError(429, quota.reason ?? "Quota atteint.");
 
   const exercise = req.context.exerciseSlug ? await getPublicExercise(req.context.exerciseSlug) : null;
@@ -141,7 +146,8 @@ export async function POST(request: Request) {
             model: usage?.model ?? provider.model,
             input_tokens: usage?.inputTokens ?? 0,
             output_tokens: usage?.outputTokens ?? 0,
-            cost_usd: usage ? estimateCostUsd(usage) : 0,
+            // Offre gratuite : aucun coût pour la plateforme.
+            cost_usd: usage && billing === "payant" ? estimateCostUsd(usage) : 0,
           });
           await db.from("ai_conversations").update({ updated_at: new Date().toISOString() }).eq("id", conversationId);
         }

@@ -26,6 +26,12 @@ export interface AiStreamParams {
 export interface AiProvider {
   id: string;
   model: string;
+  /**
+   * Coût pour la plateforme : « gratuit » (offre gratuite avec quotas, ou
+   * modèle local), « payant » (facturé à l'usage), « test » (aucune IA).
+   */
+  billing?: "gratuit" | "payant" | "test";
+  label?: string;
   isConfigured(): boolean;
   /** Émet le texte au fil de l'eau puis retourne la consommation. */
   stream(params: AiStreamParams): AsyncGenerator<string, AiUsage>;
