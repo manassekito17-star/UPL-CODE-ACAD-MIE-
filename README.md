@@ -103,11 +103,14 @@ npm test          # interpréteur, formats d'édition, Judge0 (simulé), compara
                   # et contrôle qualité du contenu : chaque exemple de leçon et chaque
                   # solution de référence sont exécutés (pseudocode, Python, C, JS, Java)
 npm run test:db   # migrations + seed + 23 scénarios RLS sur PostgreSQL (PGlite)
+npm run build && npm run test:e2e   # 20 scénarios navigateur (ordinateur + mobile, Playwright)
 npm run lint
 npm run build
 ```
 
-Voir [docs/CRITERES-ACCEPTATION.md](docs/CRITERES-ACCEPTATION.md) pour la correspondance avec le cahier des charges.
+L'intégration continue (`.github/workflows/ci.yml`) rejoue l'ensemble à chaque push.
+
+Documentation : [audit](docs/AUDIT.md) · [architecture](docs/ARCHITECTURE.md) · [plan d'exécution](docs/PLAN.md) · [critères d'acceptation](docs/CRITERES-ACCEPTATION.md) · [pseudocode](docs/PSEUDOCODE.md).
 
 ## Contribuer au contenu
 
