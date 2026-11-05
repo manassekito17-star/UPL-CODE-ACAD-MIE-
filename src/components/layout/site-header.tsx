@@ -9,6 +9,7 @@ const PUBLIC_LINKS = [
   { href: "/formations", label: "Parcours" },
   { href: "/exercices", label: "Exercices" },
   { href: "/editeur", label: "Éditeur" },
+  { href: "/ide", label: "UPL IDE" },
   { href: "/laboratoire", label: "Laboratoire" },
   { href: "/professeur-ia", label: "Professeur IA" },
 ];

@@ -117,3 +117,23 @@ check("Certificat vérifiable publiquement par son code", v.length === 1 && v[0]
 check("La vérification ne révèle ni identifiant ni e-mail", v.length === 1 && !("user_id" in v[0]) && !("email" in v[0]));
 check("Code de certificat inconnu → aucun résultat", (await as(null, "select * from public.verify_certificate('deadbeefdeadbeef')")).rows.length === 0);
 check("Un visiteur ne lit pas la table des certificats", (await as(null, "select * from public.certificates")).rows.length === 0);
+
+console.log("\nProjets UPL IDE :");
+const C = "44444444-4444-4444-4444-444444444444";
+await db.query(`insert into auth.users (id, email, raw_user_meta_data) values ($1, 'c@x.cd', '{"full_name":"Chloé"}')`, [C]);
+const proj = (await as(C, `insert into public.projects (user_id, name, files) values ($1, 'Mon site', '[{"path":"index.html","content":"<p>secret</p>"}]') returning id`, [C])).rows[0].id;
+check("Chloé crée un projet", Boolean(proj));
+check("Alice ne voit pas le projet de Chloé", (await as(A, "select * from public.projects where id = $1", [proj])).rows.length === 0);
+check("Alice ne peut pas modifier le projet de Chloé", (await as(A, "update public.projects set name = 'pirate' where id = $1 returning id", [proj])).rows.length === 0);
+check("Alice ne peut pas supprimer le projet de Chloé", (await as(A, "delete from public.projects where id = $1 returning id", [proj])).rows.length === 0);
+denied = false; try { await as(A, `insert into public.projects (user_id, name) values ($1, 'au nom de Chloé')`, [C]); } catch { denied = true; }
+check("Alice ne peut pas créer un projet au nom de Chloé", denied);
+await as(C, `insert into public.project_versions (project_id, user_id, revision, files) values ($1, $2, 1, '[]')`, [proj, C]);
+check("Chloé voit l'historique de son projet", (await as(C, "select * from public.project_versions where project_id = $1", [proj])).rows.length === 1);
+check("Alice ne voit pas l'historique de Chloé", (await as(A, "select * from public.project_versions where project_id = $1", [proj])).rows.length === 0);
+denied = false; try { await as(A, `insert into public.project_versions (project_id, user_id, revision, files) values ($1, $2, 9, '[]')`, [proj, A]); } catch { denied = true; }
+check("Alice ne peut pas ajouter une version au projet de Chloé", denied);
+check("L'équipe « suivi » ne lit pas les projets des étudiants", (await as(ADM, "select * from public.projects where id = $1", [proj])).rows.length === 0);
+await db.query(`update public.profiles set status = 'suspendu' where id = $1`, [C]);
+denied = false; try { await as(C, `update public.projects set name = 'x' where id = $1`, [proj]); } catch { denied = true; }
+check("Un compte suspendu ne peut plus modifier ses projets", denied);

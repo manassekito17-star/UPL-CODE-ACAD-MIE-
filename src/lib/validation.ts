@@ -86,3 +86,29 @@ export const tutorSchema = z.object({
 });
 
 export type TutorRequest = z.infer<typeof tutorSchema>;
+
+// ---------------- Projets UPL IDE ----------------
+export const projectSnapshotSchema = z.object({
+  files: z.array(z.object({ path: z.string().min(1).max(200), content: z.string().max(300_000) })).max(200),
+  folders: z.array(z.string().min(1).max(200)).max(500).default([]),
+});
+
+export const projectCreateSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  template: z.string().regex(/^[a-z0-9-]{2,40}$/).default("vierge"),
+  /** Import : contenu fourni (sinon le modèle est utilisé). */
+  snapshot: projectSnapshotSchema.optional(),
+});
+
+export const projectSaveSchema = projectSnapshotSchema.extend({
+  baseRevision: z.number().int().min(0),
+  /** Écraser la version du serveur après un conflit (choix explicite de l'utilisateur). */
+  force: z.boolean().default(false),
+  /** Point de sauvegarde nommé dans l'historique. */
+  checkpoint: z.string().trim().max(120).optional(),
+});
+
+export const projectPatchSchema = z.object({
+  name: z.string().trim().min(1).max(120).optional(),
+  duplicate: z.boolean().optional(),
+});

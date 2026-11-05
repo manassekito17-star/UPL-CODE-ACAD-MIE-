@@ -93,3 +93,17 @@ body {
 /* Laboratoire : bloc de l'organigramme correspondant à l'étape courante */
 .upl-organigramme g.upl-actif > rect,
 .upl-organigramme g.upl-actif > polygon { stroke: #f59e0b; stroke-width: 3.5; fill: #fef3c7; }
+
+/* ===== UPL IDE : thèmes sombre (défaut) et clair ===== */
+.ide-sombre {
+  --ide-bg: #050d1f; --ide-panel: #0a1428; --ide-sidebar: #0b1730; --ide-activity: #071026; --ide-tabs: #08122a;
+  --ide-editor: #050d1f; --ide-border: #1b2a47; --ide-text: #e6edf7; --ide-muted: #8a99b5; --ide-hover: #16264a;
+  --ide-selection: #1d3a75; --ide-input: #050d1f;
+  color-scheme: dark;
+}
+.ide-clair {
+  --ide-bg: #f5f7fb; --ide-panel: #ffffff; --ide-sidebar: #f8fafd; --ide-activity: #eef2f9; --ide-tabs: #eef2f9;
+  --ide-editor: #ffffff; --ide-border: #dbe2ee; --ide-text: #0a1a3a; --ide-muted: #5b6b85; --ide-hover: #e5ecf8;
+  --ide-selection: #d6e4ff; --ide-input: #ffffff;
+  color-scheme: light;
+}

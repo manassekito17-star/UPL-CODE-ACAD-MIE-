@@ -9,6 +9,38 @@ import { registerPseudocode } from "./pseudocode-language";
 
 type MonacoEditor = Parameters<OnMount>[0];
 
+/** Langage pseudocode et thèmes de la plateforme (partagés par l'éditeur, le laboratoire et UPL IDE). */
+export function configureMonaco(monaco: Monaco) {
+  registerPseudocode(monaco);
+  const rules = [
+    { token: "keyword", foreground: "5B93FF", fontStyle: "bold" },
+    { token: "type", foreground: "22D3EE" },
+    { token: "predefined", foreground: "C4B5FD" },
+    { token: "string", foreground: "FBBF24" },
+    { token: "number", foreground: "86EFAC" },
+    { token: "comment", foreground: "6B778C", fontStyle: "italic" },
+  ];
+  monaco.editor.defineTheme("upl-nuit", {
+    base: "vs-dark",
+    inherit: true,
+    rules,
+    colors: { "editor.background": "#050D1F", "editorLineNumber.foreground": "#3A4559", "editor.lineHighlightBackground": "#0A1A3A" },
+  });
+  monaco.editor.defineTheme("upl-clair", {
+    base: "vs",
+    inherit: true,
+    rules: [
+      { token: "keyword", foreground: "1D5FE0", fontStyle: "bold" },
+      { token: "type", foreground: "0E7490" },
+      { token: "predefined", foreground: "6D28D9" },
+      { token: "string", foreground: "B45309" },
+      { token: "number", foreground: "15803D" },
+      { token: "comment", foreground: "6B778C", fontStyle: "italic" },
+    ],
+    colors: { "editor.background": "#FFFFFF", "editor.lineHighlightBackground": "#F1F5FB" },
+  });
+}
+
 export interface EditorMarker {
   line: number;
   message: string;
@@ -97,22 +129,7 @@ export function CodeEditor({
       value={value}
       theme="upl-nuit"
       onChange={(v) => onChange?.(v ?? "")}
-      beforeMount={(monaco) => {
-        registerPseudocode(monaco);
-        monaco.editor.defineTheme("upl-nuit", {
-          base: "vs-dark",
-          inherit: true,
-          rules: [
-            { token: "keyword", foreground: "5B93FF", fontStyle: "bold" },
-            { token: "type", foreground: "22D3EE" },
-            { token: "predefined", foreground: "C4B5FD" },
-            { token: "string", foreground: "FBBF24" },
-            { token: "number", foreground: "86EFAC" },
-            { token: "comment", foreground: "6B778C", fontStyle: "italic" },
-          ],
-          colors: { "editor.background": "#050D1F", "editorLineNumber.foreground": "#3A4559", "editor.lineHighlightBackground": "#0A1A3A" },
-        });
-      }}
+      beforeMount={configureMonaco}
       onMount={(editor, monaco) => {
         editorRef.current = editor;
         monacoRef.current = monaco;
