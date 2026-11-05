@@ -86,3 +86,10 @@ body {
 .prose-upl pre code { background: transparent; padding: 0; color: inherit; }
 .prose-upl.prose-invert { color: #dbe4f3; }
 .prose-upl.prose-invert strong, .prose-upl.prose-invert h2, .prose-upl.prose-invert h3 { color: #fff; }
+
+/* Laboratoire : ligne en cours d'exécution dans l'éditeur */
+.upl-ligne-courante { background: rgba(34, 211, 238, 0.18); }
+.upl-ligne-courante-marge { background: #22d3ee; width: 4px !important; margin-left: 3px; }
+/* Laboratoire : bloc de l'organigramme correspondant à l'étape courante */
+.upl-organigramme g.upl-actif > rect,
+.upl-organigramme g.upl-actif > polygon { stroke: #f59e0b; stroke-width: 3.5; fill: #fef3c7; }

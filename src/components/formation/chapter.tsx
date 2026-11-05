@@ -169,6 +169,7 @@ export function ChapterSections({
               traceTruncated={a.truncated}
               traceOutput={a.output}
               editorHref={`/editeur?algorithme=${course.slug}/${lesson.slug}/${i}`}
+              labHref={(a.algo.language ?? "pseudocode") === "pseudocode" && course.slug === "algorithmique" ? `/laboratoire?algorithme=${lesson.slug}/${i}` : undefined}
             />
           ))}
         </div>

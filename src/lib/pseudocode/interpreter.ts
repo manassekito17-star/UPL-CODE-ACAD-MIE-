@@ -61,6 +61,15 @@ export interface TraceStep {
   variables: TraceVariable[];
   /** Sortie produite jusqu'ici. */
   output: string;
+  /**
+   * Explication de l'étape (mode détaillé du laboratoire) : résultat d'une
+   * condition, numéro d'itération, appel ou retour de sous-programme.
+   */
+  note?: string;
+  /** Résultat de la condition évaluée à cette étape (mode détaillé). */
+  decision?: boolean;
+  /** Ligne du saut de boucle : vérification de la condition / passage au tour suivant. */
+  loopCheck?: boolean;
 }
 
 export interface RunResult {
@@ -113,7 +122,21 @@ class Interpreter {
   private inputPos = 0;
 
   private stack: string[] = ["Programme principal"];
-  tracer: ((step: Omit<TraceStep, "index">) => void) | null = null;
+  tracer: ((step: Omit<TraceStep, "index">) => TraceStep | undefined) | null = null;
+  /** Mode détaillé : étapes supplémentaires aux vérifications de boucle et explications. */
+  detailed = false;
+
+  private annotateStep(step: TraceStep | undefined, note: string, decision: boolean) {
+    if (this.detailed && step) {
+      step.note = note;
+      step.decision = decision;
+    }
+  }
+
+  private emitLoopCheck(line: number, kind: Stmt["kind"], note: string, decision: boolean): TraceStep | undefined {
+    if (!this.detailed || !this.tracer) return undefined;
+    return this.tracer({ line, kind, stack: [...this.stack], variables: this.snapshot(), output: this.stdout, note, decision, loopCheck: true });
+  }
 
   constructor(
     private program: Program & { implicitVars: boolean },
@@ -358,7 +381,13 @@ class Interpreter {
 
   private exec(s: Stmt) {
     this.tick(s.line);
-    this.tracer?.({ line: s.line, kind: s.kind, stack: [...this.stack], variables: this.snapshot(), output: this.stdout });
+    const step = this.tracer?.({ line: s.line, kind: s.kind, stack: [...this.stack], variables: this.snapshot(), output: this.stdout });
+    const annotate = (note: string, decision?: boolean) => {
+      if (this.detailed && step) {
+        step.note = note;
+        if (decision !== undefined) step.decision = decision;
+      }
+    };
     switch (s.kind) {
       case "assign": {
         const ref = this.lvalueRef(s.target);
@@ -384,12 +413,14 @@ class Interpreter {
         return;
       }
       case "if": {
-        for (const b of s.branches) {
+        for (const [k, b] of s.branches.entries()) {
           if (this.evalBool(b.cond, "La condition du SI")) {
+            annotate(k === 0 ? "Condition VRAIE : on exécute le bloc ALORS." : `Conditions précédentes FAUSSES, condition du SINON SI n° ${k} VRAIE : on exécute ce bloc.`, true);
             this.execBlock(b.body);
             return;
           }
         }
+        annotate(s.elseBody ? "Condition(s) FAUSSE(S) : on exécute le bloc SINON." : "Condition FAUSSE : le bloc ALORS est ignoré.", false);
         if (s.elseBody) this.execBlock(s.elseBody);
         return;
       }
@@ -400,9 +431,17 @@ class Interpreter {
         const step = s.step ? this.evalNumber(s.step, "Le PAS") : 1;
         if (step === 0) throw new PseudoError("execution", "Le PAS d'une boucle POUR ne peut pas valoir 0.", s.line);
         ref.set(this.checkType(ref.type, from, ref.display, s.line));
+        let turn = 0;
         for (;;) {
           const cur = ref.get() as number;
-          if (step > 0 ? cur > to : cur < to) break;
+          const done = step > 0 ? cur > to : cur < to;
+          const msg = done
+            ? `${ref.display} = ${formatValue(cur)} ${step > 0 ? ">" : "<"} ${formatValue(to)} : fin de la boucle POUR (${turn} tour(s)).`
+            : `${ref.display} = ${formatValue(cur)} : tour n° ${turn + 1} de la boucle POUR.`;
+          if (turn === 0) annotate(msg, !done);
+          else this.emitLoopCheck(s.line, s.kind, msg, !done);
+          if (done) break;
+          turn++;
           this.tick(s.line);
           this.execBlock(s.body);
           ref.set(this.checkType(ref.type, (ref.get() as number) + step, ref.display, s.line));
@@ -410,27 +449,44 @@ class Interpreter {
         return;
       }
       case "while": {
-        while (this.evalBool(s.cond, "La condition du TANT QUE")) {
+        let turn = 0;
+        for (;;) {
+          const check = turn > 0 ? this.emitLoopCheck(s.line, s.kind, "Retour au TANT QUE : on réévalue la condition.", true) : undefined;
+          const ok = this.evalBool(s.cond, "La condition du TANT QUE");
+          const msg = ok ? `Condition VRAIE : tour n° ${turn + 1} de la boucle TANT QUE.` : `Condition FAUSSE : sortie de la boucle TANT QUE (${turn} tour(s)).`;
+          if (turn === 0) annotate(msg, ok);
+          else this.annotateStep(check, msg, ok);
+          if (!ok) break;
+          turn++;
           this.tick(s.line);
           this.execBlock(s.body);
         }
         return;
       }
       case "repeat": {
-        do {
+        let turn = 0;
+        annotate("Début de la boucle RÉPÉTER : le bloc s'exécute au moins une fois.");
+        for (;;) {
+          turn++;
           this.tick(s.line);
           this.execBlock(s.body);
-        } while (!this.evalBool(s.cond, "La condition du JUSQU'A"));
+          const check = this.emitLoopCheck(s.line, s.kind, "Fin du tour : on évalue la condition JUSQU'A.", false);
+          const stop = this.evalBool(s.cond, "La condition du JUSQU'A");
+          this.annotateStep(check, stop ? `Condition JUSQU'A VRAIE : sortie de la boucle (${turn} tour(s)).` : `Condition JUSQU'A FAUSSE : tour n° ${turn + 1}.`, !stop);
+          if (stop) break;
+        }
         return;
       }
       case "switch": {
         const subject = this.eval(s.subject);
         for (const c of s.cases) {
           if (c.values.some((v) => this.eval(v) === subject)) {
+            annotate(`Valeur testée : ${formatValue(subject)} → cas correspondant exécuté.`);
             this.execBlock(c.body);
             return;
           }
         }
+        annotate(`Valeur testée : ${formatValue(subject)} → aucun cas ne correspond${s.defaultBody ? ", bloc AUTRE exécuté" : ""}.`);
         if (s.defaultBody) this.execBlock(s.defaultBody);
         return;
       }
@@ -441,13 +497,16 @@ class Interpreter {
         if (this.frame.routine.kind === "procedure" && s.value) {
           throw new PseudoError("execution", "Une PROCEDURE ne retourne pas de valeur.", s.line, "Utilisez une FONCTION si vous avez besoin d'un résultat.");
         }
-        throw new ReturnSignal(s.value ? this.eval(s.value) : null);
+        const rv = s.value ? this.eval(s.value) : null;
+        annotate(rv === null ? `Fin de ${this.frame.routine!.display} : retour à l'appelant.` : `${this.frame.routine!.display} retourne ${formatValue(rv)} à l'appelant.`);
+        throw new ReturnSignal(rv);
       }
       case "call": {
         const routine = this.routines.get(s.name);
         if (!routine && BUILTINS[s.name]) {
           throw new PseudoError("execution", `« ${s.display} » est une fonction prédéfinie : son résultat doit être utilisé.`, s.line, `Exemple : ECRIRE(${s.display}(…))`);
         }
+        annotate(`Appel de la procédure ${s.display} : une nouvelle zone de variables est créée.`);
         this.callRoutine(s.name, s.display, s.args, s.line, false);
         return;
       }
@@ -862,7 +921,7 @@ export interface TraceResult extends RunResult {
  * Exécute l'algorithme en enregistrant l'état avant chaque instruction
  * (tableau de suivi des variables, exécution pas à pas).
  */
-export function traceExecution(source: string, stdin = "", maxSteps = 5000, limits: Partial<RunLimits> = {}): TraceResult {
+export function traceExecution(source: string, stdin = "", maxSteps = 5000, limits: Partial<RunLimits> = {}, options: { detailed?: boolean } = {}): TraceResult {
   const trace: TraceStep[] = [];
   let truncated = false;
   let interp: Interpreter | null = null;
@@ -870,12 +929,15 @@ export function traceExecution(source: string, stdin = "", maxSteps = 5000, limi
   try {
     const program = parse(source);
     interp = new Interpreter(program, stdin, { ...DEFAULT_LIMITS, maxSteps: Math.min(DEFAULT_LIMITS.maxSteps, 200_000), ...limits });
+    interp.detailed = Boolean(options.detailed);
     interp.tracer = (step) => {
       if (trace.length >= maxSteps) {
         truncated = true;
-        return;
+        return undefined;
       }
-      trace.push({ ...step, index: trace.length });
+      const full = { ...step, index: trace.length };
+      trace.push(full);
+      return full;
     };
     interp.run();
     if (!truncated) interp.traceEnd(lastLine);

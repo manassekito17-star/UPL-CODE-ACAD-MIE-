@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 /** Nom officiel : « UPL CODE ACADEMY MK » partout, aucune ancienne appellation visible. */
-const PAGES = ["/", "/formations", "/formation", "/formations/algorithmique", "/formations/html/html-introduction-web", "/exercices", "/editeur", "/connexion", "/inscription", "/certificats/deadbeefdeadbeef"];
+const PAGES = ["/", "/laboratoire", "/formations", "/formation", "/formations/algorithmique", "/formations/html/html-introduction-web", "/exercices", "/editeur", "/connexion", "/inscription", "/certificats/deadbeefdeadbeef"];
 const OLD = /UPL Code Academy(?! MK)|UPL CODE ACADEMY(?! MK)/i;
 
 for (const path of PAGES) {

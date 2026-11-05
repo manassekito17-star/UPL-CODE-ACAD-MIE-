@@ -1,7 +1,7 @@
 "use client";
 
 import Editor, { type Monaco, type OnMount } from "@monaco-editor/react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { LanguageId } from "@/content/types";
 import { LANGUAGES } from "@/lib/execution/languages";
 import { checkPseudocode } from "@/lib/pseudocode";
@@ -23,6 +23,7 @@ export function CodeEditor({
   height = "100%",
   readOnly = false,
   path,
+  highlightLine,
 }: {
   language: LanguageId;
   value: string;
@@ -31,9 +32,33 @@ export function CodeEditor({
   height?: string;
   readOnly?: boolean;
   path?: string;
+  /** Ligne mise en évidence (exécution pas à pas du laboratoire). */
+  highlightLine?: number | null;
 }) {
   const editorRef = useRef<MonacoEditor | null>(null);
   const monacoRef = useRef<Monaco | null>(null);
+  const decorationsRef = useRef<ReturnType<MonacoEditor["createDecorationsCollection"]> | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  // Ligne courante de l'exécution pas à pas
+  useEffect(() => {
+    const editor = editorRef.current;
+    const monaco = monacoRef.current;
+    if (!mounted || !editor || !monaco) return;
+    decorationsRef.current ??= editor.createDecorationsCollection();
+    const model = editor.getModel();
+    if (!highlightLine || !model || highlightLine > model.getLineCount()) {
+      decorationsRef.current.clear();
+      return;
+    }
+    decorationsRef.current.set([
+      {
+        range: new monaco.Range(highlightLine, 1, highlightLine, 1),
+        options: { isWholeLine: true, className: "upl-ligne-courante", glyphMarginClassName: "upl-ligne-courante-marge", linesDecorationsClassName: "upl-ligne-courante-marge" },
+      },
+    ]);
+    editor.revealLineInCenterIfOutsideViewport(highlightLine);
+  }, [highlightLine, mounted, value]);
 
   // Vérification de syntaxe du pseudocode en direct
   useEffect(() => {
@@ -91,6 +116,7 @@ export function CodeEditor({
       onMount={(editor, monaco) => {
         editorRef.current = editor;
         monacoRef.current = monaco;
+        setMounted(true);
       }}
       loading={<div className="grid h-full place-items-center bg-nuit-950 text-sm text-gray-400">Chargement de l&apos;éditeur…</div>}
       options={{

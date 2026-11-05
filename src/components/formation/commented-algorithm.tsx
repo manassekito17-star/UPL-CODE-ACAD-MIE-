@@ -20,6 +20,7 @@ export function CommentedAlgorithmView({
   traceTruncated,
   traceOutput,
   editorHref,
+  labHref,
 }: {
   algo: CommentedAlgorithm;
   flowcharts: Array<{ title: string; svg: string }>;
@@ -28,6 +29,8 @@ export function CommentedAlgorithmView({
   traceOutput: string;
   /** Ouvrir ce code dans UPL IDE (démonstration modifiable). */
   editorHref?: string;
+  /** Exécution pas à pas dans le laboratoire (pseudocode). */
+  labHref?: string;
 }) {
   const [view, setView] = useState<"commentaires" | "organigramme" | "trace" | "apercu">("commentaires");
   const lines = algo.code.split("\n");
@@ -37,6 +40,11 @@ export function CommentedAlgorithmView({
     <div className="overflow-hidden rounded-xl border border-gris-200 bg-white">
       <div className="flex flex-wrap items-center gap-2 border-b border-gris-100 bg-gris-50 px-4 py-2">
         <p className="mr-auto font-semibold text-nuit-900">{algo.title}</p>
+        {labHref && (
+          <Link href={labHref} className="text-xs font-medium text-electrique-600 hover:underline">
+            Pas à pas dans le laboratoire
+          </Link>
+        )}
         {editorHref && (
           <Link href={editorHref} className="text-xs font-medium text-electrique-600 hover:underline">
             Ouvrir dans UPL IDE

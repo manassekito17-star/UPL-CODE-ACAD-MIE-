@@ -10,7 +10,7 @@ Légende : 🟢 terminé et vérifié · 🔵 en cours · ⚪ à faire · 🔌 d
 |---|---|---|
 | 0 | Audit, architecture, base de tests, CI (étape 1 du master prompt) | 🟢 |
 | 1 | Formation complète en algorithmique et pseudocode | 🔵 Partie 1 (7 chapitres) terminée et vérifiée ; Parties 2 à 6 à enrichir |
-| 2 | Laboratoire d'exécution et visualisation des algorithmes | ⚪ (moteur de trace et organigrammes déjà livrés en phase 1) |
+| 2 | Laboratoire d'exécution et visualisation des algorithmes | 🟢 `/laboratoire` |
 | 3 | Formation Python et éditeur de programmation (UPL IDE, 1re version) | ⚪ |
 | 4 | Intégration des autres langages (C, JavaScript, Java) | ⚪ 🔌 Judge0 |
 | 5 | UPL Studio et création de sites web | ⚪ |
@@ -50,9 +50,23 @@ Voir [AUDIT.md](AUDIT.md) et [ARCHITECTURE.md](ARCHITECTURE.md). Vulnérabilité
 
 Livré et vérifié (unitaires, PGlite, E2E contre Supabase local) : sept parcours en quatre niveaux, positionnement, examens de niveau, passage de niveau côté serveur, bulletin et certificats internes, parcours HTML (niveau 1) et CSS (niveau 1) complets avec correction structurelle, aperçu web isolé dans UPL IDE, liaison cours ↔ IDE, projets pratiques, professeur IA spécialisé, administration des niveaux et ressources. Détail et reste à faire : [MULTINIVEAUX.md](MULTINIVEAUX.md).
 
-## Phase 2 — Laboratoire d'algorithmique ⚪
+## Phase 2 — Laboratoire d'algorithmique 🟢
 
-Exécution pas à pas (avancer, reculer, pause, réinitialiser) sur la trace déjà produite par l'interpréteur ; table des variables en direct ; visualisation des boucles, conditions et appels ; organigramme synchronisé avec la ligne courante ; saisie interactive de `LIRE` ; explication de l'algorithme par le professeur IA.
+Page `/laboratoire` (lien « Laboratoire » dans le menu, et « Pas à pas dans le laboratoire » sur chaque algorithme commenté de la formation, avec retour au cours) :
+
+- **Exécution pas à pas réelle** par l'interpréteur de la plateforme : la trace détaillée est calculée dans un Web Worker (page jamais bloquée, arrêt forcé à 8 s, 3 000 étapes au plus).
+- **Commandes** : première étape, reculer, lecture automatique (lent / normal / rapide), pause, avancer, dernière étape, curseur de position, réinitialiser ; raccourcis ← → et Espace.
+- **Ligne courante** surlignée dans l'éditeur Monaco ; **organigramme synchronisé** (le bloc de l'étape courante est encadré, défilement limité à l'organigramme).
+- **Variables** avec type et valeur, valeurs modifiées mises en évidence ; **pile d'appels** ; **sortie** au fil de l'exécution.
+- **Conditions, boucles et appels expliqués** (mode détaillé de l'interpréteur, testé) : branche prise d'un SI / SINON SI / SINON avec VRAI ou FAUX, une étape par tour de POUR avec la valeur du compteur et la sortie de boucle, chaque réévaluation de TANT QUE et de JUSQU'A, cas choisi d'un SELON, appel de procédure, valeur retournée par une fonction.
+- **Saisie interactive de LIRE** : sans entrées préparées, le laboratoire annonce l'étape du LIRE et demande la valeur au moment voulu ; l'exécution (déterministe) est recalculée et reprend à la même étape.
+- **Erreurs** : syntaxe signalée avant la trace ; erreur d'exécution affichée à la ligne concernée ; boucle infinie limitée.
+- **Professeur IA** : explication de l'algorithme du laboratoire (mode « expliquer mon code », contexte du parcours d'algorithmique).
+- Algorithmes proposés : un exemple de démarrage et tous les algorithmes commentés et exemples en pseudocode publiés dans la formation.
+
+Vérifié par 7 tests unitaires de la trace détaillée et 3 scénarios E2E (saisie interactive, retour arrière, organigramme, lecture/pause, ouverture depuis un chapitre, erreurs).
+
+Reste possible : points d'arrêt sur une ligne, visualisation graphique des tableaux (cases), exécution pas à pas pour Python.
 
 ## Phase 3 — Python et UPL IDE ⚪
 
