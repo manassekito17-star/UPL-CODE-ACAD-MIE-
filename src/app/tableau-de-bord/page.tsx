@@ -27,8 +27,40 @@ export default async function DashboardPage({ searchParams }: PageProps<"/tablea
       <section className="bg-nuit-950 text-white">
         <Container className="py-8">
           <p className="text-sm text-cyan-accent">Tableau de bord · {BRAND.name}</p>
-          <h1 className="mt-1 text-2xl font-bold sm:text-3xl">Bonjour {user.fullName.split(" ")[0]} 👋</h1>
-          <p className="mt-1 text-gray-300">{d.profile?.learning_goal || "Fixez-vous un objectif dans votre profil pour rester motivé."}</p>
+          <div className="mt-2 flex flex-wrap items-center gap-4" data-testid="identite-etudiant">
+            {user.avatarUrl ? (
+              // Photo du profil Google (domaine externe : image simple, sans transmission de l'adresse de la page).
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={user.avatarUrl} alt="" width={56} height={56} referrerPolicy="no-referrer" className="h-14 w-14 rounded-full border-2 border-white/20 object-cover" />
+            ) : (
+              <span className="grid h-14 w-14 place-items-center rounded-full bg-electrique-600 text-xl font-bold" aria-hidden>
+                {user.fullName.charAt(0).toUpperCase()}
+              </span>
+            )}
+            <div className="min-w-0">
+              <h1 className="text-2xl font-bold sm:text-3xl">Bonjour {user.fullName.split(" ")[0]} 👋</h1>
+              <p className="truncate text-sm text-gray-300">
+                {user.email}
+                {user.providers.includes("google") && <span className="ml-2 rounded bg-white/10 px-1.5 py-0.5 text-[11px]">compte Google</span>}
+              </p>
+            </div>
+          </div>
+          <p className="mt-2 text-gray-300">{d.profile?.learning_goal || "Fixez-vous un objectif dans votre profil pour rester motivé."}</p>
+          <nav aria-label="Mon espace" className="mt-4 flex flex-wrap gap-2 text-sm">
+            {[
+              ["/formations", "Mes cours"],
+              ["/progression", "Ma progression"],
+              ["/exercices", "Mes exercices"],
+              ["/ide", "Mes projets"],
+              ["/mes-programmes", "Mes programmes"],
+              ["/bulletin", "Historique et bulletin"],
+              ["/profil", "Paramètres du compte"],
+            ].map(([href, label]) => (
+              <Link key={href} href={href} className="rounded-full border border-white/15 px-3 py-1 text-gray-200 hover:border-cyan-accent hover:text-white">
+                {label}
+              </Link>
+            ))}
+          </nav>
           <dl className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[
               ["Progression générale", `${Math.round(overall)} %`],

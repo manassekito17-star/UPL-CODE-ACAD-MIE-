@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Card, Notice } from "@/components/ui";
 import { formatDateTime } from "@/components/ui/labels";
 import { requireStaff } from "@/lib/auth";
+import { DailyBars } from "@/components/admin/daily-bars";
+import { DEFINITIONS, getAdminStats } from "@/lib/admin/stats";
 import { getConsumption } from "@/lib/consumption";
 import { createAdminClient, hasAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -39,6 +41,7 @@ export default async function AdminHome() {
   }
   // Alertes de dépassement des limites gratuites (administrateur).
   const alerts = user.isAdmin ? (await getConsumption()).alerts : [];
+  const { overview: ov, series } = user.isAdmin ? await getAdminStats(30) : { overview: null, series: [] };
   const published = (courses.data ?? []).filter((c) => c.status === "publie").length;
   const stats = [
     ["Comptes", students.count ?? 0],
@@ -56,6 +59,43 @@ export default async function AdminHome() {
           {a.text} <Link href="/admin/consommation" className="underline">Voir la consommation</Link>
         </Notice>
       ))}
+      {ov && (
+        <section aria-label="Inscriptions et activité" className="space-y-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <h2 className="mr-auto text-lg font-bold text-nuit-900">Inscriptions et activité</h2>
+            <Link href="/admin/export/statistiques" prefetch={false} className="text-sm text-electrique-600 hover:underline">Exporter les statistiques (CSV)</Link>
+            <Link href="/admin/export/utilisateurs" prefetch={false} className="text-sm text-electrique-600 hover:underline">Exporter les utilisateurs (CSV)</Link>
+          </div>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4" data-testid="indicateurs-admin">
+            {(
+              [
+                ["Comptes créés", ov.accounts_total, `${ov.google_accounts} avec Google · ${ov.email_accounts} avec e-mail · ${ov.accounts_suspended} suspendu(s)`],
+                ["Utilisateurs actifs (30 j)", ov.visitors_30d, DEFINITIONS.actifs30],
+                ["En ligne maintenant", ov.visitors_now, DEFINITIONS.maintenant],
+                ["Actifs (24 h · 7 j)", `${ov.visitors_24h} · ${ov.visitors_7d}`, "Comptes ayant ouvert une page connectée sur la période."],
+                ["Inscrits aujourd'hui", ov.signups_today, DEFINITIONS.jour],
+                ["Inscrits (7 derniers jours)", ov.signups_7d, ""],
+                ["Inscrits ce mois-ci", ov.signups_month, "Depuis le 1er du mois (UTC)."],
+              ] as Array<[string, number | string, string]>
+            ).map(([k, v, def]) => (
+              <Card key={k} className="p-4" title={def}>
+                <p className="text-xs text-gris-500">{k}</p>
+                <p className="mt-1 text-2xl font-bold text-nuit-900">{typeof v === "number" ? v.toLocaleString("fr-FR") : v}</p>
+                {def && <p className="mt-1 text-[11px] leading-snug text-gris-500">{def}</p>}
+              </Card>
+            ))}
+          </div>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card className="p-4">
+              <DailyBars title="Inscriptions par jour (30 jours)" unit="inscription(s)" data={series.map((d) => ({ day: d.day, value: d.signups }))} testId="graphique-inscriptions" />
+            </Card>
+            <Card className="p-4">
+              <DailyBars title="Utilisateurs actifs par jour (30 jours)" unit="utilisateur(s) actif(s)" data={series.map((d) => ({ day: d.day, value: d.active }))} testId="graphique-activite" />
+              <p className="mt-1 text-[11px] text-gris-500">{DEFINITIONS.actifsJour}</p>
+            </Card>
+          </div>
+        </section>
+      )}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {stats.map(([k, v]) => (
           <Card key={String(k)} className="p-4">

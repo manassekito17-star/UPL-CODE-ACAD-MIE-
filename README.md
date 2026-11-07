@@ -94,6 +94,9 @@ Lancement à budget zéro : utilisez un fournisseur à offre gratuite via l'API 
 
 ### 4. Déploiement (Vercel)
 
+Guide complet pour débutant (Supabase, Google, Vercel, premier administrateur) : [docs/DEPLOIEMENT.md](docs/DEPLOIEMENT.md).
+
+
 Importer le dépôt GitHub dans Vercel, définir les variables d'environnement de `.env.example`, déployer. Sauvegardes : activer les sauvegardes quotidiennes (et le PITR si possible) dans Supabase.
 
 ## Sécurité
@@ -123,7 +126,7 @@ npm run build
 
 L'intégration continue (`.github/workflows/ci.yml`) rejoue l'ensemble à chaque push, en mode démonstration **et** contre un Supabase réel démarré dans la CI.
 
-Documentation : [budget zéro et coûts](docs/COUTS.md) · [UPL IDE](docs/IDE.md) · [multiniveaux](docs/MULTINIVEAUX.md) · [formation](docs/FORMATION.md) · [audit](docs/AUDIT.md) · [architecture](docs/ARCHITECTURE.md) · [plan d'exécution](docs/PLAN.md) · [critères d'acceptation](docs/CRITERES-ACCEPTATION.md) · [pseudocode](docs/PSEUDOCODE.md).
+Documentation : [mise en ligne pas à pas](docs/DEPLOIEMENT.md) · [budget zéro et coûts](docs/COUTS.md) · [UPL IDE](docs/IDE.md) · [multiniveaux](docs/MULTINIVEAUX.md) · [formation](docs/FORMATION.md) · [audit](docs/AUDIT.md) · [architecture](docs/ARCHITECTURE.md) · [plan d'exécution](docs/PLAN.md) · [critères d'acceptation](docs/CRITERES-ACCEPTATION.md) · [pseudocode](docs/PSEUDOCODE.md).
 
 ## Contribuer au contenu
 

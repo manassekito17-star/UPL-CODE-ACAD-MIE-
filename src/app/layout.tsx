@@ -12,10 +12,13 @@ const jetbrains = JetBrains_Mono({ variable: "--font-jetbrains", subsets: ["lati
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
+  // Adresse publique : nécessaire pour que les aperçus de liens (Open Graph) soient absolus.
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"),
   title: { default: `${BRAND.name} — ${BRAND.slogan}`, template: `%s · ${BRAND.name}` },
   description: BRAND.description,
   applicationName: BRAND.name,
   openGraph: { siteName: BRAND.name, title: BRAND.name, description: BRAND.description, locale: "fr_FR", type: "website" },
+  twitter: { card: "summary_large_image", title: BRAND.name, description: BRAND.description },
   appleWebApp: { title: BRAND.name },
 };
 

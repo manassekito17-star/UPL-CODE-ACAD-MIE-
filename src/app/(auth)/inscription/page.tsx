@@ -3,6 +3,8 @@ import { BRAND } from "@/lib/brand";
 import Link from "next/link";
 import { AuthForm } from "@/components/auth/auth-form";
 import { Field, inputClass } from "@/components/ui";
+import { GoogleButton, OrSeparator } from "@/components/auth/google-button";
+import { publicEnv } from "@/lib/env";
 import { signUp } from "../actions";
 
 export const metadata: Metadata = { title: "Créer un compte" };
@@ -12,6 +14,12 @@ export default function SignUpPage() {
     <>
       <h1 className="text-2xl font-bold text-nuit-900">Créer un compte étudiant</h1>
       <p className="mb-6 mt-1 text-sm text-gris-700">Rejoignez {BRAND.name} gratuitement. Suivez votre progression, enregistrez vos programmes et accédez au professeur IA.</p>
+      {publicEnv.googleAuth && (
+        <>
+          <GoogleButton />
+          <OrSeparator />
+        </>
+      )}
       <AuthForm action={signUp} submitLabel="Créer mon compte">
         <Field label="Nom complet" htmlFor="fullName">
           <input id="fullName" name="fullName" autoComplete="name" required maxLength={120} className={inputClass} />

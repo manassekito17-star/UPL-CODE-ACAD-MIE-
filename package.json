@@ -11,7 +11,8 @@
     "typecheck": "next typegen && tsc --noEmit",
     "seed:generate": "tsx scripts/generate-seed.ts",
     "test:db": "node scripts/check-database.mjs",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "admin:creer": "node scripts/creer-admin.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.5.0",

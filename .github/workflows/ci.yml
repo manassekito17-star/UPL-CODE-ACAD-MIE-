@@ -67,6 +67,11 @@ jobs:
           version: latest
       - run: npm ci
       - name: Démarrer Supabase (migrations + seed)
+        # Identifiants Google FICTIFS : ils permettent seulement de vérifier la redirection
+        # vers la page officielle de Google (aucune connexion réelle n'est faite en CI).
+        env:
+          SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID: identifiant-de-test.apps.googleusercontent.com
+          SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET: secret-de-test
         run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector,realtime,supavisor
       - name: Configurer l'application sur ce Supabase
         run: |
@@ -76,6 +81,7 @@ jobs:
             echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
             echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY"
             echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+            echo "NEXT_PUBLIC_AUTH_GOOGLE=true"
           } > .env.local
       - name: Build
         run: npm run build

@@ -58,6 +58,28 @@ export async function signIn(_prev: AuthState, form: FormData): Promise<AuthStat
   redirect(safeNext(form.get("suite")));
 }
 
+/**
+ * Connexion / inscription avec Google (OAuth officiel, géré par Supabase Auth).
+ * Si une personne possède déjà un compte avec la même adresse vérifiée,
+ * Supabase rattache l'identité Google à ce compte (pas de doublon).
+ */
+export async function signInWithGoogle(form: FormData) {
+  if (!isSupabaseConfigured() || !publicEnv.googleAuth) redirect("/connexion?erreur=google");
+  const tooMany = await limited("google");
+  if (tooMany) redirect("/connexion?erreur=limite");
+  const next = safeNext(form.get("suite"));
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${origin(await headers())}/auth/callback?suite=${encodeURIComponent(next)}`,
+      queryParams: { prompt: "select_account" },
+    },
+  });
+  if (error || !data.url) redirect("/connexion?erreur=google");
+  redirect(data.url);
+}
+
 export async function signUp(_prev: AuthState, form: FormData): Promise<AuthState> {
   if (!isSupabaseConfigured()) return { error: "L'authentification n'est pas configurée (mode démonstration)." };
   const tooMany = await limited("inscription");

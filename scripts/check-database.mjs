@@ -13,7 +13,7 @@ const db = new PGlite({ extensions: { pgcrypto } });
 const stub = `
 create role anon nologin; create role authenticated nologin; create role service_role nologin bypassrls;
 create schema auth; create schema storage;
-create table auth.users (id uuid primary key, email text, raw_user_meta_data jsonb default '{}');
+create table auth.users (id uuid primary key, email text, raw_user_meta_data jsonb default '{}'); create table auth.identities (id uuid primary key default gen_random_uuid(), user_id uuid, provider text);
 create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
 create function auth.role() returns text language sql stable as $$ select coalesce(nullif(current_setting('request.jwt.claim.role', true), ''), 'anon') $$;
 create table storage.buckets (id text primary key, name text, public boolean);
@@ -158,3 +158,23 @@ check("Un étudiant ne peut pas s'attribuer l'offre premium", denied);
 denied = false; try { await as(A, "select * from public.platform_usage()"); } catch { denied = true; }
 check("Mesure de l'espace réservée à l'administration", denied);
 check("L'administration mesure l'espace utilisé", Number((await as(ADM, "select * from public.platform_usage()")).rows[0].database_bytes) > 0);
+
+console.log("\nComptes Google et statistiques :");
+const G = "55555555-5555-5555-5555-555555555555";
+await db.query(`insert into auth.users (id, email, raw_user_meta_data) values ($1, 'g@gmail.com', $2)`, [G, { name: "Grâce Google", picture: "https://lh3.googleusercontent.com/a/photo", email_verified: true }]);
+await db.query(`insert into auth.identities (user_id, provider) values ($1, 'google'), ($2, 'email')`, [G, A]);
+const gp = (await db.query("select full_name, avatar_url from public.profiles where id = $1", [G])).rows[0];
+check("Compte Google : nom et photo repris du profil Google", gp.full_name === "Grâce Google" && gp.avatar_url === "https://lh3.googleusercontent.com/a/photo");
+check("Compte Google : rôle étudiant attribué", (await db.query("select role from public.user_roles where user_id = $1", [G])).rows.map((r) => r.role).join() === "etudiant");
+await db.query(`insert into auth.users (id, email, raw_user_meta_data) values ('66666666-6666-6666-6666-666666666666', 'x@x.cd', '{"avatar_url":"javascript:alert(1)"}')`);
+check("Photo non https refusée", (await db.query("select avatar_url from public.profiles where id = '66666666-6666-6666-6666-666666666666'")).rows[0].avatar_url === null);
+await db.query("update public.profiles set last_seen_at = now() where id = $1", [G]);
+denied = false; try { await as(A, "select * from public.admin_overview()"); } catch { denied = true; }
+check("Statistiques d'administration refusées à un étudiant", denied);
+denied = false; try { await as(null, "select * from public.admin_daily_series(30)"); } catch { denied = true; }
+check("Statistiques refusées à un visiteur", denied);
+const ov = (await as(ADM, "select * from public.admin_overview()")).rows[0];
+check(`Statistiques : comptes (${ov.accounts_total}), inscrits du jour (${ov.signups_today}), en ligne (${ov.visitors_now}), Google (${ov.google_accounts})`, Number(ov.accounts_total) >= 6 && Number(ov.signups_today) >= 6 && Number(ov.visitors_now) >= 1 && Number(ov.google_accounts) === 1);
+const series = (await as(ADM, "select * from public.admin_daily_series(30)")).rows;
+check("Série quotidienne sur 30 jours, inscriptions du jour comptées", series.length === 30 && Number(series[29].signups) === Number(ov.signups_today));
+check("Série : utilisateurs actifs du jour mesurés", Number(series[29].active_users) >= 1);

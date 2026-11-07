@@ -5,11 +5,13 @@ import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Suivi des étudiants" };
 
-export default async function FollowUpPage() {
+export default async function FollowUpPage({ searchParams }: PageProps<"/admin/suivi">) {
   await requireStaff("suivi");
+  const sp = await searchParams;
+  const q = typeof sp.q === "string" ? sp.q.replace(/[%_,()]/g, "").trim().slice(0, 80) : "";
   const supabase = await createClient();
   const [{ data: profiles }, { data: progress }, { data: subs }] = await Promise.all([
-    supabase.from("profiles").select("id, full_name, student_number, created_at").order("full_name").limit(300),
+    (q ? supabase.from("profiles").select("id, full_name, student_number, created_at").ilike("full_name", `%${q}%`) : supabase.from("profiles").select("id, full_name, student_number, created_at")).order("full_name").limit(300),
     supabase.from("course_progress").select("user_id, percent, courses(title)"),
     supabase.from("submissions").select("user_id, status"),
   ]);
@@ -28,6 +30,10 @@ export default async function FollowUpPage() {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold text-nuit-900">Suivi des étudiants</h1>
+      <form className="flex gap-2">
+        <input name="q" defaultValue={q} placeholder="Rechercher un étudiant…" aria-label="Rechercher un étudiant" className="h-10 max-w-xs rounded-lg border border-gris-200 px-3 text-sm" />
+        <button className="rounded-lg border border-gris-200 px-3 text-sm">Rechercher</button>
+      </form>
       <Card className="overflow-x-auto">
         <table className="w-full min-w-[640px] text-sm">
           <thead className="bg-gris-50 text-left text-xs uppercase text-gris-500"><tr><th className="px-4 py-2">Étudiant</th><th className="px-4 py-2">Inscription</th><th className="px-4 py-2">Parcours</th><th className="px-4 py-2">Soumissions réussies</th></tr></thead>
