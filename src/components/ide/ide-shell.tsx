@@ -32,7 +32,9 @@ import { WebPreview, type PreviewConsoleLine } from "../editor/web-preview";
 import { TutorChat } from "../tutor/tutor-chat";
 import { cn } from "../ui";
 import { EditorGroup, type EditorSettings, type MonacoEditor } from "./editor-group";
-import { Explorer, ToolButton } from "./explorer";
+import { Explorer, ToolButton, type CreateRequest } from "./explorer";
+import { FileIcon } from "./file-icon";
+import { MenuBar, type MenuDef } from "./menu-bar";
 import { Icon, type IconName } from "./icons";
 import { useProject, type IdeProject, type SaveStatus } from "./use-project";
 
@@ -61,8 +63,10 @@ interface Problem {
   severity: "erreur" | "avertissement" | "info";
 }
 
-const DEFAULT_SETTINGS: EditorSettings = { theme: "sombre", fontSize: 14, tabSize: 2, wordWrap: true, minimap: false, autosave: true };
-const SETTINGS_KEY = "upl:ide:parametres";
+const DEFAULT_SETTINGS: EditorSettings = { theme: "studio", fontSize: 14, tabSize: 2, wordWrap: true, minimap: true, autosave: true };
+// v2 : thème « studio » par défaut. Les autres préférences de la v1 sont reprises.
+const SETTINGS_KEY = "upl:ide:parametres:v2";
+const OLD_SETTINGS_KEY = "upl:ide:parametres";
 
 const STATUS_TEXT: Record<SaveStatus, string> = {
   enregistre: "Enregistré",
@@ -79,9 +83,12 @@ function useSettings() {
   useEffect(() => {
     try {
       const s = JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? "null");
+      const old = s ? null : JSON.parse(localStorage.getItem(OLD_SETTINGS_KEY) ?? "null");
       // Préférences lues après le montage (stockage local absent au rendu serveur).
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+      /* eslint-disable react-hooks/set-state-in-effect */
       if (s) setSettings({ ...DEFAULT_SETTINGS, ...s });
+      else if (old) setSettings({ ...DEFAULT_SETTINGS, ...old, theme: DEFAULT_SETTINGS.theme, minimap: DEFAULT_SETTINGS.minimap });
+      /* eslint-enable react-hooks/set-state-in-effect */
     } catch {
       /* ignoré */
     }
@@ -125,7 +132,7 @@ function Splitter({ direction, onDelta, label }: { direction: "x" | "y"; onDelta
       }}
       onPointerUp={() => (last.current = null)}
       className={cn(
-        "shrink-0 bg-[var(--ide-border)] transition-colors hover:bg-electrique-500 focus:bg-electrique-500 focus:outline-none",
+        "shrink-0 bg-[var(--ide-border)] transition-colors hover:bg-[var(--ide-accent)] focus:bg-[var(--ide-accent)] focus:outline-none",
         direction === "x" ? "w-1 cursor-col-resize" : "h-1 cursor-row-resize",
       )}
     />
@@ -146,6 +153,10 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
   const [sideWidth, setSideWidth] = useState(250);
   const [bottom, setBottom] = useState<BottomTab | null>("console");
   const [bottomHeight, setBottomHeight] = useState(190);
+  const [bottomMax, setBottomMax] = useState(false);
+  const [previewTarget, setPreviewTarget] = useState<string | null>(null);
+  const [createRequest, setCreateRequest] = useState<CreateRequest | null>(null);
+  const [sections, setSections] = useState({ ouverts: true, plan: true });
   const [right, setRight] = useState<RightPanel>(null);
   const [rightWidth, setRightWidth] = useState(420);
   const [cursor, setCursor] = useState({ line: 1, column: 1 });
@@ -179,7 +190,12 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
   const activeFile = project.files.find((f) => f.path === activePath) ?? null;
   const activeLang = activePath ? languageOf(activePath) : null;
   const runnable = activePath ? runFiles(snapshot, activePath) : null;
-  const previewPath = activeLang?.preview ? activePath : project.files.find((f) => f.path === "index.html")?.path ?? null;
+  const htmlPages = useMemo(() => project.files.filter((f) => /\.html?$/i.test(f.path)).map((f) => f.path), [project.files]);
+  const activePreviewable = Boolean(activeLang?.preview);
+  const previewPath = useMemo(
+    () => (previewTarget && htmlPages.includes(previewTarget) ? previewTarget : activePreviewable ? activePath : htmlPages.includes("index.html") ? "index.html" : (htmlPages[0] ?? null)),
+    [previewTarget, htmlPages, activePreviewable, activePath],
+  );
 
   const notify = useCallback((text: string, tone: "erreur" | "info" = "erreur") => {
     setFlash({ tone, text });
@@ -478,37 +494,153 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
   const errorsCount = problems.filter((p) => p.severity === "erreur").length;
   const warningsCount = problems.filter((p) => p.severity === "avertissement").length;
   const symbols = activeFile ? symbolsOf(activeFile.path, activeFile.content) : [];
+  const openEditors = [...new Set(groups.flatMap((g) => g.tabs))];
+
+  /** Lance une commande de l'éditeur Monaco actif (annuler, sélection, palette…). */
+  const editorAction = (id: string) => {
+    const ed = focusedEditor();
+    if (!ed) return notify("Ouvrez d'abord un fichier.", "info");
+    ed.focus();
+    if (id === "undo" || id === "redo") ed.trigger("menu", id, null);
+    else void ed.getAction(id)?.run();
+  };
+  const newEntry = (kind: CreateRequest["kind"]) => {
+    setSide("explorateur");
+    setCreateRequest((r) => ({ kind, id: (r?.id ?? 0) + 1 }));
+  };
+  const togglePreview = () => setRight((r) => (r === "apercu" ? null : "apercu"));
+  const noFile = !activePath;
+
+  const menus: MenuDef[] = [
+    {
+      label: "Fichier",
+      items: [
+        { label: "Nouveau fichier…", onClick: () => newEntry("nouveau-fichier") },
+        { label: "Nouveau dossier…", onClick: () => newEntry("nouveau-dossier") },
+        "separateur",
+        { label: "Ouvrir un projet…", onClick: () => setSide("projets") },
+        { label: "Importer des fichiers ou un ZIP…", onClick: explorerActions.importFiles },
+        { label: "Importer un dossier…", onClick: explorerActions.importFolder },
+        { label: "Exporter le projet (ZIP)", onClick: explorerActions.exportZip },
+        "separateur",
+        !project.id && loggedIn
+          ? { label: "Enregistrer dans mon compte…", shortcut: "Ctrl+S", onClick: () => void saveToAccount() }
+          : { label: "Enregistrer", shortcut: "Ctrl+S", onClick: () => void save(), disabled: status === "enregistrement" },
+        { label: "Renommer le projet…", onClick: () => void renameProject() },
+        { label: "Historique des versions", onClick: () => setSide("versions") },
+        "separateur",
+        { label: "Fermer l'éditeur", onClick: () => activePath && closeTab(focusedGroup, activePath), disabled: noFile },
+        { label: "Préférences", onClick: () => setSide("parametres") },
+      ],
+    },
+    {
+      label: "Édition",
+      items: [
+        { label: "Annuler", shortcut: "Ctrl+Z", onClick: () => editorAction("undo"), disabled: noFile },
+        { label: "Rétablir", shortcut: "Ctrl+Y", onClick: () => editorAction("redo"), disabled: noFile },
+        "separateur",
+        { label: "Rechercher", shortcut: "Ctrl+F", onClick: () => editorAction("actions.find"), disabled: noFile },
+        { label: "Remplacer", shortcut: "Ctrl+H", onClick: findReplace, disabled: noFile },
+        { label: "Rechercher dans le projet", onClick: () => setSide("recherche") },
+        "separateur",
+        { label: "Basculer le commentaire de ligne", shortcut: "Ctrl+/", onClick: () => editorAction("editor.action.commentLine"), disabled: noFile },
+        { label: "Formater le document", shortcut: "Maj+Alt+F", onClick: format, disabled: !activeLang?.format },
+      ],
+    },
+    {
+      label: "Sélection",
+      items: [
+        { label: "Tout sélectionner", shortcut: "Ctrl+A", onClick: () => editorAction("editor.action.selectAll"), disabled: noFile },
+        { label: "Étendre la sélection", shortcut: "Maj+Alt+→", onClick: () => editorAction("editor.action.smartSelect.expand"), disabled: noFile },
+        "separateur",
+        { label: "Copier la ligne vers le haut", shortcut: "Maj+Alt+↑", onClick: () => editorAction("editor.action.copyLinesUpAction"), disabled: noFile },
+        { label: "Copier la ligne vers le bas", shortcut: "Maj+Alt+↓", onClick: () => editorAction("editor.action.copyLinesDownAction"), disabled: noFile },
+        { label: "Déplacer la ligne vers le haut", shortcut: "Alt+↑", onClick: () => editorAction("editor.action.moveLinesUpAction"), disabled: noFile },
+        { label: "Déplacer la ligne vers le bas", shortcut: "Alt+↓", onClick: () => editorAction("editor.action.moveLinesDownAction"), disabled: noFile },
+        "separateur",
+        { label: "Ajouter un curseur au-dessus", shortcut: "Ctrl+Alt+↑", onClick: () => editorAction("editor.action.insertCursorAbove"), disabled: noFile },
+        { label: "Ajouter un curseur en dessous", shortcut: "Ctrl+Alt+↓", onClick: () => editorAction("editor.action.insertCursorBelow"), disabled: noFile },
+        { label: "Sélectionner toutes les occurrences", shortcut: "Ctrl+Maj+L", onClick: () => editorAction("editor.action.selectHighlights"), disabled: noFile },
+      ],
+    },
+    {
+      label: "Affichage",
+      items: [
+        { label: "Palette de commandes…", shortcut: "F1", onClick: () => editorAction("editor.action.quickCommand"), disabled: noFile },
+        { label: "Aller au symbole…", shortcut: "Ctrl+Maj+O", onClick: () => editorAction("editor.action.quickOutline"), disabled: noFile },
+        "separateur",
+        { label: "Explorateur", onClick: () => setSide("explorateur"), checked: side === "explorateur" },
+        { label: "Recherche", onClick: () => setSide("recherche"), checked: side === "recherche" },
+        { label: "Projets", onClick: () => setSide("projets"), checked: side === "projets" },
+        "separateur",
+        { label: "Barre latérale", shortcut: "Ctrl+B", onClick: () => setSide((v) => (v ? null : "explorateur")), checked: Boolean(side) },
+        { label: "Panneau", shortcut: "Ctrl+J", onClick: () => setBottom((b) => (b ? null : "console")), checked: Boolean(bottom) },
+        { label: "Aperçu web", onClick: togglePreview, checked: right === "apercu", disabled: !previewPath },
+        { label: "Assistant IA", onClick: () => setRight((r) => (r === "ia" ? null : "ia")), checked: right === "ia" },
+        { label: "Vue fractionnée", shortcut: "Ctrl+\\", onClick: toggleSplit, checked: groups.length > 1 },
+        "separateur",
+        { label: "Minicarte", onClick: () => changeSettings({ minimap: !settings.minimap }), checked: settings.minimap },
+        { label: "Retour à la ligne", onClick: () => changeSettings({ wordWrap: !settings.wordWrap }), checked: settings.wordWrap },
+        { label: "Thème studio (gris)", onClick: () => changeSettings({ theme: "studio" }), checked: settings.theme === "studio" },
+        { label: "Thème nuit UPL", onClick: () => changeSettings({ theme: "sombre" }), checked: settings.theme === "sombre" },
+        { label: "Thème clair", onClick: () => changeSettings({ theme: "clair" }), checked: settings.theme === "clair" },
+      ],
+    },
+    {
+      label: "Exécuter",
+      items: [
+        { label: runnable ? `Exécuter ${activeLang?.label}` : "Exécuter le fichier", shortcut: "Ctrl+Entrée", onClick: () => void run(), disabled: running || (!runnable && !previewPath) },
+        { label: "Afficher l'aperçu web", onClick: () => setRight("apercu"), disabled: !previewPath },
+        { label: "Actualiser l'aperçu", onClick: refreshPreview, disabled: right !== "apercu" },
+        "separateur",
+        { label: "Console et entrées", onClick: () => setBottom("console") },
+        { label: "Détails de la dernière exécution", onClick: () => setBottom("sortie") },
+      ],
+    },
+    {
+      label: "Aide",
+      items: [
+        { label: "Formation", onClick: () => router.push("/formation") },
+        { label: "Laboratoire d'algorithmique", onClick: () => router.push("/laboratoire") },
+        { label: "Professeur IA", onClick: () => router.push("/professeur-ia") },
+        "separateur",
+        { label: `Accueil ${BRAND.name}`, onClick: () => router.push("/") },
+      ],
+    },
+  ];
 
   return (
-    <div className={cn("ide-root fixed inset-0 z-50 flex flex-col bg-[var(--ide-bg)] text-[var(--ide-text)]", settings.theme === "clair" ? "ide-clair" : "ide-sombre")} data-testid="ide">
+    <div className={cn("ide-root fixed inset-0 z-50 flex flex-col bg-[var(--ide-bg)] text-[var(--ide-text)]", settings.theme === "clair" ? "ide-clair" : settings.theme === "sombre" ? "ide-sombre" : "ide-studio")} data-testid="ide">
       <input ref={fileInput} type="file" multiple hidden onChange={(e) => { void onImport(e.target.files, false); e.target.value = ""; }} aria-label="Importer des fichiers" data-testid="ide-import-fichiers" />
       <input ref={folderInput} type="file" multiple hidden {...{ webkitdirectory: "", directory: "" }} onChange={(e) => { void onImport(e.target.files, true); e.target.value = ""; }} aria-label="Importer un dossier" />
 
-      {/* Barre supérieure */}
-      <header className="flex h-11 shrink-0 items-center gap-2 border-b border-[var(--ide-border)] bg-[var(--ide-panel)] px-2">
-        <Link href="/" className="flex items-center gap-2 pr-2" aria-label={`${BRAND.name} — accueil`}>
-          <span className="grid h-7 w-7 place-items-center rounded-md bg-gradient-to-br from-electrique-600 to-cyan-accent font-mono text-[11px] font-bold text-white">{"</>"}</span>
-          <span className="hidden text-xs font-extrabold leading-tight tracking-wide lg:block">
-            UPL IDE
-            <span className="block text-[9px] font-semibold tracking-[0.18em] text-cyan-accent">{BRAND.name}</span>
-          </span>
+      {/* Barre de titre : logo, menus, titre de la fenêtre, actions */}
+      <header className="flex h-[35px] shrink-0 items-center gap-1 border-b border-[var(--ide-border)] bg-[var(--ide-activity)] px-1.5">
+        <Link href="/" className="grid h-6 w-6 shrink-0 place-items-center rounded font-mono text-[10px] font-bold text-white" style={{ background: "linear-gradient(135deg, #1d5fe0, #22d3ee)" }} aria-label={`${BRAND.name} — accueil`} title={`${BRAND.name} — accueil`}>
+          {"</>"}
         </Link>
-        <button type="button" onClick={renameProject} className="max-w-[40vw] truncate rounded px-2 py-1 text-sm font-semibold hover:bg-[var(--ide-hover)]" title="Renommer le projet" data-testid="ide-nom-projet">
-          {project.name}
-        </button>
-        <span className={cn("hidden rounded px-1.5 py-0.5 text-[11px] sm:inline", status === "enregistre" ? "text-emerald-400" : status === "conflit" || status === "erreur" ? "bg-red-500/20 text-red-300" : "text-amber-300")} data-testid="ide-statut">
-          {STATUS_TEXT[status]}
-        </span>
-        <div className="ml-auto flex items-center gap-1">
+        <MenuBar menus={menus} />
+        <div className="flex min-w-0 flex-1 items-center justify-center gap-1 truncate px-2 text-xs text-[var(--ide-muted)]">
+          {activePath && <span className="hidden truncate lg:inline">{basename(activePath)} —</span>}
+          <button type="button" onClick={renameProject} className="max-w-[40vw] truncate rounded-sm px-1 py-0.5 text-[var(--ide-text)] hover:bg-[var(--ide-hover)]" title="Renommer le projet" data-testid="ide-nom-projet">
+            {project.name}
+          </button>
+          <span className="hidden shrink-0 sm:inline">— UPL IDE</span>
+        </div>
+        <div className="flex shrink-0 items-center gap-0.5">
           {!project.id && loggedIn ? (
             <TopButton icon="enregistrer" label="Enregistrer dans mon compte" onClick={saveToAccount} />
           ) : (
             <TopButton icon="enregistrer" label="Enregistrer (Ctrl+S)" onClick={() => void save()} disabled={status === "enregistrement"} />
           )}
           <TopButton icon="executer" label={runnable ? `Exécuter ${activeLang?.label} (Ctrl+Entrée)` : previewPath ? "Afficher l'aperçu" : "Exécuter"} onClick={run} disabled={running || (!runnable && !previewPath)} primary />
-          <TopButton icon="apercu" label="Aperçu web" onClick={() => setRight((r) => (r === "apercu" ? null : "apercu"))} active={right === "apercu"} disabled={!previewPath} />
+          <TopButton icon="apercu" label="Aperçu web" onClick={togglePreview} active={right === "apercu"} disabled={!previewPath} />
           <TopButton icon="diviser" label="Vue fractionnée (Ctrl+\)" onClick={toggleSplit} active={groups.length > 1} />
           <TopButton icon="formater" label={activeLang?.format ? "Formater le document (Maj+Alt+F)" : "Formatage non disponible pour ce langage"} onClick={format} disabled={!activeLang?.format} />
+          <span className="mx-1 hidden h-4 w-px bg-[var(--ide-border)] sm:block" />
+          <span className="hidden sm:contents">
+            <TopButton icon="barreLaterale" label="Barre latérale (Ctrl+B)" onClick={() => setSide((v) => (v ? null : "explorateur"))} active={Boolean(side)} />
+          </span>
           <TopButton icon="panneau" label="Panneau inférieur (Ctrl+J)" onClick={() => setBottom((b) => (b ? null : "console"))} active={Boolean(bottom)} />
           <TopButton icon="ia" label="Assistant IA" onClick={() => setRight((r) => (r === "ia" ? null : "ia"))} active={right === "ia"} />
         </div>
@@ -523,14 +655,14 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
         </div>
       )}
       {flash && (
-        <div className={cn("absolute left-1/2 top-14 z-50 -translate-x-1/2 rounded-md px-4 py-2 text-sm shadow-xl", flash.tone === "erreur" ? "bg-red-600 text-white" : "bg-electrique-600 text-white")} role="status" data-testid="ide-message">
+        <div className={cn("absolute left-1/2 top-14 z-50 -translate-x-1/2 rounded-md px-4 py-2 text-sm shadow-xl", flash.tone === "erreur" ? "bg-red-600 text-white" : "bg-[var(--ide-accent)] text-white")} role="status" data-testid="ide-message">
           {flash.text}
         </div>
       )}
 
       <div className="relative flex min-h-0 flex-1">
         {/* Barre d'activité */}
-        <nav aria-label="Sections de l'IDE" className="flex w-12 shrink-0 flex-col items-center gap-1 border-r border-[var(--ide-border)] bg-[var(--ide-activity)] py-2">
+        <nav aria-label="Sections de l'IDE" className="flex w-12 shrink-0 flex-col items-center border-r border-[var(--ide-border)] bg-[var(--ide-activity)]">
           {(
             [
               ["explorateur", "fichiers", "Explorateur"],
@@ -542,13 +674,16 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
             <ActivityButton key={id} icon={icon} label={label} active={side === id} onClick={() => setSide((s) => (s === id ? null : id))} />
           ))}
           <ActivityButton icon="ia" label="Assistant IA" active={right === "ia"} onClick={() => setRight((r) => (r === "ia" ? null : "ia"))} />
-          <Link href="/formation" title="Formation" aria-label="Formation" className="grid h-10 w-10 place-items-center rounded-md text-[var(--ide-muted)] hover:text-[var(--ide-text)]">
-            <Icon name="formation" />
+          <Link href="/formation" title="Formation" aria-label="Formation" className="grid h-12 w-12 place-items-center text-[var(--ide-muted)] hover:text-[var(--ide-text)]">
+            <Icon name="formation" className="h-6 w-6" />
           </Link>
-          <Link href="/laboratoire" title="Laboratoire d'algorithmique" aria-label="Laboratoire d'algorithmique" className="grid h-10 w-10 place-items-center rounded-md text-[var(--ide-muted)] hover:text-[var(--ide-text)]">
-            <Icon name="laboratoire" />
+          <Link href="/laboratoire" title="Laboratoire d'algorithmique" aria-label="Laboratoire d'algorithmique" className="grid h-12 w-12 place-items-center text-[var(--ide-muted)] hover:text-[var(--ide-text)]">
+            <Icon name="laboratoire" className="h-6 w-6" />
           </Link>
-          <div className="mt-auto">
+          <div className="mt-auto flex flex-col">
+            <Link href={loggedIn ? "/tableau-de-bord" : "/connexion?suite=/ide"} title={loggedIn ? `Mon espace${userName ? ` — ${userName}` : ""}` : "Se connecter"} aria-label={loggedIn ? "Mon espace" : "Se connecter"} className="grid h-12 w-12 place-items-center text-[var(--ide-muted)] hover:text-[var(--ide-text)]">
+              <Icon name="compte" className="h-6 w-6" />
+            </Link>
             <ActivityButton icon="parametres" label="Paramètres" active={side === "parametres"} onClick={() => setSide((s) => (s === "parametres" ? null : "parametres"))} />
           </div>
         </nav>
@@ -557,7 +692,51 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
         {side && (
           <>
             <aside className="absolute inset-y-0 left-12 z-30 w-[calc(100vw-3rem)] max-w-sm border-r border-[var(--ide-border)] bg-[var(--ide-sidebar)] md:static md:z-auto md:w-[var(--side-w)] md:max-w-none md:shrink-0" style={{ "--side-w": `${sideWidth}px` } as React.CSSProperties} aria-label="Barre latérale">
-              {side === "explorateur" && <Explorer project={snapshot} activePath={activePath} dirty={isDirty} actions={explorerActions} />}
+              {side === "explorateur" && (
+                <div className="flex h-full min-h-0 flex-col">
+                  <p className="flex h-[35px] shrink-0 items-center px-5 text-[11px] uppercase tracking-wide text-[var(--ide-muted)]">Explorateur</p>
+                  <SideSection title="Éditeurs ouverts" open={sections.ouverts} onToggle={() => setSections((x) => ({ ...x, ouverts: !x.ouverts }))}>
+                    <ul className="max-h-40 overflow-auto pb-1" aria-label="Éditeurs ouverts" data-testid="ide-editeurs-ouverts">
+                      {openEditors.map((t) => (
+                        <li key={t} className={cn("group flex h-[22px] cursor-pointer items-center gap-1.5 pl-5 pr-1 text-[13px] hover:bg-[var(--ide-hover)]", t === activePath && "bg-[var(--ide-selection)]")} onClick={() => openFile(t)} title={t}>
+                          <button
+                            type="button"
+                            aria-label={`Fermer ${basename(t)}`}
+                            className="grid h-4 w-4 shrink-0 place-items-center rounded-sm opacity-60 hover:bg-[var(--ide-hover)] hover:opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              groups.forEach((g, i) => g.tabs.includes(t) && closeTab(i, t));
+                            }}
+                          >
+                            <Icon name="fermer" className="h-3 w-3" />
+                          </button>
+                          <FileIcon path={t} />
+                          <span className="truncate">{basename(t)}</span>
+                          {t.includes("/") && <span className="truncate text-xs text-[var(--ide-muted)]">{t.slice(0, t.lastIndexOf("/"))}</span>}
+                        </li>
+                      ))}
+                      {!openEditors.length && <li className="pl-5 text-xs text-[var(--ide-muted)]">Aucun fichier ouvert.</li>}
+                    </ul>
+                  </SideSection>
+                  <div className="flex min-h-0 flex-1 flex-col border-t border-[var(--ide-border)]">
+                    <Explorer project={snapshot} activePath={activePath} dirty={isDirty} actions={explorerActions} title={project.name} createRequest={createRequest} onCreateHandled={() => setCreateRequest(null)} />
+                  </div>
+                  <SideSection title="Plan" open={sections.plan} onToggle={() => setSections((x) => ({ ...x, plan: !x.plan }))} bordered>
+                    <ul className="max-h-48 overflow-auto pb-1 text-[13px]" aria-label="Plan du fichier" data-testid="ide-plan">
+                      {symbols.map((sym, i) => (
+                        <li key={i}>
+                          <button type="button" onClick={() => activePath && goTo(activePath, sym.line)} className="flex h-[22px] w-full items-center gap-1.5 pl-5 pr-2 text-left hover:bg-[var(--ide-hover)]">
+                            <Icon name="symbole" className="h-3.5 w-3.5 shrink-0 text-[#b180d7]" />
+                            <span className="truncate">{sym.name}</span>
+                            <span className="ml-auto shrink-0 text-xs text-[var(--ide-muted)]">{sym.kind} · l. {sym.line}</span>
+                          </button>
+                        </li>
+                      ))}
+                      {!symbols.length && <li className="pl-5 text-xs text-[var(--ide-muted)]">{activePath ? "Aucune fonction ni classe dans ce fichier." : "Ouvrez un fichier pour voir son plan."}</li>}
+                    </ul>
+                  </SideSection>
+                </div>
+              )}
               {side === "recherche" && <SearchView project={snapshot} onOpen={goTo} />}
               {side === "projets" && <ProjectsView current={project} loggedIn={loggedIn} onOpen={(id) => router.push(id ? `/ide?projet=${id}` : "/ide")} notify={notify} onExport={explorerActions.exportZip} />}
               {side === "versions" && <VersionsView project={project} loggedIn={loggedIn} onRestore={(snap, label) => replaceProject(snap, `Version restaurée dans l'éditeur : ${label}. Enregistrez pour la conserver.`)} onCheckpoint={(label) => void save({ checkpoint: label })} notify={notify} />}
@@ -571,7 +750,7 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
 
         {/* Zone principale */}
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-          <div className="flex min-h-0 flex-1">
+          <div className={cn("flex min-h-0 flex-1", bottom && bottomMax && "hidden")}>
             <div className={cn("flex min-h-0 min-w-0 flex-1", right && "max-md:hidden")}>
               {groups.map((g, i) => (
                 <div key={i} className="flex min-h-0 min-w-0 flex-1">
@@ -593,6 +772,15 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
                       onReady={onReady(i)}
                       onRun={() => void run()}
                       onSave={() => void save()}
+                      welcome={{
+                        start: [
+                          { label: "Nouveau fichier…", onClick: () => newEntry("nouveau-fichier") },
+                          { label: "Ouvrir un projet…", onClick: () => setSide("projets") },
+                          { label: "Importer des fichiers ou un ZIP…", onClick: explorerActions.importFiles },
+                          { label: "Importer un dossier…", onClick: explorerActions.importFolder },
+                        ],
+                        recent: project.files.slice(0, 6).map((f) => ({ label: f.path, onClick: () => openFile(f.path, i) })),
+                      }}
                     />
                   </div>
                 </div>
@@ -604,28 +792,47 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
                   <Splitter direction="x" label="Largeur du panneau de droite" onDelta={(d) => setRightWidth((w) => Math.min(900, Math.max(280, w - d)))} />
                 </div>
                 <section className="flex min-h-0 w-full flex-col border-l border-[var(--ide-border)] bg-[var(--ide-sidebar)] md:w-[var(--right-w)] md:shrink-0" style={{ "--right-w": `${rightWidth}px` } as React.CSSProperties} aria-label={right === "apercu" ? "Aperçu" : "Assistant IA"}>
-                  <div className="flex h-9 shrink-0 items-center gap-1 border-b border-[var(--ide-border)] px-2 text-xs">
-                    <span className="mr-auto font-semibold uppercase tracking-wider text-[var(--ide-muted)]">{right === "apercu" ? `Aperçu — ${previewPath ?? ""}` : "Assistant IA"}</span>
-                    {right === "apercu" && (
-                      <>
-                        {(
-                          [
-                            ["100%", "Ordinateur"],
-                            ["768px", "Tablette"],
-                            ["390px", "Téléphone"],
-                          ] as const
-                        ).map(([w, label]) => (
-                          <button key={w} type="button" onClick={() => setPreviewWidth(w)} aria-pressed={previewWidth === w} className={cn("rounded px-1.5 py-0.5", previewWidth === w ? "bg-[var(--ide-hover)] text-[var(--ide-text)]" : "text-[var(--ide-muted)]")}>
-                            {label}
-                          </button>
-                        ))}
-                        <ToolButton icon="versions" label="Actualiser l'aperçu" onClick={refreshPreview} />
-                      </>
-                    )}
-                    <ToolButton icon="fermer" label="Fermer le panneau" onClick={() => setRight(null)} />
+                  <div className="flex h-[35px] shrink-0 items-stretch border-b border-[var(--ide-border)] bg-[var(--ide-tabs)] text-[13px]">
+                    <span className="flex min-w-0 items-center gap-1.5 bg-[var(--ide-tab-active)] px-3 text-[var(--ide-text)] shadow-[inset_0_1px_0_var(--ide-accent)]">
+                      {right === "apercu" ? <Icon name="apercu" className="h-4 w-4 shrink-0 text-[#519aba]" /> : <Icon name="ia" className="h-4 w-4 shrink-0 text-[#b180d7]" />}
+                      <span className="truncate">{right === "apercu" ? `Aperçu — ${previewPath ? basename(previewPath) : ""}` : "Assistant IA"}</span>
+                    </span>
+                    <span className="ml-auto flex items-center pr-1">
+                      <ToolButton icon="fermer" label="Fermer le panneau" onClick={() => setRight(null)} />
+                    </span>
                   </div>
+                  {right === "apercu" && (
+                    <div className="flex h-9 shrink-0 items-center gap-1 border-b border-[var(--ide-border)] bg-[var(--ide-editor)] px-2 text-xs" data-testid="ide-barre-apercu">
+                      <ToolButton icon="actualiser" label="Actualiser l'aperçu" onClick={refreshPreview} />
+                      <label className="flex min-w-0 flex-1 items-center gap-1 rounded-sm border border-[var(--ide-border)] bg-[var(--ide-input)] px-2 py-0.5">
+                        <span className="shrink-0 text-[var(--ide-muted)]">projet/</span>
+                        <select
+                          aria-label="Page affichée dans l'aperçu"
+                          value={previewPath ?? ""}
+                          onChange={(e) => setPreviewTarget(e.target.value)}
+                          className="min-w-0 flex-1 bg-transparent text-[var(--ide-text)] outline-none"
+                        >
+                          {previewPath && !htmlPages.includes(previewPath) && <option value={previewPath}>{previewPath}</option>}
+                          {htmlPages.map((p) => (
+                            <option key={p} value={p} className="text-black">{p}</option>
+                          ))}
+                        </select>
+                      </label>
+                      {(
+                        [
+                          ["100%", "Ordinateur"],
+                          ["768px", "Tablette"],
+                          ["390px", "Téléphone"],
+                        ] as const
+                      ).map(([w, label]) => (
+                        <button key={w} type="button" onClick={() => setPreviewWidth(w)} aria-pressed={previewWidth === w} className={cn("shrink-0 rounded-sm px-1.5 py-0.5", previewWidth === w ? "bg-[var(--ide-hover)] text-[var(--ide-text)]" : "text-[var(--ide-muted)] hover:text-[var(--ide-text)]")}>
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   {right === "apercu" ? (
-                    <div className="min-h-0 flex-1 overflow-auto bg-gray-200 p-2">
+                    <div className={cn("min-h-0 flex-1 overflow-auto", previewWidth === "100%" ? "bg-white" : "bg-[#2b2b2b] p-2")}>
                       <div className="mx-auto h-full bg-white" style={{ width: previewWidth, maxWidth: "100%" }}>
                         <WebPreview doc={previewDoc} onConsole={(l) => setConsoleLines((c) => [...c.slice(-199), l])} className="h-full w-full border-0 bg-white" title="Aperçu du projet" />
                       </div>
@@ -647,7 +854,7 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
                     </div>
                   ) : (
                     <p className="p-4 text-sm text-[var(--ide-muted)]">
-                      <Link href="/connexion?suite=/ide" className="text-electrique-400 underline">Connectez-vous</Link> pour utiliser l&apos;assistant IA.
+                      <Link href="/connexion?suite=/ide" className="text-[var(--ide-accent)] underline">Connectez-vous</Link> pour utiliser l&apos;assistant IA.
                     </p>
                   )}
                 </section>
@@ -658,23 +865,25 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
           {/* Panneau inférieur */}
           {bottom && (
             <>
-              <Splitter direction="y" label="Hauteur du panneau inférieur" onDelta={(d) => setBottomHeight((h) => Math.min(600, Math.max(110, h - d)))} />
-              <section className="flex shrink-0 flex-col bg-[var(--ide-panel)]" style={{ height: bottomHeight }} aria-label="Panneau inférieur">
-                <div className="flex h-8 shrink-0 items-center gap-0.5 overflow-x-auto border-b border-[var(--ide-border)] px-2" role="tablist">
+              {!bottomMax && <Splitter direction="y" label="Hauteur du panneau inférieur" onDelta={(d) => setBottomHeight((h) => Math.min(600, Math.max(110, h - d)))} />}
+              <section className={cn("flex shrink-0 flex-col border-t border-[var(--ide-border)] bg-[var(--ide-panel)]", bottomMax && "min-h-0 flex-1")} style={bottomMax ? undefined : { height: bottomHeight }} aria-label="Panneau inférieur">
+                <div className="flex h-[35px] shrink-0 items-center gap-1 overflow-x-auto px-2" role="tablist">
                   {(
                     [
-                      ["problemes", `Problèmes${problems.length ? ` (${problems.length})` : ""}`],
-                      ["console", "Console"],
+                      ["problemes", "Problèmes"],
                       ["sortie", "Sortie"],
+                      ["console", "Console"],
                       ["journal", "Journal"],
                     ] as Array<[BottomTab, string]>
                   ).map(([id, label]) => (
-                    <button key={id} role="tab" aria-selected={bottom === id} type="button" onClick={() => setBottom(id)} className={cn("shrink-0 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider", bottom === id ? "border-b-2 border-electrique-500 text-[var(--ide-text)]" : "text-[var(--ide-muted)] hover:text-[var(--ide-text)]")}>
+                    <button key={id} role="tab" aria-selected={bottom === id} type="button" onClick={() => setBottom(id)} className={cn("flex h-full shrink-0 items-center gap-1.5 px-2 text-[11px] uppercase tracking-wide", bottom === id ? "text-[var(--ide-text)] shadow-[inset_0_-1px_0_var(--ide-text)]" : "text-[var(--ide-muted)] hover:text-[var(--ide-text)]")}>
                       {label}
+                      {id === "problemes" && problems.length > 0 && <span className="grid min-w-4 place-items-center rounded-full bg-[var(--ide-accent)] px-1 text-[10px] leading-4 text-white">{problems.length}</span>}
                     </button>
                   ))}
                   <span className="ml-auto" />
-                  <ToolButton icon="fermer" label="Fermer le panneau" onClick={() => setBottom(null)} />
+                  <ToolButton icon={bottomMax ? "reduire" : "agrandir"} label={bottomMax ? "Restaurer la taille du panneau" : "Agrandir le panneau"} onClick={() => setBottomMax((m) => !m)} />
+                  <ToolButton icon="fermer" label="Fermer le panneau" onClick={() => { setBottom(null); setBottomMax(false); }} />
                 </div>
                 <div className="min-h-0 flex-1 overflow-auto font-mono text-xs" data-testid={`ide-panneau-${bottom}`}>
                   {bottom === "problemes" &&
@@ -751,33 +960,69 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
       </div>
 
       {/* Barre d'état */}
-      <footer className="flex h-6 shrink-0 items-center gap-3 overflow-x-auto bg-electrique-600 px-2 text-[11px] text-white" data-testid="ide-barre-etat">
-        <button type="button" onClick={() => setBottom("problemes")} className="shrink-0 hover:underline" aria-label="Problèmes">
-          ✕ {errorsCount} ⚠ {warningsCount}
-        </button>
-        <span className="shrink-0">{STATUS_TEXT[status]}{project.id ? ` · rév. ${project.revision}` : ""}</span>
+      <footer className="flex h-[22px] shrink-0 items-center overflow-x-auto bg-[var(--ide-status)] text-xs text-[var(--ide-status-text)]" data-testid="ide-barre-etat">
+        <Link href="/" className="flex h-full shrink-0 items-center bg-[#16825d] px-2.5 font-mono text-[11px] font-bold hover:brightness-110" title={`${BRAND.name} — accueil`}>
+          {"</>"} UPL
+        </Link>
+        <StatusItem onClick={() => setSide("projets")} label="Projet">
+          <Icon name="projets" className="h-3.5 w-3.5" /> {project.id ? "compte" : "local"}
+        </StatusItem>
+        <StatusItem onClick={() => void save()} label="Enregistrer">
+          <span data-testid="ide-statut">{STATUS_TEXT[status]}</span>
+          {project.id ? <span>· rév. {project.revision}</span> : null}
+        </StatusItem>
+        <StatusItem onClick={() => setBottom("problemes")} label="Problèmes">
+          <span aria-hidden>ⓧ</span> {errorsCount} <span aria-hidden>⚠</span> {warningsCount}
+        </StatusItem>
+        <span className="ml-auto" />
         {symbols.length > 0 && (
           <select
             aria-label="Aller à une fonction"
-            className="h-5 max-w-44 shrink-0 rounded bg-white/15 px-1 text-[11px] text-white"
+            className="mx-1 h-[18px] max-w-44 shrink-0 rounded-sm bg-white/15 px-1 text-[11px] text-[var(--ide-status-text)]"
             value=""
             onChange={(e) => activePath && goTo(activePath, Number(e.target.value))}
           >
             <option value="" className="text-black">Aller à… ({symbols.length})</option>
-            {symbols.map((s, i) => (
-              <option key={i} value={s.line} className="text-black">
-                {s.kind} {s.name} — l. {s.line}
+            {symbols.map((sym, i) => (
+              <option key={i} value={sym.line} className="text-black">
+                {sym.kind} {sym.name} — l. {sym.line}
               </option>
             ))}
           </select>
         )}
-        <span className="ml-auto shrink-0">Ln {cursor.line}, Col {cursor.column}</span>
-        <span className="shrink-0">Espaces : {settings.tabSize}</span>
-        <span className="shrink-0">UTF-8</span>
-        <span className="shrink-0">{activeLang?.label ?? "—"}</span>
-        <span className="shrink-0">{runnable ? "▶ exécutable" : previewPath && activeLang?.preview ? "aperçu web" : activePath ? "édition seule" : ""}</span>
-        <button type="button" onClick={findReplace} className="shrink-0 hover:underline">Rechercher / remplacer</button>
+        {activePath && (
+          <>
+            <StatusItem onClick={() => editorAction("editor.action.gotoLine")} label="Aller à la ligne">Ln {cursor.line}, Col {cursor.column}</StatusItem>
+            <StatusItem onClick={() => setSide("parametres")} label="Indentation">Espaces : {settings.tabSize}</StatusItem>
+            <span className="shrink-0 px-2">UTF-8</span>
+            <span className="shrink-0 px-2">LF</span>
+            <span className="shrink-0 px-2">{activeLang?.label ?? "—"}</span>
+          </>
+        )}
+        <StatusItem onClick={runnable ? () => void run() : previewPath ? togglePreview : () => undefined} label="Mode d'exécution">
+          {runnable ? "▶ exécutable" : previewPath && (activeLang?.preview || !activePath) ? (right === "apercu" ? "◉ aperçu actif" : "aperçu web") : activePath ? "édition seule" : ""}
+        </StatusItem>
       </footer>
+    </div>
+  );
+}
+
+function StatusItem({ children, onClick, label }: { children: React.ReactNode; onClick: () => void; label: string }) {
+  return (
+    <button type="button" onClick={onClick} title={label} aria-label={label} className="flex h-full shrink-0 items-center gap-1 px-2 hover:bg-white/15">
+      {children}
+    </button>
+  );
+}
+
+function SideSection({ title, open, onToggle, children, bordered }: { title: string; open: boolean; onToggle: () => void; children: React.ReactNode; bordered?: boolean }) {
+  return (
+    <div className={cn("shrink-0", bordered && "border-t border-[var(--ide-border)]")}>
+      <button type="button" onClick={onToggle} aria-expanded={open} className="flex h-[22px] w-full items-center gap-0.5 pl-1 text-left text-[11px] font-bold uppercase text-[var(--ide-text)] hover:bg-[var(--ide-hover)]">
+        <Icon name="chevron" className={cn("h-3.5 w-3.5 transition-transform", open && "rotate-90")} />
+        {title}
+      </button>
+      {open && children}
     </div>
   );
 }
@@ -792,12 +1037,12 @@ function TopButton({ icon, label, onClick, disabled, active, primary }: { icon: 
       aria-label={label}
       aria-pressed={active}
       className={cn(
-        "grid h-8 w-8 place-items-center rounded-md disabled:opacity-35",
-        primary ? "bg-emerald-600 text-white hover:bg-emerald-500" : "text-[var(--ide-muted)] hover:bg-[var(--ide-hover)] hover:text-[var(--ide-text)]",
+        "grid h-[26px] w-[26px] place-items-center rounded-md disabled:opacity-35",
+        primary ? "text-[#89d185] hover:bg-[var(--ide-hover)]" : "text-[var(--ide-muted)] hover:bg-[var(--ide-hover)] hover:text-[var(--ide-text)]",
         active && "bg-[var(--ide-hover)] text-[var(--ide-text)]",
       )}
     >
-      <Icon name={icon} className="h-[18px] w-[18px]" />
+      <Icon name={icon} className="h-4 w-4" />
     </button>
   );
 }
@@ -810,9 +1055,9 @@ function ActivityButton({ icon, label, active, onClick }: { icon: IconName; labe
       title={label}
       aria-label={label}
       aria-pressed={active}
-      className={cn("relative grid h-10 w-10 place-items-center rounded-md", active ? "text-[var(--ide-text)] before:absolute before:-left-1 before:h-6 before:w-0.5 before:rounded before:bg-electrique-500" : "text-[var(--ide-muted)] hover:text-[var(--ide-text)]")}
+      className={cn("relative grid h-12 w-12 place-items-center", active ? "text-[var(--ide-text)] before:absolute before:inset-y-0 before:left-0 before:w-0.5 before:bg-[var(--ide-accent)]" : "text-[var(--ide-muted)] hover:text-[var(--ide-text)]")}
     >
-      <Icon name={icon} />
+      <Icon name={icon} className="h-6 w-6" />
     </button>
   );
 }
@@ -906,7 +1151,7 @@ function ProjectsView({ current, loggedIn, onOpen, notify, onExport }: { current
         <SideTitle>Projets</SideTitle>
         <p className="px-3 text-[var(--ide-muted)]">Vous travaillez sur un projet local (enregistré dans ce navigateur).</p>
         <p className="mt-2 px-3">
-          <Link href="/connexion?suite=/ide" className="text-electrique-400 underline">Connectez-vous</Link> pour enregistrer vos projets dans votre compte et les retrouver sur tous vos appareils.
+          <Link href="/connexion?suite=/ide" className="text-[var(--ide-accent)] underline">Connectez-vous</Link> pour enregistrer vos projets dans votre compte et les retrouver sur tous vos appareils.
         </p>
         <button type="button" onClick={onExport} className="mx-3 mt-3 rounded border border-[var(--ide-border)] px-2 py-1 text-xs">Exporter ce projet (ZIP)</button>
       </div>
@@ -929,7 +1174,7 @@ function ProjectsView({ current, loggedIn, onOpen, notify, onExport }: { current
           ))}
         </select>
         <div className="flex gap-1.5">
-          <button type="submit" disabled={busy || !name.trim()} className="rounded bg-electrique-600 px-2 py-1 text-xs font-semibold text-white disabled:opacity-50">Créer</button>
+          <button type="submit" disabled={busy || !name.trim()} className="rounded bg-[var(--ide-accent)] px-2 py-1 text-xs font-semibold text-white disabled:opacity-50">Créer</button>
           <button type="button" onClick={() => zipInput.current?.click()} className="rounded border border-[var(--ide-border)] px-2 py-1 text-xs">Importer un ZIP</button>
           <input
             ref={zipInput}
@@ -957,8 +1202,8 @@ function ProjectsView({ current, loggedIn, onOpen, notify, onExport }: { current
             <button type="button" onClick={() => onOpen(p.id)} className="block w-full truncate text-left font-medium">{p.name}</button>
             <span className="text-[11px] text-[var(--ide-muted)]">{new Date(p.updated_at).toLocaleString("fr-FR")} · rév. {p.revision}</span>
             <span className="ml-2 inline-flex gap-2 text-[11px]">
-              <button type="button" className="text-electrique-400 hover:underline" onClick={async () => { const n = window.prompt("Nouveau nom :", p.name)?.trim(); if (n) await patch(p.id, { name: n }); }}>Renommer</button>
-              <button type="button" className="text-electrique-400 hover:underline" onClick={async () => { const d = await patch(p.id, { duplicate: true }); if (d) notify(`Copie créée : ${d.name}`, "info"); }}>Dupliquer</button>
+              <button type="button" className="text-[var(--ide-accent)] hover:underline" onClick={async () => { const n = window.prompt("Nouveau nom :", p.name)?.trim(); if (n) await patch(p.id, { name: n }); }}>Renommer</button>
+              <button type="button" className="text-[var(--ide-accent)] hover:underline" onClick={async () => { const d = await patch(p.id, { duplicate: true }); if (d) notify(`Copie créée : ${d.name}`, "info"); }}>Dupliquer</button>
               <button type="button" className="text-red-400 hover:underline" onClick={() => void remove(p)}>Supprimer</button>
             </span>
           </li>
@@ -1022,7 +1267,7 @@ function VersionsView({ project, loggedIn, onRestore, onCheckpoint, notify }: { 
         }}
       >
         <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="ex. Version avant le formulaire" aria-label="Nom du point de sauvegarde" className="min-w-0 flex-1 rounded border border-[var(--ide-border)] bg-[var(--ide-input)] px-2 py-1 text-xs" />
-        <button type="submit" className="rounded bg-electrique-600 px-2 py-1 text-xs font-semibold text-white">Créer</button>
+        <button type="submit" className="rounded bg-[var(--ide-accent)] px-2 py-1 text-xs font-semibold text-white">Créer</button>
       </form>
       <SideTitle>Historique</SideTitle>
       <ul className="min-h-0 flex-1 overflow-auto text-xs" data-testid="ide-versions">
@@ -1033,7 +1278,7 @@ function VersionsView({ project, loggedIn, onRestore, onCheckpoint, notify }: { 
               <span className="block truncate font-medium">{v.label ?? `Enregistrement automatique`}</span>
               <span className="text-[var(--ide-muted)]">{new Date(v.createdAt).toLocaleString("fr-FR")} · rév. {v.revision} · {v.fileCount} fichier(s)</span>
             </span>
-            <button type="button" onClick={() => void restore(v)} className="shrink-0 text-electrique-400 hover:underline">Restaurer</button>
+            <button type="button" onClick={() => void restore(v)} className="shrink-0 text-[var(--ide-accent)] hover:underline">Restaurer</button>
           </li>
         ))}
       </ul>

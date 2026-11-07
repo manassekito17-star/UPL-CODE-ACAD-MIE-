@@ -26,6 +26,27 @@ export function configureMonaco(monaco: Monaco) {
     rules,
     colors: { "editor.background": "#050D1F", "editorLineNumber.foreground": "#3A4559", "editor.lineHighlightBackground": "#0A1A3A" },
   });
+  // Thème « studio » de UPL IDE : fond gris neutre, couleurs syntaxiques sobres.
+  monaco.editor.defineTheme("upl-studio", {
+    base: "vs-dark",
+    inherit: true,
+    rules: [
+      { token: "keyword.pseudocode", foreground: "569CD6", fontStyle: "bold" },
+      { token: "type.pseudocode", foreground: "4EC9B0" },
+      { token: "predefined.pseudocode", foreground: "DCDCAA" },
+    ],
+    colors: {
+      "editor.background": "#1F1F1F",
+      "editor.lineHighlightBackground": "#2A2A2A80",
+      "editor.lineHighlightBorder": "#282828",
+      "editorLineNumber.foreground": "#6E7681",
+      "editorLineNumber.activeForeground": "#CCCCCC",
+      "editorGutter.background": "#1F1F1F",
+      "minimap.background": "#1F1F1F",
+      "editorWidget.background": "#202020",
+      "editorIndentGuide.background1": "#404040",
+    },
+  });
   monaco.editor.defineTheme("upl-clair", {
     base: "vs",
     inherit: true,

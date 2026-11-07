@@ -81,6 +81,18 @@ Ce document couvre trois choses :
 - **Historique** : une version automatique toutes les 10 minutes au plus, des points de sauvegarde nommés, 30 versions conservées ; restauration dans l'éditeur.
 - **Paramètres** : thème sombre ou clair, taille du texte, indentation, retour à la ligne, minicarte, enregistrement automatique.
 
+### Interface de type studio (novembre 2026)
+
+L'IDE reprend la disposition familière des éditeurs de code de bureau, avec un dessin propre à la plateforme :
+
+- **Thème « studio »** par défaut (gris neutre, barre d'état bleue) ; thèmes « nuit UPL » et « clair » au choix (Affichage ou Paramètres).
+- **Barre de titre** : logo, menus **Fichier, Édition, Sélection, Affichage, Exécuter, Aide** (un seul bouton ☰ sur téléphone), titre « fichier — projet — UPL IDE », boutons d'action et de disposition. Chaque entrée de menu déclenche une action réelle (création, import, export, enregistrement, annuler/rétablir, recherche, commentaire, déplacement de lignes, multicurseur, palette de commandes de l'éditeur, panneaux, thème…).
+- **Explorateur en sections** : *Éditeurs ouverts* (fermeture d'un clic), arborescence du projet avec icônes par type de fichier, *Plan* (fonctions et classes du fichier ouvert, clic → ligne).
+- **Onglets** avec icône du type de fichier, **fil d'Ariane** du chemin sous les onglets, **minicarte** activée (ordinateur), **page d'accueil** quand aucun fichier n'est ouvert (démarrer, fichiers du projet, raccourcis).
+- **Aperçu web** en panneau latéral façon navigateur : actualiser, choix de la page HTML affichée, vues ordinateur / tablette / téléphone.
+- **Panneau** Problèmes (compteur), Sortie, Console, Journal, agrandissable.
+- **Barre d'état** : projet, statut d'enregistrement, erreurs et avertissements, position (clic → aller à la ligne), indentation, encodage, fin de ligne, langage, mode d'exécution.
+
 ### Ce qui n'est pas affiché, faute de service réel
 
 - terminal ;

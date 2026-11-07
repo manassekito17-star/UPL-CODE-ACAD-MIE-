@@ -94,8 +94,16 @@ body {
 .upl-organigramme g.upl-actif > rect,
 .upl-organigramme g.upl-actif > polygon { stroke: #f59e0b; stroke-width: 3.5; fill: #fef3c7; }
 
-/* ===== UPL IDE : thèmes sombre (défaut) et clair ===== */
+/* ===== UPL IDE : thèmes studio (défaut, gris neutre), nuit UPL et clair ===== */
+.ide-studio {
+  --ide-bg: #181818; --ide-panel: #181818; --ide-sidebar: #181818; --ide-activity: #181818; --ide-tabs: #181818;
+  --ide-editor: #1f1f1f; --ide-border: #2b2b2b; --ide-text: #cccccc; --ide-muted: #9d9d9d; --ide-hover: #2a2d2e;
+  --ide-selection: #04395e; --ide-input: #313131; --ide-accent: #0078d4; --ide-status: #007acc; --ide-status-text: #ffffff;
+  --ide-menu: #1f1f1f; --ide-tab-active: #1f1f1f;
+  color-scheme: dark;
+}
 .ide-sombre {
+  --ide-accent: #2f7bff; --ide-status: #1d5fe0; --ide-status-text: #ffffff; --ide-menu: #0a1428; --ide-tab-active: #050d1f;
   --ide-bg: #050d1f; --ide-panel: #0a1428; --ide-sidebar: #0b1730; --ide-activity: #071026; --ide-tabs: #08122a;
   --ide-editor: #050d1f; --ide-border: #1b2a47; --ide-text: #e6edf7; --ide-muted: #8a99b5; --ide-hover: #16264a;
   --ide-selection: #1d3a75; --ide-input: #050d1f;
@@ -105,5 +113,6 @@ body {
   --ide-bg: #f5f7fb; --ide-panel: #ffffff; --ide-sidebar: #f8fafd; --ide-activity: #eef2f9; --ide-tabs: #eef2f9;
   --ide-editor: #ffffff; --ide-border: #dbe2ee; --ide-text: #0a1a3a; --ide-muted: #5b6b85; --ide-hover: #e5ecf8;
   --ide-selection: #d6e4ff; --ide-input: #ffffff;
+  --ide-accent: #1d5fe0; --ide-status: #1d5fe0; --ide-status-text: #ffffff; --ide-menu: #ffffff; --ide-tab-active: #ffffff;
   color-scheme: light;
 }
