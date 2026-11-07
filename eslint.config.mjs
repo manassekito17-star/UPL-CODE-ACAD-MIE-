@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Première version statique du site (branche main), conservée telle quelle.
+    "js/**",
   ]),
 ]);
 
