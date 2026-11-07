@@ -26,11 +26,18 @@ Tout le travail récent est sur la branche `claude/upl-code-academy-specs-vl0z7e
    - **Database Password** : cliquez *Generate*, puis **copiez-le dans un endroit sûr** (gestionnaire de mots de passe) ;
    - **Region** : la plus proche de vos étudiants (par exemple *Central EU (Frankfurt)*) ;
    - offre **Free**. Cliquez **Create new project** et attendez environ 2 minutes.
-3. **Créer les tables et les cours (sans rien installer sur votre ordinateur)** :
-   1. Sur GitHub, ouvrez `supabase/installation/1-structure.sql` et cliquez l'icône **Copy raw file**.
-   2. Dans Supabase : menu de gauche **SQL Editor** (icône `>_`) → **New query** → collez → **Run**. Le message attendu est « Success. No rows returned ».
-   3. Recommencez avec `supabase/installation/2-contenu.sql` : **New query** → collez → **Run**. Le fichier est gros (environ 1 Mo) : attendez la fin.
-   4. Contrôle : **Table Editor** → la table `courses` contient 7 lignes.
+3. **Créer les tables et les cours (sans rien installer sur votre ordinateur)**. Pour chaque fichier ci-dessous, **dans l'ordre** :
+   1. ouvrez le lien (texte brut) → **Ctrl + A** → **Ctrl + C** ;
+   2. Supabase → **SQL Editor** (icône `>_`) → **New query** → **Ctrl + V** → **Run** → « Success. No rows returned ».
+
+   | Ordre | Fichier |
+   |---|---|
+   | 1 | `supabase/installation/1-structure.sql` (tables, sécurité) |
+   | 2 à 11 | `supabase/installation/2-contenu-01.sql` … `2-contenu-10.sql` (cours, exercices, quiz) |
+
+   Liens en texte brut : `https://raw.githubusercontent.com/manassekito17-star/UPL-CODE-ACAD-MIE-/main/supabase/installation/1-structure.sql`, puis `https://raw.githubusercontent.com/manassekito17-star/UPL-CODE-ACAD-MIE-/main/supabase/installation/2-contenu-01.sql`, etc. (remplacez `main` par le nom de la branche si elle n'a pas encore été fusionnée).
+
+   Le contenu est découpé en 10 morceaux car un envoi trop gros échoue avec « Failed to fetch ». Un morceau qui échoue peut être **relancé sans risque**. Contrôle final : **Table Editor** → table `courses` = 7 lignes.
 
    *Variante en ligne de commande, si Node.js est installé :* `npx supabase login`, `npx supabase link --project-ref VOTRE-REF`, puis `npx supabase db push --include-seed`. N'utilisez pas les deux méthodes sur le même projet.
 4. **Récupérer les clés** : **Project Settings → API Keys** (ou **API**). Notez trois choses :

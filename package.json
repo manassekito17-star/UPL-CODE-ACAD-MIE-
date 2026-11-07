@@ -10,7 +10,7 @@
     "test": "vitest run",
     "typecheck": "next typegen && tsc --noEmit",
     "seed:generate": "tsx scripts/generate-seed.ts",
-    "test:db": "node scripts/check-database.mjs",
+    "test:db": "node scripts/check-database.mjs && node scripts/check-installation.mjs",
     "test:e2e": "playwright test",
     "admin:creer": "node scripts/creer-admin.mjs",
     "install:sql": "node scripts/build-installation.mjs"

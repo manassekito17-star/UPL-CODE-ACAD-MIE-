@@ -5,7 +5,7 @@
  * Le script est idempotent : il met à jour les cours, modules, leçons,
  * exercices, tests, solutions et quiz existants (par slug).
  */
-import { writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { staticCourses, staticExercises } from "../src/content";
 
 const q = (s: string | null | undefined) => (s === null || s === undefined ? "null" : `'${s.replace(/'/g, "''")}'`);
@@ -100,4 +100,30 @@ on conflict (exercise_id) do update set solution_code = excluded.solution_code, 
 
 out.push("commit;\n");
 writeFileSync(new URL("../supabase/seed.sql", import.meta.url), out.join("\n"));
+
+// Même contenu découpé en morceaux d'environ 100 Ko pour le SQL Editor de Supabase
+// (un envoi trop gros échoue avec « Failed to fetch »). Chaque morceau est une
+// transaction complète et peut être relancé sans risque (mises à jour par slug).
+const body = out.filter((l) => l !== "begin;" && l !== "commit;\n" && !l.startsWith("-- Fichier généré") && !l.startsWith("-- Contenu pédagogique"));
+const chunks: string[][] = [[]];
+let size = 0;
+for (const stmt of body) {
+  if (size + stmt.length > 100_000 && chunks[chunks.length - 1].length) {
+    chunks.push([]);
+    size = 0;
+  }
+  chunks[chunks.length - 1].push(stmt);
+  size += stmt.length;
+}
+const installDir = new URL("../supabase/installation/", import.meta.url);
+mkdirSync(installDir, { recursive: true });
+for (const f of readdirSync(installDir)) if (/^2-contenu/.test(f)) rmSync(new URL(f, installDir));
+chunks.forEach((c, i) => {
+  const n = String(i + 1).padStart(2, "0");
+  writeFileSync(
+    new URL(`2-contenu-${n}.sql`, installDir),
+    `-- UPL CODE ACADEMY MK — installation, partie 2 (contenu), morceau ${i + 1} sur ${chunks.length}.\n-- À exécuter dans l'ordre, après 1-structure.sql. Peut être relancé sans risque.\nbegin;\n${c.join("\n")}\ncommit;\n`,
+  );
+});
+console.log(`Installation : contenu découpé en ${chunks.length} morceaux (supabase/installation/2-contenu-NN.sql).`);
 console.log(`seed.sql généré : ${staticCourses.length} cours, ${staticExercises.length} exercices.`);
