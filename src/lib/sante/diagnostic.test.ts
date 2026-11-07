@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { inputIssues, keyKind, urlIssues } from "./diagnostic";
+import { inputIssues, keyKind, keyRef, urlIssues, urlRef } from "./diagnostic";
 
 const jwt = (payload: object) => `xx.${Buffer.from(JSON.stringify(payload)).toString("base64url")}.yy`;
 
@@ -22,5 +22,10 @@ describe("diagnostic de configuration", () => {
     expect(urlIssues("https://csclwkrumkpbskeajbhu.supabase.co")).toEqual([]);
     expect(urlIssues("https://csclwkrumkpbskeajbhu.supabase.co/rest/v1")).not.toEqual([]);
     expect(urlIssues(undefined)).toEqual(["absente"]);
+  });
+  it("compare le projet de la clé et celui de l'URL", () => {
+    expect(keyRef(jwt({ role: "anon", ref: "csclwkrumkpbskeajbhu" }))).toBe("csclwkrumkpbskeajbhu");
+    expect(keyRef("sb_publishable_abc")).toBeNull();
+    expect(urlRef("https://csclwkrumkpbskeajbhu.supabase.co")).toBe("csclwkrumkpbskeajbhu");
   });
 });

@@ -22,6 +22,23 @@ export function keyKind(key: string): KeyKind {
   }
 }
 
+/** Identifiant du projet annoncé par une clé JWT (champ « ref »), ou null. */
+export function keyRef(key: string): string | null {
+  const parts = key.split(".");
+  if (parts.length !== 3) return null;
+  try {
+    const payload = JSON.parse(Buffer.from(parts[1].replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8")) as { ref?: unknown };
+    return typeof payload.ref === "string" ? payload.ref : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Identifiant du projet d'après l'URL https://<ref>.supabase.co, ou null. */
+export function urlRef(url: string): string | null {
+  return /^https:\/\/([a-z0-9]{20})\.supabase\.co\/?$/.exec(url.trim())?.[1] ?? null;
+}
+
 /** Problèmes de saisie courants : espaces, guillemets, retour à la ligne, nom collé dans la valeur. */
 export function inputIssues(value: string | undefined): string[] {
   if (!value) return [];
