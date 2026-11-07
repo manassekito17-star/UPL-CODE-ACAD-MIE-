@@ -36,7 +36,7 @@ jobs:
       - name: Tests unitaires et contrôle du contenu (pseudocode, Python, C, JS, Java)
         run: npm test
       - name: Seed à jour avec le contenu versionné
-        run: npm run seed:generate && git diff --exit-code supabase/seed.sql
+        run: npm run seed:generate && npm run install:sql && git diff --exit-code supabase/seed.sql supabase/installation
       - name: Migrations, seed et politiques RLS (PGlite)
         run: npm run test:db
       - name: Build

@@ -26,17 +26,13 @@ Tout le travail récent est sur la branche `claude/upl-code-academy-specs-vl0z7e
    - **Database Password** : cliquez *Generate*, puis **copiez-le dans un endroit sûr** (gestionnaire de mots de passe) ;
    - **Region** : la plus proche de vos étudiants (par exemple *Central EU (Frankfurt)*) ;
    - offre **Free**. Cliquez **Create new project** et attendez environ 2 minutes.
-3. **Créer les tables.** Sur votre ordinateur, avec Node.js installé, dans le dossier du dépôt :
+3. **Créer les tables et les cours (sans rien installer sur votre ordinateur)** :
+   1. Sur GitHub, ouvrez `supabase/installation/1-structure.sql` et cliquez l'icône **Copy raw file**.
+   2. Dans Supabase : menu de gauche **SQL Editor** (icône `>_`) → **New query** → collez → **Run**. Le message attendu est « Success. No rows returned ».
+   3. Recommencez avec `supabase/installation/2-contenu.sql` : **New query** → collez → **Run**. Le fichier est gros (environ 1 Mo) : attendez la fin.
+   4. Contrôle : **Table Editor** → la table `courses` contient 7 lignes.
 
-   ```bash
-   npx supabase login
-   npx supabase link --project-ref VOTRE-REF
-   npx supabase db push --include-seed
-   ```
-
-   - `VOTRE-REF` se lit dans l'adresse du tableau de bord : `supabase.com/dashboard/project/VOTRE-REF`.
-   - Le mot de passe demandé est celui de l'étape 2.
-   - La commande crée toutes les tables, les règles de sécurité (RLS) et les cours.
+   *Variante en ligne de commande, si Node.js est installé :* `npx supabase login`, `npx supabase link --project-ref VOTRE-REF`, puis `npx supabase db push --include-seed`. N'utilisez pas les deux méthodes sur le même projet.
 4. **Récupérer les clés** : **Project Settings → API Keys** (ou **API**). Notez trois choses :
    - **Project URL** (`https://VOTRE-REF.supabase.co`) ;
    - **anon / publishable key** ;
