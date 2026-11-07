@@ -12,6 +12,10 @@ import { createClient } from "@/lib/supabase/server";
 export interface AuthState {
   error?: string;
   success?: string;
+  /** Adresse à laquelle un e-mail vient d'être envoyé (bouton « Ouvrir ma boîte » et renvoi). */
+  inbox?: string;
+  /** Type d'e-mail, pour le renvoi : confirmation d'inscription ou réinitialisation. */
+  mail?: "inscription" | "reinitialisation";
 }
 
 const emailSchema = z.string().trim().toLowerCase().email("Adresse e-mail invalide.").max(254);
@@ -52,7 +56,7 @@ export async function signIn(_prev: AuthState, form: FormData): Promise<AuthStat
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email: email.data, password: password.data });
   if (error) {
-    if (/confirm/i.test(error.message)) return { error: "Votre adresse e-mail n'est pas encore vérifiée. Consultez votre messagerie." };
+    if (/confirm/i.test(error.message)) return { error: "Votre adresse e-mail n'est pas encore vérifiée. Consultez votre messagerie.", inbox: email.data, mail: "inscription" };
     return { error: "E-mail ou mot de passe incorrect." };
   }
   redirect(safeNext(form.get("suite")));
@@ -116,7 +120,7 @@ export async function signUp(_prev: AuthState, form: FormData): Promise<AuthStat
   }
   await audit(data.user?.id ?? null, "compte.inscription", data.user ? { type: "utilisateur", id: data.user.id } : undefined, {}, clientIp(h));
   if (data.session) redirect("/tableau-de-bord");
-  return { success: "Compte créé ! Un e-mail de vérification vous a été envoyé : cliquez sur le lien pour activer votre compte." };
+  return { success: "Compte créé ! Un e-mail de vérification vous a été envoyé : cliquez sur le lien pour activer votre compte.", inbox: parsed.data.email, mail: "inscription" };
 }
 
 export async function requestPasswordReset(_prev: AuthState, form: FormData): Promise<AuthState> {
@@ -129,7 +133,22 @@ export async function requestPasswordReset(_prev: AuthState, form: FormData): Pr
   const h = await headers();
   await supabase.auth.resetPasswordForEmail(email.data, { redirectTo: `${origin(h)}/auth/callback?suite=/reinitialiser-mot-de-passe` });
   // Même réponse que le compte existe ou non (pas de divulgation d'informations).
-  return { success: "Si un compte correspond à cette adresse, un lien de réinitialisation vient d'être envoyé." };
+  return { success: "Si un compte correspond à cette adresse, un lien de réinitialisation vient d'être envoyé.", inbox: email.data, mail: "reinitialisation" };
+}
+
+/** Renvoie l'e-mail de confirmation d'inscription (limité par adresse IP). */
+export async function resendConfirmation(email: string): Promise<{ ok: boolean; message: string }> {
+  if (!isSupabaseConfigured()) return { ok: false, message: "L'authentification n'est pas configurée." };
+  const tooMany = await limited("renvoi");
+  if (tooMany) return { ok: false, message: tooMany };
+  const parsed = emailSchema.safeParse(email);
+  if (!parsed.success) return { ok: false, message: "Adresse e-mail invalide." };
+  const supabase = await createClient();
+  const h = await headers();
+  const { error } = await supabase.auth.resend({ type: "signup", email: parsed.data, options: { emailRedirectTo: `${origin(h)}/auth/callback?suite=/tableau-de-bord` } });
+  if (error && /rate|limit|seconds/i.test(error.message)) return { ok: false, message: "Un e-mail vient déjà d'être envoyé. Patientez une minute avant de réessayer." };
+  // Même réponse que le compte existe ou non (pas de divulgation d'informations).
+  return { ok: true, message: "Si un compte en attente correspond à cette adresse, un nouvel e-mail de confirmation vient d'être envoyé." };
 }
 
 export async function updatePassword(_prev: AuthState, form: FormData): Promise<AuthState> {
