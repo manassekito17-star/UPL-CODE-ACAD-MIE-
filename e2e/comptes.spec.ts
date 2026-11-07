@@ -93,3 +93,14 @@ test("aperçu de lien partagé (WhatsApp, Facebook, Telegram, Gmail) et robots",
   const robots = await (await request.get("/robots.txt")).text();
   expect(robots).toContain("Disallow: /admin");
 });
+
+test("après l'envoi d'un e-mail, un bouton ouvre la boîte de réception du fournisseur", async ({ page }) => {
+  test.skip(await isDemoMode(page), "Supabase non configuré");
+  await page.goto("/mot-de-passe-oublie");
+  await page.getByLabel("Adresse e-mail").fill(`inconnu.${Date.now()}@gmail.com`);
+  await page.getByRole("button", { name: "Envoyer le lien" }).click();
+  const link = page.getByRole("link", { name: /Ouvrir ma boîte Gmail/ });
+  await expect(link).toBeVisible();
+  await expect(link).toHaveAttribute("href", "https://mail.google.com/mail/u/0/#inbox");
+  await expect(link).toHaveAttribute("target", "_blank");
+});
