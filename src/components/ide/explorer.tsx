@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { basename, buildTree, dirname, languageOf, type ProjectSnapshot, type TreeNode } from "@/lib/ide/fs";
+import { useEffect, useState } from "react";
+import { basename, buildTree, dirname, type ProjectSnapshot, type TreeNode } from "@/lib/ide/fs";
 import { cn } from "../ui";
+import { FileIcon } from "./file-icon";
 import { Icon } from "./icons";
 
 export interface ExplorerActions {
@@ -20,15 +21,26 @@ export interface ExplorerActions {
 
 type Editing = { kind: "nouveau-fichier" | "nouveau-dossier"; parent: string } | { kind: "renommer"; path: string } | null;
 
-const EXT_COLORS: Record<string, string> = { html: "text-orange-400", css: "text-sky-400", javascript: "text-yellow-300", typescript: "text-blue-400", python: "text-emerald-400", c: "text-indigo-300", java: "text-red-300", pseudocode: "text-cyan-300", json: "text-amber-300", markdown: "text-gray-300" };
+/** Demande de création venue d'ailleurs (menu Fichier, page d'accueil) : `id` change à chaque demande. */
+export interface CreateRequest {
+  kind: "nouveau-fichier" | "nouveau-dossier";
+  id: number;
+}
 
-export function Explorer({ project, activePath, dirty, actions }: { project: ProjectSnapshot; activePath: string | null; dirty: (path: string) => boolean; actions: ExplorerActions }) {
+export function Explorer({ project, activePath, dirty, actions, title, createRequest, onCreateHandled }: { project: ProjectSnapshot; activePath: string | null; dirty: (path: string) => boolean; actions: ExplorerActions; title: string; createRequest?: CreateRequest | null; onCreateHandled?: () => void }) {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [editing, setEditing] = useState<Editing>(null);
   const [value, setValue] = useState("");
   const [menu, setMenu] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
   const tree = buildTree(project);
+  useEffect(() => {
+    if (!createRequest) return;
+    // Demande venue du menu Fichier ou de la page d'accueil : ouvre le champ de saisie à la racine.
+    setEditing({ kind: createRequest.kind, parent: "" });
+    setValue("");
+    onCreateHandled?.();
+  }, [createRequest, onCreateHandled]);
 
   const startCreate = (kind: "nouveau-fichier" | "nouveau-dossier", parent: string) => {
     setMenu(null);
@@ -63,7 +75,7 @@ export function Explorer({ project, activePath, dirty, actions }: { project: Pro
 
   const input = (depth: number, icon: "fichier" | "dossier") => (
     <div className="flex items-center gap-1.5 py-0.5 pr-2" style={{ paddingLeft: 8 + depth * 12 }}>
-      <Icon name={icon} className="h-4 w-4 shrink-0 text-gray-400" />
+      {icon === "dossier" ? <Icon name="chevron" className="h-3.5 w-3.5 shrink-0 text-gray-400" /> : <FileIcon path={value || "x.txt"} />}
       <input
         autoFocus
         value={value}
@@ -79,7 +91,7 @@ export function Explorer({ project, activePath, dirty, actions }: { project: Pro
         }}
         aria-label={icon === "dossier" ? "Nom du dossier" : "Nom du fichier"}
         placeholder={icon === "dossier" ? "nom-du-dossier" : "fichier.ext"}
-        className="w-full rounded border border-electrique-500 bg-[var(--ide-input)] px-1.5 py-0.5 font-mono text-xs text-[var(--ide-text)] outline-none"
+        className="w-full rounded-sm border border-[var(--ide-accent)] bg-[var(--ide-input)] px-1.5 py-0.5 font-mono text-xs text-[var(--ide-text)] outline-none"
       />
     </div>
   );
@@ -95,7 +107,6 @@ export function Explorer({ project, activePath, dirty, actions }: { project: Pro
   const renderNode = (n: TreeNode, depth: number): React.ReactNode => {
     const isOpen = n.kind === "dossier" && !collapsed.has(n.path);
     const renaming = editing?.kind === "renommer" && editing.path === n.path;
-    const lang = n.kind === "fichier" ? languageOf(n.path) : null;
     return (
       <li key={n.path} role="treeitem" aria-expanded={n.kind === "dossier" ? isOpen : undefined} aria-selected={activePath === n.path}>
         {renaming ? (
@@ -103,9 +114,9 @@ export function Explorer({ project, activePath, dirty, actions }: { project: Pro
         ) : (
           <div
             className={cn(
-              "group relative flex cursor-pointer items-center gap-1.5 py-[3px] pr-1 text-[13px] hover:bg-[var(--ide-hover)]",
-              activePath === n.path && "bg-[var(--ide-selection)]",
-              dropTarget === n.path && "outline outline-1 outline-electrique-500",
+              "group relative flex h-[22px] cursor-pointer items-center gap-1.5 pr-1 text-[13px] hover:bg-[var(--ide-hover)]",
+              activePath === n.path && "bg-[var(--ide-selection)] outline outline-1 -outline-offset-1 outline-[var(--ide-accent)]",
+              dropTarget === n.path && "outline outline-1 outline-[var(--ide-accent)]",
             )}
             style={{ paddingLeft: 8 + depth * 12 }}
             draggable
@@ -133,12 +144,12 @@ export function Explorer({ project, activePath, dirty, actions }: { project: Pro
             ) : (
               <span className="w-3.5 shrink-0" />
             )}
-            <Icon name={n.kind === "dossier" ? "dossier" : "fichier"} className={cn("h-4 w-4 shrink-0", n.kind === "dossier" ? "text-electrique-400" : (EXT_COLORS[lang!.monaco] ?? "text-gray-400"))} />
+            {n.kind === "fichier" && <FileIcon path={n.path} />}
             <span className="min-w-0 flex-1 truncate">{n.name}</span>
-            {n.kind === "fichier" && dirty(n.path) && <span className="h-2 w-2 shrink-0 rounded-full bg-amber-400" title="Modifications non enregistrées" aria-label="non enregistré" />}
+            {n.kind === "fichier" && dirty(n.path) && <span className="shrink-0 text-[11px] font-semibold text-amber-300" title="Modifications non enregistrées" aria-label="non enregistré">M</span>}
             <button
               type="button"
-              className="shrink-0 rounded p-0.5 text-gray-400 opacity-60 hover:bg-[var(--ide-hover)] hover:text-[var(--ide-text)] group-hover:opacity-100"
+              className="shrink-0 rounded p-0.5 text-gray-400 opacity-70 hover:bg-[var(--ide-hover)] hover:text-[var(--ide-text)] md:opacity-0 md:group-hover:opacity-100 md:focus:opacity-100"
               aria-label={`Actions pour ${n.name}`}
               onClick={(e) => {
                 e.stopPropagation();
@@ -183,8 +194,9 @@ export function Explorer({ project, activePath, dirty, actions }: { project: Pro
 
   return (
     <div className="flex h-full min-h-0 flex-col" onClick={() => setMenu(null)}>
-      <div className="flex items-center gap-0.5 px-2 py-1.5">
-        <span className="mr-auto text-[11px] font-semibold uppercase tracking-wider text-[var(--ide-muted)]">Explorateur</span>
+      <div className="group/titre flex h-[22px] items-center gap-0.5 pl-1 pr-1">
+        <Icon name="chevron" className="h-3.5 w-3.5 rotate-90 text-[var(--ide-text)]" />
+        <span className="mr-auto truncate text-[11px] font-bold uppercase text-[var(--ide-text)]">{title}</span>
         <ToolButton icon="nouveauFichier" label="Nouveau fichier" onClick={() => startCreate("nouveau-fichier", "")} />
         <ToolButton icon="nouveauDossier" label="Nouveau dossier" onClick={() => startCreate("nouveau-dossier", "")} />
         <ToolButton icon="importer" label="Importer des fichiers ou un ZIP" onClick={actions.importFiles} />
@@ -193,7 +205,7 @@ export function Explorer({ project, activePath, dirty, actions }: { project: Pro
       <ul
         role="tree"
         aria-label="Fichiers du projet"
-        className={cn("min-h-0 flex-1 overflow-auto pb-6", dropTarget === "" && "bg-electrique-500/10")}
+        className={cn("min-h-0 flex-1 overflow-auto pb-6", dropTarget === "" && "bg-[var(--ide-accent)]/10")}
         onDragOver={(e) => { e.preventDefault(); setDropTarget(""); }}
         onDragLeave={() => setDropTarget(null)}
         onDrop={onDrop("")}
@@ -202,9 +214,6 @@ export function Explorer({ project, activePath, dirty, actions }: { project: Pro
         {tree.map((n) => renderNode(n, 0))}
         {!tree.length && !editing && <li className="px-3 py-2 text-xs text-[var(--ide-muted)]">Projet vide : créez un fichier.</li>}
       </ul>
-      <button type="button" onClick={actions.importFolder} className="border-t border-[var(--ide-border)] px-3 py-1.5 text-left text-[11px] text-[var(--ide-muted)] hover:text-[var(--ide-text)]">
-        Importer un dossier de l&apos;ordinateur…
-      </button>
     </div>
   );
 }
