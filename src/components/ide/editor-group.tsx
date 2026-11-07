@@ -6,17 +6,26 @@ import { basename, languageOf, type ProjectFile } from "@/lib/ide/fs";
 import { checkPseudocode } from "@/lib/pseudocode";
 import { configureMonaco } from "../editor/code-editor";
 import { cn } from "../ui";
+import { FileIcon } from "./file-icon";
 import { Icon } from "./icons";
 
 export type MonacoEditor = Parameters<OnMount>[0];
 
 export interface EditorSettings {
-  theme: "sombre" | "clair";
+  theme: "studio" | "sombre" | "clair";
   fontSize: number;
   tabSize: number;
   wordWrap: boolean;
   minimap: boolean;
   autosave: boolean;
+}
+
+export const MONACO_THEMES: Record<EditorSettings["theme"], string> = { studio: "upl-studio", sombre: "upl-nuit", clair: "upl-clair" };
+
+/** Actions de la page d'accueil affichée quand aucun fichier n'est ouvert. */
+export interface WelcomeAction {
+  label: string;
+  onClick: () => void;
 }
 
 export const modelPath = (projectKey: string, path: string) => `ide/${projectKey}/${path}`;
@@ -37,6 +46,7 @@ export function EditorGroup({
   onReady,
   onRun,
   onSave,
+  welcome,
 }: {
   projectKey: string;
   tabs: string[];
@@ -53,6 +63,7 @@ export function EditorGroup({
   onReady: (editor: MonacoEditor, monaco: Monaco) => void;
   onRun: () => void;
   onSave: () => void;
+  welcome?: { start: WelcomeAction[]; recent: WelcomeAction[] };
 }) {
   const file = files.find((f) => f.path === active);
   const editorRef = useRef<MonacoEditor | null>(null);
@@ -81,7 +92,7 @@ export function EditorGroup({
   }, [file]);
 
   return (
-    <div className={cn("flex h-full min-h-0 min-w-0 flex-col", focused && "ring-1 ring-inset ring-electrique-500/40")} onMouseDown={onFocus}>
+    <div className={cn("flex h-full min-h-0 min-w-0 flex-col", focused && "ring-1 ring-inset ring-[var(--ide-accent)]/40")} onMouseDown={onFocus}>
       <div className="flex h-9 shrink-0 items-stretch overflow-x-auto border-b border-[var(--ide-border)] bg-[var(--ide-tabs)]" role="tablist" aria-label="Fichiers ouverts">
         {tabs.map((t) => (
           <div
@@ -94,11 +105,12 @@ export function EditorGroup({
             onKeyDown={(e) => e.key === "Enter" && onSelect(t)}
             onAuxClick={(e) => e.button === 1 && onClose(t)}
             className={cn(
-              "group flex shrink-0 cursor-pointer items-center gap-1.5 border-r border-[var(--ide-border)] pl-3 pr-1.5 text-[13px]",
-              t === active ? "bg-[var(--ide-editor)] text-[var(--ide-text)] shadow-[inset_0_2px_0_var(--color-electrique-500)]" : "text-[var(--ide-muted)] hover:text-[var(--ide-text)]",
+              "group flex shrink-0 cursor-pointer items-center gap-1.5 border-r border-[var(--ide-border)] pl-2.5 pr-1.5 text-[13px]",
+              t === active ? "bg-[var(--ide-tab-active)] text-[var(--ide-text)] shadow-[inset_0_1px_0_var(--ide-accent)]" : "text-[var(--ide-muted)] hover:bg-[var(--ide-hover)] hover:text-[var(--ide-text)]",
             )}
           >
-            <span className="max-w-40 truncate">{basename(t)}</span>
+            <FileIcon path={t} />
+            <span className={cn("max-w-40 truncate", dirty(t) && "italic")}>{basename(t)}</span>
             {dirty(t) ? (
               <button
                 type="button"
@@ -109,7 +121,7 @@ export function EditorGroup({
                   onClose(t);
                 }}
               >
-                <span className="h-2 w-2 rounded-full bg-amber-400 group-hover:hidden" />
+                <span className="h-2 w-2 rounded-full bg-[var(--ide-text)] group-hover:hidden" />
                 <Icon name="fermer" className="hidden h-3.5 w-3.5 group-hover:block" />
               </button>
             ) : (
@@ -128,13 +140,30 @@ export function EditorGroup({
           </div>
         ))}
       </div>
+      {file && (
+        <nav aria-label="Fil d'Ariane" className="flex h-6 shrink-0 items-center gap-0.5 overflow-x-auto bg-[var(--ide-editor)] px-3 text-xs text-[var(--ide-muted)]" data-testid="ide-fil-ariane">
+          {file.path.split("/").map((seg, i, all) => (
+            <span key={i} className="flex shrink-0 items-center gap-0.5">
+              {i > 0 && <Icon name="chevron" className="h-3 w-3 opacity-70" />}
+              {i === all.length - 1 ? (
+                <span className="flex items-center gap-1 text-[var(--ide-text)]">
+                  <FileIcon path={file.path} />
+                  {seg}
+                </span>
+              ) : (
+                <span>{seg}</span>
+              )}
+            </span>
+          ))}
+        </nav>
+      )}
       <div className="relative min-h-0 flex-1 bg-[var(--ide-editor)]">
         {file ? (
           <Editor
             path={modelPath(projectKey, file.path)}
             defaultValue={file.content}
             language={languageOf(file.path).monaco}
-            theme={settings.theme === "clair" ? "upl-clair" : "upl-nuit"}
+            theme={MONACO_THEMES[settings.theme] ?? "upl-studio"}
             beforeMount={configureMonaco}
             onChange={(v) => onChange(file.path, v ?? "")}
             keepCurrentModel
@@ -153,7 +182,8 @@ export function EditorGroup({
               fontFamily: "var(--font-jetbrains), monospace",
               tabSize: settings.tabSize,
               wordWrap: settings.wordWrap ? "on" : "off",
-              minimap: { enabled: settings.minimap },
+              // Minicarte masquée sur téléphone (place trop réduite).
+              minimap: { enabled: settings.minimap && typeof window !== "undefined" && window.innerWidth >= 768 },
               automaticLayout: true,
               scrollBeyondLastLine: false,
               renderLineHighlight: "line",
@@ -166,11 +196,56 @@ export function EditorGroup({
             }}
           />
         ) : (
-          <div className="grid h-full place-items-center p-6 text-center text-sm text-[var(--ide-muted)]">
-            <div>
-              <p className="font-semibold text-[var(--ide-text)]">Aucun fichier ouvert</p>
-              <p className="mt-1">Choisissez un fichier dans l&apos;explorateur.</p>
-              <p className="mt-3 text-xs">Ctrl + S : enregistrer · Ctrl + Entrée : exécuter · Ctrl + F / Ctrl + H : rechercher / remplacer · Maj + Alt + F : formater</p>
+          <div className="h-full overflow-auto p-6 text-sm text-[var(--ide-muted)] md:p-12" data-testid="ide-bienvenue">
+            <p className="text-2xl font-light text-[var(--ide-text)]">UPL IDE</p>
+            <p className="mt-1">Éditer, exécuter et prévisualiser vos projets.</p>
+            <div className="mt-8 grid gap-8 md:grid-cols-2">
+              {welcome && (
+                <div className="space-y-6">
+                  <section>
+                    <h2 className="mb-2 text-base text-[var(--ide-text)]">Démarrer</h2>
+                    <ul className="space-y-1.5">
+                      {welcome.start.map((a) => (
+                        <li key={a.label}>
+                          <button type="button" onClick={a.onClick} className="text-[var(--ide-accent)] hover:underline">{a.label}</button>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                  {welcome.recent.length > 0 && (
+                    <section>
+                      <h2 className="mb-2 text-base text-[var(--ide-text)]">Fichiers du projet</h2>
+                      <ul className="space-y-1.5">
+                        {welcome.recent.map((a) => (
+                          <li key={a.label}>
+                            <button type="button" onClick={a.onClick} className="text-[var(--ide-accent)] hover:underline">{a.label}</button>
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
+                  )}
+                </div>
+              )}
+              <section>
+                <h2 className="mb-2 text-base text-[var(--ide-text)]">Raccourcis</h2>
+                <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-xs">
+                  {[
+                    ["Ctrl + S", "Enregistrer"],
+                    ["Ctrl + Entrée", "Exécuter le fichier"],
+                    ["Ctrl + B", "Afficher / masquer la barre latérale"],
+                    ["Ctrl + J", "Afficher / masquer le panneau"],
+                    ["Ctrl + \\", "Vue fractionnée"],
+                    ["Ctrl + F / Ctrl + H", "Rechercher / remplacer"],
+                    ["Maj + Alt + F", "Formater le document"],
+                    ["F1", "Palette de commandes de l'éditeur"],
+                  ].map(([k, v]) => (
+                    <div key={k} className="contents">
+                      <dt><kbd className="rounded border border-[var(--ide-border)] px-1.5 py-0.5 font-mono">{k}</kbd></dt>
+                      <dd>{v}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
             </div>
           </div>
         )}

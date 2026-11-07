@@ -111,6 +111,46 @@ test("aperçu web avec vues ordinateur / téléphone et console de la page", asy
   await expect(page.locator('iframe[title="Aperçu du projet"]')).toHaveJSProperty("offsetWidth", 390);
 });
 
+test("interface de type studio : menus, éditeurs ouverts, plan, fil d'Ariane, pages de l'aperçu", async ({ page }) => {
+  await page.goto("/ide");
+  await page.locator(".monaco-editor").first().waitFor({ timeout: 60_000 });
+  // Thème studio (gris neutre) par défaut et barre d'état bleue.
+  await expect(page.getByTestId("ide")).toHaveClass(/ide-studio/);
+  await expect(page.getByTestId("ide-fil-ariane")).toContainText("index.html");
+  // Menu Fichier → Nouveau fichier : le champ de saisie s'ouvre dans l'explorateur.
+  const menubar = page.getByRole("menubar", { name: "Menus de l'IDE" });
+  await menubar.getByRole("button", { name: "Fichier", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Nouveau fichier…" }).click();
+  const input = page.getByLabel("Nom du fichier");
+  await input.fill("outils.js");
+  await input.press("Enter");
+  await expect(page.getByRole("tab", { name: /outils\.js/ })).toBeVisible();
+  await expect(page.getByTestId("ide-fil-ariane")).toContainText("outils.js");
+  await expect(page.getByTestId("ide-editeurs-ouverts")).toContainText("index.html");
+  await expect(page.getByTestId("ide-editeurs-ouverts")).toContainText("outils.js");
+  // Plan : fonctions du fichier ouvert, clic → ligne.
+  await setModel(page, "outils.js", "const a = 1;\n\nfunction somme(x, y) {\n  return x + y;\n}\n");
+  await expect(page.getByTestId("ide-plan")).toContainText("somme");
+  await page.getByTestId("ide-plan").getByRole("button", { name: /somme/ }).click();
+  await expect(page.getByTestId("ide-barre-etat")).toContainText("Ln 3");
+  // Menu Affichage : minicarte et thème appliqués réellement.
+  await menubar.getByRole("button", { name: "Affichage", exact: true }).click();
+  await page.getByRole("menuitemcheckbox", { name: "Thème clair" }).click();
+  await expect(page.getByTestId("ide")).toHaveClass(/ide-clair/);
+  // Fermer un éditeur depuis « Éditeurs ouverts ».
+  await page.getByTestId("ide-editeurs-ouverts").getByRole("button", { name: "Fermer outils.js" }).click();
+  await expect(page.getByRole("tab", { name: /outils\.js/ })).toHaveCount(0);
+  // Aperçu : choix de la page affichée parmi les pages HTML du projet.
+  await newEntry(page, "Nouveau fichier", "contact.html");
+  await setModel(page, "contact.html", "<h1>Contact</h1>");
+  await page.getByRole("button", { name: "Aperçu web" }).click();
+  await page.getByLabel("Page affichée dans l'aperçu").selectOption("index.html");
+  const frame = page.frameLocator('iframe[title="Aperçu du projet"]');
+  await expect(frame.locator("h1")).toHaveText("Mon site");
+  await page.getByLabel("Page affichée dans l'aperçu").selectOption("contact.html");
+  await expect(frame.locator("h1")).toHaveText("Contact");
+});
+
 test("projets du compte : création, enregistrement, conflit, versions, import et export ZIP, isolation", async ({ page, browser }) => {
   test.skip(await isDemoMode(page), "Supabase non configuré");
   await signUpStudent(page, "IDE Test");

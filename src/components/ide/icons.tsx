@@ -25,6 +25,13 @@ const P = {
   panneau: "M4 4h16v16H4zM4 15h16",
   symbole: "M8 4c-2 0-3 1-3 3v2c0 1.5-1 2-2 2 1 0 2 .5 2 2v2c0 2 1 3 3 3M16 4c2 0 3 1 3 3v2c0 1.5 1 2 2 2-1 0-2 .5-2 2v2c0 2-1 3-3 3",
   laboratoire: "M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.8 3h10.4A2 2 0 0 0 19 18l-5-9V3",
+  compte: "M12 4a4 4 0 1 1 0 8 4 4 0 0 1 0-8zM4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5",
+  actualiser: "M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5",
+  agrandir: "M6 15l6-6 6 6",
+  reduire: "M6 9l6 6 6-6",
+  barreLaterale: "M4 4h16v16H4zM9 4v16",
+  panneauDroit: "M4 4h16v16H4zM15 4v16",
+  nouvelOnglet: "M14 4h6v6M20 4l-8 8M18 14v6H4V6h6",
 } as const;
 
 export type IconName = keyof typeof P;
