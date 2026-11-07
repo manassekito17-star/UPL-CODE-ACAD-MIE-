@@ -233,10 +233,12 @@ export const listCourses = cache(async (): Promise<CourseSummary[]> => {
       .map((c) => summarize(c, staticExercises.filter((e) => e.courseSlug === c.slug && isVisible(e.status)).length));
   }
   const supabase = await createClient();
-  const { data: courses } = await supabase
+  const { data: courses, error } = await supabase
     .from("courses")
     .select("id, slug, code, language_id, title, tagline, description, level, duration_hours, status, sort_order, course_categories(slug), modules(id), lessons(id, status), exercises(id, status)")
     .order("sort_order");
+  // Visible dans les journaux de l'hébergeur (Vercel → Logs) ; voir aussi /api/sante.
+  if (error) console.error("[catalogue] lecture des cours impossible :", error.code, error.message);
   return (courses ?? []).map((c) => ({
     id: c.id,
     slug: c.slug,

@@ -2,7 +2,7 @@ import "server-only";
 
 /** Configuration strictement serveur : ne jamais importer ce fichier côté client. */
 export const serverEnv = {
-  supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY ?? "",
+  supabaseServiceRoleKey: (process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY ?? "").trim(),
   judge0Url: (process.env.JUDGE0_URL ?? "").replace(/\/+$/, ""),
   judge0AuthToken: process.env.JUDGE0_AUTH_TOKEN ?? "",
   judge0RapidApiKey: process.env.JUDGE0_RAPIDAPI_KEY ?? "",
