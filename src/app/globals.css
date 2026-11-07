@@ -1,0 +1,109 @@
+@import "tailwindcss";
+
+/* ===== Design system UPL CODE ACADEMY MK =====
+   Bleu nuit, bleu électrique, blanc, gris clair, accents cyan. */
+@theme {
+  --color-nuit-950: #050d1f;
+  --color-nuit-900: #0a1a3a;
+  --color-nuit-800: #10264f;
+  --color-nuit-700: #183466;
+  --color-electrique-600: #1d5fe0;
+  --color-electrique-500: #2f74ff;
+  --color-electrique-400: #5b93ff;
+  --color-electrique-100: #e3edff;
+  --color-cyan-accent: #22d3ee;
+  --color-cyan-soft: #cffafe;
+  --color-gris-50: #f6f8fb;
+  --color-gris-100: #eef2f7;
+  --color-gris-200: #dfe5ee;
+  --color-gris-500: #6b778c;
+  --color-gris-700: #3a4559;
+  --color-succes: #16a34a;
+  --color-alerte: #d97706;
+  --color-erreur: #dc2626;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --radius-carte: 0.875rem;
+}
+
+:root {
+  --background: var(--color-gris-50);
+  --foreground: var(--color-nuit-900);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-electrique-500);
+  outline-offset: 2px;
+}
+
+/* Contenu pédagogique (Markdown) */
+.prose-upl {
+  line-height: 1.7;
+  color: var(--color-gris-700);
+  overflow-wrap: anywhere;
+}
+.prose-upl h2 { font-size: 1.35rem; font-weight: 700; color: var(--color-nuit-900); margin: 2rem 0 0.75rem; }
+.prose-upl h3 { font-size: 1.1rem; font-weight: 700; color: var(--color-nuit-900); margin: 1.5rem 0 0.5rem; }
+.prose-upl p { margin: 0.75rem 0; }
+.prose-upl ul, .prose-upl ol { margin: 0.75rem 0; padding-left: 1.4rem; }
+.prose-upl ul { list-style: disc; }
+.prose-upl ol { list-style: decimal; }
+.prose-upl li { margin: 0.25rem 0; }
+.prose-upl strong { color: var(--color-nuit-900); }
+.prose-upl a { color: var(--color-electrique-600); text-decoration: underline; }
+.prose-upl blockquote {
+  border-left: 4px solid var(--color-cyan-accent);
+  background: #ecfeff;
+  padding: 0.6rem 1rem;
+  border-radius: 0 0.5rem 0.5rem 0;
+  margin: 1rem 0;
+  color: var(--color-nuit-800);
+}
+.prose-upl table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.92rem; display: block; overflow-x: auto; }
+.prose-upl th, .prose-upl td { border: 1px solid var(--color-gris-200); padding: 0.45rem 0.7rem; text-align: left; }
+.prose-upl th { background: var(--color-gris-100); color: var(--color-nuit-900); }
+.prose-upl code { font-family: var(--font-mono); font-size: 0.88em; background: var(--color-gris-100); padding: 0.1rem 0.3rem; border-radius: 0.3rem; }
+.prose-upl pre {
+  background: var(--color-nuit-950);
+  color: #e6edf7;
+  padding: 1rem;
+  border-radius: 0.6rem;
+  overflow-x: auto;
+  margin: 1rem 0;
+  font-size: 0.86rem;
+  line-height: 1.55;
+}
+.prose-upl pre code { background: transparent; padding: 0; color: inherit; }
+.prose-upl.prose-invert { color: #dbe4f3; }
+.prose-upl.prose-invert strong, .prose-upl.prose-invert h2, .prose-upl.prose-invert h3 { color: #fff; }
+
+/* Laboratoire : ligne en cours d'exécution dans l'éditeur */
+.upl-ligne-courante { background: rgba(34, 211, 238, 0.18); }
+.upl-ligne-courante-marge { background: #22d3ee; width: 4px !important; margin-left: 3px; }
+/* Laboratoire : bloc de l'organigramme correspondant à l'étape courante */
+.upl-organigramme g.upl-actif > rect,
+.upl-organigramme g.upl-actif > polygon { stroke: #f59e0b; stroke-width: 3.5; fill: #fef3c7; }
+
+/* ===== UPL IDE : thèmes sombre (défaut) et clair ===== */
+.ide-sombre {
+  --ide-bg: #050d1f; --ide-panel: #0a1428; --ide-sidebar: #0b1730; --ide-activity: #071026; --ide-tabs: #08122a;
+  --ide-editor: #050d1f; --ide-border: #1b2a47; --ide-text: #e6edf7; --ide-muted: #8a99b5; --ide-hover: #16264a;
+  --ide-selection: #1d3a75; --ide-input: #050d1f;
+  color-scheme: dark;
+}
+.ide-clair {
+  --ide-bg: #f5f7fb; --ide-panel: #ffffff; --ide-sidebar: #f8fafd; --ide-activity: #eef2f9; --ide-tabs: #eef2f9;
+  --ide-editor: #ffffff; --ide-border: #dbe2ee; --ide-text: #0a1a3a; --ide-muted: #5b6b85; --ide-hover: #e5ecf8;
+  --ide-selection: #d6e4ff; --ide-input: #ffffff;
+  color-scheme: light;
+}

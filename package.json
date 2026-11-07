@@ -1,0 +1,55 @@
+{
+  "name": "upl-code-academy",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "test": "vitest run",
+    "typecheck": "next typegen && tsc --noEmit",
+    "seed:generate": "tsx scripts/generate-seed.ts",
+    "test:db": "node scripts/check-database.mjs && node scripts/check-installation.mjs",
+    "test:e2e": "playwright test",
+    "admin:creer": "node scripts/creer-admin.mjs",
+    "install:sql": "node scripts/build-installation.mjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.5.0",
+    "@monaco-editor/react": "^4.7.0",
+    "@pdf-lib/fontkit": "^1.1.1",
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.119.0",
+    "css-tree": "^3.2.1",
+    "fflate": "0.8.3",
+    "linkedom": "^0.18.15",
+    "lucide-react": "^1.68.0",
+    "next": "16.4.5",
+    "pdf-lib": "^1.17.1",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
+    "server-only": "^0.0.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.15",
+    "@playwright/test": "^1.63.0",
+    "@tailwindcss/turbopack": "^4",
+    "@types/css-tree": "^3.2.0",
+    "@types/node": "^22.20.5",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.5",
+    "tailwindcss": "^4",
+    "tsx": "^4.23.15",
+    "typescript": "^5",
+    "vitest": "^5.1.0"
+  },
+  "overrides": {
+    "dompurify": "3.4.17"
+  }
+}

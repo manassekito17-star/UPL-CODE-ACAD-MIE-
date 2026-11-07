@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualite:
+    name: Lint, types, tests, base de données, build, e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - name: Audit des dépendances de production
+        run: npm audit --omit=dev --audit-level=high
+      - name: Lint
+        run: npm run lint
+      - name: Types
+        run: npm run typecheck
+      - name: Tests unitaires et contrôle du contenu (pseudocode, Python, C, JS, Java)
+        run: npm test
+      - name: Seed à jour avec le contenu versionné
+        run: npm run seed:generate && npm run install:sql && git diff --exit-code supabase/seed.sql supabase/installation
+      - name: Migrations, seed et politiques RLS (PGlite)
+        run: npm run test:db
+      - name: Build
+        run: npm run build
+      - name: Navigateur pour les tests de bout en bout
+        run: npx playwright install --with-deps chromium
+      - name: Tests de bout en bout
+        run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: rapport-playwright
+          path: playwright-report/
+          retention-days: 7
+
+  integration-supabase:
+    name: Intégration avec Supabase réel (auth, RLS, progression)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - run: npm ci
+      - name: Démarrer Supabase (migrations + seed)
+        # Identifiants Google FICTIFS : ils permettent seulement de vérifier la redirection
+        # vers la page officielle de Google (aucune connexion réelle n'est faite en CI).
+        env:
+          SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID: identifiant-de-test.apps.googleusercontent.com
+          SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET: secret-de-test
+        run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector,realtime,supavisor
+      - name: Configurer l'application sur ce Supabase
+        run: |
+          eval "$(supabase status -o env | grep -E '^(API_URL|ANON_KEY|SERVICE_ROLE_KEY)=')"
+          {
+            echo "NEXT_PUBLIC_SITE_URL=http://localhost:3100"
+            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+            echo "NEXT_PUBLIC_AUTH_GOOGLE=true"
+          } > .env.local
+      - name: Build
+        run: npm run build
+      - name: Navigateur
+        run: npx playwright install --with-deps chromium
+      - name: Tests de bout en bout (comptes réels)
+        run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: rapport-playwright-supabase
+          path: playwright-report/
+          retention-days: 7
