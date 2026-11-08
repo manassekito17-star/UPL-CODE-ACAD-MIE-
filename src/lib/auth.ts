@@ -2,6 +2,7 @@ import "server-only";
 
 import { redirect } from "next/navigation";
 import { cache } from "react";
+import { effectiveStatus } from "./admin/suspension";
 import { isSupabaseConfigured } from "./env";
 import { createClient } from "./supabase/server";
 
@@ -31,10 +32,15 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const [{ data: profile }, { data: roles }] = await Promise.all([
-    supabase.from("profiles").select("full_name, status, avatar_url, last_seen_at").eq("id", user.id).maybeSingle(),
+  const [profileRes, { data: roles }] = await Promise.all([
+    supabase.from("profiles").select("full_name, status, suspended_until, avatar_url, last_seen_at").eq("id", user.id).maybeSingle(),
     supabase.from("user_roles").select("role, permissions").eq("user_id", user.id),
   ]);
+  let profile: { full_name: string | null; status: string | null; suspended_until?: string | null; avatar_url: string | null; last_seen_at: string | null } | null = profileRes.data;
+  // Base pas encore mise à jour (colonne suspended_until absente) : lecture sans la fin de suspension.
+  if (profileRes.error?.code === "42703") {
+    profile = (await supabase.from("profiles").select("full_name, status, avatar_url, last_seen_at").eq("id", user.id).maybeSingle()).data;
+  }
   const roleList = (roles ?? []).map((r) => r.role as AppRole);
   const permissions = new Set<TeacherPermission>();
   for (const r of roles ?? []) for (const p of (r.permissions as string[]) ?? []) permissions.add(p as TeacherPermission);
@@ -52,7 +58,8 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     fullName: profile?.full_name || user.email?.split("@")[0] || "Étudiant",
     avatarUrl: profile?.avatar_url || (metaAvatar?.startsWith("https://") ? metaAvatar : null),
     providers: [...new Set([...((user.app_metadata?.providers as string[] | undefined) ?? []), ...(user.identities ?? []).map((i) => i.provider)])],
-    status: (profile?.status as CurrentUser["status"]) ?? "actif",
+    // Une suspension temporaire dont la date de fin est passée est levée automatiquement.
+    status: effectiveStatus(profile?.status, profile?.suspended_until),
     roles: roleList.length ? roleList : ["etudiant"],
     permissions: [...permissions],
     isAdmin,

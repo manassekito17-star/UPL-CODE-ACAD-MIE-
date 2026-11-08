@@ -3,6 +3,7 @@ import { Card, Notice } from "@/components/ui";
 import { formatDateTime } from "@/components/ui/labels";
 import { requireStaff } from "@/lib/auth";
 import { DailyBars } from "@/components/admin/daily-bars";
+import { ACTIVITY_KINDS, type ActivityRow } from "@/lib/admin/activity";
 import { DEFINITIONS, getAdminStats } from "@/lib/admin/stats";
 import { getConsumption } from "@/lib/consumption";
 import { createAdminClient, hasAdminClient } from "@/lib/supabase/admin";
@@ -39,6 +40,7 @@ export default async function AdminHome() {
     aiMessages = (data ?? []).filter((r) => r.role === "user").length;
     recentLogs = (await admin.from("audit_logs").select("action, created_at").order("created_at", { ascending: false }).limit(8)).data ?? [];
   }
+  const recentActivity = user.isAdmin ? (((await supabase.rpc("admin_user_activity", { p_user: null, p_limit: 8 })).data ?? []) as ActivityRow[]) : [];
   // Alertes de dépassement des limites gratuites (administrateur).
   const alerts = user.isAdmin ? (await getConsumption()).alerts : [];
   const { overview: ov, series } = user.isAdmin ? await getAdminStats(30) : { overview: null, series: [] };
@@ -53,7 +55,7 @@ export default async function AdminHome() {
   ];
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-nuit-900">Vue d&apos;ensemble</h1>
+      <h1 className="text-2xl font-bold text-nuit-900">Tableau de bord</h1>
       {alerts.map((a) => (
         <Notice key={a.text} tone={a.level === "critique" ? "erreur" : "alerte"}>
           {a.text} <Link href="/admin/consommation" className="underline">Voir la consommation</Link>
@@ -105,16 +107,36 @@ export default async function AdminHome() {
         ))}
       </div>
       {user.isAdmin && (
-        <Card className="p-5">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="font-bold text-nuit-900">Activité récente</h2>
-            <Link href="/admin/journaux" className="text-sm text-electrique-600 hover:underline">Tous les journaux</Link>
-          </div>
-          <ul className="space-y-1 text-sm">
-            {recentLogs.map((l, i) => <li key={i} className="flex justify-between gap-2"><span className="font-mono text-xs">{l.action}</span><span className="text-xs text-gris-500">{formatDateTime(l.created_at)}</span></li>)}
-            {recentLogs.length === 0 && <li className="text-gris-500">Aucune activité.</li>}
-          </ul>
-        </Card>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card className="p-5">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="font-bold text-nuit-900">Activité des utilisateurs</h2>
+              <Link href="/admin/activite" className="text-sm text-electrique-600 hover:underline">Toute l&apos;activité</Link>
+            </div>
+            <ul className="space-y-1.5 text-sm" data-testid="activite-recente">
+              {recentActivity.map((a, i) => (
+                <li key={i} className="flex gap-2">
+                  <span>{ACTIVITY_KINDS[a.kind]?.icon ?? "•"}</span>
+                  <span className="min-w-0 flex-1 truncate">
+                    <Link href={`/admin/utilisateurs/${a.user_id}`} className="font-semibold text-electrique-600 hover:underline">{a.user_name || "(sans nom)"}</Link> — {a.label}
+                  </span>
+                  <span className="shrink-0 text-xs text-gris-500">{formatDateTime(a.at)}</span>
+                </li>
+              ))}
+              {recentActivity.length === 0 && <li className="text-gris-500">Aucune activité.</li>}
+            </ul>
+          </Card>
+          <Card className="p-5">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="font-bold text-nuit-900">Actions de l&apos;administration</h2>
+              <Link href="/admin/journaux" className="text-sm text-electrique-600 hover:underline">Journal d&apos;audit</Link>
+            </div>
+            <ul className="space-y-1 text-sm">
+              {recentLogs.map((l, i) => <li key={i} className="flex justify-between gap-2"><span className="font-mono text-xs">{l.action}</span><span className="text-xs text-gris-500">{formatDateTime(l.created_at)}</span></li>)}
+              {recentLogs.length === 0 && <li className="text-gris-500">Aucune action.</li>}
+            </ul>
+          </Card>
+        </div>
       )}
     </div>
   );

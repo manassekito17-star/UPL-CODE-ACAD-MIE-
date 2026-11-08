@@ -7,6 +7,7 @@ import { z } from "zod";
 import { linesToArray, parseQuizText, parseTestsText } from "@/lib/admin/formats";
 import { parsePedagogy } from "@/lib/admin/pedagogy-schema";
 import { saveQuizQuestions } from "@/lib/admin/quizzes";
+import { DURATIONS, suspensionEnd, type SuspensionDuration } from "@/lib/admin/suspension";
 import { audit } from "@/lib/audit";
 import { requireAdmin, requireStaff } from "@/lib/auth";
 import { clientIp } from "@/lib/rate-limit";
@@ -43,23 +44,74 @@ export async function setUserRole(form: FormData) {
     await supabase.from("user_roles").insert({ user_id: userId, role, permissions: role === "enseignant" ? permissions : [], granted_by: admin.id });
   }
   await audit(admin.id, "utilisateur.role_modifie", { type: "utilisateur", id: userId }, { role, permissions }, await ip());
-  revalidatePath("/admin/utilisateurs");
+  revalidatePath("/admin", "layout");
 }
 
-export async function setUserStatus(form: FormData) {
+/** Le compte visé est-il administrateur ? (on ne suspend ni ne supprime un autre administrateur sans lui retirer d'abord ce rôle) */
+async function isAdminAccount(userId: string): Promise<boolean> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId).eq("role", "administrateur");
+  return Boolean(data?.length);
+}
+
+const userPage = (id: string, msg: string) => `/admin/utilisateurs/${id}?message=${encodeURIComponent(msg)}`;
+
+/** Suspension temporaire (1 h à 30 jours) ou jusqu'à réactivation, avec motif ; la personne est déconnectée. */
+export async function suspendUser(form: FormData) {
   const admin = await requireAdmin();
   const parsed = z
-    .object({ userId: z.string().uuid(), status: z.enum(["actif", "suspendu"]), reason: z.string().max(500).optional() })
-    .safeParse({ userId: form.get("userId"), status: form.get("status"), reason: form.get("reason") ?? undefined });
-  if (!parsed.success || parsed.data.userId === admin.id) return;
+    .object({ userId: z.string().uuid(), duration: z.enum(Object.keys(DURATIONS) as [SuspensionDuration, ...SuspensionDuration[]]), reason: z.string().trim().max(500).optional() })
+    .safeParse({ userId: form.get("userId"), duration: form.get("duration"), reason: form.get("reason") || undefined });
+  if (!parsed.success) return;
+  const { userId, duration, reason } = parsed.data;
+  if (userId === admin.id) redirect(userPage(userId, "Vous ne pouvez pas suspendre votre propre compte."));
+  if (await isAdminAccount(userId)) redirect(userPage(userId, "Retirez d'abord le rôle administrateur de ce compte."));
+  const until = suspensionEnd(duration);
   const supabase = await createClient();
-  await supabase.from("profiles").update({ status: parsed.data.status, suspended_reason: parsed.data.status === "suspendu" ? (parsed.data.reason ?? null) : null }).eq("id", parsed.data.userId);
-  if (parsed.data.status === "suspendu") {
-    // Invalide les sessions en cours
-    await createAdminClient().auth.admin.signOut(parsed.data.userId).catch(() => undefined);
+  const { error } = await supabase.from("profiles").update({ status: "suspendu", suspended_until: until, suspended_reason: reason ?? null }).eq("id", userId);
+  if (error) redirect(userPage(userId, `Suspension impossible : ${error.message}`));
+  // Déconnecte la personne sur tous ses appareils.
+  await createAdminClient().auth.admin.signOut(userId).catch(() => undefined);
+  await audit(admin.id, "utilisateur.suspendu", { type: "utilisateur", id: userId }, { duree: DURATIONS[duration].label, jusqua: until, motif: reason }, await ip());
+  revalidatePath("/admin", "layout");
+  redirect(userPage(userId, `Compte suspendu (${DURATIONS[duration].label.toLowerCase()}).`));
+}
+
+export async function reactivateUser(form: FormData) {
+  const admin = await requireAdmin();
+  const userId = z.string().uuid().safeParse(form.get("userId"));
+  if (!userId.success) return;
+  const supabase = await createClient();
+  await supabase.from("profiles").update({ status: "actif", suspended_until: null, suspended_reason: null }).eq("id", userId.data);
+  await audit(admin.id, "utilisateur.reactive", { type: "utilisateur", id: userId.data }, {}, await ip());
+  revalidatePath("/admin", "layout");
+  redirect(userPage(userId.data, "Compte réactivé."));
+}
+
+/**
+ * Suppression définitive d'un compte et de toutes ses données (progression, soumissions,
+ * programmes, projets, messages). L'adresse e-mail doit être recopiée pour confirmer.
+ */
+export async function deleteUser(form: FormData) {
+  const admin = await requireAdmin();
+  const parsed = z.object({ userId: z.string().uuid(), confirmEmail: z.string().trim().toLowerCase() }).safeParse({ userId: form.get("userId"), confirmEmail: form.get("confirmEmail") });
+  if (!parsed.success) return;
+  const { userId, confirmEmail } = parsed.data;
+  if (userId === admin.id) redirect(userPage(userId, "Vous ne pouvez pas supprimer votre propre compte."));
+  if (await isAdminAccount(userId)) redirect(userPage(userId, "Retirez d'abord le rôle administrateur de ce compte."));
+  const service = createAdminClient();
+  const { data } = await service.auth.admin.getUserById(userId);
+  const email = (data.user?.email ?? "").toLowerCase();
+  if (!data.user) redirect("/admin/utilisateurs?message=" + encodeURIComponent("Compte introuvable."));
+  if (!email || confirmEmail !== email) redirect(userPage(userId, "L'adresse e-mail recopiée ne correspond pas : compte non supprimé."));
+  const { data: profile } = await service.from("profiles").select("full_name").eq("id", userId).maybeSingle();
+  const { error } = await service.auth.admin.deleteUser(userId);
+  if (error) {
+    redirect(userPage(userId, `Suppression impossible : ${/foreign key|violates/i.test(error.message) ? "ce compte a créé des contenus pédagogiques (retirez-lui d'abord son rôle et réattribuez ses contenus)." : error.message}`));
   }
-  await audit(admin.id, parsed.data.status === "suspendu" ? "utilisateur.suspendu" : "utilisateur.reactive", { type: "utilisateur", id: parsed.data.userId }, { reason: parsed.data.reason }, await ip());
-  revalidatePath("/admin/utilisateurs");
+  await audit(admin.id, "utilisateur.supprime", { type: "utilisateur", id: userId }, { email, nom: profile?.full_name ?? null }, await ip());
+  revalidatePath("/admin", "layout");
+  redirect("/admin/utilisateurs?message=" + encodeURIComponent(`Compte ${email} supprimé définitivement.`));
 }
 
 // ---------------- Formations ----------------
