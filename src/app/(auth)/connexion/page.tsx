@@ -15,6 +15,11 @@ export default async function LoginPage({ searchParams }: PageProps<"/connexion"
     <>
       <h1 className="text-2xl font-bold text-nuit-900">Connexion</h1>
       <p className="mb-6 mt-1 text-sm text-gris-700">Heureux de vous revoir sur {BRAND.name} ! Reprenez votre apprentissage.</p>
+      {typeof sp.suite === "string" && sp.suite && !sp.erreur && (
+        <p className="mb-4 rounded-md bg-electrique-100 px-3 py-2 text-sm text-nuit-900" role="status" data-testid="connexion-requise">
+          Connectez-vous avec votre compte Gmail (ou votre adresse e-mail) pour accéder à la plateforme.
+        </p>
+      )}
       {sp.erreur === "lien" && <p className="mb-4 text-sm text-erreur">Le lien est invalide ou a expiré.</p>}
       {sp.erreur === "google" && <p className="mb-4 text-sm text-erreur">La connexion avec Google n&apos;est pas disponible pour le moment. Utilisez votre adresse e-mail.</p>}
       {sp.erreur === "google-annule" && <p className="mb-4 text-sm text-erreur">Connexion Google annulée ou refusée.</p>}

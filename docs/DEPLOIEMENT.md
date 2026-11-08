@@ -127,6 +127,19 @@ L'inscription administrateur n'est **pas publique** : on devient administrateur 
 - [ ] **Mot de passe oublié** envoie un lien qui permet d'en choisir un nouveau.
 - [ ] `/admin` refuse un compte étudiant et s'ouvre avec votre compte administrateur.
 
+## Connexion obligatoire
+
+Toute la plateforme demande un compte, Google (Gmail) ou e-mail et mot de passe. Les cours, les exercices, UPL IDE, l'éditeur, le laboratoire et le professeur IA mènent à la page de connexion, puis reviennent à la page demandée.
+
+Restent publics :
+- l'accueil ;
+- la connexion, l'inscription et le mot de passe oublié ;
+- les pages Confidentialité et Conditions (exigées par Google) ;
+- la vérification des certificats ;
+- les fichiers techniques (manifeste, service worker, icônes).
+
+La liste se trouve dans `src/lib/supabase/proxy.ts` (`PUBLIC_PATHS`). Une fois installé et préparé, UPL IDE s'ouvre aussi sans Internet, avec la copie gardée sur l'appareil.
+
 ## Comptes Google et e-mail : pas de doublon
 
 - Supabase rattache automatiquement une connexion Google au compte existant qui a **la même adresse e-mail vérifiée**. Une personne inscrite avec `prenom@gmail.com` puis connectée avec Google retrouve donc **le même compte**.

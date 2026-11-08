@@ -14,8 +14,10 @@ export default defineConfig({
   reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
   use: { baseURL: "http://localhost:3100", trace: "retain-on-failure" },
   projects: [
-    { name: "ordinateur", use: { ...devices["Desktop Chrome"], viewport: { width: 1366, height: 900 } }, testIgnore: /mobile\.spec/ },
-    { name: "mobile", use: { ...devices["iPhone 13"], browserName: "chromium" }, testMatch: /mobile\.spec/ },
+    // Connexion obligatoire sur la plateforme : session d'un étudiant de test partagée par les tests.
+    { name: "connexion", testMatch: /auth\.setup\.ts/ },
+    { name: "ordinateur", use: { ...devices["Desktop Chrome"], viewport: { width: 1366, height: 900 }, storageState: "e2e/.auth/etudiant.json" }, testIgnore: /mobile\.spec/, dependencies: ["connexion"] },
+    { name: "mobile", use: { ...devices["iPhone 13"], browserName: "chromium", storageState: "e2e/.auth/etudiant.json" }, testMatch: /mobile\.spec/, dependencies: ["connexion"] },
   ],
   webServer: {
     command: "npx next start -p 3100",
