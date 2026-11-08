@@ -26,6 +26,8 @@ import {
   type FsResult,
   type ProjectSnapshot,
 } from "@/lib/ide/fs";
+import { attributeBacktrack } from "@/lib/ide/html-close";
+import { starterContent, starterCursor } from "@/lib/ide/starters";
 import { PROJECT_TEMPLATES } from "@/lib/ide/templates";
 import { exportZip, importEntries, importZip } from "@/lib/ide/zip";
 import { WebPreview, type PreviewConsoleLine } from "../editor/web-preview";
@@ -35,6 +37,7 @@ import { EditorGroup, type EditorSettings, type MonacoEditor } from "./editor-gr
 import { Explorer, ToolButton, type CreateRequest } from "./explorer";
 import { FileIcon } from "./file-icon";
 import { MenuBar, type MenuDef } from "./menu-bar";
+import { MobileKeys, type KeyAction } from "./mobile-keys";
 import { Icon, type IconName } from "./icons";
 import { useProject, type IdeProject, type SaveStatus } from "./use-project";
 
@@ -176,15 +179,33 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
   const folderInput = useRef<HTMLInputElement>(null);
 
   // Sur téléphone, l'éditeur occupe l'écran au démarrage (barre latérale et panneau fermés).
+  const [touch, setTouch] = useState(false);
   useEffect(() => {
+    // Disposition adaptée à la taille réelle de l'écran, connue seulement après le montage.
+    /* eslint-disable react-hooks/set-state-in-effect */
     if (window.innerWidth < 768) {
-      // Disposition adaptée à la taille réelle de l'écran, connue seulement après le montage.
-      /* eslint-disable react-hooks/set-state-in-effect */
       setSide(null);
       setBottom(null);
-      /* eslint-enable react-hooks/set-state-in-effect */
     }
+    setTouch(window.matchMedia("(pointer: coarse)").matches || window.innerWidth < 768);
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
+
+  // Clavier du téléphone ouvert : l'IDE se limite à la partie visible de l'écran,
+  // pour que la ligne en cours et le clavier de programmation restent au-dessus du clavier.
+  const [viewport, setViewport] = useState<{ top: number; height: number } | null>(null);
+  useEffect(() => {
+    const v = window.visualViewport;
+    if (!v || !touch) return;
+    const update = () => setViewport(Math.abs(v.height - window.innerHeight) > 80 ? { top: v.offsetTop, height: v.height } : null);
+    update();
+    v.addEventListener("resize", update);
+    v.addEventListener("scroll", update);
+    return () => {
+      v.removeEventListener("resize", update);
+      v.removeEventListener("scroll", update);
+    };
+  }, [touch]);
 
   const activePath = groups[focusedGroup]?.active ?? groups[0]?.active ?? null;
   const activeFile = project.files.find((f) => f.path === activePath) ?? null;
@@ -290,8 +311,14 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
   const explorerActions = {
     open: (p: string) => openFile(p),
     createFile: (p: string) => {
-      const ok = apply(createFile(snapshot, p), `Fichier créé : ${p}`);
-      if (ok) openFile(p.replace(/^\/+/, ""));
+      // Contenu de départ selon l'extension (index.html → page complète, Main.java → classe…).
+      const ok = apply(createFile(snapshot, p, starterContent(p)), `Fichier créé : ${p}`);
+      if (ok) {
+        const path = p.replace(/^\/+/, "");
+        const at = starterCursor(path);
+        if (at) goTo(path, at.line, at.column);
+        else openFile(path);
+      }
       return ok;
     },
     createFolder: (p: string) => apply(createFolder(snapshot, p), `Dossier créé : ${p}`),
@@ -393,14 +420,43 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
   const focusedEditor = () => editorsRef.current.get(focusedGroup) ?? editorsRef.current.get(0);
   const goTo = (path: string, line: number, column = 1) => {
     openFile(path);
-    setTimeout(() => {
+    // L'éditeur change de fichier au rendu suivant : on attend que le bon fichier soit affiché (1 s au plus).
+    let tries = 0;
+    const attempt = () => {
       const ed = focusedEditor();
+      const shown = ed?.getModel() ? decodeURIComponent(ed.getModel()!.uri.toString()).endsWith(`/${path}`) : false;
+      if (!shown && tries++ < 20) return void setTimeout(attempt, 50);
       ed?.revealLineInCenter(line);
       ed?.setPosition({ lineNumber: line, column });
       ed?.focus();
-    }, 60);
+    };
+    setTimeout(attempt, 30);
   };
   const format = () => void focusedEditor()?.getAction("editor.action.formatDocument")?.run();
+
+  /** Touche du clavier de programmation (téléphone) appliquée à l'éditeur actif. */
+  const keyAction = (a: KeyAction) => {
+    if (a.kind === "assistant") return setRight((r) => (r === "ia" ? null : "ia"));
+    const ed = focusedEditor();
+    if (!ed) return;
+    ed.focus();
+    if (a.kind === "texte") ed.trigger("clavier", "type", { text: a.text });
+    else if (a.kind === "modele") {
+      // Attribut juste après « <div> » : il est écrit dans la balise (« <div class=""> »).
+      const pos = ed.getPosition();
+      const model = ed.getModel();
+      if (pos && model && /^ (class|id)=/.test(a.snippet) && attributeBacktrack(model.getLineContent(pos.lineNumber).slice(0, pos.column - 1))) {
+        ed.setPosition({ lineNumber: pos.lineNumber, column: pos.column - 1 });
+      }
+      (ed.getContribution("snippetController2") as unknown as { insert(template: string): void } | null)?.insert(a.snippet);
+    }
+    else if (a.kind === "balise") {
+      ed.trigger("clavier", "type", { text: "<" });
+      ed.trigger("clavier", "editor.action.triggerSuggest", {});
+    } else if (a.id === "palette") void ed.getAction("editor.action.quickCommand")?.run();
+    else if (a.id === "suggestions") ed.trigger("clavier", "editor.action.triggerSuggest", {});
+    else ed.trigger("clavier", a.id, null);
+  };
   const findReplace = () => void focusedEditor()?.getAction("editor.action.startFindReplaceAction")?.run();
 
   // ---------------- Exécution et aperçu ----------------
@@ -610,7 +666,7 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
   ];
 
   return (
-    <div className={cn("ide-root fixed inset-0 z-50 flex flex-col bg-[var(--ide-bg)] text-[var(--ide-text)]", settings.theme === "clair" ? "ide-clair" : settings.theme === "sombre" ? "ide-sombre" : "ide-studio")} data-testid="ide">
+    <div className={cn("ide-root fixed inset-0 z-50 flex flex-col bg-[var(--ide-bg)] text-[var(--ide-text)]", settings.theme === "clair" ? "ide-clair" : settings.theme === "sombre" ? "ide-sombre" : "ide-studio")} style={viewport ? { top: viewport.top, height: viewport.height, bottom: "auto" } : undefined} data-testid="ide">
       <input ref={fileInput} type="file" multiple hidden onChange={(e) => { void onImport(e.target.files, false); e.target.value = ""; }} aria-label="Importer des fichiers" data-testid="ide-import-fichiers" />
       <input ref={folderInput} type="file" multiple hidden {...{ webkitdirectory: "", directory: "" }} onChange={(e) => { void onImport(e.target.files, true); e.target.value = ""; }} aria-label="Importer un dossier" />
 
@@ -1003,6 +1059,7 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
           {runnable ? "▶ exécutable" : previewPath && (activeLang?.preview || !activePath) ? (right === "apercu" ? "◉ aperçu actif" : "aperçu web") : activePath ? "édition seule" : ""}
         </StatusItem>
       </footer>
+      {touch && activePath && !(bottom && bottomMax) && <MobileKeys language={activeLang?.monaco ?? null} onAction={keyAction} />}
     </div>
   );
 }

@@ -42,7 +42,7 @@ Ce document couvre trois choses :
 |---|---|---|
 | 1 | Audit et conception | 🟢 ce document |
 | 2 | Explorateur, onglets, éditeur | 🟢 livré et testé (détail ci-dessous) |
-| 3 | Expérience mobile type SPCK (clavier de programmation, raccourcis tactiles, plein écran, navigation éditeur ↔ aperçu ↔ console) | ⚪ L'IDE fonctionne sur téléphone : barre latérale en surimpression, éditeur au démarrage, page sans défilement horizontal (vérifié). L'expérience tactile dédiée reste à faire. |
+| 3 | Expérience mobile type SPCK (clavier de programmation, raccourcis tactiles, plein écran, navigation éditeur ↔ aperçu ↔ console) | 🔵 **Clavier de programmation livré** (symboles selon le langage, tabulation, flèches, annuler, palette, assistant, symboles mathématiques) ; l'IDE se limite à la partie visible quand le clavier du téléphone est ouvert. Reste : gestes dédiés et navigation par balayage. |
 | 4 | Terminal, console, exécution, aperçu | 🔵 Console, sortie, exécution réelle (pseudocode, Python, JavaScript ; C et Java via Judge0) et aperçu web multi-appareils sont livrés. **Terminal et débogueur : pas encore** — ils demandent un conteneur isolé par utilisateur 🔌. |
 | 5 | Assistant IA intégré | 🔵 Le professeur IA est disponible dans le panneau, avec le fichier ouvert, la liste des fichiers et la dernière erreur. Les propositions de modifications avec différences avant/après, à accepter ou refuser, restent à faire. |
 | 6 | Génération de projets complets par IA | ⚪ |
@@ -92,6 +92,28 @@ L'IDE reprend la disposition familière des éditeurs de code de bureau, avec un
 - **Aperçu web** en panneau latéral façon navigateur : actualiser, choix de la page HTML affichée, vues ordinateur / tablette / téléphone.
 - **Panneau** Problèmes (compteur), Sortie, Console, Journal, agrandissable.
 - **Barre d'état** : projet, statut d'enregistrement, erreurs et avertissements, position (clic → aller à la ligne), indentation, encodage, fin de ligne, langage, mode d'exécution.
+
+### Éditeur intelligent (novembre 2026)
+
+- **Modèles de fichiers** (`src/lib/ide/starters.ts`) : un nouveau fichier reçoit un contenu de départ selon son extension, et le curseur est placé au bon endroit.
+  - `.html` : page complète, curseur dans `<title>` ;
+  - `.java` : classe au nom du fichier ;
+  - `.c` : `main` ;
+  - `.algo` : algorithme valide, curseur entre `DEBUT` et `FIN` ;
+  - `.css`, `.py`, `.js`, `.json`, `.md` : contenu minimal.
+- **Balises comme dans Sublime Text** :
+  - abréviations **Emmet** (`emmet-monaco-es@5.7.0`) : `div`, `ul>li*3`, `.carte`, `a[href]`… On les développe avec Tab, ou en touchant la suggestion « Emmet abbreviation » ;
+  - suggestions de balises après `<` ;
+  - **fermeture automatique** : `<p>` tapé ajoute `</p>` (`src/lib/ide/html-close.ts`, sans les balises vides comme `<br>` ou `<img>`).
+- **Clavier de programmation** (téléphone et tablette, `src/components/ide/mobile-keys.tsx`) :
+  - **HTML** : `<tag>` (liste des balises), `div`, `p`, `class`, `id` (écrits dans la balise qui précède le curseur), `=`, `""`, `<`, `>`, `/` ;
+  - **CSS** : `{ }`, `:`, `;`, `.`, `#`, unités ;
+  - **pseudocode** : `←`, `=`, `≠`, `<`, `>`, `≤`, `≥`, opérateurs, `..` ;
+  - **autres langages** : parenthèses, accolades, crochets, opérateurs ;
+  - **symboles mathématiques** : `∈`, `∉`, `∀`, `∃`, `¬`, `∧`, `∨`… pour les énoncés, commentaires et chaînes. L'interpréteur du pseudocode ne les accepte pas comme opérateurs ;
+  - **commandes** : tabulation, ↑ ↓ ← →, annuler, rétablir, palette de commandes, assistant IA.
+
+  Les touches ne retirent pas le focus de l'éditeur : le clavier du téléphone reste ouvert.
 
 ### Ce qui n'est pas affiché, faute de service réel
 

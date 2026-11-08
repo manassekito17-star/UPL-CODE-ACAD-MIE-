@@ -214,3 +214,66 @@ test("projets du compte : création, enregistrement, conflit, versions, import e
   await expect(p2.getByText("Projet introuvable.")).toBeVisible();
   await other.close();
 });
+
+test.describe("éditeur intelligent sur téléphone", () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+
+  const value = (page: Page, file: string) =>
+    page.evaluate((f) => (window as unknown as { monaco: { editor: { getModels(): Array<{ uri: { toString(): string }; getValue(): string }> } } }).monaco.editor.getModels().find((m) => m.uri.toString().endsWith(`/${f}`))!.getValue(), file);
+
+  test("modèle de fichier, balises, clavier de programmation et pseudocode", async ({ page }) => {
+    await page.goto("/ide");
+    await page.locator(".monaco-editor").first().waitFor({ timeout: 60_000 });
+    const clavier = page.getByTestId("ide-clavier");
+    await expect(clavier).toBeVisible();
+
+    // « accueil.html » : page complète créée automatiquement, curseur dans <title>.
+    await page.getByRole("button", { name: "Menu", exact: true }).click();
+    await page.getByRole("menuitem", { name: "Nouveau fichier…" }).click();
+    await page.getByLabel("Nom du fichier").fill("accueil.html");
+    await page.getByLabel("Nom du fichier").press("Enter");
+    await expect.poll(() => value(page, "accueil.html")).toContain("<!DOCTYPE html>");
+    await expect(page.getByTestId("ide-barre-etat")).toContainText("Ln 7, Col 10");
+    await page.keyboard.type("Accueil");
+    await expect.poll(() => value(page, "accueil.html")).toContain("<title>Accueil</title>");
+
+    // Touches « div » puis « class » : <div class=""></div> ; « <p> » tapé → </p> ajouté.
+    await page.keyboard.press("End");
+    await page.keyboard.press("Enter");
+    await clavier.getByRole("button", { name: "Bloc <div>" }).click();
+    await clavier.getByRole("button", { name: "Attribut class" }).click();
+    await page.keyboard.type("carte");
+    await expect.poll(() => value(page, "accueil.html")).toContain('<div class="carte"></div>');
+    await page.keyboard.press("End");
+    await page.keyboard.press("Enter");
+    await page.keyboard.type("<p>");
+    await expect.poll(() => value(page, "accueil.html")).toContain("<p></p>");
+
+    // Pseudocode : modèle valide, touche d'affectation « ← », symboles mathématiques (∈).
+    await page.getByRole("button", { name: "Menu", exact: true }).click();
+    await page.getByRole("menuitem", { name: "Nouveau fichier…" }).click();
+    await page.getByLabel("Nom du fichier").fill("calcul.algo");
+    await page.getByLabel("Nom du fichier").press("Enter");
+    await expect.poll(() => value(page, "calcul.algo")).toContain("ALGORITHME calcul");
+    await expect(page.getByTestId("ide-barre-etat")).toContainText("Ln 5, Col 3");
+    await page.keyboard.type("x ");
+    await clavier.getByRole("button", { name: "Affectation" }).click();
+    await page.keyboard.type(" 3");
+    await expect.poll(() => value(page, "calcul.algo")).toContain("DEBUT\n  x ← 3\nFIN");
+    await clavier.getByRole("button", { name: /Symboles mathématiques/ }).click();
+    await expect(page.getByTestId("ide-clavier-symboles").getByRole("button", { name: "∈", exact: true })).toBeVisible();
+  });
+});
+
+test("Emmet : abréviation HTML développée par Tab", async ({ page }) => {
+  await page.goto("/ide");
+  await page.locator(".monaco-editor").first().waitFor({ timeout: 60_000 });
+  await setModel(page, "index.html", "");
+  await page.locator(".monaco-editor .view-lines").first().click();
+  await page.keyboard.type("ul>li*2", { delay: 40 });
+  await expect(page.locator(".suggest-widget.visible")).toContainText("Emmet");
+  await page.keyboard.press("Tab");
+  await expect
+    .poll(() => page.evaluate(() => (window as unknown as { monaco: { editor: { getModels(): Array<{ uri: { toString(): string }; getValue(): string }> } } }).monaco.editor.getModels().find((m) => m.uri.toString().endsWith("/index.html"))!.getValue()))
+    .toMatch(/<ul>\s*<li><\/li>\s*<li><\/li>\s*<\/ul>/);
+});

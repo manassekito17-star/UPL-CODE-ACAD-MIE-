@@ -3,6 +3,7 @@
 import Editor, { type Monaco, type OnMount } from "@monaco-editor/react";
 import { useEffect, useRef } from "react";
 import { basename, languageOf, type ProjectFile } from "@/lib/ide/fs";
+import { tagToClose } from "@/lib/ide/html-close";
 import { checkPseudocode } from "@/lib/pseudocode";
 import { configureMonaco } from "../editor/code-editor";
 import { cn } from "../ui";
@@ -174,6 +175,20 @@ export function EditorGroup({
               editor.onDidFocusEditorText(() => handlers.current.onFocus());
               editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => handlers.current.onSave());
               editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => handlers.current.onRun());
+              // HTML : « <p> » tapé → « </p> » ajouté après le curseur (comme Sublime Text).
+              editor.onDidChangeModelContent((e) => {
+                if (e.isUndoing || e.isRedoing || e.isFlush) return;
+                const model = editor.getModel();
+                const last = e.changes[e.changes.length - 1];
+                if (!model || model.getLanguageId() !== "html" || !last || !last.text.endsWith(">") || last.text.length > 2) return;
+                const pos = editor.getPosition();
+                if (!pos) return;
+                const line = model.getLineContent(pos.lineNumber);
+                const tag = tagToClose(line.slice(0, pos.column - 1), line.slice(pos.column - 1));
+                if (!tag) return;
+                editor.executeEdits("upl-balise", [{ range: new monaco.Range(pos.lineNumber, pos.column, pos.lineNumber, pos.column), text: `</${tag}>` }]);
+                editor.setPosition(pos);
+              });
               onReady(editor, monaco);
             }}
             loading={<div className="grid h-full place-items-center text-sm text-[var(--ide-muted)]">Chargement de l&apos;éditeur…</div>}
