@@ -10,6 +10,8 @@ export const publicEnv = {
   siteUrl: (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").trim().replace(/\/+$/, ""),
   /** Bouton « Continuer avec Google » : à activer seulement une fois le fournisseur Google configuré dans Supabase. */
   googleAuth: process.env.NEXT_PUBLIC_AUTH_GOOGLE === "true",
+  /** Adresse de contact affichée dans la politique de confidentialité (facultative). */
+  contactEmail: (process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? "").trim(),
 };
 
 /** Supabase est-il configuré ? Sinon l'application fonctionne en « mode démonstration ». */
