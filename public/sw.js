@@ -3,7 +3,7 @@
 // - Fichiers de l'application (/_next/static, versionnés) : copie locale d'abord.
 // - Éditeur de code (Monaco) et Python (Pyodide), sur le CDN jsdelivr, versions figées : copie locale d'abord.
 // - Comptes, API, administration : jamais mis en cache (toujours le réseau).
-const VERSION = "v3";
+const VERSION = "v4";
 const PAGES = `upl-pages-${VERSION}`;
 const STATIC = `upl-static-${VERSION}`;
 const CDN = `upl-cdn-${VERSION}`;
@@ -59,7 +59,8 @@ async function page(request) {
   const offlineOk = OFFLINE_PAGES.includes(url.pathname);
   try {
     const res = await fetch(request);
-    if (offlineOk && res.ok && !url.search) await put(PAGES, key, res.clone());
+    // Une page redirigée (vers la connexion) n'est jamais gardée à la place de la page demandée.
+    if (offlineOk && res.ok && !res.redirected && !url.search) await put(PAGES, key, res.clone());
     return res;
   } catch {
     const hit = offlineOk ? await caches.match(key) : null;
@@ -110,7 +111,7 @@ self.addEventListener("message", (e) => {
               continue;
             }
             const res = await fetch(withoutHash(url.href), { credentials: "same-origin" });
-            if (res.ok) {
+            if (res.ok && !res.redirected) {
               await (await caches.open(cacheName)).put(key, res);
               ok++;
             }
