@@ -277,3 +277,41 @@ test("Emmet : abréviation HTML développée par Tab", async ({ page }) => {
     .poll(() => page.evaluate(() => (window as unknown as { monaco: { editor: { getModels(): Array<{ uri: { toString(): string }; getValue(): string }> } } }).monaco.editor.getModels().find((m) => m.uri.toString().endsWith("/index.html"))!.getValue()))
     .toMatch(/<ul>\s*<li><\/li>\s*<li><\/li>\s*<\/ul>/);
 });
+
+test.describe("copier-coller dans l'éditeur", () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+  const value = (page: Page) => page.evaluate(() => (window as unknown as { monaco: { editor: { getEditors(): Array<{ getModel(): { getValue(): string } }> } } }).monaco.editor.getEditors()[0].getModel().getValue());
+
+  test("Coller du menu du téléphone, boutons Tout / Copier / Couper / Coller et fenêtre de collage", async ({ page, context }) => {
+    await page.goto("/ide");
+    await page.locator(".monaco-editor").first().waitFor({ timeout: 60_000 });
+    // « Coller » du menu du téléphone : événement paste natif sur la zone de saisie de l'éditeur.
+    await page.locator(".monaco-editor .view-lines").first().click();
+    await page.keyboard.press("Control+End");
+    await page.evaluate(() => {
+      const ta = document.querySelector(".monaco-editor textarea") as HTMLTextAreaElement;
+      ta.focus();
+      const dt = new DataTransfer();
+      dt.setData("text/plain", "<!-- collage natif -->");
+      ta.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
+    });
+    await expect.poll(() => value(page)).toContain("<!-- collage natif -->");
+
+    // Sans accès direct au presse-papiers : fenêtre où coller avec l'appui long.
+    const keys = page.getByTestId("ide-clavier-presse-papiers");
+    await keys.getByRole("button", { name: "Coller" }).click();
+    await page.getByTestId("zone-coller").fill("<p>collé à la main</p>");
+    await page.getByRole("button", { name: "Insérer dans le fichier" }).click();
+    await expect.poll(() => value(page)).toContain("<p>collé à la main</p>");
+
+    // Avec accès : Tout + Copier, puis Coller.
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+    await keys.getByRole("button", { name: "Tout sélectionner" }).click();
+    await keys.getByRole("button", { name: "Copier" }).click();
+    await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain("<!DOCTYPE html>");
+    await page.evaluate(() => navigator.clipboard.writeText("<!-- depuis le presse-papiers -->"));
+    await page.keyboard.press("Control+End");
+    await keys.getByRole("button", { name: "Coller" }).click();
+    await expect.poll(() => value(page)).toContain("<!-- depuis le presse-papiers -->");
+  });
+});
