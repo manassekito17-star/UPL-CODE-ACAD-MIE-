@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
+import { RegisterServiceWorker } from "@/components/pwa/register-sw";
 import { BRAND } from "@/lib/brand";
 import "./globals.css";
 
@@ -19,7 +20,8 @@ export const metadata: Metadata = {
   applicationName: BRAND.name,
   openGraph: { siteName: BRAND.name, title: BRAND.name, description: BRAND.description, locale: "fr_FR", type: "website" },
   twitter: { card: "summary_large_image", title: BRAND.name, description: BRAND.description },
-  appleWebApp: { title: BRAND.name },
+  appleWebApp: { capable: true, title: "UPL CODE MK", statusBarStyle: "default" },
+  icons: { apple: "/icons/site-apple-touch-icon.png" },
 };
 
 export const viewport: Viewport = {
@@ -32,6 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="fr" className={`${inter.variable} ${jetbrains.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
+        <RegisterServiceWorker />
         <a href="#contenu" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded focus:bg-white focus:px-3 focus:py-2">
           Aller au contenu
         </a>
