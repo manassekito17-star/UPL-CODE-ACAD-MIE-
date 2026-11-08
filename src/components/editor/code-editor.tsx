@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import type { LanguageId } from "@/content/types";
 import { LANGUAGES } from "@/lib/execution/languages";
 import { checkPseudocode } from "@/lib/pseudocode";
+import { emmetCSS, emmetHTML } from "emmet-monaco-es";
 import { registerPseudocode } from "./pseudocode-language";
 
 type MonacoEditor = Parameters<OnMount>[0];
@@ -12,6 +13,14 @@ type MonacoEditor = Parameters<OnMount>[0];
 /** Langage pseudocode et thèmes de la plateforme (partagés par l'éditeur, le laboratoire et UPL IDE). */
 export function configureMonaco(monaco: Monaco) {
   registerPseudocode(monaco);
+  // Abréviations Emmet (comme Sublime Text) : « div » puis Tab ou toucher la suggestion → <div></div>,
+  // « ul>li*3 », « .carte », « a[href] »… ; propriétés CSS abrégées (« m10 » → margin: 10px;).
+  const flags = monaco as unknown as { __uplEmmet?: boolean };
+  if (!flags.__uplEmmet) {
+    flags.__uplEmmet = true;
+    emmetHTML(monaco, ["html"], { tokenizer: "standard" });
+    emmetCSS(monaco, ["css"], { tokenizer: "standard" });
+  }
   const rules = [
     { token: "keyword", foreground: "5B93FF", fontStyle: "bold" },
     { token: "type", foreground: "22D3EE" },
