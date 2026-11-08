@@ -138,6 +138,11 @@ export async function runProgram(
     // L'interpréteur de la plateforme tourne directement dans le navigateur : réponse instantanée.
     return { result: await runInBrowser("pseudocode", files, stdin) };
   }
+  // Sans Internet : Python et JavaScript tournent sur l'appareil ; le C et le Java demandent le serveur.
+  if (typeof navigator !== "undefined" && navigator.onLine === false) {
+    if (language === "python" || language === "javascript") return { result: await runInBrowser(language, files, stdin, opts.onStatus) };
+    return { result: null, error: "Hors connexion : le C et le Java s'exécutent sur le serveur de la plateforme. Reconnectez-vous à Internet pour les lancer (le pseudocode, Python, JavaScript et les pages web fonctionnent sans Internet)." };
+  }
   try {
     const res = await fetch("/api/execute", {
       method: "POST",
@@ -154,6 +159,6 @@ export async function runProgram(
     if (language === "python" || language === "javascript") {
       return { result: await runInBrowser(language, files, stdin, opts.onStatus) };
     }
-    return { result: null, error: "Connexion au serveur impossible." };
+    return { result: null, error: "Connexion au serveur impossible. Le C et le Java demandent Internet ; le pseudocode, Python et JavaScript fonctionnent sans connexion." };
   }
 }
