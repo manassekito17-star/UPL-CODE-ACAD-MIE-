@@ -63,6 +63,47 @@ function trackWorkers(): () => string[] {
   };
 }
 
+/**
+ * Charge une page dans un cadre invisible pour que tous ses fichiers (y compris ceux
+ * chargés à la demande, comme l'éditeur de code) passent par le service worker et soient gardés.
+ */
+function warmPage(path: string, timeoutMs = 25_000): Promise<void> {
+  return new Promise((resolve) => {
+    const frame = document.createElement("iframe");
+    frame.src = path;
+    frame.setAttribute("aria-hidden", "true");
+    frame.tabIndex = -1;
+    frame.style.cssText = "position:fixed;left:-10000px;top:0;width:1024px;height:768px;border:0;visibility:hidden";
+    const started = Date.now();
+    const done = () => {
+      clearInterval(timer);
+      frame.remove();
+      resolve();
+    };
+    // Prêt quand l'éditeur de code de la page est affiché (puis un court délai pour ses modules).
+    const timer = setInterval(() => {
+      let ready = false;
+      try {
+        ready = Boolean(frame.contentDocument?.querySelector(".monaco-editor"));
+      } catch {
+        /* cadre inaccessible */
+      }
+      if (ready) {
+        clearInterval(timer);
+        // Une exécution charge le moteur de la page (interpréteur, exécution pas à pas), qui est alors gardé lui aussi.
+        try {
+          const run = [...(frame.contentDocument?.querySelectorAll("button") ?? [])].find((el) => /^▶/.test(el.textContent?.trim() ?? ""));
+          run?.click();
+        } catch {
+          /* bouton introuvable */
+        }
+        setTimeout(done, 4000);
+      } else if (Date.now() - started > timeoutMs) done();
+    }, 300);
+    document.body.appendChild(frame);
+  });
+}
+
 async function sendPrecache(urls: string[]): Promise<{ ok: number; total: number }> {
   const reg = await navigator.serviceWorker.ready;
   const worker = reg.active;
@@ -98,6 +139,8 @@ export async function prepareOffline(opts: {
   try {
     opts.onStep("Langages de l'éditeur (coloration, suggestions, erreurs)…");
     await opts.loadLanguages();
+    opts.onStep("Éditeur et laboratoire d'algorithmique…");
+    for (const path of ["/editeur", "/laboratoire"]) await warmPage(path);
     if (opts.warmPython) {
       opts.onStep("Python (environ 10 Mo)…");
       await opts.warmPython();

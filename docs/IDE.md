@@ -127,7 +127,8 @@ Comme PharmaGestion, UPL IDE est une **application web installable** : pas de ma
   - la page de l'IDE et ses fichiers ;
   - les modules de chaque langage de l'éditeur ;
   - les moteurs pseudocode et JavaScript ;
-  - Python en option (environ 10 Mo).
+  - Python en option (environ 10 Mo) ;
+  - l'**Éditeur** (`/editeur`) et le **Laboratoire d'algorithmique** (`/laboratoire`). Ils sont chargés dans un cadre invisible de même origine (`X-Frame-Options: SAMEORIGIN`) et une exécution est lancée, pour garder aussi leurs moteurs.
 - **Service worker** `public/sw.js`, avec trois règles :
   - pages `/ide`, `/editeur`, `/laboratoire` : réseau d'abord, copie locale sans connexion ;
   - `/_next/static` et CDN figés (Monaco, Pyodide) : copie locale d'abord ;
@@ -135,7 +136,8 @@ Comme PharmaGestion, UPL IDE est une **application web installable** : pas de ma
 
   Un même fichier de worker sert plusieurs moteurs, distingués par `#params=…`. Le service worker renvoie donc aux workers une réponse sans adresse propre, pour qu'ils gardent l'adresse exacte demandée.
 - **Sans Internet** :
-  - fonctionnent : l'éditeur, les fichiers (projet local), le pseudocode, JavaScript, Python (s'il a été préparé) et l'aperçu HTML/CSS ;
+  - fonctionnent : UPL IDE, l'Éditeur, le Laboratoire, les fichiers (projet local), le pseudocode, JavaScript, Python (s'il a été préparé) et l'aperçu HTML/CSS ;
+  - les cours et les exercices demandent Internet : une page « Pas de connexion Internet » propose d'ouvrir UPL IDE ;
   - le C et le Java affichent « Hors connexion… » ;
   - la barre d'état affiche « Hors connexion ».
 - **Test** : `e2e/hors-ligne.spec.ts` prépare l'IDE, coupe le réseau, recharge, puis exécute JavaScript et le pseudocode, vérifie l'aperçu et le message du C.

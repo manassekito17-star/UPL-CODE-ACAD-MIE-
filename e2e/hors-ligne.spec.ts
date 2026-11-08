@@ -51,4 +51,17 @@ test("préparation puis utilisation sans Internet : éditeur, JavaScript, pseudo
   await page.getByRole("tab", { name: /index\.html/ }).first().click();
   await page.getByRole("button", { name: "Aperçu web" }).click();
   await expect(page.frameLocator('iframe[title="Aperçu du projet"]').locator("h1")).toHaveText("Mon site");
+
+  // Éditeur et laboratoire d'algorithmique : utilisables sans Internet ; les cours demandent Internet.
+  await page.goto("/editeur");
+  await expect(page.locator(".monaco-editor").first()).toBeVisible({ timeout: 30_000 });
+  await page.getByRole("button", { name: "▶ Exécuter" }).click();
+  await expect(page.getByText("interpréteur UPL").first()).toBeVisible({ timeout: 30_000 });
+  await page.goto("/laboratoire");
+  await expect(page.locator(".monaco-editor").first()).toBeVisible({ timeout: 30_000 });
+  await page.getByRole("button", { name: "▶ Lancer l'exécution pas à pas" }).click();
+  await expect(page.getByText("Combien de notes ?").first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText(/Failed to execute 'importScripts'/)).toHaveCount(0);
+  await page.goto("/formations");
+  await expect(page.getByText("Pas de connexion Internet")).toBeVisible();
 });
