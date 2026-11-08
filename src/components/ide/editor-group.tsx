@@ -195,6 +195,9 @@ export function EditorGroup({
             options={{
               fontSize: settings.fontSize,
               fontFamily: "var(--font-jetbrains), monospace",
+              // Saisie classique (zone de texte) : le « Coller » du menu du téléphone et les claviers mobiles
+              // fonctionnent de façon fiable, contrairement au mode EditContext activé par défaut sur Chrome.
+              editContext: false,
               tabSize: settings.tabSize,
               wordWrap: settings.wordWrap ? "on" : "off",
               // Minicarte masquée sur téléphone (place trop réduite).

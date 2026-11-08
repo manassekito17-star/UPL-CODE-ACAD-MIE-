@@ -16,7 +16,8 @@ export type KeyAction =
   | { kind: "modele"; snippet: string }
   | { kind: "commande"; id: "tab" | "cursorUp" | "cursorDown" | "cursorLeft" | "cursorRight" | "undo" | "redo" | "palette" | "suggestions" }
   | { kind: "balise" }
-  | { kind: "assistant" };
+  | { kind: "assistant" }
+  | { kind: "presse-papiers"; id: "tout" | "copier" | "couper" | "coller" };
 
 interface KeyDef {
   label: string;
@@ -129,6 +130,16 @@ export function MobileKeys({ language, onAction }: { language: string | null; on
   );
   return (
     <div className="shrink-0 border-t border-[var(--ide-border)] bg-[var(--ide-panel)]" role="toolbar" aria-label="Clavier de programmation" data-testid="ide-clavier">
+      <div className="flex items-center gap-1 overflow-x-auto border-b border-[var(--ide-border)] px-1 py-1" data-testid="ide-clavier-presse-papiers">
+        {(
+          [
+            ["tout", "Tout sélectionner", "Tout"],
+            ["copier", "Copier", "Copier"],
+            ["couper", "Couper", "Couper"],
+            ["coller", "Coller", "Coller"],
+          ] as const
+        ).map(([id, title, label]) => key(label, title, () => onAction({ kind: "presse-papiers", id }), "border border-[var(--ide-border)] px-3 font-sans text-[13px]"))}
+      </div>
       <div className="flex items-center gap-0.5 overflow-x-auto px-1 pt-1" data-testid="ide-clavier-symboles">
         {keys.map((k) => key(k.label, k.title, () => onAction(k.action)))}
       </div>

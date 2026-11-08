@@ -481,9 +481,66 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
     if (r.status !== "ok") throw new Error(r.stderr || "Python n'a pas pu être téléchargé.");
   };
 
+  // ---------------- Copier / coller ----------------
+  const [pasteBox, setPasteBox] = useState<string | null>(null);
+  const pasteTarget = useRef<MonacoEditor | null>(null);
+  const insertText = (ed: MonacoEditor, text: string) => {
+    const sel = ed.getSelection();
+    if (!sel) return;
+    ed.pushUndoStop();
+    ed.executeEdits("coller", [{ range: sel, text, forceMoveMarkers: true }]);
+    ed.pushUndoStop();
+    ed.focus();
+  };
+  /** Copier, couper, coller, tout sélectionner : boutons du clavier et menu Édition (fiables sur téléphone). */
+  const clipboard = async (id: "tout" | "copier" | "couper" | "coller") => {
+    const ed = focusedEditor();
+    const model = ed?.getModel();
+    if (!ed || !model) return notify("Ouvrez d'abord un fichier.", "info");
+    if (id === "tout") {
+      ed.setSelection(model.getFullModelRange());
+      ed.focus();
+      return;
+    }
+    if (id === "coller") {
+      try {
+        const text = await navigator.clipboard.readText();
+        if (!text) throw new Error("vide");
+        insertText(ed, text);
+        notify("Texte collé.", "info");
+      } catch {
+        // Accès direct refusé ou indisponible : fenêtre où coller avec l'appui long du téléphone.
+        pasteTarget.current = ed;
+        setPasteBox("");
+      }
+      return;
+    }
+    const current = ed.getSelection();
+    const monaco = monacoRef.current;
+    if (!current || !monaco) return;
+    // Sans sélection : la ligne entière (comme dans les éditeurs de bureau).
+    const whole = current.isEmpty();
+    const line = current.startLineNumber;
+    const range = whole ? new monaco.Range(line, 1, line, model.getLineMaxColumn(line)) : current;
+    const text = model.getValueInRange(range) + (whole ? "\n" : "");
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      return notify("Copie refusée par le navigateur : sélectionnez le texte puis utilisez le menu Copier du téléphone.");
+    }
+    if (id === "couper") {
+      ed.pushUndoStop();
+      ed.executeEdits("couper", [{ range: whole ? new monaco.Range(line, 1, line + 1, 1) : current, text: "" }]);
+      ed.pushUndoStop();
+    }
+    notify(id === "couper" ? "Texte coupé." : `Copié (${text.length} caractère${text.length > 1 ? "s" : ""}).`, "info");
+    ed.focus();
+  };
+
   /** Touche du clavier de programmation (téléphone) appliquée à l'éditeur actif. */
   const keyAction = (a: KeyAction) => {
     if (a.kind === "assistant") return setRight((r) => (r === "ia" ? null : "ia"));
+    if (a.kind === "presse-papiers") return void clipboard(a.id);
     const ed = focusedEditor();
     if (!ed) return;
     ed.focus();
@@ -640,6 +697,11 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
     {
       label: "Édition",
       items: [
+        { label: "Couper", shortcut: "Ctrl+X", onClick: () => void clipboard("couper"), disabled: noFile },
+        { label: "Copier", shortcut: "Ctrl+C", onClick: () => void clipboard("copier"), disabled: noFile },
+        { label: "Coller", shortcut: "Ctrl+V", onClick: () => void clipboard("coller"), disabled: noFile },
+        { label: "Tout sélectionner", shortcut: "Ctrl+A", onClick: () => void clipboard("tout"), disabled: noFile },
+        "separateur",
         { label: "Annuler", shortcut: "Ctrl+Z", onClick: () => editorAction("undo"), disabled: noFile },
         { label: "Rétablir", shortcut: "Ctrl+Y", onClick: () => editorAction("redo"), disabled: noFile },
         "separateur",
@@ -1114,6 +1176,37 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
           {runnable ? "▶ exécutable" : previewPath && (activeLang?.preview || !activePath) ? (right === "apercu" ? "◉ aperçu actif" : "aperçu web") : activePath ? "édition seule" : ""}
         </StatusItem>
       </footer>
+      {pasteBox !== null && (
+        <div className="fixed inset-0 z-[70] grid place-items-center bg-black/60 p-3" role="dialog" aria-modal="true" aria-labelledby="titre-coller" onClick={() => setPasteBox(null)}>
+          <div className="w-full max-w-lg rounded-lg border border-[var(--ide-border)] bg-[var(--ide-menu)] p-4 text-sm text-[var(--ide-text)] shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <h2 id="titre-coller" className="text-base font-semibold">Coller du code</h2>
+            <p className="mt-1 text-xs text-[var(--ide-muted)]">Touchez la zone ci-dessous, puis appui long → <b>Coller</b> (ou Ctrl+V). Le texte sera inséré à la position du curseur.</p>
+            <textarea
+              autoFocus
+              value={pasteBox}
+              onChange={(e) => setPasteBox(e.target.value)}
+              rows={8}
+              aria-label="Texte à coller"
+              className="mt-2 w-full resize-y rounded border border-[var(--ide-border)] bg-[var(--ide-input)] p-2 font-mono text-xs text-[var(--ide-text)]"
+              data-testid="zone-coller"
+            />
+            <div className="mt-3 flex justify-end gap-2">
+              <button type="button" onClick={() => setPasteBox(null)} className="rounded px-3 py-1.5 text-[var(--ide-muted)] hover:bg-[var(--ide-hover)]">Annuler</button>
+              <button
+                type="button"
+                disabled={!pasteBox}
+                onClick={() => {
+                  if (pasteTarget.current && pasteBox) insertText(pasteTarget.current, pasteBox);
+                  setPasteBox(null);
+                }}
+                className="rounded bg-[var(--ide-accent)] px-3 py-1.5 font-semibold text-white disabled:opacity-50"
+              >
+                Insérer dans le fichier
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <OfflineDialog open={offlineOpen} onClose={() => setOfflineOpen(false)} installEvent={installEvent} onInstalled={() => setInstallEvent(null)} online={online} loadLanguages={loadLanguages} warmPython={warmPython} warmEngines={warmEngines} />
       {touch && activePath && !(bottom && bottomMax) && <MobileKeys language={activeLang?.monaco ?? null} onAction={keyAction} />}
     </div>
