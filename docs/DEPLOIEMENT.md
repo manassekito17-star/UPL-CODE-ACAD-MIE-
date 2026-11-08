@@ -37,10 +37,12 @@ Tout le travail récent est sur la branche `claude/upl-code-academy-specs-vl0z7e
 
    Liens en texte brut : `https://raw.githubusercontent.com/manassekito17-star/UPL-CODE-ACAD-MIE-/main/supabase/installation/1-structure.sql`, puis `https://raw.githubusercontent.com/manassekito17-star/UPL-CODE-ACAD-MIE-/main/supabase/installation/2-contenu-01.sql`, etc. (remplacez `main` par le nom de la branche si elle n'a pas encore été fusionnée).
 
+   Le fichier `1-structure.sql` accorde aussi les droits d'accès de l'API aux tables. Les projets Supabase récents ne les donnent plus automatiquement ; sans eux, le catalogue reste vide (« permission denied for table courses »).
+
    Le contenu est découpé en 10 morceaux car un envoi trop gros échoue avec « Failed to fetch ». Un morceau qui échoue peut être **relancé sans risque**. Contrôle final : **Table Editor** → table `courses` = 7 lignes.
 
    *Variante en ligne de commande, si Node.js est installé :* `npx supabase login`, `npx supabase link --project-ref VOTRE-REF`, puis `npx supabase db push --include-seed`. N'utilisez pas les deux méthodes sur le même projet.
-4. **Récupérer les clés** : **Project Settings → API Keys** (ou **API**). Notez trois choses :
+4. **Récupérer les clés** : **Project Settings → API Keys** (onglet **Legacy API Keys**). Copiez chaque clé avec le **bouton Copy 📋**, jamais en sélectionnant le texte : l'écran n'en montre que le début, suivi de « … ». Notez trois choses :
    - **Project URL** (`https://VOTRE-REF.supabase.co`) ;
    - **anon / publishable key** ;
    - **service_role / secret key** : elle est secrète, ne la partagez jamais.
@@ -55,7 +57,12 @@ Tout le travail récent est sur la branche `claude/upl-code-academy-specs-vl0z7e
    - **App name** : `UPL CODE ACADEMY MK` ; **User support email** : votre Gmail ;
    - **Audience** : **External** ;
    - **Contact information** : votre Gmail. Acceptez puis cliquez **Create**.
-4. Rubrique **Audience** → **Publish app** (« In production »). Les autorisations utilisées (nom, e-mail, photo) ne demandent pas de vérification par Google.
+4. Rubrique **Branding** :
+   - **App domain** : page d'accueil `https://VOTRE-SITE`, confidentialité `https://VOTRE-SITE/confidentialite`, conditions `https://VOTRE-SITE/conditions` ;
+   - **Authorized domains** : `VOTRE-SITE` et `VOTRE-REF.supabase.co` ;
+   - pas de logo : il déclencherait une vérification de plusieurs semaines.
+
+   Rubrique **Audience** → **Publish app** (« In production »). Les autorisations utilisées (nom, e-mail, photo) ne demandent pas de vérification par Google. Vérifiez toujours, en haut de la console, que le bon projet est sélectionné.
 5. Rubrique **Clients** → **Create client** :
    - **Application type** : **Web application** ; **Name** : `UPL CODE ACADEMY MK — web` ;
    - **Authorized JavaScript origins** : `https://VOTRE-SITE`. Si vous ne la connaissez pas encore, revenez ici après l'étape 3 ;
@@ -84,6 +91,7 @@ Tout le travail récent est sur la branche `claude/upl-code-academy-specs-vl0z7e
    | `NEXT_PUBLIC_AUTH_GOOGLE` | `true` (une fois l'étape 2 terminée) |
    | `AI_PROVIDER` | `openai_compatible` (facultatif ; voir `docs/COUTS.md`) |
 
+   **Type** : choisissez **Config** pour toutes les variables `NEXT_PUBLIC_…`, qui sont publiques par nature, et **Sensitive** uniquement pour `SUPABASE_SERVICE_ROLE_KEY`. Une variable enregistrée en « Sensitive » ne peut plus être changée en « Config » : il faut la supprimer, puis la recréer.
 4. Cliquez **Deploy** et attendez environ 3 minutes. Vercel affiche l'adresse publique `https://VOTRE-SITE`. Le HTTPS est automatique.
 5. Si l'adresse diffère de celle saisie : **Settings → Environment Variables**, corrigez `NEXT_PUBLIC_SITE_URL`, puis **Deployments → ⋯ → Redeploy**.
 
@@ -135,10 +143,21 @@ L'inscription administrateur n'est **pas publique** : on devient administrateur 
 
 ## En cas de problème
 
+Commencez par ouvrir `https://VOTRE-SITE/api/sante`. Cette page indique, sans jamais afficher les clés :
+- si l'URL et les clés sont bien saisies (type, espaces, « … ») ;
+- si elles appartiennent au même projet ;
+- le message exact de Supabase lors de la lecture du catalogue.
+
+Une modification de variable dans Vercel ne s'applique qu'après un **Redeploy**.
+
 | Symptôme | Cause probable | Solution |
 |---|---|---|
 | « redirect_uri_mismatch » chez Google | adresse de retour non autorisée | étape 2.5 : `https://VOTRE-REF.supabase.co/auth/v1/callback` exactement |
 | Retour sur la page de connexion après Google | Redirect URLs Supabase | étape 4.1 |
 | Le bouton Google n'apparaît pas | variable absente | `NEXT_PUBLIC_AUTH_GOOGLE=true` sur Vercel, puis Redeploy |
 | « Mode démonstration » affiché | variables Supabase absentes | étape 3.3, puis Redeploy |
+| Catalogue vide, `/api/sante` : « permission denied for table courses » (42501) | droits d'accès de l'API absents (projets récents) | lancer `supabase/migrations/20261110000001_droits_acces_api.sql` dans le SQL Editor |
+| `/api/sante` : clé « illisible » ou « espace à l'intérieur » | clé copiée raccourcie (« … ») | recopier avec le bouton Copy 📋, recréer la variable, Redeploy |
+| Supabase : « Invalid characters » dans Client IDs | `/` ou espace en trop | la valeur se termine exactement par `.apps.googleusercontent.com` |
+| Google : « Publish app » grisé | Branding incomplet | étape 2.4 (pages et domaines autorisés) |
 | Projet Supabase en pause | 7 jours sans activité (offre Free) | bouton **Restore** dans Supabase |
