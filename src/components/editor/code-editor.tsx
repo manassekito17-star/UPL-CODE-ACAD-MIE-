@@ -6,6 +6,7 @@ import type { LanguageId } from "@/content/types";
 import { LANGUAGES } from "@/lib/execution/languages";
 import { checkPseudocode } from "@/lib/pseudocode";
 import { emmetCSS, emmetHTML } from "emmet-monaco-es";
+import { letPageScrollOverEditor } from "./page-scroll";
 import { registerPseudocode } from "./pseudocode-language";
 
 type MonacoEditor = Parameters<OnMount>[0];
@@ -164,15 +165,18 @@ export function CodeEditor({
         editorRef.current = editor;
         monacoRef.current = monaco;
         setMounted(true);
+        // Balayage sur l'éditeur : le code défile, puis la page (sinon la page reste bloquée).
+        const stop = letPageScrollOverEditor(editor);
+        editor.onDidDispose(stop);
       }}
       loading={<div className="grid h-full place-items-center bg-nuit-950 text-sm text-gray-400">Chargement de l&apos;éditeur…</div>}
       options={{
         readOnly,
         fontSize: 14,
         fontFamily: "var(--font-jetbrains), monospace",
-              // Saisie classique (zone de texte) : le « Coller » du menu du téléphone et les claviers mobiles
-              // fonctionnent de façon fiable, contrairement au mode EditContext activé par défaut sur Chrome.
-              editContext: false,
+        // Saisie classique (zone de texte) : le « Coller » du menu du téléphone et les claviers mobiles
+        // fonctionnent de façon fiable, contrairement au mode EditContext activé par défaut sur Chrome.
+        editContext: false,
         minimap: { enabled: false },
         lineNumbers: "on",
         scrollBeyondLastLine: false,
