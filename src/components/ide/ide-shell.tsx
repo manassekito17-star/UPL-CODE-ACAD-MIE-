@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BRAND } from "@/lib/brand";
-import { runProgram } from "@/lib/execution/browser";
+import { runInBrowser, runProgram } from "@/lib/execution/browser";
+import { registerServiceWorker } from "@/lib/offline/client";
 import { STATUS_LABELS, type ExecutionResult } from "@/lib/execution/types";
 import { buildPreviewDocument } from "@/lib/execution/web-document";
 import {
@@ -38,6 +39,7 @@ import { Explorer, ToolButton, type CreateRequest } from "./explorer";
 import { FileIcon } from "./file-icon";
 import { MenuBar, type MenuDef } from "./menu-bar";
 import { MobileKeys, type KeyAction } from "./mobile-keys";
+import { OfflineDialog, type InstallPromptEvent } from "./offline-dialog";
 import { Icon, type IconName } from "./icons";
 import { useProject, type IdeProject, type SaveStatus } from "./use-project";
 
@@ -189,6 +191,31 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
     }
     setTouch(window.matchMedia("(pointer: coarse)").matches || window.innerWidth < 768);
     /* eslint-enable react-hooks/set-state-in-effect */
+  }, []);
+
+  // Application installable et utilisable sans Internet (service worker, invitation d'installation, connexion).
+  const [offlineOpen, setOfflineOpen] = useState(false);
+  const [installEvent, setInstallEvent] = useState<InstallPromptEvent | null>(null);
+  const [online, setOnline] = useState(true);
+  useEffect(() => {
+    void registerServiceWorker();
+    const onPrompt = (e: Event) => {
+      e.preventDefault();
+      setInstallEvent(e as InstallPromptEvent);
+    };
+    const onInstalled = () => setInstallEvent(null);
+    const onNet = () => setOnline(navigator.onLine);
+    onNet();
+    window.addEventListener("beforeinstallprompt", onPrompt);
+    window.addEventListener("appinstalled", onInstalled);
+    window.addEventListener("online", onNet);
+    window.addEventListener("offline", onNet);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onPrompt);
+      window.removeEventListener("appinstalled", onInstalled);
+      window.removeEventListener("online", onNet);
+      window.removeEventListener("offline", onNet);
+    };
   }, []);
 
   // Clavier du téléphone ouvert : l'IDE se limite à la partie visible de l'écran,
@@ -434,6 +461,26 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
   };
   const format = () => void focusedEditor()?.getAction("editor.action.formatDocument")?.run();
 
+  /** Charge les modules de chaque langage de l'éditeur (coloration, analyse) pour les garder hors ligne. */
+  const loadLanguages = async () => {
+    const monaco = monacoRef.current;
+    if (!monaco) throw new Error("L'éditeur n'est pas encore chargé : patientez un instant puis réessayez.");
+    const langs = ["html", "css", "javascript", "typescript", "json", "python", "c", "java", "markdown", "sql", "php", "pseudocode"];
+    await Promise.all(langs.map((l) => monaco.editor.colorize("x", l, {}).catch(() => "")));
+    // Les analyseurs (CSS, HTML, JSON, TypeScript/JavaScript) tournent dans des workers chargés à la demande.
+    const models = ["css", "html", "json", "typescript", "javascript"].map((l, i) => monaco.editor.createModel(l === "html" ? "<p></p>" : "", l, monaco.Uri.parse(`inmemory://hors-ligne/${i}.${l}`)));
+    await new Promise((r) => setTimeout(r, 2500));
+    models.forEach((m) => m.dispose());
+  };
+  const warmEngines = async () => {
+    await runInBrowser("pseudocode", [{ name: "main.algo", content: "ALGORITHME Test\nDEBUT\n  ECRIRE(1)\nFIN\n" }], "");
+    await runInBrowser("javascript", [{ name: "main.js", content: "console.log(1)" }], "");
+  };
+  const warmPython = async () => {
+    const r = await runInBrowser("python", [{ name: "main.py", content: "print(1)" }], "");
+    if (r.status !== "ok") throw new Error(r.stderr || "Python n'a pas pu être téléchargé.");
+  };
+
   /** Touche du clavier de programmation (téléphone) appliquée à l'éditeur actif. */
   const keyAction = (a: KeyAction) => {
     if (a.kind === "assistant") return setRight((r) => (r === "ia" ? null : "ia"));
@@ -578,6 +625,7 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
         { label: "Importer des fichiers ou un ZIP…", onClick: explorerActions.importFiles },
         { label: "Importer un dossier…", onClick: explorerActions.importFolder },
         { label: "Exporter le projet (ZIP)", onClick: explorerActions.exportZip },
+        { label: "Installer et utiliser sans Internet…", onClick: () => setOfflineOpen(true) },
         "separateur",
         !project.id && loggedIn
           ? { label: "Enregistrer dans mon compte…", shortcut: "Ctrl+S", onClick: () => void saveToAccount() }
@@ -660,6 +708,7 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
         { label: "Laboratoire d'algorithmique", onClick: () => router.push("/laboratoire") },
         { label: "Professeur IA", onClick: () => router.push("/professeur-ia") },
         "separateur",
+        { label: "Installer et utiliser sans Internet…", onClick: () => setOfflineOpen(true) },
         { label: `Accueil ${BRAND.name}`, onClick: () => router.push("/") },
       ],
     },
@@ -834,6 +883,7 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
                           { label: "Ouvrir un projet…", onClick: () => setSide("projets") },
                           { label: "Importer des fichiers ou un ZIP…", onClick: explorerActions.importFiles },
                           { label: "Importer un dossier…", onClick: explorerActions.importFolder },
+                          { label: "Installer et utiliser sans Internet…", onClick: () => setOfflineOpen(true) },
                         ],
                         recent: project.files.slice(0, 6).map((f) => ({ label: f.path, onClick: () => openFile(f.path, i) })),
                       }}
@@ -1027,6 +1077,11 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
           <span data-testid="ide-statut">{STATUS_TEXT[status]}</span>
           {project.id ? <span>· rév. {project.revision}</span> : null}
         </StatusItem>
+        {!online && (
+          <StatusItem onClick={() => setOfflineOpen(true)} label="Hors connexion">
+            <span className="rounded-sm bg-amber-500 px-1 font-semibold text-black" data-testid="ide-hors-connexion">Hors connexion</span>
+          </StatusItem>
+        )}
         <StatusItem onClick={() => setBottom("problemes")} label="Problèmes">
           <span aria-hidden>ⓧ</span> {errorsCount} <span aria-hidden>⚠</span> {warningsCount}
         </StatusItem>
@@ -1059,6 +1114,7 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
           {runnable ? "▶ exécutable" : previewPath && (activeLang?.preview || !activePath) ? (right === "apercu" ? "◉ aperçu actif" : "aperçu web") : activePath ? "édition seule" : ""}
         </StatusItem>
       </footer>
+      <OfflineDialog open={offlineOpen} onClose={() => setOfflineOpen(false)} installEvent={installEvent} onInstalled={() => setInstallEvent(null)} online={online} loadLanguages={loadLanguages} warmPython={warmPython} warmEngines={warmEngines} />
       {touch && activePath && !(bottom && bottomMax) && <MobileKeys language={activeLang?.monaco ?? null} onAction={keyAction} />}
     </div>
   );

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { IdeShell } from "@/components/ide/ide-shell";
 import type { IdeProject } from "@/components/ide/use-project";
@@ -10,7 +10,13 @@ import { createClient } from "@/lib/supabase/server";
 export const metadata: Metadata = {
   title: "UPL IDE",
   description: "Environnement de développement : projets à dossiers, onglets, vue fractionnée, exécution, aperçu web et historique des versions.",
+  // Application installable (écran d'accueil) et utilisable sans Internet.
+  manifest: "/ide.webmanifest",
+  appleWebApp: { capable: true, title: "UPL IDE", statusBarStyle: "black-translucent" },
+  icons: { apple: "/icons/apple-touch-icon.png" },
 };
+
+export const viewport: Viewport = { themeColor: "#181818" };
 
 export default async function IdePage({ searchParams }: PageProps<"/ide">) {
   const sp = await searchParams;

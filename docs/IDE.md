@@ -48,7 +48,7 @@ Ce document couvre trois choses :
 | 6 | Génération de projets complets par IA | ⚪ |
 | 7 | Git et GitHub | ⚪ (historique des versions et points de sauvegarde déjà disponibles) |
 | 8 | UPL Studio | ⚪ (modèles exécutables disponibles ; React, Next.js et Node.js demandent l'environnement isolé de la phase 4 🔌) |
-| 9 | Synchronisation cloud et déploiement | 🔵 Synchronisation multi-appareils livrée ; déploiement à faire 🔌 |
+| 9 | Synchronisation cloud et déploiement | 🔵 Synchronisation multi-appareils livrée ; **application installable et utilisable sans Internet** ; déploiement de projets à faire 🔌 |
 | 10 | Tests, sécurité, mise en production | continu |
 
 ### Phase 2 — fonctionnalités livrées
@@ -114,6 +114,33 @@ L'IDE reprend la disposition familière des éditeurs de code de bureau, avec un
   - **commandes** : tabulation, ↑ ↓ ← →, annuler, rétablir, palette de commandes, assistant IA.
 
   Les touches ne retirent pas le focus de l'éditeur : le clavier du téléphone reste ouvert.
+
+### Application installable et utilisable sans Internet (novembre 2026)
+
+Comme PharmaGestion, UPL IDE est une **application web installable** : pas de magasin d'applications.
+
+- **Installation** : menu **Fichier → Installer et utiliser sans Internet…**
+  - bouton « Installer » sur Chrome, Edge et Android ;
+  - étapes guidées sur iPhone et iPad (Safari → Partager → Sur l'écran d'accueil) ;
+  - manifeste `/ide.webmanifest` (nom « UPL IDE », icônes `public/icons/`).
+- **Préparation hors ligne** (une seule fois, avec Internet), qui garde sur l'appareil :
+  - la page de l'IDE et ses fichiers ;
+  - les modules de chaque langage de l'éditeur ;
+  - les moteurs pseudocode et JavaScript ;
+  - Python en option (environ 10 Mo) ;
+  - l'**Éditeur** (`/editeur`) et le **Laboratoire d'algorithmique** (`/laboratoire`). Ils sont chargés dans un cadre invisible de même origine (`X-Frame-Options: SAMEORIGIN`) et une exécution est lancée, pour garder aussi leurs moteurs.
+- **Service worker** `public/sw.js`, avec trois règles :
+  - pages `/ide`, `/editeur`, `/laboratoire` : réseau d'abord, copie locale sans connexion ;
+  - `/_next/static` et CDN figés (Monaco, Pyodide) : copie locale d'abord ;
+  - API, authentification et administration : jamais mises en cache.
+
+  Un même fichier de worker sert plusieurs moteurs, distingués par `#params=…`. Le service worker renvoie donc aux workers une réponse sans adresse propre, pour qu'ils gardent l'adresse exacte demandée.
+- **Sans Internet** :
+  - fonctionnent : UPL IDE, l'Éditeur, le Laboratoire, les fichiers (projet local), le pseudocode, JavaScript, Python (s'il a été préparé) et l'aperçu HTML/CSS ;
+  - les cours et les exercices demandent Internet : une page « Pas de connexion Internet » propose d'ouvrir UPL IDE ;
+  - le C et le Java affichent « Hors connexion… » ;
+  - la barre d'état affiche « Hors connexion ».
+- **Test** : `e2e/hors-ligne.spec.ts` prépare l'IDE, coupe le réseau, recharge, puis exécute JavaScript et le pseudocode, vérifie l'aperçu et le message du C.
 
 ### Ce qui n'est pas affiché, faute de service réel
 
