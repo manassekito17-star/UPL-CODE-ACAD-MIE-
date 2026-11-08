@@ -178,3 +178,22 @@ check(`Statistiques : comptes (${ov.accounts_total}), inscrits du jour (${ov.sig
 const series = (await as(ADM, "select * from public.admin_daily_series(30)")).rows;
 check("Série quotidienne sur 30 jours, inscriptions du jour comptées", series.length === 30 && Number(series[29].signups) === Number(ov.signups_today));
 check("Série : utilisateurs actifs du jour mesurés", Number(series[29].active_users) >= 1);
+// Administration des utilisateurs : suspension temporaire et journal d'activité.
+const newProgram = async (u) => { try { await as(u, `insert into public.programs (user_id, title, language_id, files) values ($1, 'x', 'python', '[]')`, [u]); return true; } catch { return false; } };
+await as(ADM, "update public.profiles set status = 'suspendu', suspended_until = now() + interval '1 day' where id = $1", [B]);
+check("Suspension temporaire en cours : le compte est bloqué", !(await newProgram(B)));
+await as(ADM, "update public.profiles set suspended_until = now() - interval '1 minute' where id = $1", [B]);
+check("Suspension temporaire expirée : le compte redevient actif automatiquement", await newProgram(B));
+await as(ADM, "update public.profiles set status = 'actif', suspended_until = null where id = $1", [B]);
+denied = false; try { await as(A, "update public.profiles set suspended_until = now() where id = $1", [A]); } catch { denied = true; }
+check("Un étudiant ne peut pas modifier sa fin de suspension", denied);
+denied = false; try { await as(A, "select * from public.admin_user_activity(null, 50)"); } catch { denied = true; }
+check("Journal d'activité refusé à un étudiant", denied);
+denied = false; try { await as(null, "select * from public.admin_user_summary($1)", [A]); } catch { denied = true; }
+check("Résumé d'un utilisateur refusé à un visiteur", denied);
+const actA = (await as(ADM, "select * from public.admin_user_activity($1, 50)", [A])).rows;
+check(`Journal d'activité d'un étudiant (${actA.length} événement(s), dont chapitre terminé)`, actA.length > 0 && actA.every((r) => r.user_id === A) && actA.some((r) => r.kind === "chapitre" && /terminé/.test(r.label)));
+const actAll = (await as(ADM, "select * from public.admin_user_activity(null, 50)")).rows;
+check("Journal d'activité global : plusieurs utilisateurs, du plus récent au plus ancien", new Set(actAll.map((r) => r.user_id)).size >= 2 && actAll.every((r, i) => i === 0 || new Date(actAll[i - 1].at) >= new Date(r.at)));
+const sumA = (await as(ADM, "select * from public.admin_user_summary($1)", [A])).rows[0];
+check(`Résumé d'un étudiant (${sumA.chapters_done} chapitre(s) terminé(s))`, Number(sumA.chapters_done) >= 1);

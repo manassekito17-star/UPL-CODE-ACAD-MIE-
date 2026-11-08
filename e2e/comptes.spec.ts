@@ -61,23 +61,65 @@ test("espace personnel, administration privée, statistiques et export", async (
   expect(csv.toLowerCase()).not.toMatch(/password|mot de passe|token|jeton/);
   expect(await (await page.request.get("/admin/export/statistiques")).text()).toContain("Jour (UTC);Inscriptions;Utilisateurs actifs");
 
-  // Gestion des utilisateurs : recherche par e-mail, suspension avec confirmation
+  // Panneau d'administration : menu latéral, tableau de bord et activité
+  await expect(page.getByTestId("panneau-admin").getByRole("navigation")).toContainText("Utilisateurs");
+  await expect(page.getByTestId("activite-recente")).toBeVisible();
+
+  // Gestion des utilisateurs : recherche par e-mail, fiche, suspension temporaire avec motif
   const other = await browser.newContext();
   const p2 = await other.newPage();
   const otherEmail = (await signUpStudent(p2, "Étudiant Suspendu"))!;
+  await p2.goto("/formations/algorithmique"); // une activité à suivre
   await page.goto(`/admin/utilisateurs?q=${encodeURIComponent(otherEmail)}`);
-  const card = page.locator("div").filter({ hasText: otherEmail }).filter({ has: page.getByRole("button", { name: "Suspendre" }) }).last();
-  await expect(card).toContainText("Connexion : e-mail");
+  const row = page.getByTestId("table-utilisateurs").getByRole("row").filter({ hasText: otherEmail });
+  await expect(row).toContainText("E-mail");
+  await expect(row).toContainText("Actif");
+  await row.getByRole("link", { name: "Voir" }).click();
+  await expect(page.getByTestId("fiche-utilisateur")).toContainText(otherEmail);
+  await expect(page.getByTestId("resume-utilisateur")).toContainText("Chapitres terminés");
+  await expect(page.getByTestId("activite-utilisateur")).toContainText("inscription");
+  const suspension = page.getByTestId("form-suspension");
+  await suspension.locator('select[name="duration"]').selectOption("7j");
+  await suspension.locator('input[name="reason"]').fill("Test de suspension");
   page.once("dialog", (d) => d.accept());
-  await card.getByRole("button", { name: "Suspendre" }).click();
-  await expect(page.locator("div").filter({ hasText: otherEmail }).getByRole("button", { name: "Réactiver" }).last()).toBeVisible();
+  await suspension.getByRole("button", { name: "Suspendre" }).click();
+  await expect(page.getByText("Compte suspendu (7 jours).")).toBeVisible();
+  await expect(page.getByTestId("fiche-utilisateur")).toContainText("Suspendu jusqu'au");
   await p2.goto("/tableau-de-bord");
   await expect(p2).toHaveURL(/connexion|compte-suspendu/);
+  page.once("dialog", (d) => d.accept());
+  await page.getByRole("button", { name: "Réactiver maintenant" }).click();
+  await expect(page.getByText("Compte réactivé.")).toBeVisible();
   await other.close();
+
+  // Activité globale
+  await page.goto("/admin/activite");
+  await expect(page.getByTestId("activite-globale")).toContainText("Étudiant Suspendu");
+
+  // Suppression définitive : l'adresse e-mail doit être recopiée
+  const third = await browser.newContext();
+  const p3 = await third.newPage();
+  const thirdEmail = (await signUpStudent(p3, "Étudiant À Supprimer"))!;
+  await third.close();
+  await page.goto(`/admin/utilisateurs?q=${encodeURIComponent(thirdEmail)}`);
+  await page.getByTestId("table-utilisateurs").getByRole("row").filter({ hasText: thirdEmail }).getByRole("link", { name: "Voir" }).click();
+  const del = page.getByTestId("form-suppression");
+  await del.locator('input[name="confirmEmail"]').fill("mauvaise@adresse.cd");
+  page.once("dialog", (d) => d.accept());
+  await del.getByRole("button", { name: "Supprimer définitivement" }).click();
+  await expect(page.getByText("ne correspond pas : compte non supprimé")).toBeVisible();
+  await page.getByTestId("form-suppression").locator('input[name="confirmEmail"]').fill(thirdEmail);
+  page.once("dialog", (d) => d.accept());
+  await page.getByTestId("form-suppression").getByRole("button", { name: "Supprimer définitivement" }).click();
+  await expect(page).toHaveURL(/\/admin\/utilisateurs\?message=/);
+  await expect(page.getByText(`Compte ${thirdEmail} supprimé définitivement.`)).toBeVisible();
+  await page.goto(`/admin/utilisateurs?q=${encodeURIComponent(thirdEmail)}`);
+  await expect(page.getByTestId("table-utilisateurs")).toContainText("Aucun compte ne correspond.");
 
   // Journal d'audit
   await page.goto("/admin/journaux");
   await expect(page.locator("main")).toContainText("utilisateur.suspendu");
+  await expect(page.locator("main")).toContainText("utilisateur.supprime");
   await expect(page.locator("main")).toContainText("export.csv");
 });
 
