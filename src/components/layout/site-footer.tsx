@@ -29,7 +29,11 @@ export function SiteFooter() {
           </p>
         </div>
       </Container>
-      <div className="border-t border-white/10 py-4 text-center text-xs text-gray-500">© {new Date().getFullYear()} {BRAND.name}</div>
+      <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 border-t border-white/10 px-4 py-4 text-center text-xs text-gray-500">
+        <span>© {new Date().getFullYear()} {BRAND.name}</span>
+        <Link href="/confidentialite" className="hover:text-cyan-accent">Confidentialité</Link>
+        <Link href="/conditions" className="hover:text-cyan-accent">Conditions d&apos;utilisation</Link>
+      </div>
     </footer>
   );
 }

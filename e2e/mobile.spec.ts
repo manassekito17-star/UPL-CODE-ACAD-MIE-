@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-for (const path of ["/", "/ide", "/laboratoire", "/formations", "/formations/python/fonctions", "/formations/algorithmique", "/formations/algorithmique/niveaux/1", "/formations/html/html-liens-images", "/formations/algorithmique/positionnement", "/exercices", "/exercices/algo-mention", "/exercices/css-carte-boite", "/editeur", "/editeur?langage=html"]) {
+for (const path of ["/", "/ide", "/laboratoire", "/formations", "/formations/python/fonctions", "/formations/algorithmique", "/formations/algorithmique/niveaux/1", "/formations/html/html-liens-images", "/formations/algorithmique/positionnement", "/exercices", "/exercices/algo-mention", "/exercices/css-carte-boite", "/editeur", "/editeur?langage=html", "/confidentialite", "/conditions"]) {
   test(`pas de défilement horizontal sur ${path}`, async ({ page }) => {
     await page.goto(path);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
