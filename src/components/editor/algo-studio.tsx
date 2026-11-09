@@ -327,7 +327,7 @@ export function AlgoStudio({
     setPanel(Boolean(LANGUAGES[next].preview));
   };
 
-  const run = async () => {
+  const run = async (input: string = stdin) => {
     if (running) return;
     setPanel(true);
     if (isWeb) {
@@ -339,7 +339,7 @@ export function AlgoStudio({
     setError(null);
     setResult(null);
     setStatus(null);
-    const { result: r, error: e } = await runProgram(language, files, stdin, { programId, onStatus: setStatus });
+    const { result: r, error: e } = await runProgram(language, files, input, { programId, onStatus: setStatus });
     setRunning(false);
     setStatus(null);
     if (e) setError(e);
@@ -347,6 +347,17 @@ export function AlgoStudio({
       setResult(r);
       setMarkers(r.errorLine ? [{ line: r.errorLine, message: [r.compileOutput, r.stderr].filter(Boolean).join("\n") }] : []);
     }
+  };
+
+  // « lire » sans valeur : la console demande la valeur, puis relance l'algorithme avec cette entrée en plus
+  // (comme un interpréteur interactif ; les valeurs données restent dans « Entrée »).
+  const missingInput = !running && result && result.status !== "ok" ? (result.stderr || "").match(/Aucune donnée disponible pour LIRE\((.+?)\)/i)?.[1] : undefined;
+  const [answer, setAnswer] = useState("");
+  const giveInput = () => {
+    const next = (stdin && !stdin.endsWith("\n") ? `${stdin}\n` : stdin) + answer;
+    setStdin(next);
+    setAnswer("");
+    void run(next);
   };
 
   const save = async () => {
@@ -519,7 +530,7 @@ export function AlgoStudio({
           </Link>
         )}
         <h1 className="min-w-0 flex-1 truncate pl-1 text-lg font-semibold">{title || "UPL"}</h1>
-        <button type="button" className={iconButton} aria-label={isWeb ? "↻ Actualiser l'aperçu" : "▶ Exécuter"} title="Exécuter (Ctrl + Entrée)" aria-keyshortcuts="Control+Enter" onClick={run} disabled={running}>
+        <button type="button" className={iconButton} aria-label={isWeb ? "↻ Actualiser l'aperçu" : "▶ Exécuter"} title="Exécuter (Ctrl + Entrée)" aria-keyshortcuts="Control+Enter" onClick={() => run()} disabled={running}>
           {running ? <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" /> : <svg viewBox="0 0 24 24" className="h-6 w-6" fill="currentColor" aria-hidden><path d="M7 4.5v15l13-7.5z" /></svg>}
         </button>
         <button type="button" className={iconButton} aria-label="Exécution pas à pas" title="Exécution pas à pas (laboratoire)" onClick={debug}>
@@ -604,7 +615,7 @@ export function AlgoStudio({
           ) : (
             <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-auto p-2">
               <label className="flex shrink-0 flex-col gap-1 text-xs text-gray-400">
-                Entrée (une valeur par ligne, lue par lire)
+                Entrées déjà données (facultatif : la console vous les demande au moment de « lire »)
                 <textarea
                   value={stdin}
                   onChange={(e) => setStdin(e.target.value)}
@@ -620,9 +631,32 @@ export function AlgoStudio({
                 {error && <span className="text-red-300">{error}</span>}
                 {result?.compileOutput && <span className="text-red-300">{result.compileOutput}{"\n"}</span>}
                 {result?.stdout}
-                {result?.stderr && <span className="text-red-300">{result.stdout && !result.stdout.endsWith("\n") ? "\n" : ""}{result.stderr}</span>}
-                {result?.hint && <span className="mt-2 block text-amber-300">💡 {result.hint}</span>}
+                {result?.stderr && !missingInput && <span className="text-red-300">{result.stdout && !result.stdout.endsWith("\n") ? "\n" : ""}{result.stderr}</span>}
+                {result?.hint && !missingInput && <span className="mt-2 block text-amber-300">💡 {result.hint}</span>}
               </pre>
+                {missingInput && (
+                  <form
+                    className="flex shrink-0 items-center gap-2 rounded border border-[#f28c28]/60 bg-black/50 px-2 py-2 font-mono text-[13px]"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      giveInput();
+                    }}
+                    data-testid="saisie-console"
+                  >
+                    <span className="text-[#f28c28]">{missingInput} ?</span>
+                    <input
+                      autoFocus
+                      value={answer}
+                      onChange={(e) => setAnswer(e.target.value)}
+                      aria-label={`Valeur de ${missingInput}`}
+                      enterKeyHint="send"
+                      className="min-w-0 flex-1 border-b border-[#f28c28] bg-transparent font-mono text-gray-100 outline-none"
+                    />
+                    <button type="submit" className="rounded bg-[#f28c28] px-3 py-1 font-sans text-xs font-semibold text-black">
+                      OK
+                    </button>
+                  </form>
+                )}
             </div>
           )}
         </section>

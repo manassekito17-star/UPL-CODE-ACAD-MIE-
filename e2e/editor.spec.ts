@@ -63,3 +63,18 @@ test("page Éditeur plein écran : menus, exemples, clavier de symboles et pas �
   await page.locator(".monaco-editor").first().waitFor({ timeout: 60_000 });
   await expect.poll(() => page.evaluate(() => (window as unknown as { monaco: { editor: { getModels(): Array<{ getValue(): string }> } } }).monaco.editor.getModels().some((m) => m.getValue().includes("sommeNombres")))).toBe(true);
 });
+
+test("lire sans valeur préparée : la console demande la valeur puis continue (comme un interpréteur interactif)", async ({ page }) => {
+  await page.goto("/editeur?langage=pseudocode");
+  await setEditorCode(page, 'Algorithme moyenneNotes\nVariables n, i : entier\nVariables note, somme, moyenne : réel\nDébut\n  écrire("Combien de notes ? ")\n  lire(n)\n  somme <- 0\n  Pour i <- 1 à n Faire\n    écrire("Note ", i, " : ")\n    lire(note)\n    somme <- somme + note\n  FinPour\n  moyenne <- somme / n\n  écrire("Moyenne = ", moyenne)\nFin');
+  await run(page);
+  for (const [name, value] of [["n", "2"], ["note", "12"], ["note", "8"]]) {
+    const field = page.getByLabel(`Valeur de ${name}`);
+    await expect(field).toBeVisible();
+    await field.fill(value);
+    await field.press("Enter");
+  }
+  await expectConsole(page, "Moyenne = 10");
+  await expect(page.getByTestId("saisie-console")).toHaveCount(0);
+  await expect(page.getByLabel(/Entrée/)).toHaveValue("2\n12\n8");
+});
