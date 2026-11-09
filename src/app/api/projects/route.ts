@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { jsonError, parseBody, sameOrigin } from "@/lib/api";
+import { serverError, jsonError, parseBody, sameOrigin } from "@/lib/api";
 import { getCurrentUser } from "@/lib/auth";
 import { validateSnapshot } from "@/lib/ide/fs";
 import { addVersion, MAX_PROJECTS } from "@/lib/ide/server";
@@ -14,7 +14,7 @@ export async function GET() {
   if (!user) return jsonError(401, "Connexion requise.");
   const supabase = await createClient();
   const { data, error } = await supabase.from("projects").select("id, name, template, revision, updated_at").order("updated_at", { ascending: false }).limit(MAX_PROJECTS);
-  if (error) return jsonError(500, error.message);
+  if (error) return serverError(error);
   return NextResponse.json({ projects: data });
 }
 
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     .insert({ user_id: user.id, name: body.data.name, template: body.data.snapshot ? "import" : body.data.template, files: snap.project.files, folders: snap.project.folders })
     .select("id, name, template, revision, files, folders, updated_at")
     .single();
-  if (error) return jsonError(500, error.message);
+  if (error) return serverError(error);
   await addVersion(supabase, user.id, data.id, data.revision, snap.project, body.data.snapshot ? "Importation" : "Création", true);
   return NextResponse.json({ project: data });
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { jsonError, parseBody, sameOrigin } from "@/lib/api";
+import { serverError, jsonError, parseBody, sameOrigin } from "@/lib/api";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { programSchema } from "@/lib/validation";
@@ -33,7 +33,7 @@ export async function PUT(request: Request, ctx: RouteContext<"/api/programs/[id
     .eq("id", id)
     .select("id")
     .maybeSingle();
-  if (error) return jsonError(500, error.message);
+  if (error) return serverError(error);
   if (!data) return jsonError(404, "Programme introuvable.");
   return NextResponse.json({ id });
 }
@@ -46,6 +46,6 @@ export async function DELETE(request: Request, ctx: RouteContext<"/api/programs/
   if (!user) return jsonError(401, "Connexion requise.");
   const supabase = await createClient();
   const { error } = await supabase.from("programs").delete().eq("id", id);
-  if (error) return jsonError(500, error.message);
+  if (error) return serverError(error);
   return NextResponse.json({ deleted: true });
 }

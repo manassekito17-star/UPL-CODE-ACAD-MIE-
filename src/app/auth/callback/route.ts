@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { safeRedirectPath } from "@/lib/security/safe-redirect";
 /** Retour des connexions Google (OAuth) et des liens e-mail. */
 import { createClient } from "@/lib/supabase/server";
 
@@ -7,7 +8,7 @@ export async function GET(request: NextRequest) {
   const url = request.nextUrl;
   const code = url.searchParams.get("code");
   const suite = url.searchParams.get("suite") ?? "/tableau-de-bord";
-  const next = suite.startsWith("/") && !suite.startsWith("//") ? suite : "/tableau-de-bord";
+  const next = safeRedirectPath(suite);
   // Refus ou erreur renvoyés par le fournisseur (ex. l'utilisateur annule la connexion Google).
   if (url.searchParams.get("error")) return NextResponse.redirect(new URL("/connexion?erreur=google-annule", url.origin));
   if (code) {

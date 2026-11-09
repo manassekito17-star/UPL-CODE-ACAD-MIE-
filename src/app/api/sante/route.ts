@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth";
 import { publicEnv } from "@/lib/env";
 import { serverEnv } from "@/lib/server-env";
 import { inputIssues, keyKind, keyRef, urlIssues, urlRef } from "@/lib/sante/diagnostic";
@@ -11,6 +12,8 @@ export const dynamic = "force-dynamic";
  * le résultat d'une lecture publique du catalogue.
  */
 export async function GET() {
+  // Public : seulement « le service répond-il ? ». Le détail de configuration est réservé à l'administrateur.
+  const viewer = await getCurrentUser();
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   const service = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -51,6 +54,9 @@ export async function GET() {
   if (projet && refSecrete && refSecrete !== projet) alertes.push("La clé secrète appartient à un autre projet Supabase que l'URL.");
   if (service && serviceKind !== "jwt-service_role" && serviceKind !== "secret") alertes.push("SUPABASE_SERVICE_ROLE_KEY ne ressemble pas à une clé secrète (service_role / sb_secret_).");
 
+  if (!viewer?.isAdmin) {
+    return NextResponse.json({ ok: catalogue.ok }, { status: catalogue.ok ? 200 : 503, headers: { "Cache-Control": "no-store" } });
+  }
   return NextResponse.json(
     {
       site: process.env.NEXT_PUBLIC_SITE_URL ?? null,

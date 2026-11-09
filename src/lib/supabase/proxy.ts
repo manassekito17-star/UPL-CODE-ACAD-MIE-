@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { isSupabaseConfigured, publicEnv } from "../env";
+import { SESSION_COOKIE_OPTIONS } from "./cookies";
 
 /**
  * Connexion obligatoire : toute la plateforme demande un compte (Google ou e-mail), sauf
@@ -35,6 +36,9 @@ export async function updateSession(request: NextRequest) {
   if (!isSupabaseConfigured()) return response;
 
   const supabase = createServerClient(publicEnv.supabaseUrl, publicEnv.supabaseAnonKey, {
+    // Cookies de session illisibles par JavaScript (HttpOnly) : le navigateur ne parle jamais
+    // directement à Supabase, seul le serveur lit la session.
+    cookieOptions: SESSION_COOKIE_OPTIONS,
     cookies: {
       getAll() {
         return request.cookies.getAll();

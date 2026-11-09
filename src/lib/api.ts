@@ -7,6 +7,15 @@ export function jsonError(status: number, error: string, extra: Record<string, u
   return NextResponse.json({ error, ...extra }, { status });
 }
 
+/**
+ * Erreur interne : détail écrit dans les journaux du serveur, message générique pour l'utilisateur
+ * (pas de requête SQL, de nom de table ni de trace technique exposés).
+ */
+export function serverError(error: unknown, message = "Opération impossible pour le moment. Réessayez dans quelques instants.") {
+  console.error("[api]", error);
+  return jsonError(500, message);
+}
+
 /** Lit et valide le corps JSON d'une requête. */
 export async function parseBody<T extends z.ZodType>(request: Request, schema: T): Promise<{ data: z.infer<T> } | { response: NextResponse }> {
   let raw: unknown;

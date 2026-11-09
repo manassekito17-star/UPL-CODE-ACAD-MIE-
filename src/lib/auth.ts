@@ -84,15 +84,35 @@ export function isStaff(user: CurrentUser | null): boolean {
   return Boolean(user && user.status === "actif" && (user.isAdmin || user.isTeacher));
 }
 
+/**
+ * Second facteur (MFA) : un administrateur qui a activé un code de vérification doit l'avoir saisi
+ * pendant cette session (niveau « aal2 ») avant d'accéder à l'administration. La base applique la
+ * même règle (is_admin) : une session sans code n'a aucun droit d'administration.
+ */
+export const mfaStatus = cache(async (): Promise<{ enrolled: boolean; verified: boolean }> => {
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (error || !data) return { enrolled: false, verified: false };
+  return { enrolled: data.nextLevel === "aal2", verified: data.currentLevel === "aal2" };
+});
+
+async function requireMfaIfEnrolled(user: CurrentUser) {
+  if (!user.isAdmin) return;
+  const mfa = await mfaStatus();
+  if (mfa.enrolled && !mfa.verified) redirect("/verification-mfa");
+}
+
 /** Exige le rôle enseignant (avec la permission donnée) ou administrateur. */
 export async function requireStaff(permission?: TeacherPermission): Promise<CurrentUser> {
   const user = await requireUser("/admin");
   if (!isStaff(user) || (permission && !canTeach(user, permission))) redirect("/acces-refuse");
+  await requireMfaIfEnrolled(user);
   return user;
 }
 
 export async function requireAdmin(): Promise<CurrentUser> {
   const user = await requireUser("/admin");
   if (!user.isAdmin) redirect("/acces-refuse");
+  await requireMfaIfEnrolled(user);
   return user;
 }
