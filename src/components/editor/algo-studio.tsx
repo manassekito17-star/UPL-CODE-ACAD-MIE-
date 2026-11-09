@@ -196,7 +196,8 @@ export function AlgoStudio({
   initialNotice?: string | null;
 }) {
   const defaultFiles = useCallback(
-    (lang: LanguageId): SourceFile[] => LANGUAGES[lang].defaultFiles?.map((f) => ({ ...f })) ?? [{ name: LANGUAGES[lang].mainFile, content: LANGUAGES[lang].template }],
+    // Page blanche : chacun écrit son propre code (les modèles restent dans le menu « Exemples »).
+    (lang: LanguageId): SourceFile[] => LANGUAGES[lang].defaultFiles?.map((f) => ({ ...f, content: "" })) ?? [{ name: LANGUAGES[lang].mainFile, content: "" }],
     [],
   );
   const [language, setLanguage] = useState<LanguageId>(initialLanguage);
@@ -221,6 +222,48 @@ export function AlgoStudio({
   // Sélection en cours : barre Copier / Couper / Coller / Supprimer, et toucher = étendre la sélection.
   const [hasSelection, setHasSelection] = useState(false);
   const selectionRef = useRef(false);
+  // Poignées de début et de fin de sélection (à faire glisser au doigt, comme dans les applications de notes).
+  type Handle = { x: number; y: number; h: number };
+  const [handles, setHandles] = useState<{ start: Handle | null; end: Handle | null } | null>(null);
+  const placeHandles = (ed: MonacoEditor) => {
+    const sel = ed.getSelection();
+    if (!sel || sel.isEmpty()) return setHandles(null);
+    const height = ed.getLayoutInfo().height;
+    const at = (lineNumber: number, column: number): Handle | null => {
+      const p = ed.getScrolledVisiblePosition({ lineNumber, column });
+      return p && p.top >= -p.height && p.top <= height ? { x: p.left, y: p.top, h: p.height } : null;
+    };
+    setHandles({ start: at(sel.startLineNumber, sel.startColumn), end: at(sel.endLineNumber, sel.endColumn) });
+  };
+  const dragHandle = (which: "start" | "end", e: React.TouchEvent) => {
+    const ed = editorRef.current;
+    const sel = ed?.getSelection();
+    if (!ed || !sel) return;
+    e.stopPropagation();
+    e.preventDefault();
+    // L'autre extrémité reste fixe ; le doigt est sous le texte, on vise la ligne juste au-dessus.
+    const fixed = which === "start" ? { lineNumber: sel.endLineNumber, column: sel.endColumn } : { lineNumber: sel.startLineNumber, column: sel.startColumn };
+    const lift = (handles?.[which]?.h ?? 20) * 0.9 + 14;
+    const move = (ev: TouchEvent) => {
+      ev.preventDefault();
+      const t = ev.touches[0];
+      const p = ed.getTargetAtClientPoint(t.clientX, t.clientY - lift)?.position;
+      if (!p) return;
+      const pBefore = p.lineNumber < fixed.lineNumber || (p.lineNumber === fixed.lineNumber && p.column < fixed.column);
+      const [a, b] = pBefore ? [p, fixed] : [fixed, p];
+      if (a.lineNumber === b.lineNumber && a.column === b.column) return;
+      ed.setSelection({ startLineNumber: a.lineNumber, startColumn: a.column, endLineNumber: b.lineNumber, endColumn: b.column });
+    };
+    const end = () => {
+      window.removeEventListener("touchmove", move);
+      window.removeEventListener("touchend", end);
+      window.removeEventListener("touchcancel", end);
+    };
+    window.addEventListener("touchmove", move, { passive: false });
+    window.addEventListener("touchend", end);
+    window.addEventListener("touchcancel", end);
+  };
+  const onHandleTouch = (e: React.TouchEvent<HTMLDivElement>) => dragHandle(e.currentTarget.dataset.which === "start" ? "start" : "end", e);
   const router = useRouter();
 
   const lang = LANGUAGES[language];
@@ -234,12 +277,10 @@ export function AlgoStudio({
 
   // Plein écran : la page du site derrière ne défile plus.
   useEffect(() => {
+    // Le site derrière l'éditeur est masqué (y compris quand le clavier du téléphone fait défiler la page).
     const html = document.documentElement;
-    const previous = html.style.overflow;
-    html.style.overflow = "hidden";
-    return () => {
-      html.style.overflow = previous;
-    };
+    html.classList.add("upl-plein-ecran");
+    return () => html.classList.remove("upl-plein-ecran");
   }, []);
 
   // Clavier du téléphone ouvert : l'éditeur se limite à la partie visible, la rangée de symboles reste au-dessus du clavier.
@@ -639,9 +680,39 @@ export function AlgoStudio({
               const on = !e.selection.isEmpty();
               selectionRef.current = on;
               setHasSelection(on);
+              placeHandles(ed);
             });
+            ed.onDidScrollChange(() => placeHandles(ed));
+            ed.onDidLayoutChange(() => placeHandles(ed));
           }}
         />
+        {!current?.content && (
+          <p className="pointer-events-none absolute left-[72px] right-4 top-3 z-[5] font-mono text-sm leading-6 text-gray-500" data-testid="editeur-vide">
+            Écrivez votre algorithme ici…
+            <br />
+            (des exemples prêts à l&apos;emploi sont dans le menu ⋮ → Exemples)
+          </p>
+        )}
+        {hasSelection &&
+          handles &&
+          (["start", "end"] as const).map((which) => {
+            const hd = handles[which];
+            if (!hd) return null;
+            return (
+              <div key={which} className="pointer-events-none absolute z-20" style={{ left: hd.x, top: hd.y }} data-testid={`poignee-${which === "start" ? "debut" : "fin"}`}>
+                <div className="absolute left-[-1px] top-0 w-[3px] rounded bg-[#f28c28]" style={{ height: hd.h }} />
+                <div
+                  className="pointer-events-auto absolute -translate-x-1/2 p-2.5"
+                  style={{ top: hd.h - 4, touchAction: "none" }}
+                  data-which={which}
+                  onTouchStart={onHandleTouch}
+                  aria-hidden
+                >
+                  <div className="h-5 w-5 rounded-full border-2 border-white bg-[#f28c28] shadow-lg" />
+                </div>
+              </div>
+            );
+          })}
         {hasSelection && (
           <div className="absolute inset-x-2 bottom-2 z-10 flex items-stretch overflow-x-auto rounded-md shadow-2xl" style={{ background: "#45484a" }} role="toolbar" aria-label="Sélection" data-testid="barre-selection">
             {(["Tout", "Copier", "Couper", "Coller", "Supprimer"] as const).map((label) => (
