@@ -23,6 +23,7 @@ const PUBLIC_PATHS = new Set([
   "/sitemap.xml",
   "/manifest.webmanifest",
   "/ide.webmanifest",
+  "/editeur.webmanifest",
   "/sw.js",
 ]);
 const PUBLIC_PREFIXES = ["/auth/", "/api/", "/certificats/", "/workers/", "/icons/", "/opengraph-image", "/twitter-image"];

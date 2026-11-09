@@ -5,10 +5,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import type { LanguageId } from "@/content/types";
-import { runProgram, warmupPython } from "@/lib/execution/browser";
+import { runInBrowser, runProgram, warmupPython } from "@/lib/execution/browser";
 import { LANGUAGE_IDS, LANGUAGES } from "@/lib/execution/languages";
 import { STATUS_LABELS, type ExecutionResult, type SourceFile } from "@/lib/execution/types";
 import { buildPreviewDocument } from "@/lib/execution/web-document";
+import { OfflineDialog, type InstallPromptEvent } from "../ide/offline-dialog";
 import { cn } from "../ui";
 import type { MonacoEditor } from "./code-editor";
 import { WebPreview, type PreviewConsoleLine } from "./web-preview";
@@ -51,6 +52,7 @@ const PATHS = {
   terminal: "M4 5h16v14H4zM7 9l3 3-3 3M12 15h5",
   back: "M15 6l-6 6 6 6",
   folder: "M3 6h6l2 2h10v11H3z",
+  phone: "M7 2h10v20H7zM11 18h2M12 6v7M9 10l3 3 3-3",
   home: "M3 12l9-8 9 8M5 10v10h14V10",
 } as const;
 
@@ -168,7 +170,7 @@ function keysFor(language: LanguageId): Key[] {
 }
 
 interface MenuItem {
-  id: "nouveau" | "programmes" | "annuler" | "retablir" | "copier" | "coller" | "effacer" | "rechercher" | "remplacer" | "partager" | "telecharger" | "exemples" | "aide" | "entrainement" | "parametres";
+  id: "installer" | "nouveau" | "programmes" | "annuler" | "retablir" | "copier" | "coller" | "effacer" | "rechercher" | "remplacer" | "partager" | "telecharger" | "exemples" | "aide" | "entrainement" | "parametres";
   icon: keyof typeof PATHS;
   label: string;
   separatorBefore?: boolean;
@@ -218,6 +220,37 @@ export function AlgoStudio({
   const [fontSize, setFontSize] = useState(15);
   const [pasteText, setPasteText] = useState("");
   const editorRef = useRef<MonacoEditor | null>(null);
+  // Installation (écran d'accueil) et utilisation sans Internet.
+  const [offlineOpen, setOfflineOpen] = useState(false);
+  const [installEvent, setInstallEvent] = useState<InstallPromptEvent | null>(null);
+  const [online, setOnline] = useState(true);
+  useEffect(() => {
+    const onPrompt = (e: Event) => {
+      e.preventDefault();
+      setInstallEvent(e as InstallPromptEvent);
+    };
+    const onNet = () => setOnline(navigator.onLine);
+    onNet();
+    window.addEventListener("beforeinstallprompt", onPrompt);
+    window.addEventListener("online", onNet);
+    window.addEventListener("offline", onNet);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onPrompt);
+      window.removeEventListener("online", onNet);
+      window.removeEventListener("offline", onNet);
+    };
+  }, []);
+  const loadLanguages = async () => {
+    const monaco = (window as unknown as { monaco?: { editor: { colorize(t: string, l: string, o: object): Promise<string> } } }).monaco;
+    if (!monaco) throw new Error("L'éditeur n'est pas encore chargé : patientez un instant puis réessayez.");
+    await Promise.all(LANGUAGE_IDS.map((id) => monaco.editor.colorize("x", LANGUAGES[id].monaco, {}).catch(() => "")));
+    await runInBrowser("pseudocode", [{ name: "main.algo", content: "ALGORITHME Test\nDEBUT\n  ECRIRE(1)\nFIN\n" }], "");
+    await runInBrowser("javascript", [{ name: "main.js", content: "console.log(1)" }], "");
+  };
+  const warmPython = async () => {
+    const r = await runInBrowser("python", [{ name: "main.py", content: "print(1)" }], "");
+    if (r.status !== "ok") throw new Error(r.stderr || "Python n'a pas pu être téléchargé.");
+  };
   // Sélection en cours : barre Copier / Couper / Coller / Supprimer, et toucher = étendre la sélection.
   const [hasSelection, setHasSelection] = useState(false);
   // Poignées de début et de fin de sélection (à faire glisser au doigt, comme dans les applications de notes).
@@ -428,6 +461,10 @@ export function AlgoStudio({
       );
       return;
     }
+    if (!navigator.onLine) {
+      notify("Pas de connexion Internet : l'enregistrement dans « Mes programmes » se fera avec Internet. En attendant, ⋮ → Télécharger garde le fichier sur le téléphone.");
+      return;
+    }
     const t = title.trim() || prompt("Titre du programme :", "Mon programme")?.trim();
     if (!t) return;
     setTitle(t);
@@ -577,7 +614,8 @@ export function AlgoStudio({
   };
 
   const menuItems: MenuItem[] = [
-    { id: "nouveau", icon: "plus", label: "Nouveau programme" },
+    { id: "installer", icon: "phone", label: "Installer · utiliser sans Internet" },
+    { id: "nouveau", icon: "plus", label: "Nouveau programme", separatorBefore: true },
     { id: "programmes", icon: "folder", label: "Mes programmes" },
     { id: "annuler", icon: "undo", label: "Annuler", separatorBefore: true },
     { id: "retablir", icon: "redo", label: "Rétablir" },
@@ -618,6 +656,8 @@ export function AlgoStudio({
         return download();
       case "nouveau":
         return newProgram();
+      case "installer":
+        return setOfflineOpen(true);
       case "entrainement":
         return router.push("/exercices");
       default:
@@ -632,7 +672,20 @@ export function AlgoStudio({
   return (
     <div
       className="fixed inset-x-0 top-0 z-[60] flex w-screen max-w-full flex-col overflow-hidden text-gray-100"
-      style={{ background: BG, height: viewport ? viewport.height : "100dvh", top: viewport?.top ?? 0 }}
+      style={
+        {
+          background: BG,
+          height: viewport ? viewport.height : "100dvh",
+          top: viewport?.top ?? 0,
+          // Couleurs de la fenêtre « Installer · utiliser sans Internet » (partagée avec UPL IDE).
+          "--ide-border": "#4a4d50",
+          "--ide-menu": "#3c3f41",
+          "--ide-text": "#e8e8e8",
+          "--ide-muted": "#a8a8a8",
+          "--ide-accent": "#e07b1a",
+          "--ide-hover": "#4a4d50",
+        } as React.CSSProperties
+      }
       data-testid="editeur-algo"
     >
       {/* Barre du haut */}
@@ -645,7 +698,10 @@ export function AlgoStudio({
             <Icon name="back" />
           </Link>
         )}
-        <h1 className="min-w-0 flex-1 truncate pl-1 text-lg font-semibold">{title || "UPL"}</h1>
+        <h1 className="min-w-0 flex-1 truncate pl-1 text-lg font-semibold">
+          {title || "UPL"}
+          {!online && <span className="ml-2 rounded bg-amber-500/20 px-1.5 py-0.5 align-middle text-[11px] font-medium text-amber-300">hors ligne</span>}
+        </h1>
         <button type="button" className={iconButton} aria-label={isWeb ? "↻ Actualiser l'aperçu" : "▶ Exécuter"} title="Exécuter (Ctrl + Entrée)" aria-keyshortcuts="Control+Enter" onClick={() => run()} disabled={running}>
           {running ? <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" /> : <svg viewBox="0 0 24 24" className="h-6 w-6" fill="currentColor" aria-hidden><path d="M7 4.5v15l13-7.5z" /></svg>}
         </button>
@@ -867,6 +923,25 @@ export function AlgoStudio({
         ))}
       </div>
 
+      <OfflineDialog
+        open={offlineOpen}
+        onClose={() => setOfflineOpen(false)}
+        installEvent={installEvent}
+        onInstalled={() => setInstallEvent(null)}
+        online={online}
+        loadLanguages={loadLanguages}
+        warmPython={warmPython}
+        warmEngines={async () => {}}
+        appName="UPL Algo"
+        features={
+          <ul className="space-y-0.5 text-[var(--ide-muted)]">
+            <li>✓ Écrire et exécuter vos algorithmes (pseudocode), JavaScript et Python</li>
+            <li>✓ Console, saisie au moment de « lire », clavier de symboles</li>
+            <li>✓ Exemples, sélection, copier-coller, télécharger le fichier</li>
+            <li>✗ Enregistrer dans « Mes programmes », C et Java, cours en ligne (Internet nécessaire)</li>
+          </ul>
+        }
+      />
       {/* Menu « plus d'options » */}
       {menu && (
         <>
