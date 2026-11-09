@@ -10,6 +10,16 @@ import type { NextConfig } from "next";
  * - vercel.live : barre d'outils des déploiements de prévisualisation uniquement.
  * Les plugins (object), les changements de base et l'intégration du site par un autre site sont interdits.
  */
+/** Adresse Supabase configurée (y compris une instance locale en http pour les tests), en plus de *.supabase.co. */
+const supabaseOrigin = (() => {
+  try {
+    return new URL((process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").trim()).origin;
+  } catch {
+    return "";
+  }
+})();
+const extra = supabaseOrigin && !supabaseOrigin.endsWith(".supabase.co") ? ` ${supabaseOrigin}` : "";
+
 const csp = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob: https://cdn.jsdelivr.net https://vercel.live",
@@ -17,16 +27,15 @@ const csp = [
   "font-src 'self' data: https://cdn.jsdelivr.net",
   "img-src 'self' data: blob: https:",
   "media-src 'self' blob: https:",
-  "connect-src 'self' blob: data: https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net https://vercel.live",
+  `connect-src 'self' blob: data: https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net https://vercel.live${extra}`,
   "worker-src 'self' blob:",
   "child-src 'self' blob:",
   "frame-src 'self' blob: data: https://vercel.live",
   "frame-ancestors 'self'",
-  "form-action 'self' https://*.supabase.co https://accounts.google.com",
+  `form-action 'self' https://*.supabase.co https://accounts.google.com${extra}`,
   "base-uri 'self'",
   "object-src 'none'",
   "manifest-src 'self'",
-  "upgrade-insecure-requests",
 ].join("; ");
 
 const securityHeaders = [

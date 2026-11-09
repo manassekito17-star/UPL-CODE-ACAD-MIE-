@@ -10,7 +10,9 @@ const noop = () => () => {};
  * où Google refuse la connexion. Rien n'est bloqué : la connexion par e-mail reste possible.
  */
 export function InAppNotice() {
-  const info = useSyncExternalStore(noop, () => detectInApp(navigator.userAgent), () => ({ inApp: false }) as const);
+  // L'identifiant du navigateur (texte stable) est lu côté client ; rien n'est affiché côté serveur.
+  const ua = useSyncExternalStore(noop, () => navigator.userAgent, () => "");
+  const info = detectInApp(ua);
   const [copied, setCopied] = useState(false);
   if (!info.inApp) return null;
   const copy = async () => {
