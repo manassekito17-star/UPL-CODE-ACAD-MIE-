@@ -115,6 +115,7 @@ export function CodeEditor({
   theme = "upl-nuit",
   fontSize = 14,
   pageScroll = true,
+  extendSelectionOnTap,
   onEditor,
 }: {
   language: LanguageId;
@@ -130,6 +131,8 @@ export function CodeEditor({
   fontSize?: number;
   /** Défilement de la page par-dessus l'éditeur (éditeur intégré dans une page). Inutile en plein écran. */
   pageScroll?: boolean;
+  /** Toucher bref pendant une sélection : l'étendre jusque-là (barre de sélection ouverte). */
+  extendSelectionOnTap?: () => boolean;
   /** Accès à l'instance Monaco (clavier de symboles, annuler, rechercher…). */
   onEditor?: (editor: MonacoEditor) => void;
 }) {
@@ -203,7 +206,7 @@ export function CodeEditor({
         onEditor?.(editor);
         if (!pageScroll) return;
         // Balayage sur l'éditeur : le code défile, puis la page (sinon la page reste bloquée).
-        const stop = letPageScrollOverEditor(editor);
+        const stop = letPageScrollOverEditor(editor, { extendOnTap: extendSelectionOnTap });
         editor.onDidDispose(stop);
       }}
       loading={<div className="grid h-full place-items-center bg-nuit-950 text-sm text-gray-400">Chargement de l&apos;éditeur…</div>}

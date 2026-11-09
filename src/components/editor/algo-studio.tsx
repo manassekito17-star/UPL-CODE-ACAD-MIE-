@@ -218,6 +218,9 @@ export function AlgoStudio({
   const [fontSize, setFontSize] = useState(15);
   const [pasteText, setPasteText] = useState("");
   const editorRef = useRef<MonacoEditor | null>(null);
+  // Sélection en cours : barre Copier / Couper / Coller / Supprimer, et toucher = étendre la sélection.
+  const [hasSelection, setHasSelection] = useState(false);
+  const selectionRef = useRef(false);
   const router = useRouter();
 
   const lang = LANGUAGES[language];
@@ -345,7 +348,8 @@ export function AlgoStudio({
     if (e) setError(e);
     if (r) {
       setResult(r);
-      setMarkers(r.errorLine ? [{ line: r.errorLine, message: [r.compileOutput, r.stderr].filter(Boolean).join("\n") }] : []);
+      const waitsForInput = /Aucune donnée disponible pour LIRE/i.test(r.stderr || "");
+      setMarkers(r.errorLine && !waitsForInput ? [{ line: r.errorLine, message: [r.compileOutput, r.stderr].filter(Boolean).join("\n") }] : []);
     }
   };
 
@@ -415,16 +419,71 @@ export function AlgoStudio({
     ed.focus();
     ed.trigger("clavier", "type", { text });
   };
-  const copy = async () => {
+  const writeClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // Ancien navigateur ou permission refusée : copie par une zone de texte temporaire.
+      const ta = Object.assign(document.createElement("textarea"), { value: text });
+      ta.setAttribute("readonly", "");
+      ta.style.cssText = "position:fixed;top:0;left:0;opacity:0";
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, text.length);
+      let ok = false;
+      try {
+        ok = document.execCommand("copy");
+      } catch {
+        ok = false;
+      }
+      ta.remove();
+      return ok;
+    }
+  };
+  const selectedText = () => {
     const ed = editorRef.current;
     const sel = ed?.getSelection();
-    const selected = sel && !sel.isEmpty() ? (ed?.getModel()?.getValueInRange(sel) ?? "") : "";
-    try {
-      await navigator.clipboard.writeText(selected || (current?.content ?? ""));
-      notify(selected ? "Sélection copiée ✓" : "Tout le code est copié ✓");
-    } catch {
-      notify("Copie impossible : sélectionnez le code puis utilisez le menu du téléphone.");
-    }
+    return sel && !sel.isEmpty() ? (ed?.getModel()?.getValueInRange(sel) ?? "") : "";
+  };
+  const copy = async () => {
+    const selected = selectedText();
+    const ok = await writeClipboard(selected || (current?.content ?? ""));
+    notify(ok ? (selected ? "Sélection copiée ✓" : "Tout le code est copié ✓") : "Copie impossible : utilisez le menu du téléphone.");
+  };
+  const deleteSelection = () => {
+    const ed = editorRef.current;
+    const sel = ed?.getSelection();
+    if (!ed || !sel || sel.isEmpty()) return;
+    ed.executeEdits("selection", [{ range: sel, text: "", forceMoveMarkers: true }]);
+    ed.focus();
+  };
+  const cut = async () => {
+    const selected = selectedText();
+    if (!selected) return;
+    if (await writeClipboard(selected)) {
+      deleteSelection();
+      notify("Sélection coupée ✓");
+    } else notify("Copie impossible : utilisez le menu du téléphone.");
+  };
+  const selectAll = () => {
+    const ed = editorRef.current;
+    const model = ed?.getModel() as unknown as { getFullModelRange(): Parameters<NonNullable<typeof ed>["setSelection"]>[0] } | null;
+    if (!ed || !model) return;
+    ed.setSelection(model.getFullModelRange());
+    ed.focus();
+  };
+  const onSelectionAction = (label: "Tout" | "Copier" | "Couper" | "Coller" | "Supprimer") => {
+    if (label === "Tout") return selectAll();
+    if (label === "Copier") return void copy();
+    if (label === "Couper") return void cut();
+    if (label === "Coller") return void paste();
+    deleteSelection();
+  };
+  const unselect = () => {
+    const ed = editorRef.current;
+    const pos = ed?.getPosition();
+    if (ed && pos) ed.setPosition(pos);
   };
   const paste = async () => {
     try {
@@ -515,7 +574,7 @@ export function AlgoStudio({
 
   return (
     <div
-      className="fixed inset-x-0 top-0 z-[60] flex flex-col text-gray-100"
+      className="fixed inset-x-0 top-0 z-[60] flex w-screen max-w-full flex-col overflow-hidden text-gray-100"
       style={{ background: BG, height: viewport ? viewport.height : "100dvh", top: viewport?.top ?? 0 }}
       data-testid="editeur-algo"
     >
@@ -573,11 +632,37 @@ export function AlgoStudio({
           path={`algo/${language}/${current?.name}`}
           theme="upl-algo"
           fontSize={fontSize}
-          pageScroll={false}
-          onEditor={(ed) => (editorRef.current = ed)}
+          extendSelectionOnTap={() => selectionRef.current}
+          onEditor={(ed) => {
+            editorRef.current = ed;
+            ed.onDidChangeCursorSelection((e) => {
+              const on = !e.selection.isEmpty();
+              selectionRef.current = on;
+              setHasSelection(on);
+            });
+          }}
         />
+        {hasSelection && (
+          <div className="absolute inset-x-2 bottom-2 z-10 flex items-stretch overflow-x-auto rounded-md shadow-2xl" style={{ background: "#45484a" }} role="toolbar" aria-label="Sélection" data-testid="barre-selection">
+            {(["Tout", "Copier", "Couper", "Coller", "Supprimer"] as const).map((label) => (
+              <button
+                key={label}
+                type="button"
+                onPointerDown={(e) => e.preventDefault()}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => onSelectionAction(label)}
+                className="shrink-0 px-3 py-2.5 text-sm font-medium text-white active:bg-[#f28c28] active:text-black"
+              >
+                {label}
+              </button>
+            ))}
+            <button type="button" onPointerDown={(e) => e.preventDefault()} onClick={unselect} aria-label="Fermer la sélection" className="ml-auto shrink-0 px-3 text-gray-300">
+              ✕
+            </button>
+          </div>
+        )}
         {toast && (
-          <div className="pointer-events-auto absolute inset-x-3 bottom-3 z-10 rounded-md bg-[#1f1f1f] px-4 py-3 text-sm text-white shadow-xl" role="status">
+          <div className="pointer-events-auto absolute inset-x-3 top-3 z-10 rounded-md bg-[#1f1f1f] px-4 py-3 text-sm text-white shadow-xl" role="status">
             {toast}
           </div>
         )}
@@ -589,7 +674,8 @@ export function AlgoStudio({
           <div className="flex shrink-0 items-center gap-2 px-3 py-1.5" style={{ background: BAR }}>
             <Icon name="terminal" className="h-4 w-4 text-[#f28c28]" />
             <span className="text-sm font-semibold">{isWeb ? "Aperçu" : "Console"}</span>
-            {result && (
+            {result && missingInput && <span className="truncate text-xs text-amber-300">En attente de votre saisie…</span>}
+            {result && !missingInput && (
               <span className={cn("truncate text-xs", result.status === "ok" ? "text-green-400" : "text-red-400")}>
                 {STATUS_LABELS[result.status]}
                 {result.timeMs !== null && ` · ${result.timeMs} ms`}
@@ -615,7 +701,7 @@ export function AlgoStudio({
           ) : (
             <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-auto p-2">
               <label className="flex shrink-0 flex-col gap-1 text-xs text-gray-400">
-                Entrées déjà données (facultatif : la console vous les demande au moment de « lire »)
+                Entrées (facultatif : demandées au moment de « lire »)
                 <textarea
                   value={stdin}
                   onChange={(e) => setStdin(e.target.value)}

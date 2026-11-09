@@ -39,3 +39,27 @@ test("sur téléphone : un balayage commencé sur un éditeur fait défiler la p
   await swipe(Math.max(top2 + 30, 80), Math.max(top2 + 30, 80) + 250);
   await expect.poll(() => page.evaluate(() => scrollY)).toBeLessThan(after);
 });
+
+test("sur téléphone : appui long pour sélectionner, glisser pour étendre, puis Supprimer", async ({ page, context }) => {
+  await page.goto("/editeur?langage=pseudocode");
+  await page.locator(".monaco-editor").first().waitFor({ timeout: 60_000 });
+  await page.waitForFunction(() => Boolean((window as unknown as { monaco?: unknown }).monaco));
+  const code = () => page.evaluate(() => (window as unknown as { monaco: { editor: { getModels(): Array<{ getValue(): string }> } } }).monaco.editor.getModels()[0].getValue());
+  const line1 = page.locator(".view-line").first();
+  const box = (await line1.boundingBox())!;
+  const cdp = await context.newCDPSession(page);
+  const x = box.x + 20;
+  const y = box.y + box.height / 2;
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
+  await page.waitForTimeout(700); // appui long
+  await expect(page.getByTestId("barre-selection")).toBeVisible();
+  // Glisser vers la droite : la sélection s'étend sur toute la première ligne.
+  for (let i = 1; i <= 6; i++) await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x + i * 50, y }] });
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  const before = await code();
+  await page.getByTestId("barre-selection").getByRole("button", { name: "Supprimer" }).click();
+  const after = await code();
+  expect(after.length).toBeLessThan(before.length - 10);
+  expect(after.split("\n")[0]).not.toContain("ALGORITHME");
+  await expect(page.getByTestId("barre-selection")).toHaveCount(0);
+});
