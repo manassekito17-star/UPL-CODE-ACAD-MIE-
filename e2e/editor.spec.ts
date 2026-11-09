@@ -68,6 +68,7 @@ test("lire sans valeur préparée : la console demande la valeur puis continue (
   await page.goto("/editeur?langage=pseudocode");
   await setEditorCode(page, 'Algorithme moyenneNotes\nVariables n, i : entier\nVariables note, somme, moyenne : réel\nDébut\n  écrire("Combien de notes ? ")\n  lire(n)\n  somme <- 0\n  Pour i <- 1 à n Faire\n    écrire("Note ", i, " : ")\n    lire(note)\n    somme <- somme + note\n  FinPour\n  moyenne <- somme / n\n  écrire("Moyenne = ", moyenne)\nFin');
   await run(page);
+  await expect(page.getByText(/En attente de votre saisie…/)).toBeVisible();
   for (const [name, value] of [["n", "2"], ["note", "12"], ["note", "8"]]) {
     const field = page.getByLabel(`Valeur de ${name}`);
     await expect(field).toBeVisible();
