@@ -30,10 +30,10 @@ test("administrateur : activation du second facteur puis code exigé à la conne
   const enrolledWindow = Math.floor(Date.now() / 30000);
   await page.getByLabel("Code à 6 chiffres").fill(totp(secret));
   await page.getByRole("button", { name: "Confirmer l'activation" }).click();
-  // Message exact de réussite (« Non activé » est déjà affiché sur la page avant la confirmation).
-  await expect(page.getByText("Second facteur activé", { exact: false })).toBeVisible();
+  // Après confirmation, la page se met à jour d'elle-même (session « aal2 ») : statut « ✓ Activé ».
+  await expect(page.getByTestId("mfa-statut")).toContainText("✓ Activé");
   await page.reload();
-  await expect(page.getByTestId("mfa-statut")).toContainText("Activé");
+  await expect(page.getByTestId("mfa-statut")).toContainText("✓ Activé");
 
   // Nouvelle connexion : le panneau d'administration demande le code.
   await page.context().clearCookies();
