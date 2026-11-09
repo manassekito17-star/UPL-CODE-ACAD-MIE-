@@ -62,7 +62,6 @@ export default async function EditorPage({ searchParams }: PageProps<"/editeur">
       canSave={Boolean(user)}
       programId={programId}
       programTitle={title}
-      storageKey={programId || files ? undefined : "editeur"}
       back={back}
       initialNotice={notice}
     />

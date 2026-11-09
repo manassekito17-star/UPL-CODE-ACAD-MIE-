@@ -50,6 +50,7 @@ const PATHS = {
   settings: "M12 9a3 3 0 1 1 0 6 3 3 0 0 1 0-6zM19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3.9a7 7 0 0 0-2-1.2L14.2 3h-4l-.4 2.6a7 7 0 0 0-2 1.2l-2.3-.9-2 3.4 2 1.5a7 7 0 0 0 0 2.4l-2 1.5 2 3.4 2.3-.9a7 7 0 0 0 2 1.2l.4 2.6h4l.4-2.6a7 7 0 0 0 2-1.2l2.3.9 2-3.4-2-1.5c.1-.4.1-.8.1-1.2z",
   terminal: "M4 5h16v14H4zM7 9l3 3-3 3M12 15h5",
   back: "M15 6l-6 6 6 6",
+  folder: "M3 6h6l2 2h10v11H3z",
   home: "M3 12l9-8 9 8M5 10v10h14V10",
 } as const;
 
@@ -167,7 +168,7 @@ function keysFor(language: LanguageId): Key[] {
 }
 
 interface MenuItem {
-  id: "annuler" | "retablir" | "copier" | "coller" | "effacer" | "rechercher" | "remplacer" | "partager" | "telecharger" | "exemples" | "aide" | "entrainement" | "parametres";
+  id: "nouveau" | "programmes" | "annuler" | "retablir" | "copier" | "coller" | "effacer" | "rechercher" | "remplacer" | "partager" | "telecharger" | "exemples" | "aide" | "entrainement" | "parametres";
   icon: keyof typeof PATHS;
   label: string;
   separatorBefore?: boolean;
@@ -180,7 +181,6 @@ export function AlgoStudio({
   canSave = false,
   programId: initialProgramId,
   programTitle = "",
-  storageKey,
   back,
   initialNotice,
 }: {
@@ -190,7 +190,6 @@ export function AlgoStudio({
   canSave?: boolean;
   programId?: string;
   programTitle?: string;
-  storageKey?: string;
   /** Retour au chapitre d'où vient la démonstration. */
   back?: string | null;
   initialNotice?: string | null;
@@ -215,13 +214,12 @@ export function AlgoStudio({
   const [panel, setPanel] = useState(Boolean(LANGUAGES[initialLanguage].preview));
   const [drawer, setDrawer] = useState(false);
   const [menu, setMenu] = useState(false);
-  const [dialog, setDialog] = useState<null | "exemples" | "aide" | "parametres" | "coller">(null);
+  const [dialog, setDialog] = useState<null | "exemples" | "aide" | "parametres" | "coller" | "programmes">(null);
   const [fontSize, setFontSize] = useState(15);
   const [pasteText, setPasteText] = useState("");
   const editorRef = useRef<MonacoEditor | null>(null);
   // Sélection en cours : barre Copier / Couper / Coller / Supprimer, et toucher = étendre la sélection.
   const [hasSelection, setHasSelection] = useState(false);
-  const selectionRef = useRef(false);
   // Poignées de début et de fin de sélection (à faire glisser au doigt, comme dans les applications de notes).
   type Handle = { x: number; y: number; h: number };
   const [handles, setHandles] = useState<{ start: Handle | null; end: Handle | null } | null>(null);
@@ -298,34 +296,18 @@ export function AlgoStudio({
     };
   }, []);
 
-  // Brouillon local, taille du texte
+  // Préférence : taille du texte. L'éditeur s'ouvre toujours vide (aucun brouillon rechargé) :
+  // les programmes se retrouvent par « Mes programmes » une fois enregistrés.
   useEffect(() => {
     try {
       const size = Number(localStorage.getItem("upl:editeur:taille"));
       // Lecture des préférences après le montage (indisponibles au rendu serveur).
       // eslint-disable-next-line react-hooks/set-state-in-effect
       if (size >= 11 && size <= 24) setFontSize(size);
-      if (!storageKey) return;
-      const draft = JSON.parse(localStorage.getItem(`upl:brouillon:${storageKey}`) ?? "null");
-      if (draft?.files?.length && (!draft.language || draft.language === initialLanguage)) {
-        setFiles(draft.files);
-        if (typeof draft.stdin === "string") setStdin(draft.stdin);
-      }
     } catch {
       /* stockage indisponible */
     }
-  }, [storageKey, initialLanguage]);
-  useEffect(() => {
-    if (!storageKey) return;
-    const t = setTimeout(() => {
-      try {
-        localStorage.setItem(`upl:brouillon:${storageKey}`, JSON.stringify({ files, stdin, language }));
-      } catch {
-        /* stockage indisponible */
-      }
-    }, 500);
-    return () => clearTimeout(t);
-  }, [files, stdin, language, storageKey]);
+  }, []);
 
   useEffect(() => {
     if (language === "python") warmupPython();
@@ -405,6 +387,35 @@ export function AlgoStudio({
     void run(next);
   };
 
+  // Mes programmes : liste des programmes enregistrés dans le compte, à rouvrir d'un toucher.
+  const [programs, setPrograms] = useState<Array<{ id: string; title: string; language_id: string; updated_at: string }> | null>(null);
+  const [programsError, setProgramsError] = useState<string | null>(null);
+  const loadPrograms = async () => {
+    setPrograms(null);
+    setProgramsError(null);
+    try {
+      const res = await fetch("/api/programs");
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) return setProgramsError(data.error ?? "Liste indisponible pour le moment.");
+      setPrograms(data.programs ?? []);
+    } catch {
+      setProgramsError("Pas de connexion Internet : la liste ne peut pas être chargée.");
+    }
+  };
+  const newProgram = () => {
+    const hasCode = files.some((f) => f.content.trim() !== "");
+    if (hasCode && !confirm("Commencer un nouveau programme ? Le code non enregistré sera effacé.")) return;
+    setFiles(defaultFiles(language));
+    setActive(0);
+    setStdin("");
+    setResult(null);
+    setError(null);
+    setMarkers([]);
+    setProgramId(undefined);
+    setTitle("");
+    window.history.replaceState(null, "", `/editeur?langage=${language}`);
+  };
+
   const save = async () => {
     if (!canSave) {
       notify(
@@ -429,7 +440,7 @@ export function AlgoStudio({
     const data = await res.json().catch(() => ({}));
     if (res.ok) {
       setProgramId(data.id);
-      notify("Programme enregistré ✓");
+      notify("Programme enregistré ✓ — retrouvez-le dans ⋮ → Mes programmes");
       if (!programId) window.history.replaceState(null, "", `/editeur?programme=${data.id}`);
     } else notify(data.error ?? "Échec de l'enregistrement.");
   };
@@ -566,7 +577,9 @@ export function AlgoStudio({
   };
 
   const menuItems: MenuItem[] = [
-    { id: "annuler", icon: "undo", label: "Annuler" },
+    { id: "nouveau", icon: "plus", label: "Nouveau programme" },
+    { id: "programmes", icon: "folder", label: "Mes programmes" },
+    { id: "annuler", icon: "undo", label: "Annuler", separatorBefore: true },
     { id: "retablir", icon: "redo", label: "Rétablir" },
     { id: "copier", icon: "copy", label: "Copier", separatorBefore: true },
     { id: "coller", icon: "paste", label: "Coller" },
@@ -603,9 +616,12 @@ export function AlgoStudio({
         return void share();
       case "telecharger":
         return download();
+      case "nouveau":
+        return newProgram();
       case "entrainement":
         return router.push("/exercices");
       default:
+        if (id === "programmes") void loadPrograms();
         return setDialog(id);
     }
   };
@@ -673,12 +689,10 @@ export function AlgoStudio({
           path={`algo/${language}/${current?.name}`}
           theme="upl-algo"
           fontSize={fontSize}
-          extendSelectionOnTap={() => selectionRef.current}
           onEditor={(ed) => {
             editorRef.current = ed;
             ed.onDidChangeCursorSelection((e) => {
               const on = !e.selection.isEmpty();
-              selectionRef.current = on;
               setHasSelection(on);
               placeHandles(ed);
             });
@@ -921,7 +935,7 @@ export function AlgoStudio({
         <div className="fixed inset-0 z-[63] grid place-items-center bg-black/60 p-4" role="dialog" aria-modal aria-label={dialog}>
           <div className="flex max-h-[85dvh] w-full max-w-md flex-col overflow-hidden rounded-lg shadow-2xl" style={{ background: "#3c3f41" }}>
             <div className="flex items-center justify-between px-4 py-3">
-              <h2 className="text-lg font-semibold">{{ exemples: "Exemples", aide: "Aide", parametres: "Paramètres", coller: "Coller" }[dialog]}</h2>
+              <h2 className="text-lg font-semibold">{{ exemples: "Exemples", aide: "Aide", parametres: "Paramètres", coller: "Coller", programmes: "Mes programmes" }[dialog]}</h2>
               <button type="button" onClick={() => setDialog(null)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/10" aria-label="Fermer">
                 <Icon name="clear" className="h-5 w-5" />
               </button>
@@ -987,6 +1001,32 @@ Fin`}</pre>
                     </span>
                   </div>
                   <p className="text-xs text-gray-400">Le langage se choisit dans le menu ☰. Votre code est conservé automatiquement sur cet appareil.</p>
+                </div>
+              )}
+              {dialog === "programmes" && (
+                <div className="space-y-2" data-testid="mes-programmes">
+                  {programsError && <p className="text-red-300">{programsError}</p>}
+                  {!programs && !programsError && <p className="text-gray-400">Chargement…</p>}
+                  {programs?.length === 0 && <p className="text-gray-300">Aucun programme enregistré. Écrivez votre code puis touchez 💾 pour l&apos;enregistrer.</p>}
+                  <ul className="space-y-1">
+                    {programs?.map((p) => (
+                      <li key={p.id}>
+                        <Link
+                          href={`/editeur?programme=${p.id}`}
+                          onClick={() => setDialog(null)}
+                          className={cn("flex items-center justify-between gap-3 rounded px-3 py-2.5 hover:bg-white/10", p.id === programId && "bg-white/10")}
+                        >
+                          <span className="min-w-0 truncate">{p.title}</span>
+                          <span className="shrink-0 text-xs text-gray-400">
+                            {LANGUAGES[p.language_id as LanguageId]?.shortLabel ?? p.language_id} · {new Date(p.updated_at).toLocaleDateString("fr-FR")}
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                  <Link href="/mes-programmes" className="block pt-2 text-xs text-[#f28c28] underline">
+                    Gérer tous mes programmes (renommer, supprimer)
+                  </Link>
                 </div>
               )}
               {dialog === "coller" && (
