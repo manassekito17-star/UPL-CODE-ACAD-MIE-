@@ -9,6 +9,7 @@ import { parsePedagogy } from "@/lib/admin/pedagogy-schema";
 import { saveQuizQuestions } from "@/lib/admin/quizzes";
 import { DURATIONS, suspensionEnd, type SuspensionDuration } from "@/lib/admin/suspension";
 import { audit } from "@/lib/audit";
+import { matchesDeclaredType } from "@/lib/security/file-signature";
 import { requireAdmin, requireStaff } from "@/lib/auth";
 import { clientIp } from "@/lib/rate-limit";
 import { invalidateSettingsCache } from "@/lib/settings";
@@ -610,9 +611,14 @@ export async function addLessonResource(_prev: ActionState, form: FormData): Pro
     const ext = RESOURCE_TYPES[file.type];
     if (!ext) return { error: "Type de fichier non accepté (PDF, PNG, JPEG, WebP, MP4, DOCX, PPTX)." };
     if (file.size > RESOURCE_MAX_BYTES) return { error: "Fichier trop volumineux (20 Mo au maximum)." };
+    // Contenu réel vérifié (le type annoncé par le navigateur peut être falsifié).
+    if (!matchesDeclaredType(new Uint8Array(await file.slice(0, 16).arrayBuffer()), file.type)) return { error: "Le contenu du fichier ne correspond pas à son type. Fichier refusé." };
     storagePath = `lecons/${d.lesson_id}/${crypto.randomUUID()}.${ext}`;
     const { error } = await supabase.storage.from("ressources").upload(storagePath, file, { contentType: file.type, upsert: false });
-    if (error) return { error: `Envoi impossible : ${error.message}` };
+    if (error) {
+      console.error("[ressources] envoi impossible", error);
+      return { error: "Envoi impossible pour le moment. Réessayez." };
+    }
     url = supabase.storage.from("ressources").getPublicUrl(storagePath).data.publicUrl;
   } else if (d.url) {
     // Liens externes : https uniquement (pas de javascript:, data:, etc.).

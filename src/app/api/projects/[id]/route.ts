@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { jsonError, parseBody, sameOrigin } from "@/lib/api";
+import { serverError, jsonError, parseBody, sameOrigin } from "@/lib/api";
 import { getCurrentUser } from "@/lib/auth";
 import { validateSnapshot } from "@/lib/ide/fs";
 import { addVersion, MAX_PROJECTS } from "@/lib/ide/server";
@@ -79,13 +79,13 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/projects/[
       .insert({ user_id: c.user.id, name, template: current.template, files: current.files, folders: current.folders })
       .select(FIELDS)
       .single();
-    if (error) return jsonError(500, error.message);
+    if (error) return serverError(error);
     await addVersion(c.supabase, c.user.id, data.id, data.revision, { files: data.files, folders: data.folders }, `Copie de « ${current.name} »`, true);
     return NextResponse.json({ project: data });
   }
   if (body.data.name) {
     const { data, error } = await c.supabase.from("projects").update({ name: body.data.name }).eq("id", c.id).select(FIELDS).single();
-    if (error) return jsonError(500, error.message);
+    if (error) return serverError(error);
     return NextResponse.json({ project: data });
   }
   return jsonError(400, "Aucune modification demandée.");

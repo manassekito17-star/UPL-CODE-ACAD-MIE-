@@ -4,8 +4,10 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { audit } from "@/lib/audit";
+import { safeRedirectPath } from "@/lib/security/safe-redirect";
 import { isSupabaseConfigured, publicEnv } from "@/lib/env";
-import { clientIp, rateLimit } from "@/lib/rate-limit";
+import { clientIp } from "@/lib/rate-limit";
+import { ACCOUNT_RULE, IP_RULES, attemptKey, hitAttempt, resetAttempts, waitMessage } from "@/lib/security/attempts";
 import { getSettings } from "@/lib/settings";
 import { createClient } from "@/lib/supabase/server";
 
@@ -28,16 +30,14 @@ const passwordSchema = z
 
 /** Évite les redirections ouvertes : seuls les chemins internes sont acceptés. */
 function safeNext(value: FormDataEntryValue | null): string {
-  const v = typeof value === "string" ? value : "";
-  return v.startsWith("/") && !v.startsWith("//") ? v : "/tableau-de-bord";
+  return safeRedirectPath(value);
 }
 
-async function limited(kind: string): Promise<string | null> {
+async function limited(kind: keyof typeof IP_RULES): Promise<string | null> {
   const ip = clientIp(await headers());
-  // 8 tentatives / 10 min par adresse IP (ajustable pour les environnements de test).
-  const max = Number(process.env.AUTH_RATE_LIMIT_PER_10MIN ?? 8);
-  const r = rateLimit(`auth:${kind}:${ip}`, Number.isFinite(max) && max > 0 ? max : 8, 10 * 60_000);
-  return r.ok ? null : `Trop de tentatives. Réessayez dans ${Math.ceil(r.retryAfterSeconds / 60)} min.`;
+  // Limite partagée par toutes les instances (base), par adresse IP (empreinte, jamais en clair).
+  const r = await hitAttempt(attemptKey(`ip-${kind}`, ip), IP_RULES[kind]);
+  return r.ok ? null : `Trop de tentatives. Réessayez dans ${waitMessage(r.retryAfterSeconds)}.`;
 }
 
 function origin(h: Headers): string {
@@ -53,12 +53,23 @@ export async function signIn(_prev: AuthState, form: FormData): Promise<AuthStat
   const email = emailSchema.safeParse(form.get("email"));
   const password = z.string().min(1).max(72).safeParse(form.get("password"));
   if (!email.success || !password.success) return { error: "E-mail ou mot de passe invalide." };
+  // Compte temporairement protégé après plusieurs échecs (même si l'attaquant change d'adresse IP).
+  const accountKey = attemptKey("compte-connexion", email.data);
+  const locked = await hitAttempt(accountKey, ACCOUNT_RULE, false);
+  if (!locked.ok) return { error: `Trop d'échecs de connexion pour ce compte. Réessayez dans ${waitMessage(locked.retryAfterSeconds)}, ou utilisez « Mot de passe oublié ».` };
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email: email.data, password: password.data });
   if (error) {
     if (/confirm/i.test(error.message)) return { error: "Votre adresse e-mail n'est pas encore vérifiée. Consultez votre messagerie.", inbox: email.data, mail: "inscription" };
+    const after = await hitAttempt(accountKey, ACCOUNT_RULE);
+    if (!after.ok) {
+      // Comportement suspect journalisé (sans e-mail ni mot de passe en clair).
+      await audit(null, "securite.compte_protege", { type: "compte", id: accountKey.slice(-12) }, { echecs: ACCOUNT_RULE.max }, clientIp(await headers()));
+      return { error: `Trop d'échecs de connexion pour ce compte. Réessayez dans ${waitMessage(after.retryAfterSeconds)}, ou utilisez « Mot de passe oublié ».` };
+    }
     return { error: "E-mail ou mot de passe incorrect." };
   }
+  await resetAttempts(accountKey);
   redirect(safeNext(form.get("suite")));
 }
 

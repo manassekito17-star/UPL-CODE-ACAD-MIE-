@@ -1,6 +1,6 @@
 import { getAdminStats, toCsv } from "@/lib/admin/stats";
 import { audit } from "@/lib/audit";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, mfaStatus } from "@/lib/auth";
 import { clientIp } from "@/lib/rate-limit";
 import { loginMethods } from "@/lib/admin/stats";
 import { createAdminClient, hasAdminClient } from "@/lib/supabase/admin";
@@ -13,7 +13,9 @@ import { createClient } from "@/lib/supabase/server";
 export async function GET(request: Request, ctx: RouteContext<"/admin/export/[type]">) {
   const { type } = await ctx.params;
   const user = await getCurrentUser();
-  if (!user?.isAdmin) return new Response("Accès réservé à l'administration.", { status: 403 });
+  if (!user?.isAdmin || user.status !== "actif") return new Response("Accès réservé à l'administration.", { status: 403 });
+  const mfa = await mfaStatus();
+  if (mfa.enrolled && !mfa.verified) return new Response("Code de vérification (MFA) requis.", { status: 403 });
   const date = new Date().toISOString().slice(0, 10);
   let csv: string;
   if (type === "statistiques") {

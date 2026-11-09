@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { jsonError, parseBody, sameOrigin } from "@/lib/api";
+import { serverError, jsonError, parseBody, sameOrigin } from "@/lib/api";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { programSchema } from "@/lib/validation";
@@ -14,7 +14,7 @@ export async function GET() {
     .select("id, title, language_id, updated_at")
     .order("updated_at", { ascending: false })
     .limit(100);
-  if (error) return jsonError(500, error.message);
+  if (error) return serverError(error);
   return NextResponse.json({ programs: data });
 }
 
@@ -32,6 +32,6 @@ export async function POST(request: Request) {
     .insert({ user_id: user.id, title: body.data.title, language_id: body.data.language, files: body.data.files, stdin: body.data.stdin })
     .select("id")
     .single();
-  if (error) return jsonError(500, error.message);
+  if (error) return serverError(error);
   return NextResponse.json({ id: data.id });
 }
