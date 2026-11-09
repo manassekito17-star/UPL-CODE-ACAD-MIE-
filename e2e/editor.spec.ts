@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { expectConsole, run, setEditorCode } from "./helpers";
+import { expectConsole, isDemoMode, run, setEditorCode } from "./helpers";
 
 test("pseudocode : exécution avec entrées", async ({ page }) => {
   await page.goto("/editeur?langage=pseudocode");
@@ -78,4 +78,27 @@ test("lire sans valeur préparée : la console demande la valeur puis continue (
   await expectConsole(page, "Moyenne = 10");
   await expect(page.getByTestId("saisie-console")).toHaveCount(0);
   await expect(page.getByLabel(/Entrée/)).toHaveValue("2\n12\n8");
+});
+
+test("éditeur vide à l'ouverture, enregistrement puis réouverture depuis « Mes programmes »", async ({ page }) => {
+  test.skip(await isDemoMode(page), "Supabase non configuré");
+  await page.goto("/editeur?langage=pseudocode");
+  await expect(page.getByTestId("editeur-vide")).toBeVisible();
+  await setEditorCode(page, 'ALGORITHME Retrouve\nDEBUT\n  ECRIRE("retrouvé")\nFIN');
+  const titre = `Programme ${Date.now()}`;
+  page.once("dialog", (d) => d.accept(titre));
+  await page.getByRole("button", { name: "Enregistrer" }).click();
+  await expect(page.getByText(/Programme enregistré/)).toBeVisible();
+  // Nouveau programme : l'éditeur redevient vide.
+  await page.getByRole("button", { name: "Plus d'options" }).click();
+  page.once("dialog", (d) => d.accept());
+  await page.getByRole("menuitem", { name: "Nouveau programme" }).click();
+  await expect(page.getByTestId("editeur-vide")).toBeVisible();
+  // Mes programmes : le programme enregistré se rouvre d'un toucher.
+  await page.getByRole("button", { name: "Plus d'options" }).click();
+  await page.getByRole("menuitem", { name: "Mes programmes" }).click();
+  await page.getByTestId("mes-programmes").getByRole("link", { name: new RegExp(titre) }).click();
+  await expect(page).toHaveURL(/programme=/);
+  await run(page);
+  await expectConsole(page, "retrouvé");
 });

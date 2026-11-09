@@ -86,3 +86,25 @@ test("sur téléphone : appui long pour sélectionner, glisser pour étendre, pu
   expect(after).not.toContain("ALGORITHME");
   await expect(page.getByTestId("barre-selection")).toHaveCount(0);
 });
+
+test("sur téléphone : un toucher ailleurs efface la sélection (comme Bloc-notes)", async ({ page, context }) => {
+  await page.goto("/editeur?langage=pseudocode");
+  await setEditorCode(page, 'ALGORITHME Essai\nVARIABLES\n  x : ENTIER\nDEBUT\n  x <- 1\nFIN');
+  // « Tout » via la barre : on sélectionne d'abord un mot par appui long, puis Tout.
+  const line = page.locator(".view-line", { hasText: "Essai" }).first();
+  let box: { x: number; y: number; width: number; height: number } | null = null;
+  await expect.poll(async () => (box = await line.boundingBox())).not.toBeNull();
+  box = box!;
+  const cdp = await context.newCDPSession(page);
+  const tap = async (x: number, y: number, hold = 0) => {
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
+    if (hold) await page.waitForTimeout(hold);
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  };
+  await tap(box.x + 20, box.y + box.height / 2, 700);
+  await expect(page.getByTestId("barre-selection")).toBeVisible();
+  await page.getByTestId("barre-selection").getByRole("button", { name: "Tout" }).click();
+  // Toucher bref sur une autre ligne : la sélection disparaît, le curseur s'y place.
+  await tap(box.x + 30, box.y + box.height * 4.5);
+  await expect(page.getByTestId("barre-selection")).toHaveCount(0);
+});
