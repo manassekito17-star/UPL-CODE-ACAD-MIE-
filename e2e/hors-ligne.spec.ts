@@ -74,6 +74,10 @@ test("éditeur « UPL Algo » : installation, préparation, puis algorithme exé
   await expect(page.locator('link[rel="manifest"]')).toHaveAttribute("href", "/editeur.webmanifest");
   const manifest = await (await page.request.get("/editeur.webmanifest")).json();
   expect(manifest.short_name).toBe("UPL Algo");
+  // Vraie application installable (sans logo du navigateur) : icône adaptable et captures pour la fenêtre d'installation.
+  expect(manifest.icons.some((i: { purpose?: string }) => i.purpose === "maskable")).toBe(true);
+  expect(manifest.screenshots.map((s: { form_factor: string }) => s.form_factor).sort()).toEqual(["narrow", "wide"]);
+  for (const s of manifest.screenshots) expect((await page.request.get(s.src)).status()).toBe(200);
 
   await page.getByRole("button", { name: "Plus d'options" }).click();
   await page.getByRole("menuitem", { name: /Installer · utiliser sans Internet/ }).click();

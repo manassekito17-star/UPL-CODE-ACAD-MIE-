@@ -240,6 +240,16 @@ export function AlgoStudio({
       window.removeEventListener("offline", onNet);
     };
   }, []);
+  // Installation directe (Android, PC) : vraie application, sans le logo du navigateur sur l'icône.
+  const installApp = async () => {
+    if (!installEvent) return setOfflineOpen(true);
+    await installEvent.prompt();
+    const choice = await installEvent.userChoice;
+    if (choice.outcome === "accepted") {
+      setInstallEvent(null);
+      notify("UPL Algo est installé ✓ Pensez à « Télécharger pour utiliser sans Internet » (⋮ → Installer).");
+    }
+  };
   const loadLanguages = async () => {
     const monaco = (window as unknown as { monaco?: { editor: { colorize(t: string, l: string, o: object): Promise<string> } } }).monaco;
     if (!monaco) throw new Error("L'éditeur n'est pas encore chargé : patientez un instant puis réessayez.");
@@ -976,6 +986,18 @@ export function AlgoStudio({
                 <span className="block text-xs text-gray-400">Interpréteur d&apos;algorithmes</span>
               </span>
             </div>
+            <button
+              type="button"
+              onClick={() => {
+                setDrawer(false);
+                if (installEvent) void installApp();
+                else setOfflineOpen(true);
+              }}
+              className="flex items-center gap-3 px-4 py-3 text-left text-[15px] font-semibold text-[#f28c28] hover:bg-white/10"
+              data-testid="installer-upl-algo"
+            >
+              <Icon name="phone" className="h-5 w-5" /> Installer l&apos;application UPL Algo
+            </button>
             {back && (
               <Link href={back} className="flex items-center gap-3 px-4 py-3 text-[15px] text-[#f28c28] hover:bg-white/10">
                 <Icon name="back" className="h-5 w-5" /> Retour au cours
