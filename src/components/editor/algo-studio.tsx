@@ -518,7 +518,7 @@ export function AlgoStudio({
             <Icon name="back" />
           </Link>
         )}
-        <h1 className="min-w-0 flex-1 truncate pl-1 text-lg font-semibold">{title || (language === "pseudocode" ? "Algo" : lang.shortLabel)}</h1>
+        <h1 className="min-w-0 flex-1 truncate pl-1 text-lg font-semibold">{title || "UPL"}</h1>
         <button type="button" className={iconButton} aria-label={isWeb ? "↻ Actualiser l'aperçu" : "▶ Exécuter"} title="Exécuter (Ctrl + Entrée)" aria-keyshortcuts="Control+Enter" onClick={run} disabled={running}>
           {running ? <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" /> : <svg viewBox="0 0 24 24" className="h-6 w-6" fill="currentColor" aria-hidden><path d="M7 4.5v15l13-7.5z" /></svg>}
         </button>
