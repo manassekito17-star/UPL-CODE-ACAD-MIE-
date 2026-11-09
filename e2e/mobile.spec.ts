@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { setEditorCode } from "./helpers";
 
 for (const path of ["/", "/ide", "/laboratoire", "/formations", "/formations/python/fonctions", "/formations/algorithmique", "/formations/algorithmique/niveaux/1", "/formations/html/html-liens-images", "/formations/algorithmique/positionnement", "/exercices", "/exercices/algo-mention", "/exercices/css-carte-boite", "/editeur", "/editeur?langage=html", "/confidentialite", "/conditions"]) {
   test(`pas de défilement horizontal sur ${path}`, async ({ page }) => {
@@ -42,11 +43,15 @@ test("sur téléphone : un balayage commencé sur un éditeur fait défiler la p
 
 test("sur téléphone : appui long pour sélectionner, glisser pour étendre, puis Supprimer", async ({ page, context }) => {
   await page.goto("/editeur?langage=pseudocode");
-  await page.locator(".monaco-editor").first().waitFor({ timeout: 60_000 });
-  await page.waitForFunction(() => Boolean((window as unknown as { monaco?: unknown }).monaco));
+  // Page blanche à l'ouverture : chacun écrit son propre code.
+  await expect(page.getByTestId("editeur-vide")).toBeVisible();
+  await setEditorCode(page, 'ALGORITHME MonAlgorithme\nVARIABLES\n  nom : CHAINE\nDEBUT\n  ECRIRE("Quel est votre nom ?")\n  LIRE(nom)\nFIN');
   const code = () => page.evaluate(() => (window as unknown as { monaco: { editor: { getModels(): Array<{ getValue(): string }> } } }).monaco.editor.getModels()[0].getValue());
-  const line1 = page.locator(".view-line").first();
-  const box = (await line1.boundingBox())!;
+  const line1 = page.locator(".view-line", { hasText: "ALGORITHME" }).first();
+  // Monaco redessine ses lignes : on attend une position stable.
+  let box: { x: number; y: number; width: number; height: number } | null = null;
+  await expect.poll(async () => (box = await line1.boundingBox())).not.toBeNull();
+  box = box!;
   const cdp = await context.newCDPSession(page);
   const x = box.x + 20;
   const y = box.y + box.height / 2;
@@ -56,10 +61,28 @@ test("sur téléphone : appui long pour sélectionner, glisser pour étendre, pu
   // Glisser vers la droite : la sélection s'étend sur toute la première ligne.
   for (let i = 1; i <= 6; i++) await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x + i * 50, y }] });
   await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  // Poignées de début et de fin ; la poignée de fin glissée vers le bas étend la sélection d'une ligne.
+  await expect(page.getByTestId("poignee-debut").locator("[data-which]")).toBeVisible();
+  await expect(page.getByTestId("poignee-fin").locator("[data-which]")).toBeVisible();
+  await expect.poll(() => page.evaluate(() => (window as unknown as { monaco: { editor: { getEditors(): Array<{ getSelection(): { endColumn: number } }> } } }).monaco.editor.getEditors()[0].getSelection().endColumn)).toBeGreaterThan(20);
+  let fin: { x: number; y: number; width: number; height: number } | null = null;
+  await expect.poll(async () => (fin = await page.getByTestId("poignee-fin").locator("[data-which]").boundingBox())).not.toBeNull();
+  fin = fin!;
+  const fx = fin.x + fin.width / 2;
+  const fy = fin.y + fin.height / 2;
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: fx, y: fy }] });
+  for (let i = 1; i <= 5; i++) await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: fx, y: fy + i * box.height * 0.6 }] });
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  const selected = await page.evaluate(() => {
+    const ed = (window as unknown as { monaco: { editor: { getEditors(): Array<{ getSelection(): { startLineNumber: number; endLineNumber: number } }> } } }).monaco.editor.getEditors()[0];
+    const s = ed.getSelection();
+    return s.endLineNumber - s.startLineNumber;
+  });
+  expect(selected).toBeGreaterThanOrEqual(1);
   const before = await code();
   await page.getByTestId("barre-selection").getByRole("button", { name: "Supprimer" }).click();
   const after = await code();
-  expect(after.length).toBeLessThan(before.length - 10);
-  expect(after.split("\n")[0]).not.toContain("ALGORITHME");
+  expect(after.length).toBeLessThan(before.length - 20);
+  expect(after).not.toContain("ALGORITHME");
   await expect(page.getByTestId("barre-selection")).toHaveCount(0);
 });

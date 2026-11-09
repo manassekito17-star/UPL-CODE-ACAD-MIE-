@@ -116,3 +116,18 @@ body {
   --ide-accent: #1d5fe0; --ide-status: #1d5fe0; --ide-status-text: #ffffff; --ide-menu: #ffffff; --ide-tab-active: #ffffff;
   color-scheme: light;
 }
+
+/* Page Éditeur en plein écran : le site derrière est invisible et ne défile plus. */
+html.upl-plein-ecran,
+html.upl-plein-ecran body {
+  overflow: hidden;
+  height: 100%;
+  background: #2b2b2b;
+  overscroll-behavior: none;
+}
+html.upl-plein-ecran body {
+  visibility: hidden;
+}
+html.upl-plein-ecran [data-testid="editeur-algo"] {
+  visibility: visible;
+}
