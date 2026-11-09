@@ -56,7 +56,6 @@ export function CodeWorkspace({
   storageKey,
   className,
   height = "calc(100dvh - 9rem)",
-  variant = "standard",
 }: {
   initialLanguage?: LanguageId;
   initialFiles?: SourceFile[];
@@ -74,8 +73,6 @@ export function CodeWorkspace({
   storageKey?: string;
   className?: string;
   height?: string;
-  /** « interpreteur » : barre de boutons-icônes, éditeur sur toute la largeur et console en dessous (page Éditeur). */
-  variant?: "standard" | "interpreteur";
 }) {
   const defaultFiles = useCallback(
     (lang: LanguageId): SourceFile[] => LANGUAGES[lang].defaultFiles?.map((f) => ({ ...f })) ?? [{ name: LANGUAGES[lang].mainFile, content: LANGUAGES[lang].template }],
@@ -331,142 +328,6 @@ export function CodeWorkspace({
     </div>
   );
 
-  const [fullscreen, setFullscreen] = useState(false);
-  const [toolMessage, setToolMessage] = useState<string | null>(null);
-  const flash = (m: string) => {
-    setToolMessage(m);
-    setTimeout(() => setToolMessage(null), 2500);
-  };
-  const download = () => {
-    if (!current) return;
-    const url = URL.createObjectURL(new Blob([current.content], { type: "text/plain;charset=utf-8" }));
-    const a = Object.assign(document.createElement("a"), { href: url, download: current.name });
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  };
-  const copyCode = async () => {
-    try {
-      await navigator.clipboard.writeText(current?.content ?? "");
-      flash("Code copié ✓");
-    } catch {
-      flash("Copie impossible : sélectionnez le code puis copiez-le.");
-    }
-  };
-  const share = async () => {
-    const text = current?.content ?? "";
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: title || current?.name || "Mon programme", text });
-        return;
-      } catch {
-        /* partage annulé : rien à faire */
-        return;
-      }
-    }
-    await copyCode();
-  };
-  useEffect(() => {
-    if (!fullscreen) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setFullscreen(false);
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [fullscreen]);
-
-  // Sur téléphone, la console est sous l'éditeur : on la fait apparaître après « Exécuter ».
-  const runAndShow = () => {
-    if (running) return;
-    run();
-    if (window.innerWidth < 1024 && !fullscreen) document.getElementById("console-editeur")?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
-
-  if (variant === "interpreteur") {
-    const tools: Array<{ label: string; icon: ReactNode; onClick: () => void; disabled?: boolean; title: string; aria?: string }> = [
-      { label: running ? "…" : isWeb ? "Aperçu" : "Exécuter", icon: <span aria-hidden>{isWeb ? "↻" : "▶"}</span>, onClick: runAndShow, aria: isWeb ? "↻ Actualiser l'aperçu" : "▶ Exécuter", title: isWeb ? "Actualiser l'aperçu (Ctrl + Entrée)" : "Exécuter (Ctrl + Entrée)" },
-      { label: "Enregistrer", icon: <ToolIcon d="M5 3h11l3 3v15H5zM8 3v6h8V3M8 21v-7h8v7" />, onClick: () => (canSave ? save() : flash("Connectez-vous pour enregistrer vos programmes.")), title: "Enregistrer dans mon compte" },
-      { label: "Télécharger", icon: <ToolIcon d="M12 4v11M7 10l5 5 5-5M5 20h14" />, onClick: download, title: "Télécharger le fichier" },
-      { label: "Réinitialiser", icon: <ToolIcon d="M4 12a8 8 0 1 0 2.3-5.7M4 4v5h5" />, onClick: reset, title: "Réinitialiser le code" },
-      { label: "Copier", icon: <ToolIcon d="M9 9h11v11H9zM5 15H4V4h11v1" />, onClick: copyCode, title: "Copier tout le code" },
-      { label: fullscreen ? "Réduire" : "Plein écran", icon: <ToolIcon d={fullscreen ? "M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" : "M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"} />, onClick: () => setFullscreen((f) => !f), title: fullscreen ? "Quitter le plein écran" : "Plein écran" },
-      { label: "Partager", icon: <ToolIcon d="M14 5l6 6-6 6M20 11H10a6 6 0 0 0-6 6v2" />, onClick: share, title: "Partager le code" },
-    ];
-    return (
-      <div
-        className={cn("flex flex-col overflow-hidden border border-nuit-800 bg-[#1e1f22] text-white shadow-lg", fullscreen ? "fixed inset-0 z-50" : "rounded-xl", className)}
-        data-testid="editeur-interpreteur"
-      >
-        <div className="flex flex-wrap items-center gap-2 bg-[#2b2d31] px-2 py-1.5">
-          {languageLocked ? (
-            <span className="rounded-md bg-white/10 px-2.5 py-1 text-sm font-medium">{lang.label}</span>
-          ) : (
-            <select aria-label="Langage" value={language} onChange={(e) => changeLanguage(e.target.value as LanguageId)} className="h-8 min-w-0 flex-1 rounded border border-white/15 bg-[#1e1f22] px-2 text-sm text-white sm:flex-none">
-              {LANGUAGE_IDS.map((id) => (
-                <option key={id} value={id}>
-                  {LANGUAGES[id].label}
-                </option>
-              ))}
-            </select>
-          )}
-          {title && <span className="truncate text-xs text-gray-400">{title}</span>}
-          {(saveMessage || toolMessage) && <span className="text-xs text-emerald-300" role="status">{saveMessage ?? toolMessage}</span>}
-        </div>
-        {/* Barre de boutons verts : une icône par action, le nom écrit en dessous. */}
-        <div className="grid grid-cols-7 gap-0.5 bg-[#1e1f22] p-0.5" role="toolbar" aria-label="Actions de l'éditeur">
-          {tools.map((t) => (
-            <button
-              key={t.title}
-              type="button"
-              onClick={t.onClick}
-              title={t.title}
-              aria-label={t.aria ?? t.title}
-              aria-keyshortcuts={t.title.startsWith("Exécuter") || t.title.startsWith("Actualiser") ? "Control+Enter" : undefined}
-              disabled={t.disabled}
-              className="flex h-11 flex-col items-center justify-center gap-0.5 bg-[#4caf50] text-white hover:bg-[#43a047] active:bg-[#388e3c] disabled:opacity-60"
-            >
-              <span className="grid h-4 place-items-center text-sm leading-none">{t.icon}</span>
-              <span className="w-full truncate px-0.5 text-[8.5px] leading-none tracking-tight sm:text-[11px] sm:tracking-normal">{t.label}</span>
-            </button>
-          ))}
-        </div>
-        {(lang.multiFile || files.length > 1) && (
-          <div className="flex items-center gap-1 overflow-x-auto border-b border-white/10 bg-[#1e1f22] px-2">
-            {files.map((f, i) => (
-              <div key={f.name} className={cn("flex items-center rounded-t-md text-xs", i === active ? "bg-[#2b2d31] text-white" : "text-gray-400")}>
-                <button className="px-3 py-2 font-mono" onClick={() => setActive(i)}>
-                  {f.name}
-                </button>
-                {i > 0 && (
-                  <button className="pr-2 text-gray-500 hover:text-red-400" aria-label={`Supprimer ${f.name}`} onClick={() => removeFile(i)}>
-                    ×
-                  </button>
-                )}
-              </div>
-            ))}
-            {lang.multiFile && files.length < 10 && (
-              <button className="px-2 py-2 text-sm text-gray-400 hover:text-white" onClick={addFile} aria-label="Ajouter un fichier">
-                +
-              </button>
-            )}
-          </div>
-        )}
-        <div
-          className={cn("min-h-0", fullscreen ? "flex-1" : "")}
-          style={fullscreen ? undefined : { height }}
-          onKeyDown={(e) => {
-            if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
-              e.preventDefault();
-              if (!running) run();
-            }
-          }}
-        >
-          <CodeEditor language={language} value={current?.content ?? ""} onChange={updateContent} markers={markers} path={`${language}/${current?.name}`} />
-        </div>
-        <div className={cn("scroll-mt-24 border-t-2 border-[#4caf50] bg-[#25262a] p-3", fullscreen && "max-h-[40dvh] overflow-auto")} id="console-editeur">
-          {isWeb ? previewBody : consoleBody}
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className={cn("flex flex-col overflow-hidden rounded-xl border border-nuit-800 bg-nuit-900 text-white shadow-lg", className)}>
       {/* Barre d'outils */}
@@ -567,13 +428,5 @@ export function CodeWorkspace({
         <div className={cn("min-h-0 overflow-auto border-white/10 p-3 lg:border-l", mobileTab !== "console" && "max-lg:hidden")}>{isWeb ? previewBody : consoleBody}</div>
       </div>
     </div>
-  );
-}
-
-function ToolIcon({ d }: { d: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d={d} />
-    </svg>
   );
 }

@@ -9,7 +9,7 @@ import { emmetCSS, emmetHTML } from "emmet-monaco-es";
 import { letPageScrollOverEditor } from "./page-scroll";
 import { registerPseudocode } from "./pseudocode-language";
 
-type MonacoEditor = Parameters<OnMount>[0];
+export type MonacoEditor = Parameters<OnMount>[0];
 
 /** Langage pseudocode et thèmes de la plateforme (partagés par l'éditeur, le laboratoire et UPL IDE). */
 export function configureMonaco(monaco: Monaco) {
@@ -57,6 +57,31 @@ export function configureMonaco(monaco: Monaco) {
       "editorIndentGuide.background1": "#404040",
     },
   });
+  // Thème « algo » de la page Éditeur : gris anthracite, mots-clés orange, types turquoise (style application mobile).
+  monaco.editor.defineTheme("upl-algo", {
+    base: "vs-dark",
+    inherit: true,
+    rules: [
+      { token: "keyword", foreground: "F28C28" },
+      { token: "type", foreground: "2EC4B6" },
+      { token: "predefined", foreground: "C5D86D" },
+      { token: "string", foreground: "8BC34A" },
+      { token: "number", foreground: "6897BB" },
+      { token: "comment", foreground: "808080", fontStyle: "italic" },
+      { token: "identifier", foreground: "E8E8E8" },
+    ],
+    colors: {
+      "editor.background": "#2B2B2B",
+      "editor.foreground": "#E8E8E8",
+      "editor.lineHighlightBackground": "#323232",
+      "editorLineNumber.foreground": "#8A8A8A",
+      "editorLineNumber.activeForeground": "#D0D0D0",
+      "editorGutter.background": "#313335",
+      "editorCursor.foreground": "#F28C28",
+      "editorIndentGuide.background1": "#3C3C3C",
+      "editorWidget.background": "#3C3F41",
+    },
+  });
   monaco.editor.defineTheme("upl-clair", {
     base: "vs",
     inherit: true,
@@ -87,6 +112,10 @@ export function CodeEditor({
   readOnly = false,
   path,
   highlightLine,
+  theme = "upl-nuit",
+  fontSize = 14,
+  pageScroll = true,
+  onEditor,
 }: {
   language: LanguageId;
   value: string;
@@ -97,6 +126,12 @@ export function CodeEditor({
   path?: string;
   /** Ligne mise en évidence (exécution pas à pas du laboratoire). */
   highlightLine?: number | null;
+  theme?: string;
+  fontSize?: number;
+  /** Défilement de la page par-dessus l'éditeur (éditeur intégré dans une page). Inutile en plein écran. */
+  pageScroll?: boolean;
+  /** Accès à l'instance Monaco (clavier de symboles, annuler, rechercher…). */
+  onEditor?: (editor: MonacoEditor) => void;
 }) {
   const editorRef = useRef<MonacoEditor | null>(null);
   const monacoRef = useRef<Monaco | null>(null);
@@ -158,13 +193,15 @@ export function CodeEditor({
       language={LANGUAGES[language].monaco}
       path={path}
       value={value}
-      theme="upl-nuit"
+      theme={theme}
       onChange={(v) => onChange?.(v ?? "")}
       beforeMount={configureMonaco}
       onMount={(editor, monaco) => {
         editorRef.current = editor;
         monacoRef.current = monaco;
         setMounted(true);
+        onEditor?.(editor);
+        if (!pageScroll) return;
         // Balayage sur l'éditeur : le code défile, puis la page (sinon la page reste bloquée).
         const stop = letPageScrollOverEditor(editor);
         editor.onDidDispose(stop);
@@ -172,7 +209,7 @@ export function CodeEditor({
       loading={<div className="grid h-full place-items-center bg-nuit-950 text-sm text-gray-400">Chargement de l&apos;éditeur…</div>}
       options={{
         readOnly,
-        fontSize: 14,
+        fontSize,
         fontFamily: "var(--font-jetbrains), monospace",
         // Saisie classique (zone de texte) : le « Coller » du menu du téléphone et les claviers mobiles
         // fonctionnent de façon fiable, contrairement au mode EditContext activé par défaut sur Chrome.

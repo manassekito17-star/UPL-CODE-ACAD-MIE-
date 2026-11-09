@@ -20,7 +20,8 @@ test("sur téléphone : consignes, code et console sont accessibles", async ({ p
 });
 
 test("sur téléphone : un balayage commencé sur un éditeur fait défiler la page (sans blocage)", async ({ page, context }) => {
-  await page.goto("/editeur");
+  // Éditeur intégré dans une page (démonstration de l'accueil) ; la page Éditeur, elle, est en plein écran.
+  await page.goto("/");
   await page.locator(".monaco-editor").first().waitFor({ timeout: 60_000 });
   const cdp = await context.newCDPSession(page);
   const swipe = async (y1: number, y2: number) => {

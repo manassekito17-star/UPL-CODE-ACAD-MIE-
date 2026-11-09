@@ -3,12 +3,14 @@ import type { editor, Position } from "monaco-editor";
 
 const KEYWORDS = [
   "ALGORITHME", "PROGRAMME", "CONSTANTES", "CONSTANTE", "VARIABLES", "VARIABLE", "VAR", "DEBUT", "FIN",
-  "SI", "ALORS", "SINON", "FINSI", "POUR", "DE", "A", "PAS", "FAIRE", "FINPOUR", "TANTQUE", "TANT", "QUE",
+  "SI", "ALORS", "SINON", "FINSI", "POUR", "DE", "PAS", "FAIRE", "FINPOUR", "TANTQUE", "TANT", "QUE",
   "FINTANTQUE", "REPETER", "JUSQUA", "SELON", "CAS", "AUTRE", "FINSELON", "FONCTION", "FINFONCTION",
   "PROCEDURE", "FINPROCEDURE", "RETOURNER", "ECRIRE", "AFFICHER", "LIRE", "SAISIR", "ET", "OU", "NON",
   "DIV", "MOD", "VRAI", "FAUX", "TABLEAU",
+  // Formes accentuées (« Début », « écrire »…) ; « A » seul est exclu pour ne pas colorer une variable « a ».
+  "DÉBUT", "À", "RÉPÉTER", "JUSQUÀ", "ÉCRIRE", "PROCÉDURE", "FINPROCÉDURE",
 ];
-const TYPES = ["ENTIER", "REEL", "CHAINE", "CARACTERE", "BOOLEEN"];
+const TYPES = ["ENTIER", "REEL", "CHAINE", "CARACTERE", "BOOLEEN", "RÉEL", "CHAÎNE", "CARACTÈRE", "BOOLÉEN"];
 const BUILTINS = ["LONGUEUR", "TAILLE", "RACINE", "ABS", "ENT", "ARRONDI", "PUISSANCE", "MIN", "MAX", "ALEA", "MAJUSCULE", "MINUSCULE", "SOUSCHAINE", "EXTRAIRE", "CONCAT", "CHAINE", "ENTIER", "REEL", "ORD", "CHR"];
 
 const SNIPPETS: Array<{ label: string; insert: string; doc: string }> = [
@@ -41,7 +43,7 @@ export function registerPseudocode(monaco: Monaco) {
         [/\/\/.*$/, "comment"],
         [/#.*$/, "comment"],
         [/\/\*/, "comment", "@comment"],
-        [/JUSQU'A/i, "keyword"],
+        [/JUSQU'[AÀ]/i, "keyword"],
         [/"[^"]*"/, "string"],
         [/«[^»]*»/, "string"],
         [/'[^']*'/, "string"],
