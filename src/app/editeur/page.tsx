@@ -64,7 +64,7 @@ export default async function EditorPage({ searchParams }: PageProps<"/editeur">
           )}
           <h1 className="text-xl font-bold text-nuit-900">UPL IDE{title ? ` — ${title}` : ""}</h1>
         </div>
-        <p className="text-xs text-gris-500">Ctrl + Entrée pour exécuter · les programmes s&apos;exécutent dans un environnement isolé avec limites de temps et de mémoire.</p>
+        <p className="hidden text-xs text-gris-500 sm:block">Ctrl + Entrée pour exécuter · environnement isolé avec limites de temps et de mémoire.</p>
       </div>
       {notice && <div className="mb-3"><Notice tone="alerte">{notice}</Notice></div>}
       {!user && <div className="mb-3"><Notice>Connectez-vous pour enregistrer vos programmes et compiler du C ou du Java sur le serveur.</Notice></div>}
@@ -77,6 +77,8 @@ export default async function EditorPage({ searchParams }: PageProps<"/editeur">
         programId={programId}
         programTitle={title}
         storageKey={programId || files ? undefined : "editeur"}
+        variant="interpreteur"
+        height="min(62dvh, 38rem)"
       />
     </Container>
   );
