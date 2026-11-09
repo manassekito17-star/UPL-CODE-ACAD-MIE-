@@ -4,6 +4,7 @@ import Editor, { type Monaco, type OnMount } from "@monaco-editor/react";
 import { useEffect, useRef } from "react";
 import { basename, languageOf, type ProjectFile } from "@/lib/ide/fs";
 import { tagToClose } from "@/lib/ide/html-close";
+import { checkKPlus } from "@/lib/kplus";
 import { checkPseudocode } from "@/lib/pseudocode";
 import { configureMonaco } from "../editor/code-editor";
 import { cn } from "../ui";
@@ -90,6 +91,39 @@ export function EditorGroup({
       );
     }, 300);
     return () => clearTimeout(t);
+  }, [file]);
+
+  // Erreurs K+ signalées en direct par le moteur K+ (Web Worker) : position exacte et conseil.
+  useEffect(() => {
+    const monaco = monacoRef.current;
+    const model = editorRef.current?.getModel();
+    if (!monaco || !model || !file || languageOf(file.path).monaco !== "kplus") return;
+    let cancelled = false;
+    const source = file.content;
+    const t = setTimeout(async () => {
+      const err = await checkKPlus(source);
+      // Le moteur n'a pas répondu (hors ligne) ou le texte a changé entre-temps : rien à afficher.
+      if (cancelled || err === undefined || model.isDisposed() || model.getValue() !== source) return;
+      const line = err?.ligne && err.ligne <= model.getLineCount() ? err.ligne : null;
+      let markers: Parameters<typeof monaco.editor.setModelMarkers>[2] = [];
+      if (err && line) {
+        const column = Math.min(Math.max(err.colonne ?? 1, 1), model.getLineMaxColumn(line));
+        const word = model.getWordAtPosition({ lineNumber: line, column });
+        markers = [{
+          startLineNumber: line,
+          endLineNumber: line,
+          startColumn: word ? word.startColumn : column,
+          endColumn: word ? word.endColumn : Math.min(column + 1, model.getLineMaxColumn(line)),
+          message: `${err.nom} : ${err.message}${err.conseil ? `\n💡 ${err.conseil}` : ""}`,
+          severity: monaco.MarkerSeverity.Error,
+        }];
+      }
+      monaco.editor.setModelMarkers(model, "kplus", markers);
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
   }, [file]);
 
   return (

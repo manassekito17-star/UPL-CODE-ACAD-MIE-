@@ -135,7 +135,7 @@ export function OfflineDialog({
             <p className="text-amber-300">Ce navigateur ne permet pas l&apos;utilisation hors ligne. Utilisez Chrome, Edge ou Safari récent.</p>
           ) : (
             <>
-              <p className="mb-2 text-[var(--ide-muted)]">Une seule fois, avec Internet : l&apos;éditeur, ses langages{withPython ? " et Python" : ""} sont enregistrés sur cet appareil.</p>
+              <p className="mb-2 text-[var(--ide-muted)]">Une seule fois, avec Internet : l&apos;éditeur, ses langages{withPython ? ", Python et K+" : ""} sont enregistrés sur cet appareil.</p>
               <label className="mb-3 flex items-center gap-2">
                 <input type="checkbox" checked={withPython} onChange={(e) => setWithPython(e.target.checked)} disabled={busy} />
                 Inclure Python (environ 10 Mo)
@@ -155,7 +155,7 @@ export function OfflineDialog({
           <h3 className="mb-1 font-semibold">Ce qui marche sans Internet</h3>
           <ul className="space-y-0.5 text-[var(--ide-muted)]">
             <li>✓ Éditeur, fichiers et dossiers, projet enregistré sur l&apos;appareil</li>
-            <li>✓ Pseudocode, JavaScript{ready?.python || withPython ? ", Python" : ""} et aperçu des pages HTML/CSS</li>
+            <li>✓ Pseudocode, JavaScript{ready?.python || withPython ? ", Python, K+" : ""} et aperçu des pages HTML/CSS</li>
             <li>✓ Clavier de programmation, modèles de fichiers, balises Emmet</li>
             <li>✗ C et Java (exécutés sur le serveur), professeur IA, cours en ligne</li>
             <li>↻ Projets du compte : modifications gardées sur l&apos;appareil et envoyées au retour de la connexion</li>

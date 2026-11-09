@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BRAND } from "@/lib/brand";
 import { runInBrowser, runProgram } from "@/lib/execution/browser";
+import { runKPlus, warmupKPlus } from "@/lib/kplus";
 import { registerServiceWorker } from "@/lib/offline/client";
 import { STATUS_LABELS, type ExecutionResult } from "@/lib/execution/types";
 import { buildPreviewDocument } from "@/lib/execution/web-document";
@@ -465,7 +466,7 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
   const loadLanguages = async () => {
     const monaco = monacoRef.current;
     if (!monaco) throw new Error("L'éditeur n'est pas encore chargé : patientez un instant puis réessayez.");
-    const langs = ["html", "css", "javascript", "typescript", "json", "python", "c", "java", "markdown", "sql", "php", "pseudocode"];
+    const langs = ["html", "css", "javascript", "typescript", "json", "python", "c", "java", "markdown", "sql", "php", "pseudocode", "kplus"];
     await Promise.all(langs.map((l) => monaco.editor.colorize("x", l, {}).catch(() => "")));
     // Les analyseurs (CSS, HTML, JSON, TypeScript/JavaScript) tournent dans des workers chargés à la demande.
     const models = ["css", "html", "json", "typescript", "javascript"].map((l, i) => monaco.editor.createModel(l === "html" ? "<p></p>" : "", l, monaco.Uri.parse(`inmemory://hors-ligne/${i}.${l}`)));
@@ -479,6 +480,8 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
   const warmPython = async () => {
     const r = await runInBrowser("python", [{ name: "main.py", content: "print(1)" }], "");
     if (r.status !== "ok") throw new Error(r.stderr || "Python n'a pas pu être téléchargé.");
+    // K+ utilise le même Python (Pyodide) : son moteur est enregistré en même temps.
+    await warmupKPlus();
   };
 
   // ---------------- Copier / coller ----------------
@@ -592,7 +595,11 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
     setRunError(null);
     setBottom("console");
     const started = new Date();
-    const r = await runProgram(runnable.language, runnable.files, stdin, { onStatus: setRunStatus });
+    // K+ tourne toujours dans le navigateur (moteur K+ dans un Web Worker).
+    const r =
+      runnable.language === "kplus"
+        ? { result: await runKPlus(runnable.files, stdin, setRunStatus), error: undefined }
+        : await runProgram(runnable.language, runnable.files, stdin, { onStatus: setRunStatus });
     setRunning(false);
     setRunStatus(null);
     setResult(r.result ?? null);
@@ -1013,8 +1020,9 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
                         modes={["expliquer_code", "analyser_erreur", "question", "enseigner", "indice", "mentor_projet"]}
                         intro="Je vois le fichier ouvert et la liste des fichiers du projet. Je peux expliquer le code, analyser une erreur ou vous guider. (La génération et la modification de fichiers avec validation arrivent dans une prochaine phase.)"
                         getContext={() => ({
-                          language: runnable?.language,
-                          code: activeFile ? `// Projet « ${project.name} » — fichiers : ${project.files.map((f) => f.path).join(", ")}\n// Fichier ouvert : ${activeFile.path}\n${activeFile.content}`.slice(0, 19_000) : undefined,
+                          // K+ n'est pas (encore) un langage des parcours : le professeur reçoit le code avec une mention explicite.
+                          language: runnable?.language === "kplus" ? undefined : runnable?.language,
+                          code: activeFile ? `// Projet « ${project.name} » — fichiers : ${project.files.map((f) => f.path).join(", ")}\n// Fichier ouvert : ${activeFile.path}${runnable?.language === "kplus" ? " (langage K+, programmation en français : https://manassekito17-star.github.io/K-/)" : ""}\n${activeFile.content}`.slice(0, 19_000) : undefined,
                           output: result?.stdout?.slice(0, 4000),
                           error: (result?.compileOutput || result?.stderr || runError || undefined)?.slice(0, 4000),
                         })}
@@ -1074,7 +1082,7 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
                     <div className="flex h-full min-h-0 flex-col gap-2 p-2 md:flex-row">
                       <label className="flex shrink-0 flex-col gap-1 font-sans md:w-56">
                         <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--ide-muted)]">Entrées (une par ligne)</span>
-                        <textarea value={stdin} onChange={(e) => setStdin(e.target.value)} rows={3} className="min-h-12 flex-1 resize-none rounded border border-[var(--ide-border)] bg-[var(--ide-input)] p-1.5 font-mono text-xs text-[var(--ide-text)]" placeholder="input(), LIRE, scanf…" aria-label="Entrées du programme" />
+                        <textarea value={stdin} onChange={(e) => setStdin(e.target.value)} rows={3} className="min-h-12 flex-1 resize-none rounded border border-[var(--ide-border)] bg-[var(--ide-input)] p-1.5 font-mono text-xs text-[var(--ide-text)]" placeholder="input(), LIRE, demander(), scanf…" aria-label="Entrées du programme" />
                       </label>
                       <pre className="min-h-0 flex-1 overflow-auto whitespace-pre-wrap break-words rounded bg-black/40 p-2 text-gray-100" aria-live="polite" data-testid="ide-console">
                         {running && <span className="text-cyan-accent">{runStatus ?? "Exécution en cours…"}{"\n"}</span>}

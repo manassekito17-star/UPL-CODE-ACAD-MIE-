@@ -68,6 +68,19 @@ export const PROJECT_TEMPLATES: ProjectTemplate[] = [
     files: [{ path: "main.algo", content: 'ALGORITHME Bonjour\nVARIABLES\n  nom : CHAINE\nDEBUT\n  ECRIRE("Votre nom ?")\n  LIRE(nom)\n  ECRIRE("Bonjour, ", nom)\nFIN\n' }],
   },
   {
+    id: "kplus",
+    label: "K+ (programmation en français)",
+    description: "Programme K+ exécuté dans le navigateur par le moteur K+.",
+    open: "main.kplus",
+    files: [
+      {
+        path: "main.kplus",
+        content:
+          '# Programme K+ : le langage de programmation en français\n\nvariable nom = demander("Votre nom ? ")\nafficher("Bonjour", nom)\n\nfonction carre(x)\n    retourner x * x\nfin\n\npour i de 1 à 5 faire\n    afficher(i, "au carré =", carre(i))\nfin\n',
+      },
+    ],
+  },
+  {
     id: "javascript",
     label: "JavaScript (console)",
     description: "Programme JavaScript exécuté en console.",
