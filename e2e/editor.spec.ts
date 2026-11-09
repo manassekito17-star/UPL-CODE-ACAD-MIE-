@@ -1,9 +1,10 @@
-import { test } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import { expectConsole, run, setEditorCode } from "./helpers";
 
 test("pseudocode : exécution avec entrées", async ({ page }) => {
   await page.goto("/editeur?langage=pseudocode");
   await setEditorCode(page, 'VARIABLES a, b : ENTIER\nDEBUT\n  LIRE(a)\n  LIRE(b)\n  ECRIRE("Somme = ", a + b)\nFIN');
+  await page.getByRole("button", { name: /Console et entrées/ }).click();
   await page.getByLabel(/Entrée/).fill("4\n9");
   await run(page);
   await expectConsole(page, "Somme = 13");
@@ -30,4 +31,35 @@ test("JavaScript : exécution isolée et arrêt d'une boucle infinie", async ({ 
   await setEditorCode(page, "while (true) {}");
   await run(page);
   await expectConsole(page, "Temps limite dépassé", 20_000);
+});
+
+test("page Éditeur plein écran : menus, exemples, clavier de symboles et pas à pas", async ({ page }) => {
+  await page.goto("/editeur?langage=pseudocode");
+  await expect(page.getByTestId("editeur-algo")).toBeVisible();
+  await page.locator(".monaco-editor").first().waitFor({ timeout: 60_000 });
+  // Pas d'en-tête ni de pied de page visibles : l'éditeur couvre tout l'écran.
+  const box = await page.getByTestId("editeur-algo").boundingBox();
+  const vp = page.viewportSize()!;
+  expect(box && box.x === 0 && box.y === 0 && box.width >= vp.width - 1 && box.height >= vp.height - 1).toBe(true);
+
+  // Menu ⋮ → Exemples → « Somme des entiers de 1 à n », puis exécution.
+  await page.getByRole("button", { name: "Plus d'options" }).click();
+  for (const item of ["Annuler", "Rétablir", "Copier", "Coller", "Effacer l'éditeur", "Rechercher", "Partager le code", "Exemples", "Aide", "Entraînement", "Paramètres"]) {
+    await expect(page.getByRole("menuitem", { name: item, exact: true })).toBeVisible();
+  }
+  await page.getByRole("menuitem", { name: "Exemples" }).click();
+  page.once("dialog", (d) => d.accept());
+  await page.getByRole("button", { name: "Somme des entiers de 1 à n" }).click();
+  await run(page);
+  await expectConsole(page, "Somme = 15");
+
+  // Clavier de symboles : la touche « <- » écrit l'affectation dans l'éditeur.
+  await page.getByRole("toolbar", { name: "Symboles de programmation" }).getByRole("button", { name: "Affectation" }).click();
+  await expect.poll(() => page.evaluate(() => (window as unknown as { monaco: { editor: { getModels(): Array<{ getValue(): string }> } } }).monaco.editor.getModels().some((m) => m.getValue().includes("<- ")))).toBe(true);
+
+  // Pas à pas : le laboratoire reçoit le code de l'éditeur.
+  await page.getByRole("button", { name: "Exécution pas à pas" }).click();
+  await expect(page).toHaveURL(/\/laboratoire\?depuis=editeur/);
+  await page.locator(".monaco-editor").first().waitFor({ timeout: 60_000 });
+  await expect.poll(() => page.evaluate(() => (window as unknown as { monaco: { editor: { getModels(): Array<{ getValue(): string }> } } }).monaco.editor.getModels().some((m) => m.getValue().includes("sommeNombres")))).toBe(true);
 });

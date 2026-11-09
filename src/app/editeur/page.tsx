@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { CodeWorkspace } from "@/components/editor/code-workspace";
-import { Container, Notice } from "@/components/ui";
+import type { Viewport } from "next";
+import { AlgoStudio } from "@/components/editor/algo-studio";
 import type { LanguageId } from "@/content/types";
 import { getCurrentUser } from "@/lib/auth";
 import { getCourse } from "@/lib/content/repository";
@@ -10,6 +9,7 @@ import type { SourceFile } from "@/lib/execution/types";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Éditeur de code" };
+export const viewport: Viewport = { themeColor: "#3c3f41" };
 
 export default async function EditorPage({ searchParams }: PageProps<"/editeur">) {
   const sp = await searchParams;
@@ -54,30 +54,17 @@ export default async function EditorPage({ searchParams }: PageProps<"/editeur">
   }
 
   return (
-    <Container className="max-w-[96rem] py-4">
-      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-        <div className="flex flex-wrap items-baseline gap-3">
-          {back && (
-            <Link href={back} className="text-sm font-medium text-electrique-600 hover:underline" data-testid="retour-cours">
-              ← Retour au cours
-            </Link>
-          )}
-          <h1 className="text-xl font-bold text-nuit-900">UPL IDE{title ? ` — ${title}` : ""}</h1>
-        </div>
-        <p className="text-xs text-gris-500">Ctrl + Entrée pour exécuter · les programmes s&apos;exécutent dans un environnement isolé avec limites de temps et de mémoire.</p>
-      </div>
-      {notice && <div className="mb-3"><Notice tone="alerte">{notice}</Notice></div>}
-      {!user && <div className="mb-3"><Notice>Connectez-vous pour enregistrer vos programmes et compiler du C ou du Java sur le serveur.</Notice></div>}
-      <CodeWorkspace
-        key={programId ?? sp.exemple?.toString() ?? sp.algorithme?.toString() ?? language}
-        initialLanguage={language}
-        initialFiles={files}
-        initialStdin={stdin}
-        canSave={Boolean(user)}
-        programId={programId}
-        programTitle={title}
-        storageKey={programId || files ? undefined : "editeur"}
-      />
-    </Container>
+    <AlgoStudio
+      key={programId ?? sp.exemple?.toString() ?? sp.algorithme?.toString() ?? language}
+      initialLanguage={language}
+      initialFiles={files}
+      initialStdin={stdin}
+      canSave={Boolean(user)}
+      programId={programId}
+      programTitle={title}
+      storageKey={programId || files ? undefined : "editeur"}
+      back={back}
+      initialNotice={notice}
+    />
   );
 }

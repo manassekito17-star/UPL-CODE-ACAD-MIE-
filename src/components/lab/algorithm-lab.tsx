@@ -83,6 +83,24 @@ export function AlgorithmLab({ presets, initial, loggedIn }: { presets: LabPrese
   const [showTutor, setShowTutor] = useState(false);
   const flowRef = useRef<HTMLDivElement>(null);
 
+  // Ouverture depuis la page Éditeur (bouton « pas à pas ») : le code et les entrées sont transmis par la session.
+  useEffect(() => {
+    if (!new URLSearchParams(location.search).has("depuis")) return;
+    try {
+      const t = JSON.parse(sessionStorage.getItem("upl:labo:transfert") ?? "null");
+      sessionStorage.removeItem("upl:labo:transfert");
+      if (typeof t?.code === "string" && t.code.length <= 100_000) {
+        // Lecture du stockage de session après le montage (indisponible au rendu serveur).
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setCode(t.code);
+        setStdin(typeof t.stdin === "string" ? t.stdin : "");
+        setPresetId("");
+      }
+    } catch {
+      /* transfert illisible : l'exemple par défaut reste affiché */
+    }
+  }, []);
+
   const trace = useMemo(() => result?.trace ?? [], [result]);
   const step: TraceStep | undefined = trace[idx];
   const prev: TraceStep | undefined = idx > 0 ? trace[idx - 1] : undefined;
