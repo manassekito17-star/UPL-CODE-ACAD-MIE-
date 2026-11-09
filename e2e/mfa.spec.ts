@@ -30,7 +30,8 @@ test("administrateur : activation du second facteur puis code exigé à la conne
   const enrolledWindow = Math.floor(Date.now() / 30000);
   await page.getByLabel("Code à 6 chiffres").fill(totp(secret));
   await page.getByRole("button", { name: "Confirmer l'activation" }).click();
-  await expect(page.getByText(/activé/i).first()).toBeVisible();
+  // Message exact de réussite (« Non activé » est déjà affiché sur la page avant la confirmation).
+  await expect(page.getByText("Second facteur activé", { exact: false })).toBeVisible();
   await page.reload();
   await expect(page.getByTestId("mfa-statut")).toContainText("Activé");
 

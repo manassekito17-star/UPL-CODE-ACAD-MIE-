@@ -20,11 +20,15 @@ test("« Continuer avec Google » ouvre la page officielle de connexion Google",
   expect(u.searchParams.get("scope")).toContain("email");
   expect(u.searchParams.get("prompt")).toBe("select_account");
 
-  // Le bouton est aussi présent sur la page de connexion ; l'annulation est expliquée
-  await page.goto("/connexion");
-  await expect(page.getByRole("button", { name: "Continuer avec Google" })).toBeVisible();
-  await page.goto("/auth/callback?error=access_denied");
-  await expect(page.getByText("Connexion Google annulée ou refusée.")).toBeVisible();
+  // Le bouton est aussi présent sur la page de connexion ; l'annulation est expliquée.
+  // Nouvel onglet : Google redirige ensuite l'onglet précédent vers sa page d'erreur (identifiants fictifs),
+  // ce qui interromprait une navigation lancée dans le même onglet.
+  const tab = await page.context().newPage();
+  await page.close();
+  await tab.goto("/connexion");
+  await expect(tab.getByRole("button", { name: "Continuer avec Google" })).toBeVisible();
+  await tab.goto("/auth/callback?error=access_denied");
+  await expect(tab.getByText("Connexion Google annulée ou refusée.")).toBeVisible();
 });
 
 test("espace personnel, administration privée, statistiques et export", async ({ page, browser }) => {
