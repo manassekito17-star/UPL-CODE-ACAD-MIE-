@@ -115,7 +115,7 @@ export function OfflineDialog({
             <p className="text-emerald-300">✓ {appName} est installé : vous l&apos;utilisez depuis son icône.</p>
           ) : installEvent ? (
             <>
-              <p className="mb-2 text-[var(--ide-muted)]">{appName} s&apos;ajoute à l&apos;écran d&apos;accueil (ou aux programmes de l&apos;ordinateur) et s&apos;ouvre comme une application, sans magasin d&apos;applications.</p>
+              <p className="mb-2 text-[var(--ide-muted)]">{appName} s&apos;ajoute à l&apos;écran d&apos;accueil (ou aux programmes de l&apos;ordinateur) et s&apos;ouvre comme une vraie application, avec sa propre icône, sans magasin d&apos;applications.</p>
               <button type="button" onClick={() => void install()} className="rounded bg-[var(--ide-accent)] px-3 py-1.5 font-semibold text-white">Installer {appName}</button>
             </>
           ) : env.platform === "ios" ? (
@@ -128,10 +128,20 @@ export function OfflineDialog({
             <ol className="list-decimal space-y-1 pl-5 text-[var(--ide-muted)]">
               <li>Ouvrez cette page dans <b className="text-[var(--ide-text)]">Chrome</b>.</li>
               <li>Touchez le menu <b className="text-[var(--ide-text)]">⋮</b> en haut à droite.</li>
-              <li>Choisissez <b className="text-[var(--ide-text)]">« Installer l&apos;application »</b> ou <b className="text-[var(--ide-text)]">« Ajouter à l&apos;écran d&apos;accueil »</b>.</li>
+              <li>
+                Choisissez <b className="text-[var(--ide-text)]">« Installer l&apos;application »</b>. Si Chrome propose « Ajouter à l&apos;écran d&apos;accueil », touchez ensuite{" "}
+                <b className="text-[var(--ide-text)]">« Installer »</b> (et non « Créer un raccourci »).
+              </li>
+              <li>
+                Une ancienne icône porte le petit logo Chrome ? C&apos;est un simple raccourci : supprimez-la (appui long → Supprimer), puis installez à nouveau
+                avec « Installer l&apos;application ».
+              </li>
             </ol>
           ) : (
-            <p className="text-[var(--ide-muted)]">Dans <b className="text-[var(--ide-text)]">Chrome</b> ou <b className="text-[var(--ide-text)]">Edge</b>, cliquez sur l&apos;icône d&apos;installation à droite de la barre d&apos;adresse, puis sur « Installer ».</p>
+            <p className="text-[var(--ide-muted)]">
+              Dans <b className="text-[var(--ide-text)]">Chrome</b> ou <b className="text-[var(--ide-text)]">Edge</b>, cliquez sur l&apos;icône d&apos;installation (écran avec une flèche) à droite de la barre
+              d&apos;adresse, puis sur « Installer ». {appName} s&apos;ouvre alors dans sa propre fenêtre, avec son icône sur le bureau et dans le menu Démarrer.
+            </p>
           )}
         </section>
 
