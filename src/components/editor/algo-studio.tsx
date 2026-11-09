@@ -674,7 +674,11 @@ export function AlgoStudio({
           <div className="flex shrink-0 items-center gap-2 px-3 py-1.5" style={{ background: BAR }}>
             <Icon name="terminal" className="h-4 w-4 text-[#f28c28]" />
             <span className="text-sm font-semibold">{isWeb ? "Aperçu" : "Console"}</span>
-            {result && missingInput && <span className="truncate text-xs text-amber-300">En attente de votre saisie…</span>}
+            {result && missingInput && (
+              <span className="truncate text-xs text-amber-300">
+                En attente de votre saisie… · {result.engine === "serveur" ? "bac à sable serveur" : result.engine === "interpreteur" ? "interpréteur UPL" : "navigateur"}
+              </span>
+            )}
             {result && !missingInput && (
               <span className={cn("truncate text-xs", result.status === "ok" ? "text-green-400" : "text-red-400")}>
                 {STATUS_LABELS[result.status]}
