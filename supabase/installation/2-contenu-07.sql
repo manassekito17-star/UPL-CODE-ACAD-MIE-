@@ -1,6 +1,380 @@
--- UPL CODE ACADEMY MK — installation, partie 2 (contenu), morceau 7 sur 10.
+-- UPL CODE ACADEMY MK — installation, partie 2 (contenu), morceau 7 sur 11.
 -- À exécuter dans l'ordre, après 1-structure.sql. Peut être relancé sans risque.
 begin;
+insert into public.lessons (module_id, course_id, slug, title, level, duration_minutes, objectives, prerequisites, content, summary, examples, pedagogy, status, position, validated_at)
+values ((select id from public.modules where course_id = (select id from public.courses where slug = 'kplus') and slug = 'sites-web'), (select id from public.courses where slug = 'kplus'), 'kplus-web-premiere-page', 'Ma première page web', 'debutant', 35, array['Activer la bibliothèque web avec utiliser web.', 'Construire une page : titres, paragraphes, listes, images, liens.', 'Publier un site.']::text[], '{}'::text[], '## utiliser web
+
+Un programme qui commence par **utiliser web** construit une **page web**. Chaque élément créé s''ajoute à la fin de la page, dans l''ordre du programme :
+
+~~~kplus
+utiliser web
+
+titre_page("Mon site")
+titre("Bienvenue")
+paragraphe("Ce site est écrit en K+.")
+variable langages = liste()
+ajouter_ligne(langages, "HTML")
+ajouter_ligne(langages, "K+")
+lien("Le langage K+", "https://manassekito17-star.github.io/K-/")
+~~~
+
+Sur la plateforme, le bouton **Exécuter** affiche la page sous le code.
+
+## Les éléments
+
+| Fonction | Crée |
+|---|---|
+| titre(t), sous_titre(t) | un grand titre, un titre de section |
+| paragraphe(t) | un paragraphe |
+| liste() puis ajouter_ligne(liste, t) | une liste à puces |
+| image(adresse, description) | une image (la description est lue aux personnes aveugles) |
+| lien(t, adresse) | un lien |
+| titre_page(t) | le titre de l''onglet du navigateur |
+
+Les textes sont toujours affichés **tels quels** : un texte qui contient du HTML ne peut pas abîmer la page (sécurité).
+
+## Publier
+
+Avec K+ Studio (https://manassekito17-star.github.io/K-/), l''onglet **Page** montre le site ; sur un ordinateur, `kplus --site mon_site.kplus` crée un dossier publiable chez un hébergeur gratuit (GitHub Pages, Netlify…).', array['utiliser web active les fonctions de page.', 'Les éléments s''ajoutent dans l''ordre du programme.', 'kplus --site crée un site publiable.']::text[], '[{"language":"kplus","title":"Une page de présentation","code":"utiliser web\n\ntitre_page(\"Mon site\")\ntitre(\"Bienvenue\")\nparagraphe(\"Ce site est écrit en K+.\")\nsous_titre(\"Ce que j''apprends\")\nvariable langages = liste()\najouter_ligne(langages, \"Algorithmique\")\najouter_ligne(langages, \"K+\")\nlien(\"Le langage K+\", \"https://manassekito17-star.github.io/K-/\")","explanation":"La page s''affiche sous le code ; titre_page change le titre de l''onglet."}]'::jsonb, null, 'publie', 1, now())
+on conflict (course_id, slug) do update set module_id = excluded.module_id, title = excluded.title, level = excluded.level, duration_minutes = excluded.duration_minutes, objectives = excluded.objectives, prerequisites = excluded.prerequisites, content = excluded.content, summary = excluded.summary, examples = excluded.examples, pedagogy = excluded.pedagogy, status = excluded.status, position = excluded.position;
+insert into public.quizzes (course_id, lesson_id, slug, title, is_final, pass_score, status, kind, duration_minutes, level_number) values ((select id from public.courses where slug = 'kplus'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'kplus') and slug = 'kplus-web-premiere-page'), 'kplus-web-premiere-page-quiz', 'Ma première page', false, 60, 'publie', 'verification', null, null)
+on conflict (slug) do update set title = excluded.title, is_final = excluded.is_final, pass_score = excluded.pass_score, lesson_id = excluded.lesson_id, kind = excluded.kind, duration_minutes = excluded.duration_minutes, level_number = excluded.level_number;
+delete from public.quiz_questions where quiz_id = (select id from public.quizzes where slug = 'kplus-web-premiere-page-quiz');
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-web-premiere-page-quiz'), 'qcm', 'Par quoi commence un programme qui construit une page ?', null, '["page web","utiliser web","importer web","html"]'::jsonb, 0, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-web-premiere-page-quiz'), 'qcm', 'Comment ajoute-t-on une ligne à une liste de la page ?', null, '["ajouter(liste, t)","ajouter_ligne(liste, t)","ligne(t)","liste(t)"]'::jsonb, 1, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-web-premiere-page-quiz'), 'vrai_faux', 'Un paragraphe contenant <b>gras</b> affiche du texte en gras.', null, '["Vrai","Faux"]'::jsonb, 2, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, 'Les textes sont affichés tels quels, pour la sécurité.' from qq;
+insert into public.lessons (module_id, course_id, slug, title, level, duration_minutes, objectives, prerequisites, content, summary, examples, pedagogy, status, position, validated_at)
+values ((select id from public.modules where course_id = (select id from public.courses where slug = 'kplus') and slug = 'sites-web'), (select id from public.courses where slug = 'kplus'), 'kplus-web-interactions', 'Boutons et champs de saisie', 'debutant', 40, array['Créer un bouton qui appelle une fonction.', 'Lire un champ de saisie.', 'Modifier la page en réponse au visiteur.']::text[], '{}'::text[], '## Un bouton appelle une fonction
+
+`bouton("Calculer", calculer)` crée un bouton ; **à chaque clic**, la fonction **calculer** est appelée. On donne le nom de la fonction, **sans parenthèses**.
+
+## Lire et modifier
+
+| Fonction | Rôle |
+|---|---|
+| champ(étiquette) | une zone de saisie |
+| valeur(champ) | le texte tapé (toujours un texte) |
+| changer_texte(élément, t) | remplace le texte d''un paragraphe, d''un titre… |
+| changer_valeur(champ, t) | remplace le texte d''un champ |
+| quand_change(champ, f) | appelle f à chaque touche tapée |
+
+## Le programme reste vivant
+
+Le programme s''exécute une fois pour construire la page ; ensuite, ses variables **restent en mémoire** : chaque clic peut les lire et les modifier.', array['bouton(texte, fonction) : la fonction est appelée à chaque clic.', 'valeur(champ) lit la saisie ; changer_texte modifie la page.', 'Les variables du programme restent en mémoire entre deux clics.']::text[], '[{"language":"kplus","title":"Calculatrice du double","code":"utiliser web\n\ntitre(\"Calculatrice du double\")\nvariable saisie = champ(\"Votre nombre\")\nvariable resultat = paragraphe(\"\")\n\nfonction calculer()\n    essayer\n        variable n = decimal(valeur(saisie))\n        changer_texte(resultat, \"Le double est \" + texte(n * 2))\n    attraper\n        changer_texte(resultat, \"Écrivez un nombre, par exemple 3.5\")\n    fin\nfin\n\nbouton(\"Calculer\", calculer)","explanation":"Tapez un nombre dans la page, puis cliquez sur Calculer."}]'::jsonb, null, 'publie', 2, now())
+on conflict (course_id, slug) do update set module_id = excluded.module_id, title = excluded.title, level = excluded.level, duration_minutes = excluded.duration_minutes, objectives = excluded.objectives, prerequisites = excluded.prerequisites, content = excluded.content, summary = excluded.summary, examples = excluded.examples, pedagogy = excluded.pedagogy, status = excluded.status, position = excluded.position;
+insert into public.lessons (module_id, course_id, slug, title, level, duration_minutes, objectives, prerequisites, content, summary, examples, pedagogy, status, position, validated_at)
+values ((select id from public.modules where course_id = (select id from public.courses where slug = 'kplus') and slug = 'sites-web'), (select id from public.courses where slug = 'kplus'), 'kplus-web-listes', 'Listes dynamiques', 'debutant', 40, array['Ajouter et supprimer des éléments pendant la visite.', 'Réagir au clic sur n''importe quel élément.', 'Tenir un compteur à jour.']::text[], '{}'::text[], '## Ajouter pendant la visite
+
+**ajouter_ligne(liste, t)** renvoie la ligne créée : on peut la garder dans une variable et lui associer une action avec **quand_clic(ligne, fonction)**.
+
+Quand la fonction a **un paramètre**, elle reçoit l''élément cliqué :
+
+~~~kplus
+fonction terminer(ligne)
+    supprimer(ligne)
+fin
+~~~
+
+## Retirer
+
+**supprimer(élément)** retire un élément ; **vider(liste)** retire toutes ses lignes.', array['ajouter_ligne renvoie la ligne créée.', 'quand_clic(élément, f) : f peut recevoir l''élément cliqué.', 'supprimer et vider retirent des éléments.']::text[], '[{"language":"kplus","title":"Liste de tâches","code":"utiliser web\n\ntitre(\"Mes tâches\")\nvariable nouvelle = champ(\"Nouvelle tâche\")\nvariable taches = liste()\nvariable compteur = paragraphe(\"0 tâche\")\nvariable nombre = 0\n\nfonction terminer(ligne)\n    supprimer(ligne)\n    nombre = nombre - 1\n    changer_texte(compteur, texte(nombre) + \" tâche(s)\")\nfin\n\nfonction ajouter_tache()\n    si valeur(nouvelle) == \"\" alors\n        retourner\n    fin\n    variable ligne = ajouter_ligne(taches, valeur(nouvelle))\n    quand_clic(ligne, terminer)\n    changer_valeur(nouvelle, \"\")\n    nombre = nombre + 1\n    changer_texte(compteur, texte(nombre) + \" tâche(s)\")\nfin\n\nbouton(\"Ajouter\", ajouter_tache)","explanation":"Ajoutez des tâches, puis cliquez sur une tâche pour la supprimer."}]'::jsonb, null, 'publie', 3, now())
+on conflict (course_id, slug) do update set module_id = excluded.module_id, title = excluded.title, level = excluded.level, duration_minutes = excluded.duration_minutes, objectives = excluded.objectives, prerequisites = excluded.prerequisites, content = excluded.content, summary = excluded.summary, examples = excluded.examples, pedagogy = excluded.pedagogy, status = excluded.status, position = excluded.position;
+insert into public.lessons (module_id, course_id, slug, title, level, duration_minutes, objectives, prerequisites, content, summary, examples, pedagogy, status, position, validated_at)
+values ((select id from public.modules where course_id = (select id from public.courses where slug = 'kplus') and slug = 'sites-web'), (select id from public.courses where slug = 'kplus'), 'kplus-web-minuteries', 'Mise en forme et minuteries', 'debutant', 40, array['Colorer, regrouper, cacher des éléments.', 'Faire évoluer une page dans le temps avec toutes_les.', 'Arrêter une minuterie.']::text[], '{}'::text[], '## Mettre en forme
+
+- **couleur(élément, c)** et **couleur_fond(élément, c)** : rouge, vert, bleu, jaune, orange, violet, rose, noir, blanc, gris, ou un code #rrggbb ;
+- **zone()** crée un cadre et **placer(élément, zone)** y range un élément ;
+- **cacher(élément)** et **montrer(élément)**.
+
+## Minuteries
+
+**toutes_les(millisecondes, fonction)** appelle la fonction régulièrement (au moins toutes les 100 ms) et renvoie la minuterie ; **arreter_minuterie(m)** l''arrête. C''est ainsi qu''on fait une horloge, un compte à rebours ou une animation simple.', array['couleur, couleur_fond, zone, placer, cacher, montrer.', 'toutes_les(ms, f) répète f ; arreter_minuterie l''arrête.']::text[], '[{"language":"kplus","title":"Compte à rebours","code":"utiliser web\n\ntitre(\"Compte à rebours\")\nvariable affichage = paragraphe(\"5\")\nvariable reste = 5\nvariable minuterie = nul\n\nfonction tic()\n    reste = reste - 1\n    changer_texte(affichage, texte(reste))\n    si reste == 0 alors\n        arreter_minuterie(minuterie)\n        changer_texte(affichage, \"Décollage !\")\n        couleur(affichage, \"rouge\")\n    fin\nfin\n\nfonction lancer()\n    si minuterie == nul alors\n        minuterie = toutes_les(1000, tic)\n    fin\nfin\n\nbouton(\"Lancer\", lancer)","explanation":"Cliquez sur Lancer : le nombre diminue chaque seconde."}]'::jsonb, null, 'publie', 4, now())
+on conflict (course_id, slug) do update set module_id = excluded.module_id, title = excluded.title, level = excluded.level, duration_minutes = excluded.duration_minutes, objectives = excluded.objectives, prerequisites = excluded.prerequisites, content = excluded.content, summary = excluded.summary, examples = excluded.examples, pedagogy = excluded.pedagogy, status = excluded.status, position = excluded.position;
+insert into public.quizzes (course_id, lesson_id, slug, title, is_final, pass_score, status, kind, duration_minutes, level_number) values ((select id from public.courses where slug = 'kplus'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'kplus') and slug = 'kplus-web-minuteries'), 'kplus-web-minuteries-quiz', 'Minuteries', false, 60, 'publie', 'verification', null, null)
+on conflict (slug) do update set title = excluded.title, is_final = excluded.is_final, pass_score = excluded.pass_score, lesson_id = excluded.lesson_id, kind = excluded.kind, duration_minutes = excluded.duration_minutes, level_number = excluded.level_number;
+delete from public.quiz_questions where quiz_id = (select id from public.quizzes where slug = 'kplus-web-minuteries-quiz');
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-web-minuteries-quiz'), 'qcm', 'Quel est l''intervalle minimal de toutes_les ?', null, '["1 ms","10 ms","100 ms","1000 ms"]'::jsonb, 0, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[2]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-web-minuteries-quiz'), 'qcm', 'Que renvoie toutes_les(1000, tic) ?', null, '["rien","la minuterie, pour pouvoir l''arrêter","le nombre de tours","un texte"]'::jsonb, 1, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+delete from public.modules m where m.course_id = (select id from public.courses where slug = 'kplus') and m.slug not in ('bases', 'sites-web') and not exists (select 1 from public.lessons l where l.module_id = m.id);
+insert into public.course_levels (course_id, number, title, description, objectives, planned_chapters, chapters_validated_pct, exam_pass_score) values ((select id from public.courses where slug = 'kplus'), 1, 'Niveau 1 — Très débutant : programmer en français', 'Écrire ses premiers programmes K+ : afficher, variables, calculs, conditions, boucles, fonctions et listes.', array['Écrire et exécuter un programme K+.', 'Utiliser variables, calculs, conditions et boucles.', 'Écrire des fonctions et gérer les erreurs.']::text[], '{}'::text[], 100, 70)
+on conflict (course_id, number) do update set title = excluded.title, description = excluded.description, objectives = excluded.objectives, planned_chapters = excluded.planned_chapters, chapters_validated_pct = excluded.chapters_validated_pct, exam_pass_score = excluded.exam_pass_score;
+insert into public.quizzes (course_id, lesson_id, slug, title, is_final, pass_score, status, kind, duration_minutes, level_number) values ((select id from public.courses where slug = 'kplus'), null, 'kplus-examen-niveau-1', 'Examen du niveau 1 — Bases de K+', false, 70, 'publie', 'examen_niveau', null, 1)
+on conflict (slug) do update set title = excluded.title, is_final = excluded.is_final, pass_score = excluded.pass_score, lesson_id = excluded.lesson_id, kind = excluded.kind, duration_minutes = excluded.duration_minutes, level_number = excluded.level_number;
+delete from public.quiz_questions where quiz_id = (select id from public.quizzes where slug = 'kplus-examen-niveau-1');
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-examen-niveau-1'), 'qcm', 'Que renvoie demander(…) ?', null, '["un entier","un texte","un décimal","nul"]'::jsonb, 0, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-examen-niveau-1'), 'qcm', 'Que vaut 7 / 2 en K+ ?', null, '["3","3.5","4","erreur"]'::jsonb, 1, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-examen-niveau-1'), 'qcm', 'Que vaut 17 % 5 ?', null, '["3","2","3.4","5"]'::jsonb, 2, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-examen-niveau-1'), 'qcm', 'Quel mot termine un bloc si … alors ?', null, '["finsi","fin","}","end"]'::jsonb, 3, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-examen-niveau-1'), 'qcm', 'Quelles valeurs prend i dans « pour i de 1 à 4 faire » ?', null, '["1, 2, 3","1, 2, 3, 4","0, 1, 2, 3","1 et 4"]'::jsonb, 4, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-examen-niveau-1'), 'vrai_faux', 'En K+, "Âge : " + 20 est accepté sans conversion.', null, '["Vrai","Faux"]'::jsonb, 5, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, 'Il faut écrire texte(20).' from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-examen-niveau-1'), 'qcm', 'Quel est l''indice du premier élément d''une liste ?', null, '["0","1","-1","ça dépend"]'::jsonb, 6, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[0]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-examen-niveau-1'), 'qcm', 'Quel bloc attrape une erreur ?', null, '["si … sinon","essayer … attraper","tant que","lever"]'::jsonb, 7, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+insert into public.course_levels (course_id, number, title, description, objectives, planned_chapters, chapters_validated_pct, exam_pass_score) values ((select id from public.courses where slug = 'kplus'), 2, 'Niveau 2 — Débutant : sites web dynamiques avec K+', 'Construire des pages web qui réagissent au visiteur : boutons, champs, listes dynamiques, mise en forme et minuteries.', array['Construire une page avec utiliser web.', 'Réagir aux clics et aux saisies du visiteur.', 'Faire évoluer une page dans le temps et la publier.']::text[], '{}'::text[], 100, 70)
+on conflict (course_id, number) do update set title = excluded.title, description = excluded.description, objectives = excluded.objectives, planned_chapters = excluded.planned_chapters, chapters_validated_pct = excluded.chapters_validated_pct, exam_pass_score = excluded.exam_pass_score;
+insert into public.quizzes (course_id, lesson_id, slug, title, is_final, pass_score, status, kind, duration_minutes, level_number) values ((select id from public.courses where slug = 'kplus'), null, 'kplus-examen-niveau-2', 'Examen du niveau 2 — Sites web dynamiques', false, 70, 'publie', 'examen_niveau', null, 2)
+on conflict (slug) do update set title = excluded.title, is_final = excluded.is_final, pass_score = excluded.pass_score, lesson_id = excluded.lesson_id, kind = excluded.kind, duration_minutes = excluded.duration_minutes, level_number = excluded.level_number;
+delete from public.quiz_questions where quiz_id = (select id from public.quizzes where slug = 'kplus-examen-niveau-2');
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-examen-niveau-2'), 'qcm', 'Quelle ligne active les fonctions de page ?', null, '["importer page","utiliser web","web()","page web"]'::jsonb, 0, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-examen-niveau-2'), 'qcm', 'Comment associe-t-on la fonction envoyer à un bouton ?', null, '["bouton(\"Envoyer\", envoyer)","bouton(\"Envoyer\", envoyer())","bouton(envoyer)","clic(envoyer)"]'::jsonb, 1, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[0]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-examen-niveau-2'), 'qcm', 'Que renvoie valeur(champ) ?', null, '["un nombre","le texte tapé","l''étiquette","vrai si rempli"]'::jsonb, 2, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-examen-niveau-2'), 'qcm', 'Quelle fonction remplace le texte d''un paragraphe ?', null, '["changer_valeur","changer_texte","paragraphe","afficher"]'::jsonb, 3, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-examen-niveau-2'), 'vrai_faux', 'Les variables du programme restent en mémoire entre deux clics.', null, '["Vrai","Faux"]'::jsonb, 4, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[0]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-examen-niveau-2'), 'qcm', 'Comment arrête-t-on une minuterie m ?', null, '["supprimer(m)","arreter_minuterie(m)","arreter","cacher(m)"]'::jsonb, 5, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+insert into public.course_levels (course_id, number, title, description, objectives, planned_chapters, chapters_validated_pct, exam_pass_score) values ((select id from public.courses where slug = 'kplus'), 3, 'Niveau 3 — Intermédiaire : sites côté serveur', 'Sites avec plusieurs pages, formulaires, données enregistrées et comptes utilisateurs, à la manière de PHP (K+ 0.3, en préparation).', array['Créer un site à plusieurs pages.', 'Traiter des formulaires.', 'Enregistrer des données de façon sûre.']::text[], array['Plusieurs pages et adresses (utiliser serveur)', 'Formulaires et paramètres', 'Enregistrer des données dans des tables', 'Comptes, sessions et mots de passe', 'Dictionnaires et modules (K+ 0.4)']::text[], 100, 70)
+on conflict (course_id, number) do update set title = excluded.title, description = excluded.description, objectives = excluded.objectives, planned_chapters = excluded.planned_chapters, chapters_validated_pct = excluded.chapters_validated_pct, exam_pass_score = excluded.exam_pass_score;
+insert into public.course_levels (course_id, number, title, description, objectives, planned_chapters, chapters_validated_pct, exam_pass_score) values ((select id from public.courses where slug = 'kplus'), 4, 'Niveau 4 — Professionnel : projets K+', 'Objets, types vérifiés et projet de site complet publié en ligne.', array['Organiser un grand programme K+.', 'Sécuriser un site.', 'Mener un projet de bout en bout.']::text[], array['Objets et classes (K+ 0.5)', 'Types vérifiés (K+ 0.6)', 'Sécurité d''un site web', 'Projet professionnel : site complet publié']::text[], 100, 70)
+on conflict (course_id, number) do update set title = excluded.title, description = excluded.description, objectives = excluded.objectives, planned_chapters = excluded.planned_chapters, chapters_validated_pct = excluded.chapters_validated_pct, exam_pass_score = excluded.exam_pass_score;
+insert into public.quizzes (course_id, lesson_id, slug, title, is_final, pass_score, status, kind, duration_minutes, level_number) values ((select id from public.courses where slug = 'kplus'), null, 'kplus-positionnement', 'Test de positionnement — K+', false, 0, 'publie', 'positionnement', null, null)
+on conflict (slug) do update set title = excluded.title, is_final = excluded.is_final, pass_score = excluded.pass_score, lesson_id = excluded.lesson_id, kind = excluded.kind, duration_minutes = excluded.duration_minutes, level_number = excluded.level_number;
+delete from public.quiz_questions where quiz_id = (select id from public.quizzes where slug = 'kplus-positionnement');
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-positionnement'), 'qcm', 'Comment affiche-t-on du texte en K+ ?', null, '["print()","afficher()","echo","ecrire()"]'::jsonb, 0, 1) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-positionnement'), 'qcm', 'Comment déclare-t-on une variable ?', null, '["var x = 1","variable x = 1","x := 1","let x = 1"]'::jsonb, 1, 1) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-positionnement'), 'qcm', 'Que fait ajouter_ligne(liste, "Riz") ?', null, '["ajoute Riz à une liste de la page","affiche Riz","crée une variable","rien"]'::jsonb, 2, 2) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[0]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-positionnement'), 'qcm', 'Que fait toutes_les(1000, tic) ?', null, '["appelle tic une fois","appelle tic chaque seconde","attend 1000 secondes","arrête tic"]'::jsonb, 3, 2) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-positionnement'), 'qcm', 'Côté serveur, où doit-on vérifier les données d''un formulaire ?', null, '["seulement dans le navigateur","sur le serveur","nulle part","dans le titre"]'::jsonb, 4, 3) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-positionnement'), 'qcm', 'Comment doit-on enregistrer un mot de passe ?', null, '["en clair","chiffré par une fonction de hachage lente","dans un cookie","dans l''adresse"]'::jsonb, 5, 3) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-positionnement'), 'qcm', 'Pourquoi écrire des tests automatisés ?', null, '["pour vérifier le programme à chaque modification","pour ralentir le site","c''est inutile","pour cacher le code"]'::jsonb, 6, 4) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[0]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-positionnement'), 'qcm', 'Qu''est-ce qu''une injection ?', null, '["une donnée du visiteur exécutée comme du code","une fonction rapide","un type de boucle","une image"]'::jsonb, 7, 4) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[0]'::jsonb, null from qq;
+
+-- ===== Exercices =====
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('algo-bonjour', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'introduction-algorithmique'), 'pseudocode', 'Bonjour UPL', 'Écrivez un algorithme qui affiche exactement la ligne suivante :
+
+~~~text
+Bonjour UPL
+~~~', 'debutant', 'ecrire_algorithme', array['Écrire la structure d''un algorithme.', 'Utiliser ECRIRE.']::text[], '[{"input":"","output":"Bonjour UPL"}]'::jsonb, '{}'::text[], 'ALGORITHME Bonjour
+DEBUT
+  // Votre code ici
+FIN', array['L''instruction qui affiche du texte s''appelle ECRIRE.', 'Le texte doit être placé entre guillemets : ECRIRE("…").']::text[], 5, false, 'publie', 1, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-bonjour');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-bonjour'), null, '', 'Bonjour UPL', false, 1, 0, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-bonjour'), 'ALGORITHME Bonjour
+DEBUT
+  ECRIRE("Bonjour UPL")
+FIN', 'Il suffit d''une seule instruction **ECRIRE** placée entre DEBUT et FIN. Le texte est écrit entre guillemets et doit être identique au caractère près (majuscules comprises).')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('algo-echange', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'variables-constantes'), 'pseudocode', 'Échanger deux valeurs', 'Complétez l''algorithme pour **échanger** les valeurs de a et b, lues au clavier, puis afficher :
+
+~~~text
+a = <nouvelle valeur de a>
+b = <nouvelle valeur de b>
+~~~', 'debutant', 'completer', '{}'::text[], '[{"input":"3\n8","output":"a = 8\nb = 3"}]'::jsonb, array['Utiliser une variable intermédiaire.', 'Ne pas réécrire les valeurs à la main.']::text[], 'ALGORITHME Echange
+VARIABLES
+  a, b, temp : ENTIER
+DEBUT
+  LIRE(a)
+  LIRE(b)
+  // Échangez a et b ici
+
+  ECRIRE("a = ", a)
+  ECRIRE("b = ", b)
+FIN', array['Si vous écrivez directement a ← b, l''ancienne valeur de a est perdue.', 'Sauvegardez d''abord a dans temp.', 'L''ordre est : temp ← a, puis a ← b, puis b ← temp.']::text[], 10, false, 'publie', 2, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-echange');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-echange'), null, '3
+8', 'a = 8
+b = 3', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-echange'), null, '-1
+0', 'a = 0
+b = -1', false, 1, 1, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-echange'), null, '5
+5', 'a = 5
+b = 5', true, 1, 2, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-echange'), 'ALGORITHME Echange
+VARIABLES
+  a, b, temp : ENTIER
+DEBUT
+  LIRE(a)
+  LIRE(b)
+  temp ← a
+  a ← b
+  b ← temp
+  ECRIRE("a = ", a)
+  ECRIRE("b = ", b)
+FIN', 'L''affectation **écrase** l''ancienne valeur. On sauvegarde donc a dans temp avant de le remplacer :
+
+1. temp ← a (temp garde l''ancienne valeur de a)
+2. a ← b
+3. b ← temp')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('algo-somme-deux-nombres', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'entrees-sorties'), 'pseudocode', 'Somme de deux nombres', 'Lisez deux entiers puis affichez leur somme sous la forme :
+
+~~~text
+Somme : <résultat>
+~~~', 'debutant', 'ecrire_algorithme', '{}'::text[], '[{"input":"4\n9","output":"Somme : 13"}]'::jsonb, '{}'::text[], 'ALGORITHME Somme
+VARIABLES
+  a, b : ENTIER
+DEBUT
+
+FIN', array['Utilisez LIRE deux fois.', 'ECRIRE("Somme : ", a + b) affiche le texte suivi du résultat.']::text[], 5, false, 'publie', 3, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-somme-deux-nombres');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-somme-deux-nombres'), null, '4
+9', 'Somme : 13', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-somme-deux-nombres'), null, '-5
+5', 'Somme : 0', false, 1, 1, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-somme-deux-nombres'), null, '1000
+2345', 'Somme : 3345', true, 1, 2, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-somme-deux-nombres'), 'ALGORITHME Somme
+VARIABLES
+  a, b : ENTIER
+DEBUT
+  LIRE(a)
+  LIRE(b)
+  ECRIRE("Somme : ", a + b)
+FIN', 'On lit les deux valeurs, puis on affiche l''expression a + b directement dans ECRIRE. Attention à l''espace après les deux-points dans « Somme : ».')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('algo-moyenne-trois-notes', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'entrees-sorties'), 'pseudocode', 'Moyenne de trois notes', 'Lisez trois notes (réels) et affichez leur moyenne :
+
+~~~text
+Moyenne : <valeur>
+~~~', 'debutant', 'ecrire_algorithme', '{}'::text[], '[{"input":"12\n15\n9","output":"Moyenne : 12"}]'::jsonb, '{}'::text[], '', array['Les notes peuvent être décimales : quel type choisir ?', 'Attention aux priorités : a + b + c / 3 ne divise que c !']::text[], 10, false, 'publie', 4, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-moyenne-trois-notes');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-moyenne-trois-notes'), null, '12
+15
+9', 'Moyenne : 12', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-moyenne-trois-notes'), null, '10
+11
+12.5', 'Moyenne : 11.1666666667', false, 1, 1, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-moyenne-trois-notes'), null, '0
+0
+20', 'Moyenne : 6.66666666667', true, 1, 2, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-moyenne-trois-notes'), 'ALGORITHME Moyenne
+VARIABLES
+  a, b, c, moy : REEL
+DEBUT
+  LIRE(a)
+  LIRE(b)
+  LIRE(c)
+  moy ← (a + b + c) / 3
+  ECRIRE("Moyenne : ", moy)
+FIN', 'Les parenthèses sont indispensables : **(a + b + c) / 3**. Sans elles, seule c serait divisée par 3. Les variables sont de type REEL car une moyenne peut être décimale.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('algo-conversion-temps', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'operateurs'), 'pseudocode', 'Conversion de secondes', 'Lisez une durée en secondes (entier positif) et affichez-la en heures, minutes et secondes :
+
+~~~text
+<h> h <m> min <s> s
+~~~', 'debutant', 'ecrire_algorithme', '{}'::text[], '[{"input":"3725","output":"1 h 2 min 5 s"}]'::jsonb, '{}'::text[], '', array['Une heure vaut 3600 secondes.', 'DIV donne le quotient, MOD le reste.', 'h ← total DIV 3600, puis travaillez sur le reste total MOD 3600.']::text[], 10, false, 'publie', 5, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-conversion-temps');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-conversion-temps'), null, '3725', '1 h 2 min 5 s', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-conversion-temps'), null, '59', '0 h 0 min 59 s', false, 1, 1, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-conversion-temps'), null, '86399', '23 h 59 min 59 s', true, 1, 2, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-conversion-temps'), 'ALGORITHME ConversionTemps
+VARIABLES
+  total, h, m, s : ENTIER
+DEBUT
+  LIRE(total)
+  h ← total DIV 3600
+  m ← (total MOD 3600) DIV 60
+  s ← total MOD 60
+  ECRIRE(h, " h ", m, " min ", s, " s")
+FIN', '- **h** : nombre d''heures complètes = total DIV 3600.
+- **m** : dans le reste (total MOD 3600), nombre de minutes complètes = DIV 60.
+- **s** : secondes restantes = total MOD 60.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('algo-pair-impair', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'structures-conditionnelles'), 'pseudocode', 'Pair ou impair', 'Lisez un entier et affichez **pair** ou **impair**.', 'debutant', 'ecrire_algorithme', '{}'::text[], '[{"input":"4","output":"pair"},{"input":"7","output":"impair"}]'::jsonb, '{}'::text[], '', array['Un nombre est pair si le reste de sa division par 2 vaut 0.', 'Utilisez MOD dans la condition d''un SI.']::text[], 5, false, 'publie', 6, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-pair-impair');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-pair-impair'), null, '4', 'pair', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-pair-impair'), null, '7', 'impair', false, 1, 1, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-pair-impair'), null, '0', 'pair', true, 1, 2, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-pair-impair'), null, '-3', 'impair', true, 1, 3, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-pair-impair'), 'ALGORITHME PairImpair
+VARIABLES
+  n : ENTIER
+DEBUT
+  LIRE(n)
+  SI n MOD 2 = 0 ALORS
+    ECRIRE("pair")
+  SINON
+    ECRIRE("impair")
+  FINSI
+FIN', 'On teste le reste de la division par 2. Remarque : pour un nombre négatif impair, n MOD 2 vaut -1, d''où l''intérêt de tester « = 0 » plutôt que « = 1 ».')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('algo-mention', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'structures-conditionnelles'), 'pseudocode', 'Mention au diplôme', 'Lisez une note sur 20 et affichez :
+
+- **Note invalide** si la note n''est pas entre 0 et 20 ;
+- **Excellent** si note ≥ 18 ;
+- **Très bien** si note ≥ 16 ;
+- **Bien** si note ≥ 14 ;
+- **Assez bien** si note ≥ 12 ;
+- **Passable** si note ≥ 10 ;
+- **Ajourné** sinon.', 'debutant', 'ecrire_algorithme', '{}'::text[], '[{"input":"15","output":"Bien"}]'::jsonb, '{}'::text[], '', array['Commencez par traiter le cas invalide.', 'Testez les mentions de la plus haute à la plus basse avec SINON SI.']::text[], 10, false, 'publie', 7, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-mention');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-mention'), null, '15', 'Bien', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-mention'), null, '9.5', 'Ajourné', false, 1, 1, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-mention'), null, '18', 'Excellent', false, 1, 2, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-mention'), null, '21', 'Note invalide', true, 1, 3, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-mention'), null, '12', 'Assez bien', true, 1, 4, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-mention'), null, '10', 'Passable', true, 1, 5, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-mention'), 'ALGORITHME Mention
+VARIABLES
+  note : REEL
+DEBUT
+  LIRE(note)
+  SI note < 0 OU note > 20 ALORS
+    ECRIRE("Note invalide")
+  SINON SI note >= 18 ALORS
+    ECRIRE("Excellent")
+  SINON SI note >= 16 ALORS
+    ECRIRE("Très bien")
+  SINON SI note >= 14 ALORS
+    ECRIRE("Bien")
+  SINON SI note >= 12 ALORS
+    ECRIRE("Assez bien")
+  SINON SI note >= 10 ALORS
+    ECRIRE("Passable")
+  SINON
+    ECRIRE("Ajourné")
+  FINSI
+FIN', 'Les tests sont effectués **dans l''ordre**. En partant de la mention la plus haute, chaque SINON SI n''a besoin que d''une seule comparaison : si l''on arrive à « note >= 14 », on sait déjà que note < 16.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('algo-annee-bissextile', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'conditions-imbriquees'), 'pseudocode', 'Année bissextile', 'Une année est **bissextile** si elle est divisible par 4 mais pas par 100, **ou** si elle est divisible par 400.
+
+Lisez une année et affichez **bissextile** ou **non bissextile**.', 'intermediaire', 'probleme', '{}'::text[], '[{"input":"2024","output":"bissextile"},{"input":"1900","output":"non bissextile"}]'::jsonb, '{}'::text[], '', array['« divisible par 4 » se teste avec annee MOD 4 = 0.', 'La condition complète combine ET, OU et NON… ou des SI imbriqués.', '(annee MOD 4 = 0 ET annee MOD 100 <> 0) OU annee MOD 400 = 0']::text[], 10, false, 'publie', 8, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-annee-bissextile');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-annee-bissextile'), null, '2024', 'bissextile', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-annee-bissextile'), null, '1900', 'non bissextile', false, 1, 1, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-annee-bissextile'), null, '2000', 'bissextile', false, 1, 2, null);
 insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-annee-bissextile'), null, '2023', 'non bissextile', true, 1, 3, null);
 insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-annee-bissextile'), null, '2400', 'bissextile', true, 1, 4, null);
 insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-annee-bissextile'), 'ALGORITHME Bissextile
@@ -503,489 +877,5 @@ DEBUT
   ECRIRE("Remise : ", remise)
   ECRIRE("A payer : ", total - remise)
 FIN', 'Le programme combine une **boucle à sentinelle**, deux **accumulateurs** et une **condition** finale. Le cas limite « total = 50 » ne donne pas de remise car la condition est « strictement supérieur ».')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-trois-lignes', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'introduction-algorithmique'), 'pseudocode', 'Présentation en trois lignes', 'Lisez un prénom puis une filière et affichez exactement ces trois lignes :
-
-~~~text
-Bienvenue <prénom> !
-Filière : <filière>
-Bon courage pour cette année.
-~~~', 'debutant', 'ecrire_algorithme', '{}'::text[], '[{"input":"Amani\nInformatique","output":"Bienvenue Amani !\nFilière : Informatique\nBon courage pour cette année."}]'::jsonb, '{}'::text[], '', array['Deux LIRE, puis trois ECRIRE, dans cet ordre.', 'Attention à l''espace avant le point d''exclamation : ECRIRE("Bienvenue ", prenom, " !").']::text[], 5, false, 'publie', 22, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-trois-lignes');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-trois-lignes'), null, 'Amani
-Informatique', 'Bienvenue Amani !
-Filière : Informatique
-Bon courage pour cette année.', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-trois-lignes'), null, 'Grâce
-Intelligence Artificielle', 'Bienvenue Grâce !
-Filière : Intelligence Artificielle
-Bon courage pour cette année.', true, 1, 1, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-trois-lignes'), 'ALGORITHME Presentation
-VARIABLES
-  prenom, filiere : CHAINE
-DEBUT
-  LIRE(prenom)
-  LIRE(filiere)
-  ECRIRE("Bienvenue ", prenom, " !")
-  ECRIRE("Filière : ", filiere)
-  ECRIRE("Bon courage pour cette année.")
-FIN', 'Exécution séquentielle : les deux lectures d''abord, puis les trois affichages dans l''ordre demandé. Une filière peut contenir des espaces : une variable CHAINE reçoit toute la ligne.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-carre-perimetre', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'introduction-algorithmique'), 'pseudocode', 'Périmètre et aire d''un carré', 'Lisez la longueur du côté d''un carré (un réel) et affichez :
-
-~~~text
-Périmètre : <4 × côté>
-Aire : <côté × côté>
-~~~', 'debutant', 'ecrire_algorithme', '{}'::text[], '[{"input":"3","output":"Périmètre : 12\nAire : 9"}]'::jsonb, '{}'::text[], '', array['Entrée : le côté. Sorties : le périmètre et l''aire.', 'Le côté peut être décimal : choisissez le type REEL.']::text[], 5, false, 'publie', 23, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-carre-perimetre');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-carre-perimetre'), null, '3', 'Périmètre : 12
-Aire : 9', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-carre-perimetre'), null, '2.5', 'Périmètre : 10
-Aire : 6.25', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-carre-perimetre'), null, '0', 'Périmètre : 0
-Aire : 0', true, 1, 2, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-carre-perimetre'), 'ALGORITHME Carre
-VARIABLES
-  cote : REEL
-DEBUT
-  LIRE(cote)
-  ECRIRE("Périmètre : ", 4 * cote)
-  ECRIRE("Aire : ", cote * cote)
-FIN', 'Les expressions sont calculées directement dans ECRIRE. Le cas limite côté = 0 est valide et donne 0 pour les deux résultats.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-intervalle', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'logique-raisonnement'), 'pseudocode', 'Appartenance à un intervalle', 'Lisez un nombre x (réel). Affichez **VRAI** si x appartient à l''intervalle [10 ; 20] (bornes incluses), **FAUX** sinon. N''utilisez pas de structure SI : affichez directement la valeur d''une condition.', 'debutant', 'ecrire_algorithme', '{}'::text[], '[{"input":"15","output":"VRAI"}]'::jsonb, array['Ne pas utiliser SI.']::text[], '', array['Une condition a une valeur VRAI ou FAUX : on peut l''afficher avec ECRIRE.', 'Deux comparaisons reliées par ET : (x >= 10) ET (x <= 20).']::text[], 10, false, 'publie', 24, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-intervalle');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-intervalle'), null, '15', 'VRAI', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-intervalle'), null, '25', 'FAUX', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-intervalle'), null, '10', 'VRAI', true, 1, 2, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-intervalle'), null, '20', 'VRAI', true, 1, 3, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-intervalle'), null, '9.99', 'FAUX', true, 1, 4, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-intervalle'), 'ALGORITHME Intervalle
-VARIABLES
-  x : REEL
-DEBUT
-  LIRE(x)
-  ECRIRE((x >= 10) ET (x <= 20))
-FIN', 'Les bornes sont incluses : on utilise >= et <=. Les tests cachés vérifient précisément les cas limites 10 et 20.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-table-verite', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'logique-raisonnement'), 'pseudocode', 'Calculateur de connecteurs logiques', 'Lisez deux booléens a et b (saisis VRAI ou FAUX) et affichez :
-
-~~~text
-a ET b : <valeur>
-a OU b : <valeur>
-NON a : <valeur>
-~~~', 'debutant', 'ecrire_algorithme', '{}'::text[], '[{"input":"VRAI\nFAUX","output":"a ET b : FAUX\na OU b : VRAI\nNON a : FAUX"}]'::jsonb, '{}'::text[], '', array['Déclarez a et b de type BOOLEEN : LIRE convertit VRAI/FAUX.', 'ECRIRE("a ET b : ", a ET b)']::text[], 10, false, 'publie', 25, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-table-verite');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-table-verite'), null, 'VRAI
-FAUX', 'a ET b : FAUX
-a OU b : VRAI
-NON a : FAUX', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-table-verite'), null, 'VRAI
-VRAI', 'a ET b : VRAI
-a OU b : VRAI
-NON a : FAUX', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-table-verite'), null, 'FAUX
-FAUX', 'a ET b : FAUX
-a OU b : FAUX
-NON a : VRAI', true, 1, 2, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-table-verite'), null, 'FAUX
-VRAI', 'a ET b : FAUX
-a OU b : VRAI
-NON a : VRAI', true, 1, 3, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-table-verite'), 'ALGORITHME Connecteurs
-VARIABLES
-  a, b : BOOLEEN
-DEBUT
-  LIRE(a)
-  LIRE(b)
-  ECRIRE("a ET b : ", a ET b)
-  ECRIRE("a OU b : ", a OU b)
-  ECRIRE("NON a : ", NON a)
-FIN', 'Les quatre tests correspondent aux quatre lignes de la table de vérité : c''est un jeu d''essai **exhaustif**.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-de-morgan', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'logique-raisonnement'), 'pseudocode', 'Vérifier une loi de De Morgan', 'Lisez deux booléens a et b. Affichez la valeur de NON (a ET b), puis celle de (NON a) OU (NON b), puis si les deux sont égales :
-
-~~~text
-NON (a ET b) : <valeur>
-NON a OU NON b : <valeur>
-Égales : <valeur>
-~~~', 'intermediaire', 'ecrire_algorithme', '{}'::text[], '[{"input":"VRAI\nFAUX","output":"NON (a ET b) : VRAI\nNON a OU NON b : VRAI\nÉgales : VRAI"}]'::jsonb, '{}'::text[], '', array['Deux booléens se comparent avec =.', 'Mettez des parenthèses : (NON (a ET b)) = ((NON a) OU (NON b)).']::text[], 10, false, 'publie', 26, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-de-morgan');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-de-morgan'), null, 'VRAI
-FAUX', 'NON (a ET b) : VRAI
-NON a OU NON b : VRAI
-Égales : VRAI', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-de-morgan'), null, 'VRAI
-VRAI', 'NON (a ET b) : FAUX
-NON a OU NON b : FAUX
-Égales : VRAI', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-de-morgan'), null, 'FAUX
-FAUX', 'NON (a ET b) : VRAI
-NON a OU NON b : VRAI
-Égales : VRAI', true, 1, 2, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-de-morgan'), 'ALGORITHME VerifDeMorgan
-VARIABLES
-  a, b, g, d : BOOLEEN
-DEBUT
-  LIRE(a)
-  LIRE(b)
-  g ← NON (a ET b)
-  d ← (NON a) OU (NON b)
-  ECRIRE("NON (a ET b) : ", g)
-  ECRIRE("NON a OU NON b : ", d)
-  ECRIRE("Égales : ", g = d)
-FIN', 'Pour toutes les entrées, les deux expressions sont égales : c''est exactement ce qu''affirme la loi de De Morgan. Ranger chaque expression dans une variable rend l''algorithme plus lisible.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-prix-ttc', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'analyse-problemes'), 'pseudocode', 'Prix toutes taxes comprises', 'Un magasin applique une TVA de **16 %**. Lisez le prix unitaire hors taxes (réel) puis la quantité (entier) et affichez :
-
-~~~text
-Total HT : <prix × quantité>
-TVA : <16 % du total HT>
-Total TTC : <total HT + TVA>
-~~~', 'debutant', 'probleme', '{}'::text[], '[{"input":"1000\n3","output":"Total HT : 3000\nTVA : 480\nTotal TTC : 3480"}]'::jsonb, '{}'::text[], '', array['Commencez par écrire les données, les résultats et un jeu d''essai.', 'Déclarez TAUX_TVA = 0.16 dans la section CONSTANTES.', 'Calculez d''abord le total HT, puis la TVA à partir de ce total.']::text[], 10, false, 'publie', 27, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-prix-ttc');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-prix-ttc'), null, '1000
-3', 'Total HT : 3000
-TVA : 480
-Total TTC : 3480', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-prix-ttc'), null, '2500
-0', 'Total HT : 0
-TVA : 0
-Total TTC : 0', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-prix-ttc'), null, '125
-4', 'Total HT : 500
-TVA : 80
-Total TTC : 580', true, 1, 2, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-prix-ttc'), 'ALGORITHME PrixTTC
-CONSTANTES
-  TAUX_TVA = 0.16
-VARIABLES
-  prix, totalHT, tva : REEL
-  quantite : ENTIER
-DEBUT
-  LIRE(prix)
-  LIRE(quantite)
-  totalHT ← prix * quantite
-  tva ← totalHT * TAUX_TVA
-  ECRIRE("Total HT : ", totalHT)
-  ECRIRE("TVA : ", tva)
-  ECRIRE("Total TTC : ", totalHT + tva)
-FIN', 'Décomposition : total HT, puis TVA, puis total TTC. La constante TAUX_TVA permet de changer le taux en une seule ligne. Le cas quantité = 0 est un cas limite valide.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-rendu-monnaie', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'analyse-problemes'), 'pseudocode', 'Rendu de monnaie', 'Lisez un montant m en francs congolais (entier, multiple de 100). Décomposez-le avec le moins de coupures possible en billets de 5 000, 1 000 et 500 FC et en pièces de 100 FC. Affichez :
-
-~~~text
-5000 FC : <nombre>
-1000 FC : <nombre>
-500 FC : <nombre>
-100 FC : <nombre>
-~~~', 'intermediaire', 'probleme', '{}'::text[], '[{"input":"7600","output":"5000 FC : 1\n1000 FC : 2\n500 FC : 1\n100 FC : 1"}]'::jsonb, '{}'::text[], '', array['Le nombre de billets de 5 000 est le quotient m DIV 5000.', 'Il reste alors m MOD 5000 à rendre : recommencez avec 1 000.', 'Utilisez une variable reste mise à jour après chaque coupure.']::text[], 10, true, 'publie', 28, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-rendu-monnaie');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-rendu-monnaie'), null, '7600', '5000 FC : 1
-1000 FC : 2
-500 FC : 1
-100 FC : 1', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-rendu-monnaie'), null, '0', '5000 FC : 0
-1000 FC : 0
-500 FC : 0
-100 FC : 0', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-rendu-monnaie'), null, '5000', '5000 FC : 1
-1000 FC : 0
-500 FC : 0
-100 FC : 0', true, 1, 2, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-rendu-monnaie'), null, '400', '5000 FC : 0
-1000 FC : 0
-500 FC : 0
-100 FC : 4', true, 1, 3, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-rendu-monnaie'), null, '23900', '5000 FC : 4
-1000 FC : 3
-500 FC : 1
-100 FC : 4', true, 1, 4, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-rendu-monnaie'), 'ALGORITHME Monnaie
-VARIABLES
-  m, reste : ENTIER
-DEBUT
-  LIRE(m)
-  ECRIRE("5000 FC : ", m DIV 5000)
-  reste ← m MOD 5000
-  ECRIRE("1000 FC : ", reste DIV 1000)
-  reste ← reste MOD 1000
-  ECRIRE("500 FC : ", reste DIV 500)
-  reste ← reste MOD 500
-  ECRIRE("100 FC : ", reste DIV 100)
-FIN', 'À chaque étape, le quotient donne le nombre de coupures et le reste ce qu''il reste à rendre. Le jeu d''essai du cours (0, 5 000, 400) couvre les cas limites.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-semaines-jours', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'analyse-problemes'), 'pseudocode', 'Semaines, jours et heures', 'Lisez une durée en heures (entier ≥ 0) et affichez-la en semaines, jours et heures :
-
-~~~text
-<s> semaine(s) <j> jour(s) <h> heure(s)
-~~~', 'intermediaire', 'probleme', '{}'::text[], '[{"input":"200","output":"1 semaine(s) 1 jour(s) 8 heure(s)"}]'::jsonb, '{}'::text[], '', array['Une semaine = 168 heures, un jour = 24 heures.', 'Semaines : total DIV 168 ; il reste total MOD 168 heures.']::text[], 10, false, 'publie', 29, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-semaines-jours');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-semaines-jours'), null, '200', '1 semaine(s) 1 jour(s) 8 heure(s)', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-semaines-jours'), null, '23', '0 semaine(s) 0 jour(s) 23 heure(s)', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-semaines-jours'), null, '168', '1 semaine(s) 0 jour(s) 0 heure(s)', true, 1, 2, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-semaines-jours'), null, '0', '0 semaine(s) 0 jour(s) 0 heure(s)', true, 1, 3, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-semaines-jours'), 'ALGORITHME DureeHeures
-CONSTANTES
-  H_SEMAINE = 168
-  H_JOUR = 24
-VARIABLES
-  total, s, j, h : ENTIER
-DEBUT
-  LIRE(total)
-  s ← total DIV H_SEMAINE
-  j ← (total MOD H_SEMAINE) DIV H_JOUR
-  h ← total MOD H_JOUR
-  ECRIRE(s, " semaine(s) ", j, " jour(s) ", h, " heure(s)")
-FIN', 'Les heures restantes se calculent directement par total MOD 24, car 168 est un multiple de 24.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-permutation-circulaire', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'variables-constantes'), 'pseudocode', 'Permutation circulaire', 'Lisez trois entiers a, b et c. Faites tourner leurs valeurs : a reçoit l''ancienne valeur de b, b celle de c, c celle de a. Affichez ensuite a, b et c séparés par un espace.', 'debutant', 'ecrire_algorithme', '{}'::text[], '[{"input":"1\n2\n3","output":"2 3 1"}]'::jsonb, array['Utilisez exactement une variable auxiliaire.', 'Les valeurs doivent réellement être échangées dans les variables (pas seulement affichées dans un autre ordre).']::text[], '', array['Sauvegardez d''abord la valeur qui va être écrasée en premier.', 'temp ← a, puis a ← b, b ← c, c ← temp.']::text[], 10, false, 'publie', 30, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-permutation-circulaire');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-permutation-circulaire'), null, '1
-2
-3', '2 3 1', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-permutation-circulaire'), null, '7
-7
-0', '7 0 7', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-permutation-circulaire'), null, '-5
-10
-20', '10 20 -5', true, 1, 2, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-permutation-circulaire'), 'ALGORITHME Rotation
-VARIABLES
-  a, b, c, temp : ENTIER
-DEBUT
-  LIRE(a)
-  LIRE(b)
-  LIRE(c)
-  temp ← a
-  a ← b
-  b ← c
-  c ← temp
-  ECRIRE(a, " ", b, " ", c)
-FIN', 'Chaque affectation écrase une valeur : on sauvegarde **a** avant tout. Faites la trace : avec 1, 2, 3, temp = 1, puis a = 2, b = 3, c = 1.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-solde-compte', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'variables-constantes'), 'pseudocode', 'Suivi d''un compte', 'Lisez le solde initial d''un compte, puis le montant d''un dépôt, puis le montant d''un retrait (des réels). Mettez à jour **une seule variable solde** après chaque opération et affichez :
-
-~~~text
-Après dépôt : <solde>
-Après retrait : <solde>
-~~~', 'debutant', 'ecrire_algorithme', '{}'::text[], '[{"input":"10000\n2500\n4000","output":"Après dépôt : 12500\nAprès retrait : 8500"}]'::jsonb, '{}'::text[], '', array['solde ← solde + depot', 'Affichez le solde juste après chaque mise à jour.']::text[], 10, false, 'publie', 31, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-solde-compte');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-solde-compte'), null, '10000
-2500
-4000', 'Après dépôt : 12500
-Après retrait : 8500', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-solde-compte'), null, '0
-0
-0', 'Après dépôt : 0
-Après retrait : 0', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-solde-compte'), null, '150.5
-49.5
-200', 'Après dépôt : 200
-Après retrait : 0', true, 1, 2, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-solde-compte'), 'ALGORITHME Compte
-VARIABLES
-  solde, depot, retrait : REEL
-DEBUT
-  LIRE(solde)
-  LIRE(depot)
-  LIRE(retrait)
-  solde ← solde + depot
-  ECRIRE("Après dépôt : ", solde)
-  solde ← solde - retrait
-  ECRIRE("Après retrait : ", solde)
-FIN', 'La même variable évolue : sa valeur dépend du moment où on l''affiche. C''est ce que montre un tableau de suivi.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-celsius-fahrenheit', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'types-donnees'), 'pseudocode', 'Conversion Celsius → Fahrenheit', 'Lisez une température en degrés Celsius (réel) et affichez-la en degrés Fahrenheit, sachant que F = C × 9 / 5 + 32 :
-
-~~~text
-<F> °F
-~~~', 'debutant', 'ecrire_algorithme', '{}'::text[], '[{"input":"100","output":"212 °F"}]'::jsonb, '{}'::text[], '', array['La division produit un réel : déclarez des variables REEL.', 'ECRIRE(f, " °F")']::text[], 10, false, 'publie', 32, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-celsius-fahrenheit');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-celsius-fahrenheit'), null, '100', '212 °F', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-celsius-fahrenheit'), null, '0', '32 °F', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-celsius-fahrenheit'), null, '-40', '-40 °F', true, 1, 2, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-celsius-fahrenheit'), null, '36.6', '97.88 °F', true, 1, 3, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-celsius-fahrenheit'), 'ALGORITHME Fahrenheit
-VARIABLES
-  c, f : REEL
-DEBUT
-  LIRE(c)
-  f ← c * 9 / 5 + 32
-  ECRIRE(f, " °F")
-FIN', 'Avec des variables ENTIER, 36.6 ne pourrait pas être lu et c × 9 / 5 ne pourrait pas être rangé : le type REEL s''impose. −40 est la température où les deux échelles coïncident.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-initiales', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'types-donnees'), 'pseudocode', 'Initiales', 'Lisez un prénom puis un nom et affichez les initiales en majuscules, chacune suivie d''un point (exemple : « Grâce » et « mutombo » → **G.M.**).', 'debutant', 'ecrire_algorithme', '{}'::text[], '[{"input":"Grâce\nmutombo","output":"G.M."}]'::jsonb, '{}'::text[], '', array['Le premier caractère d''une chaîne s s''obtient par s[1].', 'MAJUSCULE transforme un texte en majuscules ; + concatène des chaînes.']::text[], 10, false, 'publie', 33, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-initiales');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-initiales'), null, 'Grâce
-mutombo', 'G.M.', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-initiales'), null, 'jean
-Kabila', 'J.K.', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-initiales'), null, 'élise
-ngoy', 'É.N.', true, 1, 2, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-initiales'), 'ALGORITHME Initiales
-VARIABLES
-  prenom, nom : CHAINE
-DEBUT
-  LIRE(prenom)
-  LIRE(nom)
-  ECRIRE(MAJUSCULE(prenom[1] + "." + nom[1] + "."))
-FIN', 'prenom[1] est un caractère, que l''on concatène avec "." pour former une chaîne, puis MAJUSCULE s''applique à l''ensemble.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-majeur', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'types-donnees'), 'pseudocode', 'Majeur ou mineur ?', 'Lisez l''année de naissance d''une personne. Calculez son âge en 2026 et rangez dans une variable **BOOLEEN** le fait qu''elle soit majeure (18 ans ou plus). Affichez :
-
-~~~text
-Âge : <âge>
-Majeur : <VRAI ou FAUX>
-~~~', 'debutant', 'ecrire_algorithme', '{}'::text[], '[{"input":"2005","output":"Âge : 21\nMajeur : VRAI"}]'::jsonb, '{}'::text[], '', array['majeur ← age >= 18', 'Pas besoin de SI : une comparaison produit déjà un booléen.']::text[], 10, false, 'publie', 34, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-majeur');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-majeur'), null, '2005', 'Âge : 21
-Majeur : VRAI', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-majeur'), null, '2010', 'Âge : 16
-Majeur : FAUX', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-majeur'), null, '2008', 'Âge : 18
-Majeur : VRAI', true, 1, 2, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-majeur'), 'ALGORITHME Majorite
-CONSTANTES
-  ANNEE = 2026
-VARIABLES
-  naissance, age : ENTIER
-  majeur : BOOLEEN
-DEBUT
-  LIRE(naissance)
-  age ← ANNEE - naissance
-  majeur ← age >= 18
-  ECRIRE("Âge : ", age)
-  ECRIRE("Majeur : ", majeur)
-FIN', 'Le cas limite 18 ans doit donner VRAI : la comparaison est **>=**.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-chiffres', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'operateurs'), 'pseudocode', 'Somme et inversion des chiffres', 'Lisez un entier n compris entre 100 et 999. Affichez la somme de ses chiffres, puis le nombre obtenu en inversant ses chiffres :
-
-~~~text
-Somme : <somme>
-Inversé : <nombre inversé>
-~~~', 'intermediaire', 'ecrire_algorithme', '{}'::text[], '[{"input":"375","output":"Somme : 15\nInversé : 573"}]'::jsonb, '{}'::text[], '', array['Unités : n MOD 10 ; dizaines : (n DIV 10) MOD 10 ; centaines : n DIV 100.', 'Nombre inversé : u × 100 + d × 10 + c.']::text[], 10, true, 'publie', 35, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-chiffres');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-chiffres'), null, '375', 'Somme : 15
-Inversé : 573', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-chiffres'), null, '100', 'Somme : 1
-Inversé : 1', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-chiffres'), null, '999', 'Somme : 27
-Inversé : 999', true, 1, 2, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-chiffres'), null, '120', 'Somme : 3
-Inversé : 21', true, 1, 3, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-chiffres'), 'ALGORITHME Chiffres
-VARIABLES
-  n, c, d, u : ENTIER
-DEBUT
-  LIRE(n)
-  u ← n MOD 10
-  d ← (n DIV 10) MOD 10
-  c ← n DIV 100
-  ECRIRE("Somme : ", c + d + u)
-  ECRIRE("Inversé : ", u * 100 + d * 10 + c)
-FIN', 'DIV et MOD par 10 isolent les chiffres. Pour 100, l''inversé est 001, c''est-à-dire le nombre 1 : un entier n''a pas de zéros en tête.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-divisibilite', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'operateurs'), 'pseudocode', 'Tests de divisibilité', 'Lisez un entier n et affichez, sans structure SI :
-
-~~~text
-Pair : <VRAI/FAUX>
-Multiple de 3 : <VRAI/FAUX>
-Multiple de 6 : <VRAI/FAUX>
-~~~', 'debutant', 'ecrire_algorithme', '{}'::text[], '[{"input":"12","output":"Pair : VRAI\nMultiple de 3 : VRAI\nMultiple de 6 : VRAI"}]'::jsonb, array['Ne pas utiliser SI.']::text[], '', array['n est un multiple de k si n MOD k = 0.', 'Un multiple de 6 est un nombre pair ET multiple de 3 (ou simplement n MOD 6 = 0).']::text[], 10, false, 'publie', 36, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-divisibilite');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-divisibilite'), null, '12', 'Pair : VRAI
-Multiple de 3 : VRAI
-Multiple de 6 : VRAI', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-divisibilite'), null, '9', 'Pair : FAUX
-Multiple de 3 : VRAI
-Multiple de 6 : FAUX', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-divisibilite'), null, '0', 'Pair : VRAI
-Multiple de 3 : VRAI
-Multiple de 6 : VRAI', true, 1, 2, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-divisibilite'), null, '-4', 'Pair : VRAI
-Multiple de 3 : FAUX
-Multiple de 6 : FAUX', true, 1, 3, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-divisibilite'), 'ALGORITHME Divisibilite
-VARIABLES
-  n : ENTIER
-DEBUT
-  LIRE(n)
-  ECRIRE("Pair : ", n MOD 2 = 0)
-  ECRIRE("Multiple de 3 : ", n MOD 3 = 0)
-  ECRIRE("Multiple de 6 : ", (n MOD 2 = 0) ET (n MOD 3 = 0))
-FIN', '0 est un multiple de tous les entiers (0 MOD k = 0). Pour −4, le reste de la division par 2 est 0 : on teste « = 0 », ce qui fonctionne quel que soit le signe.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-facture', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'entrees-sorties'), 'pseudocode', 'Facture formatée', 'Lisez le nom d''un article, son prix unitaire (réel) et la quantité (entier). Affichez exactement :
-
-~~~text
-===== FACTURE =====
-Article : <nom>
-Quantité : <quantité> x <prix> FC
-Total : <total> FC
-===================
-~~~', 'debutant', 'ecrire_algorithme', '{}'::text[], '[{"input":"Cahier\n1500\n4","output":"===== FACTURE =====\nArticle : Cahier\nQuantité : 4 x 1500 FC\nTotal : 6000 FC\n==================="}]'::jsonb, '{}'::text[], '', array['Cinq ECRIRE ; respectez les espaces autour de « : » et de « x ».', 'Le total est prix × quantité.']::text[], 10, false, 'publie', 37, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-facture');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-facture'), null, 'Cahier
-1500
-4', '===== FACTURE =====
-Article : Cahier
-Quantité : 4 x 1500 FC
-Total : 6000 FC
-===================', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-facture'), null, 'Stylo bleu
-250.5
-2', '===== FACTURE =====
-Article : Stylo bleu
-Quantité : 2 x 250.5 FC
-Total : 501 FC
-===================', true, 1, 1, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-facture'), 'ALGORITHME Facture
-VARIABLES
-  article : CHAINE
-  prix : REEL
-  quantite : ENTIER
-DEBUT
-  LIRE(article)
-  LIRE(prix)
-  LIRE(quantite)
-  ECRIRE("===== FACTURE =====")
-  ECRIRE("Article : ", article)
-  ECRIRE("Quantité : ", quantite, " x ", prix, " FC")
-  ECRIRE("Total : ", prix * quantite, " FC")
-  ECRIRE("===================")
-FIN', 'L''essentiel est le **format** : la sortie est comparée ligne par ligne. Le nom de l''article peut contenir des espaces.')
 on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
 commit;

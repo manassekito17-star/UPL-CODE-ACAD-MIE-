@@ -30,7 +30,7 @@ Les limites des offres gratuites citées ici sont **indicatives (novembre 2026)*
 Sans aucun service payant :
 
 - **Formation complète :**
-  - 7 parcours en 4 niveaux : cours, exemples, exercices corrigés automatiquement, quiz, TD, interrogations, évaluations, projets ;
+  - 8 parcours en 4 niveaux : cours, exemples, exercices corrigés automatiquement, quiz, TD, interrogations, évaluations, projets ;
   - test de positionnement, examens de niveau, bulletin et certificats internes vérifiables.
 - **Exécution :**
   - pseudocode (interpréteur), Python (Pyodide), JavaScript (Web Worker isolé) et aperçu HTML/CSS/JS, **dans le navigateur** ;

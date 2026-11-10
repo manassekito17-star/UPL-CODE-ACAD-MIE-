@@ -33,8 +33,8 @@ describe("professeur IA spécialisé", () => {
     expect(msg).toContain("EXAMINATEUR");
   });
 
-  it("les consignes couvrent les sept parcours et protègent les épreuves", () => {
-    for (const s of ["HTML", "CSS", "Python", "langage C", "JavaScript", "Java", "algorithmique"]) expect(TUTOR_SYSTEM_PROMPT).toContain(s);
+  it("les consignes couvrent les huit parcours et protègent les épreuves", () => {
+    for (const s of ["HTML", "CSS", "Python", "langage C", "JavaScript", "Java", "K+", "algorithmique"]) expect(TUTOR_SYSTEM_PROMPT).toContain(s);
     expect(TUTOR_SYSTEM_PROMPT).toContain("n'indique pas la bonne réponse");
     expect(TUTOR_SYSTEM_PROMPT).toContain("ne fournis jamais de solution complète");
   });

@@ -4119,6 +4119,377 @@ insert into public.quiz_answer_keys (question_id, correct, explanation) select i
 with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'java-evaluation-finale'), 'qcm', 'Quelle collection garantit l''unicité ?', null, '["ArrayList","HashSet","LinkedList","ArrayDeque"]'::jsonb, 3, null) returning id)
 insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
 
+-- ===== K+ — programmer en français =====
+insert into public.courses (slug, language_id, category_id, code, title, tagline, description, level, prerequisites, objectives, duration_hours, status, sort_order, validated_at)
+values ('kplus', 'kplus', (select id from public.course_categories where slug = 'programmation'), 'Parcours F', 'K+ — programmer en français', 'Programmer en français, jusqu''aux sites web dynamiques.', 'K+ est un langage de programmation dont les mots-clés sont en français (si … alors … fin, afficher, demander). Ce parcours commence par les bases de la programmation, puis apprend à créer de vrais sites web dynamiques : boutons, champs de saisie, listes qui se remplissent, minuteries, et publication du site.', 'debutant', array['Aucun : le parcours commence au tout début.']::text[], array['Écrire des programmes K+ : variables, calculs, conditions, boucles et fonctions.', 'Comprendre et corriger les messages d''erreur.', 'Créer des pages web qui réagissent aux actions du visiteur.', 'Publier un site créé avec K+.']::text[], 16, 'publie', 8, now())
+on conflict (slug) do update set language_id = excluded.language_id, category_id = excluded.category_id, code = excluded.code, title = excluded.title, tagline = excluded.tagline, description = excluded.description, level = excluded.level, prerequisites = excluded.prerequisites, objectives = excluded.objectives, duration_hours = excluded.duration_hours, status = excluded.status, sort_order = excluded.sort_order;
+insert into public.modules (course_id, slug, title, description, position, level_number) values ((select id from public.courses where slug = 'kplus'), 'bases', 'Les bases du langage K+', null, 1, 1)
+on conflict (course_id, slug) do update set title = excluded.title, description = excluded.description, position = excluded.position, level_number = excluded.level_number;
+insert into public.lessons (module_id, course_id, slug, title, level, duration_minutes, objectives, prerequisites, content, summary, examples, pedagogy, status, position, validated_at)
+values ((select id from public.modules where course_id = (select id from public.courses where slug = 'kplus') and slug = 'bases'), (select id from public.courses where slug = 'kplus'), 'kplus-introduction', 'Découvrir K+', 'debutant', 20, array['Savoir ce qu''est K+ et à quoi il sert.', 'Écrire et exécuter un premier programme avec afficher.', 'Écrire des commentaires.']::text[], '{}'::text[], '## Un langage de programmation en français
+
+**K+** est un langage de programmation dont les mots-clés sont en français. Un programme K+ se lit presque comme une phrase :
+
+~~~kplus
+si age >= 18 alors
+    afficher("Tu es majeur")
+fin
+~~~
+
+Les fichiers K+ portent l''extension **.kplus**. Sur la plateforme, le vrai moteur K+ tourne dans votre navigateur : vos programmes s''exécutent même sans Internet une fois l''éditeur préparé.
+
+## Afficher
+
+**afficher(…)** écrit une ou plusieurs valeurs, séparées par une espace, puis passe à la ligne :
+
+~~~kplus
+afficher("Bienvenue dans K+")
+afficher("2 + 3 =", 2 + 3)
+~~~
+
+## Commentaires
+
+Un commentaire est ignoré par le moteur : il sert à expliquer le programme aux humains.
+
+- **#** commente jusqu''à la fin de la ligne ;
+- **/* … */** commente plusieurs lignes.
+
+## Une instruction par ligne
+
+En K+, chaque instruction occupe sa propre ligne : il n''y a pas de point-virgule. Les blocs (si, boucles, fonctions) se terminent par le mot-clé **fin**.', array['afficher(…) écrit des valeurs puis passe à la ligne.', '# et /* … */ écrivent des commentaires.', 'Une instruction par ligne ; les blocs se terminent par fin.']::text[], '[{"language":"kplus","title":"Premier programme","code":"# Mon premier programme K+\nafficher(\"Bienvenue dans K+\")\nafficher(\"2 + 3 =\", 2 + 3)\nafficher()          # ligne vide\nafficher(\"À bientôt !\")","explanation":"afficher() sans argument écrit une ligne vide."}]'::jsonb, null, 'publie', 1, now())
+on conflict (course_id, slug) do update set module_id = excluded.module_id, title = excluded.title, level = excluded.level, duration_minutes = excluded.duration_minutes, objectives = excluded.objectives, prerequisites = excluded.prerequisites, content = excluded.content, summary = excluded.summary, examples = excluded.examples, pedagogy = excluded.pedagogy, status = excluded.status, position = excluded.position;
+insert into public.quizzes (course_id, lesson_id, slug, title, is_final, pass_score, status, kind, duration_minutes, level_number) values ((select id from public.courses where slug = 'kplus'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'kplus') and slug = 'kplus-introduction'), 'kplus-introduction-quiz', 'Découvrir K+', false, 60, 'publie', 'verification', null, null)
+on conflict (slug) do update set title = excluded.title, is_final = excluded.is_final, pass_score = excluded.pass_score, lesson_id = excluded.lesson_id, kind = excluded.kind, duration_minutes = excluded.duration_minutes, level_number = excluded.level_number;
+delete from public.quiz_questions where quiz_id = (select id from public.quizzes where slug = 'kplus-introduction-quiz');
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-introduction-quiz'), 'qcm', 'Quelle est l''extension des fichiers K+ ?', null, '[".kp",".kplus",".k",".txt"]'::jsonb, 0, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-introduction-quiz'), 'qcm', 'Qu''affiche afficher("A", 1 + 1) ?', null, '["A 2","A1+1","A2","\"A\" 2"]'::jsonb, 1, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[0]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-introduction-quiz'), 'vrai_faux', 'En K+, chaque instruction se termine par un point-virgule.', null, '["Vrai","Faux"]'::jsonb, 2, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, 'Une instruction par ligne, sans point-virgule.' from qq;
+insert into public.lessons (module_id, course_id, slug, title, level, duration_minutes, objectives, prerequisites, content, summary, examples, pedagogy, status, position, validated_at)
+values ((select id from public.modules where course_id = (select id from public.courses where slug = 'kplus') and slug = 'bases'), (select id from public.courses where slug = 'kplus'), 'kplus-variables', 'Variables, constantes et types', 'debutant', 30, array['Déclarer une variable et une constante.', 'Connaître les types de K+.', 'Lire une saisie avec demander et la convertir.']::text[], '{}'::text[], '## Déclarer une variable
+
+Une variable est une boîte qui porte un nom et contient une valeur. On la **déclare** avec le mot-clé **variable**, puis on peut changer sa valeur :
+
+~~~kplus
+variable age = 20
+age = age + 1
+~~~
+
+Utiliser une variable non déclarée provoque une **Erreur de nom** : K+ refuse de deviner.
+
+## Constantes
+
+Une **constante** ne change jamais : `constante PI = 3.14159`. La modifier provoque une **Erreur de constante**.
+
+## Les types
+
+| Type | Exemples |
+|---|---|
+| entier | 0, 42, -7, 1_000_000 |
+| décimal | 3.14, 2.0 (avec un point, pas une virgule) |
+| texte | "Bonjour" |
+| booléen | vrai, faux |
+| nul | nul (absence de valeur) |
+| liste | [1, 2, 3] |
+
+**type(x)** donne le type d''une valeur.
+
+## Lire une saisie
+
+**demander("question")** lit une ligne tapée par l''utilisateur et la renvoie **sous forme de texte**. Pour calculer, on la convertit avec **entier(…)** ou **decimal(…)** :
+
+~~~kplus
+variable age = entier(demander("Votre âge ? "))
+~~~
+
+Sur la plateforme, les réponses se tapent dans la zone **Entrées**, une par ligne.', array['variable crée une variable ; constante une valeur fixe.', 'Types : entier, décimal, texte, booléen, nul, liste.', 'demander renvoie toujours un texte : convertir avec entier ou decimal.']::text[], '[{"language":"kplus","title":"Variables et types","code":"variable nom = \"Awa\"\nvariable age = 20\nconstante PI = 3.14159\nafficher(nom, \"a\", age, \"ans\")\nafficher(type(nom), type(age), type(PI), type(vrai))"},{"language":"kplus","title":"Lire et convertir une saisie","code":"variable nom = demander(\"Votre nom ? \")\nvariable age = entier(demander(\"Votre âge ? \"))\nafficher(\"Bonjour\", nom, \"- l''an prochain vous aurez\", age + 1, \"ans.\")","stdin":"Awa\n20\n","explanation":"demander renvoie un texte : entier(…) le convertit pour pouvoir calculer."}]'::jsonb, null, 'publie', 2, now())
+on conflict (course_id, slug) do update set module_id = excluded.module_id, title = excluded.title, level = excluded.level, duration_minutes = excluded.duration_minutes, objectives = excluded.objectives, prerequisites = excluded.prerequisites, content = excluded.content, summary = excluded.summary, examples = excluded.examples, pedagogy = excluded.pedagogy, status = excluded.status, position = excluded.position;
+insert into public.quizzes (course_id, lesson_id, slug, title, is_final, pass_score, status, kind, duration_minutes, level_number) values ((select id from public.courses where slug = 'kplus'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'kplus') and slug = 'kplus-variables'), 'kplus-variables-quiz', 'Variables et types', false, 60, 'publie', 'verification', null, null)
+on conflict (slug) do update set title = excluded.title, is_final = excluded.is_final, pass_score = excluded.pass_score, lesson_id = excluded.lesson_id, kind = excluded.kind, duration_minutes = excluded.duration_minutes, level_number = excluded.level_number;
+delete from public.quiz_questions where quiz_id = (select id from public.quizzes where slug = 'kplus-variables-quiz');
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-variables-quiz'), 'qcm', 'Que renvoie demander(…) ?', null, '["un entier","un texte","un décimal","ça dépend de la saisie"]'::jsonb, 0, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-variables-quiz'), 'qcm', 'Comment écrit-on trois et demi en K+ ?', null, '["3,5","3.5","3½","\"3.5\""]'::jsonb, 1, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-variables-quiz'), 'vrai_faux', 'On peut changer la valeur d''une constante.', null, '["Vrai","Faux"]'::jsonb, 2, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+insert into public.lessons (module_id, course_id, slug, title, level, duration_minutes, objectives, prerequisites, content, summary, examples, pedagogy, status, position, validated_at)
+values ((select id from public.modules where course_id = (select id from public.courses where slug = 'kplus') and slug = 'bases'), (select id from public.courses where slug = 'kplus'), 'kplus-calculs', 'Calculs et textes', 'debutant', 30, array['Utiliser les opérateurs et leurs priorités.', 'Distinguer division, modulo et puissance.', 'Assembler des textes.']::text[], '{}'::text[], '## Les opérateurs
+
+| Opérateur | Rôle | Exemple |
+|---|---|---|
+| + - * | addition, soustraction, multiplication | 2 + 3 * 4 vaut 14 |
+| / | division (résultat décimal) | 7 / 2 vaut 3.5 ; 10 / 2 vaut 5.0 |
+| % | reste de la division | 17 % 5 vaut 2 |
+| ^ | puissance | 2 ^ 10 vaut 1024 |
+
+La multiplication et la division passent avant l''addition ; les parenthèses changent l''ordre : (2 + 3) * 4 vaut 20.
+
+Pour une division entière, on garde la partie entière : **entier(17 / 5)** vaut 3. Diviser par zéro provoque une **Erreur de division par zéro**.
+
+## Les textes
+
+Le signe **+** assemble deux textes : "Bon" + "jour" donne "Bonjour". Pour assembler un texte et un nombre, on convertit le nombre avec **texte(…)** : K+ refuse "Âge : " + 20, pour éviter les surprises.
+
+Fonctions utiles : **longueur(t)**, **arrondir(x, n)**, **racine(x)**, **absolu(x)**.', array['/ donne toujours un décimal ; % donne le reste ; ^ la puissance.', '+ assemble deux textes ; texte(…) convertit un nombre.', 'entier(a / b) donne la partie entière.']::text[], '[{"language":"kplus","title":"Opérateurs","code":"afficher(2 + 3 * 4, (2 + 3) * 4)\nafficher(7 / 2, 10 / 2, 17 % 5, 2 ^ 10)\nafficher(entier(17 / 5), arrondir(3.14159, 2))"},{"language":"kplus","title":"Assembler des textes","code":"variable prenom = \"Awa\"\nvariable note = 15\nafficher(\"Élève : \" + prenom)\nafficher(\"Note : \" + texte(note) + \"/20\")\nafficher(\"Le prénom a\", longueur(prenom), \"lettres\")"}]'::jsonb, null, 'publie', 3, now())
+on conflict (course_id, slug) do update set module_id = excluded.module_id, title = excluded.title, level = excluded.level, duration_minutes = excluded.duration_minutes, objectives = excluded.objectives, prerequisites = excluded.prerequisites, content = excluded.content, summary = excluded.summary, examples = excluded.examples, pedagogy = excluded.pedagogy, status = excluded.status, position = excluded.position;
+insert into public.lessons (module_id, course_id, slug, title, level, duration_minutes, objectives, prerequisites, content, summary, examples, pedagogy, status, position, validated_at)
+values ((select id from public.modules where course_id = (select id from public.courses where slug = 'kplus') and slug = 'bases'), (select id from public.courses where slug = 'kplus'), 'kplus-conditions', 'Conditions', 'debutant', 30, array['Écrire si … alors … sinon … fin.', 'Enchaîner plusieurs cas avec sinon si.', 'Combiner des conditions avec et, ou, non.']::text[], '{}'::text[], '## si … alors … fin
+
+~~~kplus
+si note >= 10 alors
+    afficher("Admis")
+sinon
+    afficher("Ajourné")
+fin
+~~~
+
+Un seul **fin** termine tout le bloc. Pour plusieurs cas, on écrit **sinon si** :
+
+~~~kplus
+si note >= 16 alors
+    afficher("Très bien")
+sinon si note >= 10 alors
+    afficher("Admis")
+sinon
+    afficher("Ajourné")
+fin
+~~~
+
+## Comparer et combiner
+
+Comparaisons : == (égal), != (différent), <, <=, >, >=. Pour comparer, on écrit **==** : un seul = sert à donner une valeur.
+
+Combinaisons : **et**, **ou**, **non** — par exemple `si age >= 18 et age < 65 alors`.
+
+K+ exige une vraie condition (vrai ou faux) : `si 1 alors` est une erreur.', array['si … alors … sinon si … sinon … fin.', '== compare, = donne une valeur.', 'et, ou, non combinent des conditions.']::text[], '[{"language":"kplus","title":"Mention","code":"variable note = entier(demander())\nsi note >= 16 alors\n    afficher(\"Très bien\")\nsinon si note >= 14 alors\n    afficher(\"Bien\")\nsinon si note >= 10 alors\n    afficher(\"Admis\")\nsinon\n    afficher(\"Ajourné\")\nfin","stdin":"15\n"}]'::jsonb, null, 'publie', 4, now())
+on conflict (course_id, slug) do update set module_id = excluded.module_id, title = excluded.title, level = excluded.level, duration_minutes = excluded.duration_minutes, objectives = excluded.objectives, prerequisites = excluded.prerequisites, content = excluded.content, summary = excluded.summary, examples = excluded.examples, pedagogy = excluded.pedagogy, status = excluded.status, position = excluded.position;
+insert into public.quizzes (course_id, lesson_id, slug, title, is_final, pass_score, status, kind, duration_minutes, level_number) values ((select id from public.courses where slug = 'kplus'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'kplus') and slug = 'kplus-conditions'), 'kplus-conditions-quiz', 'Conditions', false, 60, 'publie', 'verification', null, null)
+on conflict (slug) do update set title = excluded.title, is_final = excluded.is_final, pass_score = excluded.pass_score, lesson_id = excluded.lesson_id, kind = excluded.kind, duration_minutes = excluded.duration_minutes, level_number = excluded.level_number;
+delete from public.quiz_questions where quiz_id = (select id from public.quizzes where slug = 'kplus-conditions-quiz');
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-conditions-quiz'), 'qcm', 'Combien de « fin » faut-il pour si … sinon si … sinon ?', null, '["1","2","3","aucun"]'::jsonb, 0, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[0]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-conditions-quiz'), 'qcm', 'Quel opérateur teste l''égalité ?', null, '["=","==","===","egal"]'::jsonb, 1, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-conditions-quiz'), 'vrai_faux', '« si 1 alors » est accepté par K+.', null, '["Vrai","Faux"]'::jsonb, 2, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, 'La condition doit valoir vrai ou faux.' from qq;
+insert into public.lessons (module_id, course_id, slug, title, level, duration_minutes, objectives, prerequisites, content, summary, examples, pedagogy, status, position, validated_at)
+values ((select id from public.modules where course_id = (select id from public.courses where slug = 'kplus') and slug = 'bases'), (select id from public.courses where slug = 'kplus'), 'kplus-boucles', 'Boucles', 'debutant', 35, array['Répéter avec tant que.', 'Compter avec pour … de … à.', 'Parcourir une liste avec pour chaque.']::text[], '{}'::text[], '## tant que
+
+~~~kplus
+variable i = 1
+tant que i <= 3 faire
+    afficher(i)
+    i = i + 1
+fin
+~~~
+
+## pour (compteur)
+
+`pour i de 1 à 5 faire … fin` : les deux bornes sont incluses. On peut ajouter un **pas** : `pour i de 10 à 0 pas -2 faire`. Attention : le mot-clé **à** prend un accent.
+
+## pour chaque
+
+`pour chaque fruit dans ["pomme", "kiwi"] faire … fin` parcourt une liste (ou les lettres d''un texte).
+
+## arreter et continuer
+
+**arreter** quitte la boucle ; **continuer** passe au tour suivant.', array['tant que répète tant que la condition est vraie.', 'pour i de a à b [pas p] : bornes incluses.', 'pour chaque parcourt une liste ou un texte.']::text[], '[{"language":"kplus","title":"Les trois boucles","code":"pour i de 1 à 3 faire\n    afficher(\"tour\", i)\nfin\npour chaque fruit dans [\"pomme\", \"kiwi\"] faire\n    afficher(fruit)\nfin\nvariable n = 0\ntant que n < 10 faire\n    n = n + 4\nfin\nafficher(\"n =\", n)"}]'::jsonb, null, 'publie', 5, now())
+on conflict (course_id, slug) do update set module_id = excluded.module_id, title = excluded.title, level = excluded.level, duration_minutes = excluded.duration_minutes, objectives = excluded.objectives, prerequisites = excluded.prerequisites, content = excluded.content, summary = excluded.summary, examples = excluded.examples, pedagogy = excluded.pedagogy, status = excluded.status, position = excluded.position;
+insert into public.lessons (module_id, course_id, slug, title, level, duration_minutes, objectives, prerequisites, content, summary, examples, pedagogy, status, position, validated_at)
+values ((select id from public.modules where course_id = (select id from public.courses where slug = 'kplus') and slug = 'bases'), (select id from public.courses where slug = 'kplus'), 'kplus-fonctions-listes', 'Fonctions, listes et erreurs', 'debutant', 40, array['Écrire et appeler une fonction.', 'Manipuler une liste.', 'Gérer une erreur avec essayer … attraper.']::text[], '{}'::text[], '## Fonctions
+
+~~~kplus
+fonction carre(x)
+    retourner x * x
+fin
+afficher(carre(7))
+~~~
+
+Une fonction se déclare **avant** d''être appelée. Sans **retourner**, elle renvoie nul.
+
+## Listes
+
+`variable notes = [12, 15, 9]` ; `notes[0]` est le **premier** élément (on compte à partir de 0) ; **longueur(notes)** ; **ajouter(notes, 18)** ajoute à la fin.
+
+## Gérer les erreurs
+
+~~~kplus
+essayer
+    afficher(10 / 0)
+attraper erreur
+    afficher("Problème :", erreur)
+fin
+~~~
+
+**lever "message"** déclenche sa propre erreur, par exemple quand une donnée est invalide.', array['fonction nom(paramètres) … retourner … fin.', 'Les listes commencent à l''indice 0.', 'essayer … attraper gère une erreur ; lever en déclenche une.']::text[], '[{"language":"kplus","title":"Maximum d''une liste","code":"fonction maximum(liste)\n    variable max = liste[0]\n    pour chaque x dans liste faire\n        si x > max alors\n            max = x\n        fin\n    fin\n    retourner max\nfin\nvariable notes = [12, 15, 9]\najouter(notes, 18)\nafficher(\"Notes :\", notes)\nafficher(\"Maximum :\", maximum(notes))"},{"language":"kplus","title":"Erreur attrapée","code":"essayer\n    afficher(entier(\"douze\"))\nattraper erreur\n    afficher(\"Saisie invalide :\", erreur)\nfin"}]'::jsonb, null, 'publie', 6, now())
+on conflict (course_id, slug) do update set module_id = excluded.module_id, title = excluded.title, level = excluded.level, duration_minutes = excluded.duration_minutes, objectives = excluded.objectives, prerequisites = excluded.prerequisites, content = excluded.content, summary = excluded.summary, examples = excluded.examples, pedagogy = excluded.pedagogy, status = excluded.status, position = excluded.position;
+insert into public.modules (course_id, slug, title, description, position, level_number) values ((select id from public.courses where slug = 'kplus'), 'sites-web', 'Sites web dynamiques avec K+', null, 2, 2)
+on conflict (course_id, slug) do update set title = excluded.title, description = excluded.description, position = excluded.position, level_number = excluded.level_number;
+insert into public.lessons (module_id, course_id, slug, title, level, duration_minutes, objectives, prerequisites, content, summary, examples, pedagogy, status, position, validated_at)
+values ((select id from public.modules where course_id = (select id from public.courses where slug = 'kplus') and slug = 'sites-web'), (select id from public.courses where slug = 'kplus'), 'kplus-web-premiere-page', 'Ma première page web', 'debutant', 35, array['Activer la bibliothèque web avec utiliser web.', 'Construire une page : titres, paragraphes, listes, images, liens.', 'Publier un site.']::text[], '{}'::text[], '## utiliser web
+
+Un programme qui commence par **utiliser web** construit une **page web**. Chaque élément créé s''ajoute à la fin de la page, dans l''ordre du programme :
+
+~~~kplus
+utiliser web
+
+titre_page("Mon site")
+titre("Bienvenue")
+paragraphe("Ce site est écrit en K+.")
+variable langages = liste()
+ajouter_ligne(langages, "HTML")
+ajouter_ligne(langages, "K+")
+lien("Le langage K+", "https://manassekito17-star.github.io/K-/")
+~~~
+
+Sur la plateforme, le bouton **Exécuter** affiche la page sous le code.
+
+## Les éléments
+
+| Fonction | Crée |
+|---|---|
+| titre(t), sous_titre(t) | un grand titre, un titre de section |
+| paragraphe(t) | un paragraphe |
+| liste() puis ajouter_ligne(liste, t) | une liste à puces |
+| image(adresse, description) | une image (la description est lue aux personnes aveugles) |
+| lien(t, adresse) | un lien |
+| titre_page(t) | le titre de l''onglet du navigateur |
+
+Les textes sont toujours affichés **tels quels** : un texte qui contient du HTML ne peut pas abîmer la page (sécurité).
+
+## Publier
+
+Avec K+ Studio (https://manassekito17-star.github.io/K-/), l''onglet **Page** montre le site ; sur un ordinateur, `kplus --site mon_site.kplus` crée un dossier publiable chez un hébergeur gratuit (GitHub Pages, Netlify…).', array['utiliser web active les fonctions de page.', 'Les éléments s''ajoutent dans l''ordre du programme.', 'kplus --site crée un site publiable.']::text[], '[{"language":"kplus","title":"Une page de présentation","code":"utiliser web\n\ntitre_page(\"Mon site\")\ntitre(\"Bienvenue\")\nparagraphe(\"Ce site est écrit en K+.\")\nsous_titre(\"Ce que j''apprends\")\nvariable langages = liste()\najouter_ligne(langages, \"Algorithmique\")\najouter_ligne(langages, \"K+\")\nlien(\"Le langage K+\", \"https://manassekito17-star.github.io/K-/\")","explanation":"La page s''affiche sous le code ; titre_page change le titre de l''onglet."}]'::jsonb, null, 'publie', 1, now())
+on conflict (course_id, slug) do update set module_id = excluded.module_id, title = excluded.title, level = excluded.level, duration_minutes = excluded.duration_minutes, objectives = excluded.objectives, prerequisites = excluded.prerequisites, content = excluded.content, summary = excluded.summary, examples = excluded.examples, pedagogy = excluded.pedagogy, status = excluded.status, position = excluded.position;
+insert into public.quizzes (course_id, lesson_id, slug, title, is_final, pass_score, status, kind, duration_minutes, level_number) values ((select id from public.courses where slug = 'kplus'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'kplus') and slug = 'kplus-web-premiere-page'), 'kplus-web-premiere-page-quiz', 'Ma première page', false, 60, 'publie', 'verification', null, null)
+on conflict (slug) do update set title = excluded.title, is_final = excluded.is_final, pass_score = excluded.pass_score, lesson_id = excluded.lesson_id, kind = excluded.kind, duration_minutes = excluded.duration_minutes, level_number = excluded.level_number;
+delete from public.quiz_questions where quiz_id = (select id from public.quizzes where slug = 'kplus-web-premiere-page-quiz');
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-web-premiere-page-quiz'), 'qcm', 'Par quoi commence un programme qui construit une page ?', null, '["page web","utiliser web","importer web","html"]'::jsonb, 0, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-web-premiere-page-quiz'), 'qcm', 'Comment ajoute-t-on une ligne à une liste de la page ?', null, '["ajouter(liste, t)","ajouter_ligne(liste, t)","ligne(t)","liste(t)"]'::jsonb, 1, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-web-premiere-page-quiz'), 'vrai_faux', 'Un paragraphe contenant <b>gras</b> affiche du texte en gras.', null, '["Vrai","Faux"]'::jsonb, 2, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, 'Les textes sont affichés tels quels, pour la sécurité.' from qq;
+insert into public.lessons (module_id, course_id, slug, title, level, duration_minutes, objectives, prerequisites, content, summary, examples, pedagogy, status, position, validated_at)
+values ((select id from public.modules where course_id = (select id from public.courses where slug = 'kplus') and slug = 'sites-web'), (select id from public.courses where slug = 'kplus'), 'kplus-web-interactions', 'Boutons et champs de saisie', 'debutant', 40, array['Créer un bouton qui appelle une fonction.', 'Lire un champ de saisie.', 'Modifier la page en réponse au visiteur.']::text[], '{}'::text[], '## Un bouton appelle une fonction
+
+`bouton("Calculer", calculer)` crée un bouton ; **à chaque clic**, la fonction **calculer** est appelée. On donne le nom de la fonction, **sans parenthèses**.
+
+## Lire et modifier
+
+| Fonction | Rôle |
+|---|---|
+| champ(étiquette) | une zone de saisie |
+| valeur(champ) | le texte tapé (toujours un texte) |
+| changer_texte(élément, t) | remplace le texte d''un paragraphe, d''un titre… |
+| changer_valeur(champ, t) | remplace le texte d''un champ |
+| quand_change(champ, f) | appelle f à chaque touche tapée |
+
+## Le programme reste vivant
+
+Le programme s''exécute une fois pour construire la page ; ensuite, ses variables **restent en mémoire** : chaque clic peut les lire et les modifier.', array['bouton(texte, fonction) : la fonction est appelée à chaque clic.', 'valeur(champ) lit la saisie ; changer_texte modifie la page.', 'Les variables du programme restent en mémoire entre deux clics.']::text[], '[{"language":"kplus","title":"Calculatrice du double","code":"utiliser web\n\ntitre(\"Calculatrice du double\")\nvariable saisie = champ(\"Votre nombre\")\nvariable resultat = paragraphe(\"\")\n\nfonction calculer()\n    essayer\n        variable n = decimal(valeur(saisie))\n        changer_texte(resultat, \"Le double est \" + texte(n * 2))\n    attraper\n        changer_texte(resultat, \"Écrivez un nombre, par exemple 3.5\")\n    fin\nfin\n\nbouton(\"Calculer\", calculer)","explanation":"Tapez un nombre dans la page, puis cliquez sur Calculer."}]'::jsonb, null, 'publie', 2, now())
+on conflict (course_id, slug) do update set module_id = excluded.module_id, title = excluded.title, level = excluded.level, duration_minutes = excluded.duration_minutes, objectives = excluded.objectives, prerequisites = excluded.prerequisites, content = excluded.content, summary = excluded.summary, examples = excluded.examples, pedagogy = excluded.pedagogy, status = excluded.status, position = excluded.position;
+insert into public.lessons (module_id, course_id, slug, title, level, duration_minutes, objectives, prerequisites, content, summary, examples, pedagogy, status, position, validated_at)
+values ((select id from public.modules where course_id = (select id from public.courses where slug = 'kplus') and slug = 'sites-web'), (select id from public.courses where slug = 'kplus'), 'kplus-web-listes', 'Listes dynamiques', 'debutant', 40, array['Ajouter et supprimer des éléments pendant la visite.', 'Réagir au clic sur n''importe quel élément.', 'Tenir un compteur à jour.']::text[], '{}'::text[], '## Ajouter pendant la visite
+
+**ajouter_ligne(liste, t)** renvoie la ligne créée : on peut la garder dans une variable et lui associer une action avec **quand_clic(ligne, fonction)**.
+
+Quand la fonction a **un paramètre**, elle reçoit l''élément cliqué :
+
+~~~kplus
+fonction terminer(ligne)
+    supprimer(ligne)
+fin
+~~~
+
+## Retirer
+
+**supprimer(élément)** retire un élément ; **vider(liste)** retire toutes ses lignes.', array['ajouter_ligne renvoie la ligne créée.', 'quand_clic(élément, f) : f peut recevoir l''élément cliqué.', 'supprimer et vider retirent des éléments.']::text[], '[{"language":"kplus","title":"Liste de tâches","code":"utiliser web\n\ntitre(\"Mes tâches\")\nvariable nouvelle = champ(\"Nouvelle tâche\")\nvariable taches = liste()\nvariable compteur = paragraphe(\"0 tâche\")\nvariable nombre = 0\n\nfonction terminer(ligne)\n    supprimer(ligne)\n    nombre = nombre - 1\n    changer_texte(compteur, texte(nombre) + \" tâche(s)\")\nfin\n\nfonction ajouter_tache()\n    si valeur(nouvelle) == \"\" alors\n        retourner\n    fin\n    variable ligne = ajouter_ligne(taches, valeur(nouvelle))\n    quand_clic(ligne, terminer)\n    changer_valeur(nouvelle, \"\")\n    nombre = nombre + 1\n    changer_texte(compteur, texte(nombre) + \" tâche(s)\")\nfin\n\nbouton(\"Ajouter\", ajouter_tache)","explanation":"Ajoutez des tâches, puis cliquez sur une tâche pour la supprimer."}]'::jsonb, null, 'publie', 3, now())
+on conflict (course_id, slug) do update set module_id = excluded.module_id, title = excluded.title, level = excluded.level, duration_minutes = excluded.duration_minutes, objectives = excluded.objectives, prerequisites = excluded.prerequisites, content = excluded.content, summary = excluded.summary, examples = excluded.examples, pedagogy = excluded.pedagogy, status = excluded.status, position = excluded.position;
+insert into public.lessons (module_id, course_id, slug, title, level, duration_minutes, objectives, prerequisites, content, summary, examples, pedagogy, status, position, validated_at)
+values ((select id from public.modules where course_id = (select id from public.courses where slug = 'kplus') and slug = 'sites-web'), (select id from public.courses where slug = 'kplus'), 'kplus-web-minuteries', 'Mise en forme et minuteries', 'debutant', 40, array['Colorer, regrouper, cacher des éléments.', 'Faire évoluer une page dans le temps avec toutes_les.', 'Arrêter une minuterie.']::text[], '{}'::text[], '## Mettre en forme
+
+- **couleur(élément, c)** et **couleur_fond(élément, c)** : rouge, vert, bleu, jaune, orange, violet, rose, noir, blanc, gris, ou un code #rrggbb ;
+- **zone()** crée un cadre et **placer(élément, zone)** y range un élément ;
+- **cacher(élément)** et **montrer(élément)**.
+
+## Minuteries
+
+**toutes_les(millisecondes, fonction)** appelle la fonction régulièrement (au moins toutes les 100 ms) et renvoie la minuterie ; **arreter_minuterie(m)** l''arrête. C''est ainsi qu''on fait une horloge, un compte à rebours ou une animation simple.', array['couleur, couleur_fond, zone, placer, cacher, montrer.', 'toutes_les(ms, f) répète f ; arreter_minuterie l''arrête.']::text[], '[{"language":"kplus","title":"Compte à rebours","code":"utiliser web\n\ntitre(\"Compte à rebours\")\nvariable affichage = paragraphe(\"5\")\nvariable reste = 5\nvariable minuterie = nul\n\nfonction tic()\n    reste = reste - 1\n    changer_texte(affichage, texte(reste))\n    si reste == 0 alors\n        arreter_minuterie(minuterie)\n        changer_texte(affichage, \"Décollage !\")\n        couleur(affichage, \"rouge\")\n    fin\nfin\n\nfonction lancer()\n    si minuterie == nul alors\n        minuterie = toutes_les(1000, tic)\n    fin\nfin\n\nbouton(\"Lancer\", lancer)","explanation":"Cliquez sur Lancer : le nombre diminue chaque seconde."}]'::jsonb, null, 'publie', 4, now())
+on conflict (course_id, slug) do update set module_id = excluded.module_id, title = excluded.title, level = excluded.level, duration_minutes = excluded.duration_minutes, objectives = excluded.objectives, prerequisites = excluded.prerequisites, content = excluded.content, summary = excluded.summary, examples = excluded.examples, pedagogy = excluded.pedagogy, status = excluded.status, position = excluded.position;
+insert into public.quizzes (course_id, lesson_id, slug, title, is_final, pass_score, status, kind, duration_minutes, level_number) values ((select id from public.courses where slug = 'kplus'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'kplus') and slug = 'kplus-web-minuteries'), 'kplus-web-minuteries-quiz', 'Minuteries', false, 60, 'publie', 'verification', null, null)
+on conflict (slug) do update set title = excluded.title, is_final = excluded.is_final, pass_score = excluded.pass_score, lesson_id = excluded.lesson_id, kind = excluded.kind, duration_minutes = excluded.duration_minutes, level_number = excluded.level_number;
+delete from public.quiz_questions where quiz_id = (select id from public.quizzes where slug = 'kplus-web-minuteries-quiz');
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-web-minuteries-quiz'), 'qcm', 'Quel est l''intervalle minimal de toutes_les ?', null, '["1 ms","10 ms","100 ms","1000 ms"]'::jsonb, 0, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[2]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-web-minuteries-quiz'), 'qcm', 'Que renvoie toutes_les(1000, tic) ?', null, '["rien","la minuterie, pour pouvoir l''arrêter","le nombre de tours","un texte"]'::jsonb, 1, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+delete from public.modules m where m.course_id = (select id from public.courses where slug = 'kplus') and m.slug not in ('bases', 'sites-web') and not exists (select 1 from public.lessons l where l.module_id = m.id);
+insert into public.course_levels (course_id, number, title, description, objectives, planned_chapters, chapters_validated_pct, exam_pass_score) values ((select id from public.courses where slug = 'kplus'), 1, 'Niveau 1 — Très débutant : programmer en français', 'Écrire ses premiers programmes K+ : afficher, variables, calculs, conditions, boucles, fonctions et listes.', array['Écrire et exécuter un programme K+.', 'Utiliser variables, calculs, conditions et boucles.', 'Écrire des fonctions et gérer les erreurs.']::text[], '{}'::text[], 100, 70)
+on conflict (course_id, number) do update set title = excluded.title, description = excluded.description, objectives = excluded.objectives, planned_chapters = excluded.planned_chapters, chapters_validated_pct = excluded.chapters_validated_pct, exam_pass_score = excluded.exam_pass_score;
+insert into public.quizzes (course_id, lesson_id, slug, title, is_final, pass_score, status, kind, duration_minutes, level_number) values ((select id from public.courses where slug = 'kplus'), null, 'kplus-examen-niveau-1', 'Examen du niveau 1 — Bases de K+', false, 70, 'publie', 'examen_niveau', null, 1)
+on conflict (slug) do update set title = excluded.title, is_final = excluded.is_final, pass_score = excluded.pass_score, lesson_id = excluded.lesson_id, kind = excluded.kind, duration_minutes = excluded.duration_minutes, level_number = excluded.level_number;
+delete from public.quiz_questions where quiz_id = (select id from public.quizzes where slug = 'kplus-examen-niveau-1');
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-examen-niveau-1'), 'qcm', 'Que renvoie demander(…) ?', null, '["un entier","un texte","un décimal","nul"]'::jsonb, 0, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-examen-niveau-1'), 'qcm', 'Que vaut 7 / 2 en K+ ?', null, '["3","3.5","4","erreur"]'::jsonb, 1, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-examen-niveau-1'), 'qcm', 'Que vaut 17 % 5 ?', null, '["3","2","3.4","5"]'::jsonb, 2, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-examen-niveau-1'), 'qcm', 'Quel mot termine un bloc si … alors ?', null, '["finsi","fin","}","end"]'::jsonb, 3, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-examen-niveau-1'), 'qcm', 'Quelles valeurs prend i dans « pour i de 1 à 4 faire » ?', null, '["1, 2, 3","1, 2, 3, 4","0, 1, 2, 3","1 et 4"]'::jsonb, 4, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-examen-niveau-1'), 'vrai_faux', 'En K+, "Âge : " + 20 est accepté sans conversion.', null, '["Vrai","Faux"]'::jsonb, 5, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, 'Il faut écrire texte(20).' from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-examen-niveau-1'), 'qcm', 'Quel est l''indice du premier élément d''une liste ?', null, '["0","1","-1","ça dépend"]'::jsonb, 6, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[0]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-examen-niveau-1'), 'qcm', 'Quel bloc attrape une erreur ?', null, '["si … sinon","essayer … attraper","tant que","lever"]'::jsonb, 7, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+insert into public.course_levels (course_id, number, title, description, objectives, planned_chapters, chapters_validated_pct, exam_pass_score) values ((select id from public.courses where slug = 'kplus'), 2, 'Niveau 2 — Débutant : sites web dynamiques avec K+', 'Construire des pages web qui réagissent au visiteur : boutons, champs, listes dynamiques, mise en forme et minuteries.', array['Construire une page avec utiliser web.', 'Réagir aux clics et aux saisies du visiteur.', 'Faire évoluer une page dans le temps et la publier.']::text[], '{}'::text[], 100, 70)
+on conflict (course_id, number) do update set title = excluded.title, description = excluded.description, objectives = excluded.objectives, planned_chapters = excluded.planned_chapters, chapters_validated_pct = excluded.chapters_validated_pct, exam_pass_score = excluded.exam_pass_score;
+insert into public.quizzes (course_id, lesson_id, slug, title, is_final, pass_score, status, kind, duration_minutes, level_number) values ((select id from public.courses where slug = 'kplus'), null, 'kplus-examen-niveau-2', 'Examen du niveau 2 — Sites web dynamiques', false, 70, 'publie', 'examen_niveau', null, 2)
+on conflict (slug) do update set title = excluded.title, is_final = excluded.is_final, pass_score = excluded.pass_score, lesson_id = excluded.lesson_id, kind = excluded.kind, duration_minutes = excluded.duration_minutes, level_number = excluded.level_number;
+delete from public.quiz_questions where quiz_id = (select id from public.quizzes where slug = 'kplus-examen-niveau-2');
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-examen-niveau-2'), 'qcm', 'Quelle ligne active les fonctions de page ?', null, '["importer page","utiliser web","web()","page web"]'::jsonb, 0, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-examen-niveau-2'), 'qcm', 'Comment associe-t-on la fonction envoyer à un bouton ?', null, '["bouton(\"Envoyer\", envoyer)","bouton(\"Envoyer\", envoyer())","bouton(envoyer)","clic(envoyer)"]'::jsonb, 1, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[0]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-examen-niveau-2'), 'qcm', 'Que renvoie valeur(champ) ?', null, '["un nombre","le texte tapé","l''étiquette","vrai si rempli"]'::jsonb, 2, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-examen-niveau-2'), 'qcm', 'Quelle fonction remplace le texte d''un paragraphe ?', null, '["changer_valeur","changer_texte","paragraphe","afficher"]'::jsonb, 3, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-examen-niveau-2'), 'vrai_faux', 'Les variables du programme restent en mémoire entre deux clics.', null, '["Vrai","Faux"]'::jsonb, 4, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[0]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-examen-niveau-2'), 'qcm', 'Comment arrête-t-on une minuterie m ?', null, '["supprimer(m)","arreter_minuterie(m)","arreter","cacher(m)"]'::jsonb, 5, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+insert into public.course_levels (course_id, number, title, description, objectives, planned_chapters, chapters_validated_pct, exam_pass_score) values ((select id from public.courses where slug = 'kplus'), 3, 'Niveau 3 — Intermédiaire : sites côté serveur', 'Sites avec plusieurs pages, formulaires, données enregistrées et comptes utilisateurs, à la manière de PHP (K+ 0.3, en préparation).', array['Créer un site à plusieurs pages.', 'Traiter des formulaires.', 'Enregistrer des données de façon sûre.']::text[], array['Plusieurs pages et adresses (utiliser serveur)', 'Formulaires et paramètres', 'Enregistrer des données dans des tables', 'Comptes, sessions et mots de passe', 'Dictionnaires et modules (K+ 0.4)']::text[], 100, 70)
+on conflict (course_id, number) do update set title = excluded.title, description = excluded.description, objectives = excluded.objectives, planned_chapters = excluded.planned_chapters, chapters_validated_pct = excluded.chapters_validated_pct, exam_pass_score = excluded.exam_pass_score;
+insert into public.course_levels (course_id, number, title, description, objectives, planned_chapters, chapters_validated_pct, exam_pass_score) values ((select id from public.courses where slug = 'kplus'), 4, 'Niveau 4 — Professionnel : projets K+', 'Objets, types vérifiés et projet de site complet publié en ligne.', array['Organiser un grand programme K+.', 'Sécuriser un site.', 'Mener un projet de bout en bout.']::text[], array['Objets et classes (K+ 0.5)', 'Types vérifiés (K+ 0.6)', 'Sécurité d''un site web', 'Projet professionnel : site complet publié']::text[], 100, 70)
+on conflict (course_id, number) do update set title = excluded.title, description = excluded.description, objectives = excluded.objectives, planned_chapters = excluded.planned_chapters, chapters_validated_pct = excluded.chapters_validated_pct, exam_pass_score = excluded.exam_pass_score;
+insert into public.quizzes (course_id, lesson_id, slug, title, is_final, pass_score, status, kind, duration_minutes, level_number) values ((select id from public.courses where slug = 'kplus'), null, 'kplus-positionnement', 'Test de positionnement — K+', false, 0, 'publie', 'positionnement', null, null)
+on conflict (slug) do update set title = excluded.title, is_final = excluded.is_final, pass_score = excluded.pass_score, lesson_id = excluded.lesson_id, kind = excluded.kind, duration_minutes = excluded.duration_minutes, level_number = excluded.level_number;
+delete from public.quiz_questions where quiz_id = (select id from public.quizzes where slug = 'kplus-positionnement');
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-positionnement'), 'qcm', 'Comment affiche-t-on du texte en K+ ?', null, '["print()","afficher()","echo","ecrire()"]'::jsonb, 0, 1) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-positionnement'), 'qcm', 'Comment déclare-t-on une variable ?', null, '["var x = 1","variable x = 1","x := 1","let x = 1"]'::jsonb, 1, 1) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-positionnement'), 'qcm', 'Que fait ajouter_ligne(liste, "Riz") ?', null, '["ajoute Riz à une liste de la page","affiche Riz","crée une variable","rien"]'::jsonb, 2, 2) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[0]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-positionnement'), 'qcm', 'Que fait toutes_les(1000, tic) ?', null, '["appelle tic une fois","appelle tic chaque seconde","attend 1000 secondes","arrête tic"]'::jsonb, 3, 2) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-positionnement'), 'qcm', 'Côté serveur, où doit-on vérifier les données d''un formulaire ?', null, '["seulement dans le navigateur","sur le serveur","nulle part","dans le titre"]'::jsonb, 4, 3) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-positionnement'), 'qcm', 'Comment doit-on enregistrer un mot de passe ?', null, '["en clair","chiffré par une fonction de hachage lente","dans un cookie","dans l''adresse"]'::jsonb, 5, 3) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-positionnement'), 'qcm', 'Pourquoi écrire des tests automatisés ?', null, '["pour vérifier le programme à chaque modification","pour ralentir le site","c''est inutile","pour cacher le code"]'::jsonb, 6, 4) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[0]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-positionnement'), 'qcm', 'Qu''est-ce qu''une injection ?', null, '["une donnée du visiteur exécutée comme du code","une fonction rapide","un type de boucle","une image"]'::jsonb, 7, 4) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[0]'::jsonb, null from qq;
+
 -- ===== Exercices =====
 insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
 values ('algo-bonjour', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'introduction-algorithmique'), 'pseudocode', 'Bonjour UPL', 'Écrivez un algorithme qui affiche exactement la ligne suivante :
@@ -7118,5 +7489,494 @@ public class Main {
         System.out.println(String.format(Locale.US, "Moyenne : %.2f", somme / notes.size()));
     }
 }', 'hasNextInt() permet de lire jusqu''à la fin de l''entrée. La somme est un double pour que la division soit réelle.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('kplus-bonjour', (select id from public.courses where slug = 'kplus'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'kplus') and slug = 'kplus-introduction'), 'kplus', 'Bonjour en K+', 'Lisez un prénom avec `demander()` et affichez :
+
+~~~text
+Bonjour <prénom>, bienvenue dans K+ !
+~~~', 'debutant', 'ecrire_programme', '{}'::text[], '[{"input":"Amani","output":"Bonjour Amani, bienvenue dans K+ !"}]'::jsonb, '{}'::text[], 'variable prenom = demander()
+# Affichez le message', array['Assemblez les textes avec +.', 'afficher("Bonjour " + prenom + ", bienvenue dans K+ !")']::text[], 5, false, 'publie', 107, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'kplus-bonjour');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'kplus-bonjour'), null, 'Amani', 'Bonjour Amani, bienvenue dans K+ !', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'kplus-bonjour'), null, 'Grâce', 'Bonjour Grâce, bienvenue dans K+ !', true, 1, 1, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'kplus-bonjour'), 'variable prenom = demander()
+afficher("Bonjour " + prenom + ", bienvenue dans K+ !")', 'Le signe + assemble les textes. Avec afficher("Bonjour", prenom, …), K+ ajouterait une espace entre chaque valeur, y compris avant la virgule.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('kplus-presentation', (select id from public.courses where slug = 'kplus'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'kplus') and slug = 'kplus-variables'), 'kplus', 'Se présenter', 'Lisez un nom puis un âge (un par ligne) et affichez :
+
+~~~text
+<nom> a <âge> ans.
+Dans 10 ans, <nom> aura <âge + 10> ans.
+~~~', 'debutant', 'ecrire_programme', '{}'::text[], '[{"input":"Awa\n20","output":"Awa a 20 ans.\nDans 10 ans, Awa aura 30 ans."}]'::jsonb, '{}'::text[], 'variable nom = demander()
+variable age = demander()', array['demander renvoie un texte : convertissez l''âge avec entier(…).', 'Pour assembler un nombre et un texte, utilisez texte(…) ou plusieurs valeurs dans afficher.']::text[], 5, false, 'publie', 108, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'kplus-presentation');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'kplus-presentation'), null, 'Awa
+20', 'Awa a 20 ans.
+Dans 10 ans, Awa aura 30 ans.', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'kplus-presentation'), null, 'Koffi
+7', 'Koffi a 7 ans.
+Dans 10 ans, Koffi aura 17 ans.', true, 1, 1, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'kplus-presentation'), 'variable nom = demander()
+variable age = entier(demander())
+afficher(nom + " a " + texte(age) + " ans.")
+afficher("Dans 10 ans, " + nom + " aura " + texte(age + 10) + " ans.")', 'Sans entier(…), l''âge reste un texte et age + 10 provoque une erreur de type : K+ ne mélange pas texte et nombre sans conversion.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('kplus-moyenne', (select id from public.courses where slug = 'kplus'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'kplus') and slug = 'kplus-calculs'), 'kplus', 'Moyenne de trois notes', 'Lisez trois notes entières (une par ligne) et affichez leur moyenne arrondie à 2 chiffres après la virgule :
+
+~~~text
+Moyenne : <moyenne>
+~~~', 'debutant', 'ecrire_programme', '{}'::text[], '[{"input":"12\n15\n10","output":"Moyenne : 12.33"}]'::jsonb, '{}'::text[], '', array['La division / donne un décimal.', 'arrondir(x, 2) garde deux chiffres après la virgule.']::text[], 10, false, 'publie', 109, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'kplus-moyenne');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'kplus-moyenne'), null, '12
+15
+10', 'Moyenne : 12.33', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'kplus-moyenne'), null, '10
+10
+10', 'Moyenne : 10.0', false, 1, 1, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'kplus-moyenne'), null, '20
+19
+0', 'Moyenne : 13.0', true, 1, 2, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'kplus-moyenne'), 'variable a = entier(demander())
+variable b = entier(demander())
+variable c = entier(demander())
+afficher("Moyenne :", arrondir((a + b + c) / 3, 2))', 'Les parenthèses sont indispensables : a + b + c / 3 ne diviserait que c. La division / donne toujours un décimal, d''où 10.0.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('kplus-mention', (select id from public.courses where slug = 'kplus'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'kplus') and slug = 'kplus-conditions'), 'kplus', 'Mention au bac', 'Lisez une note entière sur 20 et affichez la mention :
+
+- moins de 0 ou plus de 20 : `Note invalide` ;
+- 16 ou plus : `Très bien` ;
+- 14 ou plus : `Bien` ;
+- 12 ou plus : `Assez bien` ;
+- 10 ou plus : `Admis` ;
+- sinon : `Ajourné`.', 'debutant', 'ecrire_programme', '{}'::text[], '[{"input":"15","output":"Bien"}]'::jsonb, '{}'::text[], '', array['Testez d''abord la note invalide, puis du plus grand au plus petit.', 'Utilisez sinon si pour enchaîner les cas avec un seul fin.']::text[], 10, false, 'publie', 110, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'kplus-mention');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'kplus-mention'), null, '15', 'Bien', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'kplus-mention'), null, '16', 'Très bien', false, 1, 1, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'kplus-mention'), null, '9', 'Ajourné', false, 1, 2, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'kplus-mention'), null, '12', 'Assez bien', true, 1, 3, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'kplus-mention'), null, '10', 'Admis', true, 1, 4, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'kplus-mention'), null, '21', 'Note invalide', true, 1, 5, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'kplus-mention'), null, '-1', 'Note invalide', true, 1, 6, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'kplus-mention'), 'variable note = entier(demander())
+si note < 0 ou note > 20 alors
+    afficher("Note invalide")
+sinon si note >= 16 alors
+    afficher("Très bien")
+sinon si note >= 14 alors
+    afficher("Bien")
+sinon si note >= 12 alors
+    afficher("Assez bien")
+sinon si note >= 10 alors
+    afficher("Admis")
+sinon
+    afficher("Ajourné")
+fin', 'L''ordre compte : si l''on testait note >= 10 en premier, une note de 18 afficherait « Admis ». Les limites (16, 14, 12, 10) appartiennent à la mention supérieure : on utilise >=.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('kplus-table', (select id from public.courses where slug = 'kplus'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'kplus') and slug = 'kplus-boucles'), 'kplus', 'Table de multiplication', 'Lisez un entier n et affichez sa table de multiplication de 1 à 10, une ligne par opération :
+
+~~~text
+n x 1 = …
+…
+n x 10 = …
+~~~', 'debutant', 'ecrire_programme', '{}'::text[], '[{"input":"3","output":"3 x 1 = 3\n3 x 2 = 6\n3 x 3 = 9\n3 x 4 = 12\n3 x 5 = 15\n3 x 6 = 18\n3 x 7 = 21\n3 x 8 = 24\n3 x 9 = 27\n3 x 10 = 30"}]'::jsonb, '{}'::text[], '', array['pour i de 1 à 10 faire … fin : les deux bornes sont incluses.', 'afficher(n, "x", i, "=", n * i) sépare les valeurs par des espaces.']::text[], 10, false, 'publie', 111, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'kplus-table');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'kplus-table'), null, '3', '3 x 1 = 3
+3 x 2 = 6
+3 x 3 = 9
+3 x 4 = 12
+3 x 5 = 15
+3 x 6 = 18
+3 x 7 = 21
+3 x 8 = 24
+3 x 9 = 27
+3 x 10 = 30', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'kplus-table'), null, '0', '0 x 1 = 0
+0 x 2 = 0
+0 x 3 = 0
+0 x 4 = 0
+0 x 5 = 0
+0 x 6 = 0
+0 x 7 = 0
+0 x 8 = 0
+0 x 9 = 0
+0 x 10 = 0', true, 1, 1, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'kplus-table'), null, '-2', '-2 x 1 = -2
+-2 x 2 = -4
+-2 x 3 = -6
+-2 x 4 = -8
+-2 x 5 = -10
+-2 x 6 = -12
+-2 x 7 = -14
+-2 x 8 = -16
+-2 x 9 = -18
+-2 x 10 = -20', true, 1, 2, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'kplus-table'), 'variable n = entier(demander())
+pour i de 1 à 10 faire
+    afficher(n, "x", i, "=", n * i)
+fin', 'La boucle pour compte de 1 à 10 inclus. afficher sépare ses valeurs par une espace, ce qui donne exactement le format demandé.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('kplus-maximum', (select id from public.courses where slug = 'kplus'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'kplus') and slug = 'kplus-fonctions-listes'), 'kplus', 'Plus grande note', 'Lisez un entier n, puis n notes entières (une par ligne). Écrivez une **fonction** `maximum(liste)` qui renvoie la plus grande valeur d''une liste, puis affichez :
+
+~~~text
+Plus grande note : <maximum>
+~~~
+
+Si n vaut 0, affichez `Aucune note`.', 'intermediaire', 'ecrire_programme', '{}'::text[], '[{"input":"3\n12\n17\n9","output":"Plus grande note : 17"}]'::jsonb, '{}'::text[], 'fonction maximum(liste)
+    # À compléter
+fin
+
+variable n = entier(demander())
+variable notes = []', array['Remplissez la liste avec ajouter(notes, …) dans une boucle.', 'Partez du premier élément (liste[0]) et comparez-le aux suivants.']::text[], 15, false, 'publie', 112, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'kplus-maximum');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'kplus-maximum'), null, '3
+12
+17
+9', 'Plus grande note : 17', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'kplus-maximum'), null, '0', 'Aucune note', false, 1, 1, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'kplus-maximum'), null, '4
+-5
+-2
+-9
+-3', 'Plus grande note : -2', true, 1, 2, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'kplus-maximum'), null, '1
+14', 'Plus grande note : 14', true, 1, 3, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'kplus-maximum'), 'fonction maximum(liste)
+    variable max = liste[0]
+    pour chaque x dans liste faire
+        si x > max alors
+            max = x
+        fin
+    fin
+    retourner max
+fin
+
+variable n = entier(demander())
+variable notes = []
+pour i de 1 à n faire
+    ajouter(notes, entier(demander()))
+fin
+si n == 0 alors
+    afficher("Aucune note")
+sinon
+    afficher("Plus grande note :", maximum(notes))
+fin', 'Partir de 0 au lieu de liste[0] donnerait un résultat faux pour des notes toutes négatives. Le cas n = 0 est traité à part : liste[0] provoquerait une erreur d''indice sur une liste vide.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('kplus-web-page', (select id from public.courses where slug = 'kplus'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'kplus') and slug = 'kplus-web-premiere-page'), 'kplus', 'Page de présentation', '    Créez une page web (`utiliser web`) qui contient, dans cet ordre :
+
+    1. le titre **Mon école** ;
+    2. le paragraphe **Bienvenue sur notre site.** ;
+    3. le sous-titre **Nos matières** ;
+    4. une liste avec les lignes **Mathématiques**, **Français** et **Informatique** ;
+    5. un lien **Le langage K+** vers `https://manassekito17-star.github.io/K-/`.
+
+    Description attendue :
+
+    ~~~text
+    titre: Mon école
+    paragraphe: Bienvenue sur notre site.
+    sous_titre: Nos matières
+    liste:
+      ligne: Mathématiques
+      ligne: Français
+      ligne: Informatique
+    lien: Le langage K+ -> https://manassekito17-star.github.io/K-/
+    ~~~
+    
+### Comment votre site est corrigé
+
+Un **visiteur simulé** utilise votre page : il tape dans les champs (`saisir "Étiquette" "texte"`), clique (`cliquer "Texte"`) ou laisse passer le temps (`minuterie 3`). Le correcteur compare ensuite la **description de la page** obtenue, un élément par ligne, au résultat attendu. Les lignes d''une liste sont décalées de deux espaces.
+
+    Ici, le visiteur ne fait rien : seule la page de départ est vérifiée.', 'debutant', 'ecrire_programme', '{}'::text[], '[{"input":"","output":"titre: Mon école\nparagraphe: Bienvenue sur notre site.\nsous_titre: Nos matières\nliste:\n  ligne: Mathématiques\n  ligne: Français\n  ligne: Informatique\nlien: Le langage K+ -> https://manassekito17-star.github.io/K-/"}]'::jsonb, '{}'::text[], 'utiliser web
+
+titre("Mon école")', array['variable matieres = liste() crée la liste ; ajouter_ligne(matieres, …) ajoute une ligne.', 'lien(texte, adresse).']::text[], 10, false, 'publie', 113, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'kplus-web-page');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'kplus-web-page'), null, '', 'titre: Mon école
+paragraphe: Bienvenue sur notre site.
+sous_titre: Nos matières
+liste:
+  ligne: Mathématiques
+  ligne: Français
+  ligne: Informatique
+lien: Le langage K+ -> https://manassekito17-star.github.io/K-/', false, 1, 0, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'kplus-web-page'), 'utiliser web
+
+titre("Mon école")
+paragraphe("Bienvenue sur notre site.")
+sous_titre("Nos matières")
+variable matieres = liste()
+ajouter_ligne(matieres, "Mathématiques")
+ajouter_ligne(matieres, "Français")
+ajouter_ligne(matieres, "Informatique")
+lien("Le langage K+", "https://manassekito17-star.github.io/K-/")', 'Les éléments apparaissent dans l''ordre où le programme les crée. Les lignes sont rangées dans la liste qu''on donne à ajouter_ligne.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('kplus-web-salutation', (select id from public.courses where slug = 'kplus'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'kplus') and slug = 'kplus-web-interactions'), 'kplus', 'Formulaire de salutation', '    Créez une page avec :
+
+    - le titre **Salutation** ;
+    - un champ d''étiquette **Votre nom** ;
+    - un paragraphe vide (`paragraphe("")`) qui affichera la réponse ;
+    - un bouton **Saluer**.
+
+    Quand on clique sur **Saluer** :
+
+    - si le champ est vide, le paragraphe affiche `Écrivez votre nom.` ;
+    - sinon, il affiche `Bonjour <nom> !`.
+
+    Exemple de visite :
+
+    ~~~text
+    saisir "Votre nom" "Awa"
+    cliquer "Saluer"
+    ~~~
+
+    Description attendue :
+
+    ~~~text
+    titre: Salutation
+    champ: Votre nom = "Awa"
+    paragraphe: Bonjour Awa !
+    bouton: Saluer
+    ~~~
+    
+### Comment votre site est corrigé
+
+Un **visiteur simulé** utilise votre page : il tape dans les champs (`saisir "Étiquette" "texte"`), clique (`cliquer "Texte"`) ou laisse passer le temps (`minuterie 3`). Le correcteur compare ensuite la **description de la page** obtenue, un élément par ligne, au résultat attendu. Les lignes d''une liste sont décalées de deux espaces.', 'debutant', 'ecrire_programme', '{}'::text[], '[{"input":"saisir \"Votre nom\" \"Awa\"\ncliquer \"Saluer\"","output":"titre: Salutation\nchamp: Votre nom = \"Awa\"\nparagraphe: Bonjour Awa !\nbouton: Saluer"}]'::jsonb, '{}'::text[], 'utiliser web
+
+titre("Salutation")
+variable nom = champ("Votre nom")
+variable reponse = paragraphe("")
+
+fonction saluer()
+    # À compléter
+fin
+
+bouton("Saluer", saluer)', array['valeur(nom) donne le texte tapé.', 'changer_texte(reponse, …) modifie le paragraphe.']::text[], 10, false, 'publie', 114, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'kplus-web-salutation');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'kplus-web-salutation'), null, 'saisir "Votre nom" "Awa"
+cliquer "Saluer"', 'titre: Salutation
+champ: Votre nom = "Awa"
+paragraphe: Bonjour Awa !
+bouton: Saluer', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'kplus-web-salutation'), null, 'cliquer "Saluer"', 'titre: Salutation
+champ: Votre nom = ""
+paragraphe: Écrivez votre nom.
+bouton: Saluer', false, 1, 1, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'kplus-web-salutation'), null, 'saisir "Votre nom" "Awa"
+cliquer "Saluer"
+saisir "Votre nom" "Koffi"
+cliquer "Saluer"', 'titre: Salutation
+champ: Votre nom = "Koffi"
+paragraphe: Bonjour Koffi !
+bouton: Saluer', true, 1, 2, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'kplus-web-salutation'), null, '', 'titre: Salutation
+champ: Votre nom = ""
+paragraphe: 
+bouton: Saluer', true, 1, 3, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'kplus-web-salutation'), 'utiliser web
+
+titre("Salutation")
+variable nom = champ("Votre nom")
+variable reponse = paragraphe("")
+
+fonction saluer()
+    si valeur(nom) == "" alors
+        changer_texte(reponse, "Écrivez votre nom.")
+    sinon
+        changer_texte(reponse, "Bonjour " + valeur(nom) + " !")
+    fin
+fin
+
+bouton("Saluer", saluer)', 'On lit le champ **au moment du clic**, dans la fonction : lu au début du programme, il serait toujours vide. Le bouton reçoit le nom de la fonction, sans parenthèses.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('kplus-web-compteur', (select id from public.courses where slug = 'kplus'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'kplus') and slug = 'kplus-web-listes'), 'kplus', 'Liste de courses', '    Créez une page de liste de courses avec, dans cet ordre :
+
+    - le titre **Courses** ;
+    - un champ **Article** ;
+    - un bouton **Ajouter** ;
+    - un paragraphe compteur qui affiche `0 article(s)` au départ ;
+    - une liste (vide au départ).
+
+    Un clic sur **Ajouter** ajoute le texte du champ comme nouvelle ligne de la liste (sauf s''il est vide), vide le champ et met à jour le compteur. Un clic sur une **ligne** la supprime et met à jour le compteur.
+
+    Exemple de visite :
+
+    ~~~text
+    saisir "Article" "Riz"
+    cliquer "Ajouter"
+    saisir "Article" "Huile"
+    cliquer "Ajouter"
+    cliquer "Riz"
+    ~~~
+
+    Description attendue :
+
+    ~~~text
+    titre: Courses
+    champ: Article = ""
+    bouton: Ajouter
+    paragraphe: 1 article(s)
+    liste:
+      ligne: Huile
+    ~~~
+    
+### Comment votre site est corrigé
+
+Un **visiteur simulé** utilise votre page : il tape dans les champs (`saisir "Étiquette" "texte"`), clique (`cliquer "Texte"`) ou laisse passer le temps (`minuterie 3`). Le correcteur compare ensuite la **description de la page** obtenue, un élément par ligne, au résultat attendu. Les lignes d''une liste sont décalées de deux espaces.', 'intermediaire', 'ecrire_programme', '{}'::text[], '[{"input":"saisir \"Article\" \"Riz\"\ncliquer \"Ajouter\"\nsaisir \"Article\" \"Huile\"\ncliquer \"Ajouter\"\ncliquer \"Riz\"","output":"titre: Courses\nchamp: Article = \"\"\nbouton: Ajouter\nparagraphe: 1 article(s)\nliste:\n  ligne: Huile"}]'::jsonb, '{}'::text[], '', array['Gardez le nombre d''articles dans une variable du programme : elle reste en mémoire entre deux clics.', 'ajouter_ligne renvoie la ligne : quand_clic(ligne, retirer) ; la fonction retirer(ligne) reçoit la ligne cliquée.']::text[], 15, false, 'publie', 115, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'kplus-web-compteur');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'kplus-web-compteur'), null, 'saisir "Article" "Riz"
+cliquer "Ajouter"
+saisir "Article" "Huile"
+cliquer "Ajouter"
+cliquer "Riz"', 'titre: Courses
+champ: Article = ""
+bouton: Ajouter
+paragraphe: 1 article(s)
+liste:
+  ligne: Huile', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'kplus-web-compteur'), null, 'cliquer "Ajouter"', 'titre: Courses
+champ: Article = ""
+bouton: Ajouter
+paragraphe: 0 article(s)
+liste:', false, 1, 1, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'kplus-web-compteur'), null, 'saisir "Article" "Sel"
+cliquer "Ajouter"
+saisir "Article" "Sucre"
+cliquer "Ajouter"
+saisir "Article" "Pain"
+cliquer "Ajouter"', 'titre: Courses
+champ: Article = ""
+bouton: Ajouter
+paragraphe: 3 article(s)
+liste:
+  ligne: Sel
+  ligne: Sucre
+  ligne: Pain', true, 1, 2, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'kplus-web-compteur'), null, 'saisir "Article" "Sel"
+cliquer "Ajouter"
+cliquer "Sel"', 'titre: Courses
+champ: Article = ""
+bouton: Ajouter
+paragraphe: 0 article(s)
+liste:', true, 1, 3, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'kplus-web-compteur'), 'utiliser web
+
+titre("Courses")
+variable article = champ("Article")
+variable nombre = 0
+
+fonction afficher_nombre()
+    changer_texte(compteur, texte(nombre) + " article(s)")
+fin
+
+fonction retirer(ligne)
+    supprimer(ligne)
+    nombre = nombre - 1
+    afficher_nombre()
+fin
+
+fonction ajouter_article()
+    si valeur(article) == "" alors
+        retourner
+    fin
+    variable ligne = ajouter_ligne(courses, valeur(article))
+    quand_clic(ligne, retirer)
+    changer_valeur(article, "")
+    nombre = nombre + 1
+    afficher_nombre()
+fin
+
+bouton("Ajouter", ajouter_article)
+variable compteur = paragraphe("0 article(s)")
+variable courses = liste()', 'Le compteur est une variable du programme, modifiée à chaque ajout et à chaque suppression. Les fonctions peuvent utiliser compteur et courses, créés plus bas : elles ne sont appelées qu''au moment des clics, quand la page est déjà construite.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('kplus-web-minuteur', (select id from public.courses where slug = 'kplus'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'kplus') and slug = 'kplus-web-minuteries'), 'kplus', 'Minuteur', '    Créez un minuteur de 3 secondes :
+
+    - le titre **Minuteur** ;
+    - un paragraphe qui affiche `3` au départ ;
+    - un bouton **Démarrer**.
+
+    Un clic sur **Démarrer** lance une minuterie d''une seconde (`toutes_les(1000, …)`) qui diminue le nombre de 1 à chaque tour. Quand il atteint 0, la minuterie s''arrête et le paragraphe affiche `Terminé !`. Cliquer plusieurs fois sur Démarrer ne doit pas lancer plusieurs minuteries.
+
+    Exemple de visite (`minuterie 2` = deux tours de minuterie) :
+
+    ~~~text
+    cliquer "Démarrer"
+    minuterie 2
+    ~~~
+
+    Description attendue :
+
+    ~~~text
+    titre: Minuteur
+    paragraphe: 1
+    bouton: Démarrer
+    ~~~
+    
+### Comment votre site est corrigé
+
+Un **visiteur simulé** utilise votre page : il tape dans les champs (`saisir "Étiquette" "texte"`), clique (`cliquer "Texte"`) ou laisse passer le temps (`minuterie 3`). Le correcteur compare ensuite la **description de la page** obtenue, un élément par ligne, au résultat attendu. Les lignes d''une liste sont décalées de deux espaces.', 'intermediaire', 'ecrire_programme', '{}'::text[], '[{"input":"cliquer \"Démarrer\"\nminuterie 2","output":"titre: Minuteur\nparagraphe: 1\nbouton: Démarrer"}]'::jsonb, '{}'::text[], '', array['Gardez la minuterie dans une variable initialisée à nul, et ne la lancez que si elle vaut nul.', 'arreter_minuterie(m) arrête la minuterie.']::text[], 15, false, 'publie', 116, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'kplus-web-minuteur');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'kplus-web-minuteur'), null, 'cliquer "Démarrer"
+minuterie 2', 'titre: Minuteur
+paragraphe: 1
+bouton: Démarrer', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'kplus-web-minuteur'), null, 'cliquer "Démarrer"
+minuterie 3', 'titre: Minuteur
+paragraphe: Terminé !
+bouton: Démarrer', false, 1, 1, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'kplus-web-minuteur'), null, 'minuterie 2', 'titre: Minuteur
+paragraphe: 3
+bouton: Démarrer', true, 1, 2, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'kplus-web-minuteur'), null, 'cliquer "Démarrer"
+cliquer "Démarrer"
+minuterie 1', 'titre: Minuteur
+paragraphe: 2
+bouton: Démarrer', true, 1, 3, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'kplus-web-minuteur'), null, 'cliquer "Démarrer"
+minuterie 10', 'titre: Minuteur
+paragraphe: Terminé !
+bouton: Démarrer', true, 1, 4, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'kplus-web-minuteur'), 'utiliser web
+
+titre("Minuteur")
+variable affichage = paragraphe("3")
+variable reste = 3
+variable minuterie = nul
+
+fonction tic()
+    reste = reste - 1
+    changer_texte(affichage, texte(reste))
+    si reste == 0 alors
+        arreter_minuterie(minuterie)
+        changer_texte(affichage, "Terminé !")
+    fin
+fin
+
+fonction demarrer()
+    si minuterie == nul alors
+        minuterie = toutes_les(1000, tic)
+    fin
+fin
+
+bouton("Démarrer", demarrer)', 'La variable minuterie vaut nul tant que rien n''est lancé : le test si minuterie == nul empêche un second clic de lancer une deuxième minuterie, qui ferait descendre le nombre deux fois plus vite. arreter_minuterie évite de passer sous zéro.')
 on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
 commit;

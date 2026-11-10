@@ -142,6 +142,18 @@ Comme PharmaGestion, UPL IDE est une **application web installable** : pas de ma
   - la barre d'état affiche « Hors connexion ».
 - **Test** : `e2e/hors-ligne.spec.ts` prépare l'IDE, coupe le réseau, recharge, puis exécute JavaScript et le pseudocode, vérifie l'aperçu et le message du C.
 
+### Langage K+ (novembre 2026)
+
+[K+](https://github.com/manassekito17-star/K-) est un langage de programmation en français (`si … alors … fin`, `afficher`, `demander`…). Il est intégré à UPL IDE comme langage de fichier :
+
+- **Fichiers `.kplus`** : icône K+, coloration (mots-clés français, textes, nombres, commentaires `#` et `/* */`), extraits (`si`, `pour`, `tant que`, `fonction`…), retrait automatique, clavier de programmation mobile, plan des fonctions, modèle de projet « K+ » et contenu de départ.
+- **Erreurs en direct** : le vrai moteur K+ vérifie le fichier pendant la saisie et souligne l'erreur à la ligne et à la colonne exactes, avec le conseil de K+ (panneau **Problèmes**).
+- **Exécution** : bouton **Exécuter K+** ; le programme tourne dans le navigateur (Web Worker isolé, délai de 10 s comme Python), la zone **Entrées** alimente `demander()`. Les erreurs d'exécution affichent la catégorie, la ligne et la colonne.
+- **Sans Internet** : avec « Inclure Python », la préparation hors ligne enregistre aussi le moteur K+.
+- **Fonctionnement** : `public/workers/kplus-worker.mjs` charge Pyodide (même version que Python) puis le moteur K+ copié dans `public/workers/kplus-moteur.json`. K+ n'est pas un langage des parcours : il n'apparaît ni dans les cours, ni dans les exercices, ni dans la base de données ; le professeur IA reçoit le code avec la mention « langage K+ ».
+- **Mettre K+ à jour** : `npm run kplus:sync` (depuis le site de K+) ou `node scripts/sync-kplus.mjs <dossier du dépôt K+>`.
+- **Tests** : `src/lib/kplus/kplus.test.ts` (moteur complet, mots-clés identiques au moteur, fichiers `.kplus`, conversion des résultats ; modèle de projet et erreurs exécutés par le vrai moteur si `python3` est installé) et `e2e/ide.spec.ts` (coloration, erreur soulignée puis effacée, exécution avec `demander()`, erreur à l'exécution avec sa ligne).
+
 ### Ce qui n'est pas affiché, faute de service réel
 
 - terminal ;

@@ -98,6 +98,50 @@ test("projet local : fichiers, dossiers, onglets, exécution JavaScript réelle 
   await expect(item(page, "src/app.js")).toBeVisible();
 });
 
+/** Marqueurs (erreurs soulignées) posés par le moteur K+ sur le fichier donné. */
+async function kplusMarkers(page: Page, file: string) {
+  return page.evaluate((f) => {
+    const m = (window as unknown as { monaco: { editor: { getModelMarkers(o: { owner: string }): Array<{ resource: { toString(): string }; startLineNumber: number; startColumn: number; message: string }> } } }).monaco;
+    return m.editor.getModelMarkers({ owner: "kplus" }).filter((x) => x.resource.toString().endsWith(`/${f}`)).map((x) => ({ line: x.startLineNumber, column: x.startColumn, message: x.message }));
+  }, file);
+}
+
+test("langage K+ : coloration, erreurs en direct, exécution avec demander(), erreurs à l'exécution", async ({ page }) => {
+  await page.goto("/ide");
+  await page.locator(".monaco-editor").first().waitFor({ timeout: 60_000 });
+  await newEntry(page, "Nouveau fichier", "main.kplus");
+  await expect(page.getByRole("tab", { name: /main\.kplus/ })).toBeVisible();
+  await expect(page.getByTestId("ide-barre-etat")).toContainText("K+");
+
+  // Coloration : les mots-clés français sont reconnus par Monaco.
+  const tokens = await page.evaluate(() => {
+    const m = (window as unknown as { monaco: { editor: { tokenize(t: string, l: string): Array<Array<{ type: string }>> } } }).monaco;
+    return m.editor.tokenize('si age >= 18 alors # majeur\n    afficher("oui", vrai)\nfin', "kplus").flat().map((t) => t.type);
+  });
+  for (const type of ["keyword.kplus", "number.kplus", "comment.kplus", "predefined.kplus", "string.kplus", "type.kplus"]) expect(tokens).toContain(type);
+
+  // Erreur de syntaxe soulignée en direct par le vrai moteur K+, puis effacée une fois corrigée.
+  await setModel(page, "main.kplus", 'afficher("ok")\nsi vrai alors\n    afficher(1)\n');
+  await expect.poll(() => kplusMarkers(page, "main.kplus"), { timeout: 90_000 }).toEqual([
+    { line: 2, column: 1, message: expect.stringContaining("jamais fermé par « fin »") },
+  ]);
+  await setModel(page, "main.kplus", 'variable nom = demander("Nom ? ")\nafficher("Bonjour", nom)\nafficher(2 ^ 10)\n');
+  await expect.poll(() => kplusMarkers(page, "main.kplus"), { timeout: 30_000 }).toEqual([]);
+
+  // Exécution réelle avec la zone « Entrées » pour demander().
+  await page.getByLabel("Entrées du programme").fill("Awa");
+  await page.getByRole("button", { name: /Exécuter K\+/ }).click();
+  await expect(page.getByTestId("ide-console")).toContainText("Nom ? Bonjour Awa", { timeout: 90_000 });
+  await expect(page.getByTestId("ide-console")).toContainText("1024");
+
+  // Erreur à l'exécution : message K+ avec la ligne.
+  await setModel(page, "main.kplus", 'afficher("avant")\nafficher(10 / 0)\n');
+  await page.getByRole("button", { name: /Exécuter K\+/ }).click();
+  await expect(page.getByTestId("ide-console")).toContainText("Erreur de division par zéro (ligne 2, colonne 13)", { timeout: 30_000 });
+  await page.getByRole("tab", { name: "Sortie" }).click();
+  await expect(page.getByTestId("ide-panneau-sortie")).toContainText("Ligne de l'erreur : 2");
+});
+
 test("aperçu web avec vues ordinateur / téléphone et console de la page", async ({ page }) => {
   await page.goto("/ide");
   await page.locator(".monaco-editor").first().waitFor({ timeout: 60_000 });

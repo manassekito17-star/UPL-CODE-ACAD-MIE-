@@ -63,7 +63,7 @@ check("Réponses des quiz invisibles", (await as(A, "select * from public.quiz_a
 const hiddenVisible = (await as(A, "select * from public.exercise_test_cases where is_hidden")).rows.length;
 check("Tests cachés invisibles pour un étudiant", hiddenVisible === 0);
 check("Tests visibles lisibles", (await as(null, "select * from public.exercise_test_cases")).rows.length > 0);
-check("Cours publiés lisibles par un visiteur", (await as(null, "select * from public.courses")).rows.length === 7);
+check("Cours publiés lisibles par un visiteur", (await as(null, "select * from public.courses")).rows.length === 8);
 check("Bob ne voit pas le profil d'Alice", (await as(B, "select * from public.profiles where id = $1", [A])).rows.length === 0);
 denied = false; try { await as(A, "update public.profiles set status = 'actif', suspended_reason = 'x' where id = $1", [A]); } catch { denied = true; }
 check("Un étudiant ne peut pas modifier son statut", denied);
@@ -89,10 +89,10 @@ check("Enseignant ne lit pas les paramètres", (await as(B, "select * from publi
 
 console.log("\nMultiniveaux :");
 const lv = (await db.query("select c.slug, count(cl.*)::int n from public.courses c left join public.course_levels cl on cl.course_id = c.id group by c.slug")).rows;
-check("Chaque parcours a quatre niveaux", lv.length === 7 && lv.every((r) => r.n === 4));
+check("Chaque parcours a quatre niveaux", lv.length === 8 && lv.every((r) => r.n === 4));
 check("Chaque module est rattaché à un niveau", (await db.query("select count(*)::int n from public.modules where level_number is null")).rows[0].n === 0);
 check("Aucun module vide hérité de l'ancienne organisation", (await db.query("select count(*)::int n from public.modules m where not exists (select 1 from public.lessons l where l.module_id = m.id)")).rows[0].n === 0);
-check("Un test de positionnement par parcours", (await db.query("select count(*)::int n from public.quizzes where kind = 'positionnement'")).rows[0].n === 7);
+check("Un test de positionnement par parcours", (await db.query("select count(*)::int n from public.quizzes where kind = 'positionnement'")).rows[0].n === 8);
 check("Questions de positionnement étiquetées par niveau", (await db.query("select count(*)::int n from public.quiz_questions qq join public.quizzes q on q.id = qq.quiz_id where q.kind = 'positionnement' and qq.level_number is null")).rows[0].n === 0);
 check("Examens de niveau rattachés à un niveau", (await db.query("select count(*)::int n from public.quizzes where kind = 'examen_niveau' and level_number is not null")).rows[0].n >= 7);
 check("Vérifications web enregistrées", (await db.query(`select count(*)::int n from public.exercise_test_cases where "check" is not null`)).rows[0].n > 0);

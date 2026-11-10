@@ -6,8 +6,8 @@ import { recommendedLevel } from "./levels/build";
 const exercises = new Map(staticExercises.map((e) => [e.slug, e]));
 
 describe("UPL ACADEMY multiniveaux", () => {
-  it("propose les sept parcours du catalogue", () => {
-    expect(staticCourses.map((c) => c.slug).sort()).toEqual(["algorithmique", "css", "html", "java", "javascript", "langage-c", "python"]);
+  it("propose les huit parcours du catalogue", () => {
+    expect(staticCourses.map((c) => c.slug).sort()).toEqual(["algorithmique", "css", "html", "java", "javascript", "kplus", "langage-c", "python"]);
   });
 
   for (const c of staticCourses) {
