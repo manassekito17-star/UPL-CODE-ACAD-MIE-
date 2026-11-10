@@ -8,5 +8,5 @@ export const BRAND = {
   name: "UPL CODE ACADEMY MK",
   slogan: "LEARN. CODE. PRACTICE. MASTER.",
   description:
-    "UPL CODE ACADEMY MK : plateforme d'éducation informatique en sept parcours et quatre niveaux (algorithmique, HTML, CSS, Python, C, JavaScript, Java), avec éditeur de code, exercices corrigés automatiquement et professeur IA.",
+    "UPL CODE ACADEMY MK : plateforme d'éducation informatique en huit parcours et quatre niveaux (algorithmique, HTML, CSS, Python, C, JavaScript, Java, K+), avec éditeur de code, exercices corrigés automatiquement et professeur IA.",
 } as const;

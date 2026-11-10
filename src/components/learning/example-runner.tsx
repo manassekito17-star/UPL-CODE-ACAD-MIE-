@@ -5,6 +5,7 @@ import { useState } from "react";
 import type { CodeExample } from "@/content/types";
 import { runProgram } from "@/lib/execution/browser";
 import { buildPreviewDocument } from "@/lib/execution/web-document";
+import { KPlusPage } from "../editor/kplus-page";
 import { WebPreview } from "../editor/web-preview";
 import { LANGUAGES } from "@/lib/execution/languages";
 import type { ExecutionResult } from "@/lib/execution/types";
@@ -60,6 +61,13 @@ export function ExampleRunner({ example, editorHref }: { example: CodeExample; e
           {result?.stdout}
           {result?.stderr && <span className="text-red-300">{result.stderr}</span>}
         </pre>
+      )}
+      {result?.kplusPage && (
+        <KPlusPage
+          commands={result.kplusPage}
+          onOutput={(t) => setResult((r) => (r ? { ...r, stdout: r.stdout + t } : r))}
+          className="border-t border-white/10"
+        />
       )}
       {example.explanation && <p className="border-t border-white/10 bg-nuit-900 px-4 py-3 text-sm text-gray-300">💬 {example.explanation}</p>}
     </div>

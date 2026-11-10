@@ -187,8 +187,8 @@ export const countInside = (p: ProjectSnapshot, path: string) => p.files.filter(
 
 // ---------------- Langages ----------------
 
-/** Langages exécutables dans UPL IDE : ceux de la plateforme, plus K+ (exécuté dans le navigateur). */
-export type RunLanguage = LanguageId | "kplus";
+/** Langages exécutables dans UPL IDE (ceux de la plateforme, K+ compris). */
+export type RunLanguage = LanguageId;
 
 export interface FileLanguage {
   /** Identifiant Monaco (coloration, autocomplétion). */

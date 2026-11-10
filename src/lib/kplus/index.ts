@@ -1,14 +1,16 @@
 "use client";
 
 /**
- * Langage K+ (programmation en français) dans UPL IDE.
+ * Langage K+ (programmation en français) dans UPL Code Académie.
  *
  * Le vrai moteur K+ tourne dans le navigateur, dans un Web Worker isolé
- * (public/workers/kplus-worker.mjs, Pyodide). Il sert à la fois à exécuter les
- * programmes et à vérifier leur syntaxe pendant la saisie.
+ * (public/workers/kplus-worker.mjs, Pyodide). Il sert à exécuter les
+ * programmes (avec leur page web pour « utiliser web »), à corriger les
+ * exercices quand le serveur d'exécution est absent, et à vérifier la syntaxe
+ * pendant la saisie.
  */
 
-import type { ExecutionResult, SourceFile } from "@/lib/execution/types";
+import type { ExecutionResult, KPlusCommand, SourceFile } from "@/lib/execution/types";
 
 /** Délai d'exécution, compté après le chargement du moteur (comme pour Python). */
 export const KPLUS_TIMEOUT_MS = 10_000;
@@ -27,15 +29,20 @@ export interface KPlusError {
 let worker: Worker | null = null;
 let nextId = 1;
 const pendingChecks = new Map<number, (r: { ok: boolean; erreur?: KPlusError } | null) => void>();
+const pendingEvents = new Map<number, (r: { commandes: KPlusCommand[]; texte_erreur?: string; sortie?: string }) => void>();
 
 function getWorker(): Worker {
   if (!worker) {
     worker = new Worker("/workers/kplus-worker.mjs", { type: "module" });
     worker.addEventListener("message", (e: MessageEvent) => {
       const d = e.data;
-      if (d?.type !== "verification") return;
-      pendingChecks.get(d.id)?.(d.resultat);
-      pendingChecks.delete(d.id);
+      if (d?.type === "verification") {
+        pendingChecks.get(d.id)?.(d.resultat);
+        pendingChecks.delete(d.id);
+      } else if (d?.type === "evenement_fin") {
+        pendingEvents.get(d.requete)?.(d.resultat);
+        pendingEvents.delete(d.requete);
+      }
     });
   }
   return worker;
@@ -47,6 +54,8 @@ function resetWorker() {
   worker = null;
   for (const resolve of pendingChecks.values()) resolve(null);
   pendingChecks.clear();
+  for (const resolve of pendingEvents.values()) resolve({ commandes: [], texte_erreur: "Le programme a été arrêté." });
+  pendingEvents.clear();
 }
 
 /** Les erreurs lexicales et de syntaxe empêchent le programme de démarrer. */
@@ -55,11 +64,11 @@ export function isCompileError(e: KPlusError): boolean {
 }
 
 /** Convertit le résultat du moteur K+ au format d'exécution de la plateforme. */
-export function toExecutionResult(d: { ok: boolean; stdout?: string; stderr?: string; erreur?: KPlusError | null; timeMs?: number }): ExecutionResult {
+export function toExecutionResult(d: { ok: boolean; stdout?: string; stderr?: string; erreur?: KPlusError | null; timeMs?: number; page?: KPlusCommand[] }): ExecutionResult {
   const e = d.erreur ?? null;
   const compile = e !== null && isCompileError(e);
   return {
-    status: d.ok ? "ok" : e === null ? "erreur_interne" : compile ? "erreur_compilation" : "erreur_execution",
+    status: d.ok ? "ok" : e === null ? (d.stderr?.startsWith("Scénario") ? "erreur_execution" : "erreur_interne") : compile ? "erreur_compilation" : "erreur_execution",
     stdout: d.stdout ?? "",
     stderr: e && !compile ? e.texte : (d.stderr ?? ""),
     compileOutput: e && compile ? e.texte : "",
@@ -67,11 +76,11 @@ export function toExecutionResult(d: { ok: boolean; stdout?: string; stderr?: st
     memoryKb: null,
     engine: "navigateur",
     errorLine: e?.ligne ?? undefined,
+    ...(d.page ? { kplusPage: d.page } : {}),
   };
 }
 
-/** Exécute un programme K+ (le premier fichier) avec les entrées données à demander(). */
-export function runKPlus(files: SourceFile[], stdin: string, onStatus?: (message: string) => void): Promise<ExecutionResult> {
+function run(type: "executer" | "tester", files: SourceFile[], stdin: string, onStatus?: (message: string) => void): Promise<ExecutionResult> {
   return new Promise((resolve) => {
     const w = getWorker();
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -100,7 +109,28 @@ export function runKPlus(files: SourceFile[], stdin: string, onStatus?: (message
       resolve(toExecutionResult(d));
     };
     w.addEventListener("message", onMessage);
-    w.postMessage({ type: "executer", source: files[0]?.content ?? "", stdin });
+    w.postMessage({ type, source: files[0]?.content ?? "", stdin });
+  });
+}
+
+/** Exécute un programme K+ (le premier fichier) avec les entrées données à demander().
+ *  Pour un programme web, le résultat contient la page (kplusPage). */
+export function runKPlus(files: SourceFile[], stdin: string, onStatus?: (message: string) => void): Promise<ExecutionResult> {
+  return run("executer", files, stdin, onStatus);
+}
+
+/** Exécution d'un test d'exercice : sortie du programme, ou, pour un programme
+ *  web, description de la page après le scénario donné en entrée. */
+export function runKPlusTest(files: SourceFile[], stdin: string, onStatus?: (message: string) => void): Promise<ExecutionResult> {
+  return run("tester", files, stdin, onStatus);
+}
+
+/** Transmet un événement de la page (clic, saisie, minuterie) au dernier programme web exécuté. */
+export function sendKPlusEvent(element: string, genre: string, valeurs: Record<string, string>): Promise<{ commandes: KPlusCommand[]; texte_erreur?: string; sortie?: string }> {
+  return new Promise((resolve) => {
+    const requete = nextId++;
+    pendingEvents.set(requete, resolve);
+    getWorker().postMessage({ type: "evenement", element, genre, valeurs, requete });
   });
 }
 

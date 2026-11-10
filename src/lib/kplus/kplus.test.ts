@@ -11,11 +11,12 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { KPLUS_BUILTINS, KPLUS_KEYWORDS } from "@/components/editor/kplus-language";
+import { KPLUS_BUILTINS, KPLUS_KEYWORDS, KPLUS_WEB_BUILTINS } from "@/components/editor/kplus-language";
 import { languageOf, runFiles, symbolsOf } from "@/lib/ide/fs";
 import { starterContent } from "@/lib/ide/starters";
 import { templateById } from "@/lib/ide/templates";
 import { toExecutionResult, type KPlusError } from "./index";
+import { fromKPlusRunner, kplusRunnerSource } from "./runner";
 
 const paquet = JSON.parse(readFileSync(join(process.cwd(), "public/workers/kplus-moteur.json"), "utf8")) as {
   version: string;
@@ -68,6 +69,8 @@ describe("moteur K+ copié dans UPL", () => {
 
     const natives = /NATIVES = \{([\s\S]*?)\n\}/.exec(paquet.fichiers["kplus/natives.py"])![1];
     expect(new Set(KPLUS_BUILTINS)).toEqual(new Set([...natives.matchAll(/^\s+"([^"]+)":/gm)].map((m) => m[1])));
+    const web = /NATIVES = \{([\s\S]*?)\n\}/.exec(paquet.fichiers["kplus/web.py"])![1];
+    expect(new Set(KPLUS_WEB_BUILTINS)).toEqual(new Set([...web.matchAll(/^\s+"([^"]+)":/gm)].map((m) => m[1])));
   });
 });
 
@@ -109,5 +112,49 @@ describe.skipIf(!hasPython)("programmes K+ exécutés par le vrai moteur", () =>
     expect(r.sortie).toBe("avant\n");
     expect(r.erreur).toMatchObject({ categorie: "ErreurDivisionParZero", ligne: 2, colonne: 13 });
     expect(runWithEngine("si vrai alors\n").erreur).toMatchObject({ categorie: "ErreurSyntaxe", ligne: 1 });
+  });
+});
+
+/** Exécution comme sur le serveur d'exécution (Judge0 Python), avec python3 local. */
+function runLikeServer(source: string, stdin = "") {
+  const dir = mkdtempSync(join(tmpdir(), "upl-kplus-serveur-"));
+  try {
+    writeFileSync(join(dir, "main.py"), kplusRunnerSource(source));
+    const p = spawnSync("python3", ["main.py"], { cwd: dir, input: stdin, encoding: "utf8" });
+    return fromKPlusRunner({
+      status: p.status === 0 ? "ok" : "erreur_execution",
+      stdout: p.stdout,
+      stderr: p.stderr,
+      compileOutput: "",
+      timeMs: null,
+      memoryKb: null,
+      engine: "serveur",
+    });
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+describe.skipIf(!hasPython)("exécution serveur (moteur joint au programme, comme sur Judge0)", () => {
+  it("programme ordinaire avec entrée", () => {
+    expect(runLikeServer('variable n = entier(demander())\nafficher("double :", n * 2)', "21\n")).toMatchObject({ status: "ok", stdout: "double : 42\n" });
+  });
+  it("erreur de syntaxe → erreur de compilation avec la ligne", () => {
+    const r = runLikeServer('afficher("a")\nsi vrai alors\n');
+    expect(r).toMatchObject({ status: "erreur_compilation", errorLine: 2, stderr: "" });
+    expect(r.compileOutput).toContain("jamais fermé");
+  });
+  it("erreur d'exécution → sortie conservée, message K+", () => {
+    const r = runLikeServer('afficher("avant")\nafficher(1 / 0)');
+    expect(r).toMatchObject({ status: "erreur_execution", stdout: "avant\n", errorLine: 2 });
+    expect(r.stderr).toContain("Erreur de division par zéro (ligne 2");
+  });
+  it("programme web : l'entrée est un scénario, la sortie décrit la page", () => {
+    const site = 'utiliser web\nvariable c = champ("Nom")\nvariable p = paragraphe("")\nfonction f()\n    changer_texte(p, "Bonjour " + valeur(c))\nfin\nbouton("OK", f)\n';
+    expect(runLikeServer(site, 'saisir "Nom" "Awa"\ncliquer "OK"\n')).toMatchObject({
+      status: "ok",
+      stdout: 'champ: Nom = "Awa"\nparagraphe: Bonjour Awa\nbouton: OK\n',
+    });
+    expect(runLikeServer(site, 'cliquer "Inconnu"').stderr).toContain("Scénario de test");
   });
 });

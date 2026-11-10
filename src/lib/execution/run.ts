@@ -2,6 +2,7 @@ import "server-only";
 
 import { runPseudocode } from "../pseudocode";
 import { isJudge0Configured } from "../server-env";
+import { fromKPlusRunner } from "../kplus/runner";
 import { runOnJudge0 } from "./judge0";
 import { EXECUTION_LIMITS, LANGUAGES } from "./languages";
 import type { ExecutionRequest, ExecutionResult } from "./types";
@@ -43,5 +44,6 @@ export async function executeOnServer(req: ExecutionRequest, limits: { cpuTimeLi
     };
   }
   if (!isJudge0Configured()) throw new ExecutionUnavailableError(LANGUAGES[req.language].browserFallback);
-  return runOnJudge0(req, limits);
+  const r = await runOnJudge0(req, limits);
+  return req.language === "kplus" ? fromKPlusRunner(r) : r;
 }

@@ -4,6 +4,7 @@ import type { LanguageId } from "@/content/types";
 import { serverEnv } from "../server-env";
 import { EXECUTION_LIMITS } from "./languages";
 import { bundlePythonFiles, withNodePrelude } from "./prelude";
+import { kplusRunnerSource } from "../kplus/runner";
 import type { ExecutionRequest, ExecutionResult, ExecutionStatus } from "./types";
 
 /**
@@ -33,6 +34,8 @@ function sourceFor(req: ExecutionRequest): string {
       return bundlePythonFiles(req.files);
     case "javascript":
       return withNodePrelude(req.files[0]?.content ?? "");
+    case "kplus":
+      return kplusRunnerSource(req.files[0]?.content ?? "");
     default:
       return req.files[0]?.content ?? "";
   }
@@ -55,7 +58,8 @@ export async function runOnJudge0(
   limits: { cpuTimeLimitSeconds?: number; memoryLimitKb?: number } = {},
 ): Promise<ExecutionResult> {
   const language = req.language as Exclude<LanguageId, "pseudocode" | "html" | "css">;
-  const languageId = serverEnv.judge0LanguageIds[language];
+  // K+ est exécuté par son moteur, écrit en Python.
+  const languageId = serverEnv.judge0LanguageIds[language === "kplus" ? "python" : language];
   const body = {
     language_id: languageId,
     source_code: b64(sourceFor(req)),

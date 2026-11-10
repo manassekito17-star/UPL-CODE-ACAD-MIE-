@@ -15,11 +15,42 @@ export const KPLUS_KEYWORDS = [
   "essayer", "attraper", "lever",
   "et", "ou", "non",
   "vrai", "faux", "nul",
+  "utiliser",
 ];
 const VALUES = ["vrai", "faux", "nul"];
 export const KPLUS_BUILTINS = [
   "afficher", "demander", "texte", "entier", "decimal", "décimal", "type",
   "longueur", "ajouter", "absolu", "racine", "arrondir", "quitter",
+];
+
+/** Fonctions de la bibliothèque web (« utiliser web », K+ 0.2). */
+export const KPLUS_WEB_BUILTINS = [
+  "ajouter_ligne",
+  "arreter_minuterie",
+  "bouton",
+  "cacher",
+  "champ",
+  "changer_texte",
+  "changer_valeur",
+  "couleur",
+  "couleur_fond",
+  "image",
+  "lien",
+  "liste",
+  "montrer",
+  "paragraphe",
+  "placer",
+  "quand_change",
+  "quand_clic",
+  "sous_titre",
+  "supprimer",
+  "texte_de",
+  "titre",
+  "titre_page",
+  "toutes_les",
+  "valeur",
+  "vider",
+  "zone",
 ];
 
 const SNIPPETS: Array<{ label: string; insert: string; doc: string }> = [
@@ -31,6 +62,8 @@ const SNIPPETS: Array<{ label: string; insert: string; doc: string }> = [
   { label: "fonction", insert: "fonction ${1:nom}(${2:a})\n\t$0\nfin", doc: "Définir une fonction" },
   { label: "essayer", insert: "essayer\n\t$1\nattraper ${2:erreur}\n\tafficher(\"Erreur : \" + ${2:erreur})\nfin", doc: "Gérer une erreur" },
   { label: "variable", insert: "variable ${1:nom} = ${0:valeur}", doc: "Déclarer une variable" },
+  { label: "utiliser web", insert: "utiliser web\n\ntitre(\"${1:Mon site}\")\n$0", doc: "Commencer un site web (K+ Web)" },
+  { label: "bouton", insert: "fonction ${1:action}()\n\t$0\nfin\n\nbouton(\"${2:Cliquez}\", ${1:action})", doc: "Bouton et son action (K+ Web)" },
 ];
 
 let registered = false;
@@ -44,7 +77,7 @@ export function registerKPlus(monaco: Monaco) {
     unicode: true,
     keywords: KPLUS_KEYWORDS.filter((k) => !VALUES.includes(k)),
     values: VALUES,
-    builtins: KPLUS_BUILTINS,
+    builtins: [...KPLUS_BUILTINS, ...KPLUS_WEB_BUILTINS],
     tokenizer: {
       root: [
         [/#.*$/, "comment"],
@@ -105,7 +138,7 @@ export function registerKPlus(monaco: Monaco) {
             range,
           })),
           ...KPLUS_KEYWORDS.map((k) => ({ label: k, kind: K.Keyword, insertText: k, range })),
-          ...KPLUS_BUILTINS.map((b) => ({ label: `${b}()`, kind: K.Function, insertText: `${b}($0)`, insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet, range })),
+          ...[...KPLUS_BUILTINS, ...KPLUS_WEB_BUILTINS].map((b) => ({ label: `${b}()`, kind: K.Function, insertText: `${b}($0)`, insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet, range })),
         ],
       };
     },

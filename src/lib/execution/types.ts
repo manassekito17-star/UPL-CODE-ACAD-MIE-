@@ -31,6 +31,15 @@ export interface ExecutionResult {
   /** Ligne de l'erreur (pseudocode), pour la souligner dans l'éditeur. */
   errorLine?: number;
   hint?: string;
+  /** Programme K+ Web (« utiliser web ») : commandes qui construisent sa page. */
+  kplusPage?: KPlusCommand[];
+}
+
+/** Commande produite par le moteur K+ pour construire une page (voir kplus/web.py). */
+export interface KPlusCommand {
+  op: string;
+  id?: string;
+  [champ: string]: unknown;
 }
 
 export const STATUS_LABELS: Record<ExecutionStatus, string> = {

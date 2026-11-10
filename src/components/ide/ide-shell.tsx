@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BRAND } from "@/lib/brand";
 import { runInBrowser, runProgram } from "@/lib/execution/browser";
-import { runKPlus, warmupKPlus } from "@/lib/kplus";
+import { warmupKPlus } from "@/lib/kplus";
+import { KPlusPage } from "../editor/kplus-page";
 import { registerServiceWorker } from "@/lib/offline/client";
 import { STATUS_LABELS, type ExecutionResult } from "@/lib/execution/types";
 import { buildPreviewDocument } from "@/lib/execution/web-document";
@@ -595,11 +596,7 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
     setRunError(null);
     setBottom("console");
     const started = new Date();
-    // K+ tourne toujours dans le navigateur (moteur K+ dans un Web Worker).
-    const r =
-      runnable.language === "kplus"
-        ? { result: await runKPlus(runnable.files, stdin, setRunStatus), error: undefined }
-        : await runProgram(runnable.language, runnable.files, stdin, { onStatus: setRunStatus });
+    const r = await runProgram(runnable.language, runnable.files, stdin, { onStatus: setRunStatus });
     setRunning(false);
     setRunStatus(null);
     setResult(r.result ?? null);
@@ -1020,8 +1017,7 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
                         modes={["expliquer_code", "analyser_erreur", "question", "enseigner", "indice", "mentor_projet"]}
                         intro="Je vois le fichier ouvert et la liste des fichiers du projet. Je peux expliquer le code, analyser une erreur ou vous guider. (La génération et la modification de fichiers avec validation arrivent dans une prochaine phase.)"
                         getContext={() => ({
-                          // K+ n'est pas (encore) un langage des parcours : le professeur reçoit le code avec une mention explicite.
-                          language: runnable?.language === "kplus" ? undefined : runnable?.language,
+                          language: runnable?.language,
                           code: activeFile ? `// Projet « ${project.name} » — fichiers : ${project.files.map((f) => f.path).join(", ")}\n// Fichier ouvert : ${activeFile.path}${runnable?.language === "kplus" ? " (langage K+, programmation en français : https://manassekito17-star.github.io/K-/)" : ""}\n${activeFile.content}`.slice(0, 19_000) : undefined,
                           output: result?.stdout?.slice(0, 4000),
                           error: (result?.compileOutput || result?.stderr || runError || undefined)?.slice(0, 4000),
@@ -1084,6 +1080,13 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
                         <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--ide-muted)]">Entrées (une par ligne)</span>
                         <textarea value={stdin} onChange={(e) => setStdin(e.target.value)} rows={3} className="min-h-12 flex-1 resize-none rounded border border-[var(--ide-border)] bg-[var(--ide-input)] p-1.5 font-mono text-xs text-[var(--ide-text)]" placeholder="input(), LIRE, demander(), scanf…" aria-label="Entrées du programme" />
                       </label>
+                      {result?.kplusPage && (
+                        <KPlusPage
+                          commands={result.kplusPage}
+                          onOutput={(t) => setResult((r) => (r ? { ...r, stdout: r.stdout + t } : r))}
+                          className="min-h-0 flex-1 overflow-auto rounded font-sans"
+                        />
+                      )}
                       <pre className="min-h-0 flex-1 overflow-auto whitespace-pre-wrap break-words rounded bg-black/40 p-2 text-gray-100" aria-live="polite" data-testid="ide-console">
                         {running && <span className="text-cyan-accent">{runStatus ?? "Exécution en cours…"}{"\n"}</span>}
                         {!running && !result && !runError && !consoleLines.length && <span className="text-gray-500">Ctrl + Entrée pour exécuter le fichier actif. Les messages console.log() de l&apos;aperçu web s&apos;affichent aussi ici.</span>}

@@ -1,6 +1,398 @@
--- UPL CODE ACADEMY MK — installation, partie 2 (contenu), morceau 10 sur 10.
+-- UPL CODE ACADEMY MK — installation, partie 2 (contenu), morceau 10 sur 11.
 -- À exécuter dans l'ordre, après 1-structure.sql. Peut être relancé sans risque.
 begin;
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-pair-impair'), null, '10', 'pair', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-pair-impair'), null, '7', 'impair', false, 1, 1, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-pair-impair'), null, '-3', 'impair', true, 1, 2, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-pair-impair'), null, '0', 'pair', true, 1, 3, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'py-pair-impair'), 'n = int(input())
+if n % 2 == 0:
+    print("pair")
+else:
+    print("impair")', 'On teste le reste de la division par 2 avec l''opérateur **%** et la comparaison **==** (deux signes égal).')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('py-mention', (select id from public.courses where slug = 'python'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'python') and slug = 'conditions'), 'python', 'Mention', 'Lisez une note (réel) et affichez **Note invalide** (hors de 0–20), **Très bien** (≥ 16), **Bien** (≥ 14), **Passable** (≥ 10) ou **Ajourné**.', 'debutant', 'ecrire_programme', '{}'::text[], '[{"input":"14.5","output":"Bien"}]'::jsonb, '{}'::text[], '', array['Utilisez if / elif / else.', 'Python permet d''écrire 0 <= note <= 20.']::text[], 10, false, 'publie', 78, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'py-mention');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-mention'), null, '14.5', 'Bien', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-mention'), null, '20', 'Très bien', false, 1, 1, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-mention'), null, '9.99', 'Ajourné', false, 1, 2, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-mention'), null, '-1', 'Note invalide', true, 1, 3, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-mention'), null, '10', 'Passable', true, 1, 4, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'py-mention'), 'note = float(input())
+if not 0 <= note <= 20:
+    print("Note invalide")
+elif note >= 16:
+    print("Très bien")
+elif note >= 14:
+    print("Bien")
+elif note >= 10:
+    print("Passable")
+else:
+    print("Ajourné")', 'On traite d''abord le cas invalide, puis les mentions de la plus haute à la plus basse.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('py-table', (select id from public.courses where slug = 'python'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'python') and slug = 'boucles'), 'python', 'Table de multiplication', 'Lisez un entier n et affichez sa table de 1 à 10 au format **n x i = résultat**.', 'debutant', 'ecrire_programme', '{}'::text[], '[{"input":"3","output":"3 x 1 = 3\n…\n3 x 10 = 30"}]'::jsonb, '{}'::text[], '', array['range(1, 11) produit les nombres de 1 à 10.']::text[], 10, false, 'publie', 79, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'py-table');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-table'), null, '3', '3 x 1 = 3
+3 x 2 = 6
+3 x 3 = 9
+3 x 4 = 12
+3 x 5 = 15
+3 x 6 = 18
+3 x 7 = 21
+3 x 8 = 24
+3 x 9 = 27
+3 x 10 = 30', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-table'), null, '9', '9 x 1 = 9
+9 x 2 = 18
+9 x 3 = 27
+9 x 4 = 36
+9 x 5 = 45
+9 x 6 = 54
+9 x 7 = 63
+9 x 8 = 72
+9 x 9 = 81
+9 x 10 = 90', true, 1, 1, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'py-table'), 'n = int(input())
+for i in range(1, 11):
+    print(f"{n} x {i} = {n * i}")', 'range(1, 11) s''arrête **avant** 11 : la boucle s''exécute pour i = 1 à 10.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('py-factorielle', (select id from public.courses where slug = 'python'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'python') and slug = 'boucles'), 'python', 'Factorielle', 'Lisez un entier n ≥ 0 et affichez n!. Python gère les grands entiers : testez avec n = 30 !', 'debutant', 'ecrire_programme', '{}'::text[], '[{"input":"5","output":"120"}]'::jsonb, '{}'::text[], '', array['Initialisez le produit à 1.', 'for i in range(2, n + 1): …']::text[], 10, false, 'publie', 80, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'py-factorielle');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-factorielle'), null, '5', '120', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-factorielle'), null, '0', '1', false, 1, 1, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-factorielle'), null, '30', '265252859812191058636308480000000', true, 1, 2, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'py-factorielle'), 'n = int(input())
+f = 1
+for i in range(2, n + 1):
+    f *= i
+print(f)', 'Les entiers Python ont une précision illimitée, contrairement au C ou au Java où l''on aurait un dépassement de capacité pour 30!.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('py-maximum-liste', (select id from public.courses where slug = 'python'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'python') and slug = 'listes-tuples'), 'python', 'Maximum sans max()', 'Lisez une ligne d''entiers séparés par des espaces et affichez le plus grand **sans utiliser max()** ni **sorted()**.', 'intermediaire', 'ecrire_programme', '{}'::text[], '[{"input":"4 9 -2 7","output":"9"}]'::jsonb, array['Interdiction d''utiliser max(), sorted() ou sort().']::text[], '', array['valeurs = list(map(int, input().split()))', 'Initialisez le maximum avec le premier élément, pas avec 0.']::text[], 10, false, 'publie', 81, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'py-maximum-liste');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-maximum-liste'), null, '4 9 -2 7', '9', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-maximum-liste'), null, '-5 -1 -8', '-1', false, 1, 1, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-maximum-liste'), null, '42', '42', true, 1, 2, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'py-maximum-liste'), 'valeurs = list(map(int, input().split()))
+plus_grand = valeurs[0]
+for v in valeurs[1:]:
+    if v > plus_grand:
+        plus_grand = v
+print(plus_grand)', 'Initialiser à 0 serait faux pour une liste de nombres tous négatifs : on part du premier élément.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('py-inverser-liste', (select id from public.courses where slug = 'python'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'python') and slug = 'listes-tuples'), 'python', 'Inverser une liste', 'Lisez une ligne de mots séparés par des espaces et affichez-les dans l''ordre inverse, séparés par un espace.', 'debutant', 'ecrire_programme', '{}'::text[], '[{"input":"le code est beau","output":"beau est code le"}]'::jsonb, '{}'::text[], '', array['input().split() découpe la ligne en liste.', 'Une tranche avec un pas négatif [::-1] inverse une liste.', '" ".join(liste) recolle les mots.']::text[], 10, false, 'publie', 82, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'py-inverser-liste');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-inverser-liste'), null, 'le code est beau', 'beau est code le', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-inverser-liste'), null, 'UPL', 'UPL', false, 1, 1, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-inverser-liste'), null, 'a b c d e', 'e d c b a', true, 1, 2, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'py-inverser-liste'), 'mots = input().split()
+print(" ".join(mots[::-1]))', '**[::-1]** parcourt la liste avec un pas de -1 ; **join** assemble les éléments avec le séparateur choisi.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('py-frequences', (select id from public.courses where slug = 'python'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'python') and slug = 'dictionnaires-ensembles'), 'python', 'Fréquence des lettres', 'Lisez un mot (en minuscules) et affichez chaque lettre distincte avec son nombre d''occurrences, **dans l''ordre alphabétique**, au format **lettre:nombre**, une par ligne.', 'intermediaire', 'ecrire_programme', '{}'::text[], '[{"input":"banane","output":"a:2\nb:1\ne:1\nn:2"}]'::jsonb, '{}'::text[], '', array['Un dictionnaire associe chaque lettre à un compteur.', 'compte[c] = compte.get(c, 0) + 1', 'sorted(compte) donne les clés triées.']::text[], 10, false, 'publie', 83, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'py-frequences');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-frequences'), null, 'banane', 'a:2
+b:1
+e:1
+n:2', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-frequences'), null, 'aaa', 'a:3', false, 1, 1, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-frequences'), null, 'programmation', 'a:2
+g:1
+i:1
+m:2
+n:1
+o:2
+p:1
+r:2
+t:1', true, 1, 2, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'py-frequences'), 'mot = input().strip()
+compte = {}
+for c in mot:
+    compte[c] = compte.get(c, 0) + 1
+for c in sorted(compte):
+    print(f"{c}:{compte[c]}")', 'Le dictionnaire évite d''écrire 26 compteurs. **get(c, 0)** renvoie 0 pour une lettre pas encore rencontrée.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('py-fonction-premier', (select id from public.courses where slug = 'python'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'python') and slug = 'fonctions'), 'python', 'Fonction est_premier', 'Écrivez une fonction **est_premier(n)** qui retourne True si n est premier. Le programme lit un entier n et affiche le nombre de nombres premiers inférieurs ou égaux à n.', 'intermediaire', 'ecrire_programme', '{}'::text[], '[{"input":"20","output":"8"}]'::jsonb, '{}'::text[], 'def est_premier(n):
+    # À compléter
+    pass
+
+n = int(input())
+print(sum(1 for k in range(2, n + 1) if est_premier(k)))', array['0 et 1 ne sont pas premiers.', 'Testez les diviseurs d tant que d * d <= n.']::text[], 10, false, 'publie', 84, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'py-fonction-premier');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-fonction-premier'), null, '20', '8', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-fonction-premier'), null, '1', '0', false, 1, 1, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-fonction-premier'), null, '1000', '168', true, 1, 2, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'py-fonction-premier'), 'def est_premier(n):
+    if n < 2:
+        return False
+    d = 2
+    while d * d <= n:
+        if n % d == 0:
+            return False
+        d += 1
+    return True
+
+n = int(input())
+print(sum(1 for k in range(2, n + 1) if est_premier(k)))', 'On s''arrête à la racine carrée de n : si n avait un diviseur plus grand, il en aurait forcément un plus petit.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('py-pgcd', (select id from public.courses where slug = 'python'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'python') and slug = 'fonctions'), 'python', 'PGCD d''Euclide (récursif)', 'Écrivez une fonction **récursive pgcd(a, b)** utilisant l''algorithme d''Euclide : pgcd(a, 0) = a et pgcd(a, b) = pgcd(b, a % b). Lisez deux entiers positifs et affichez leur PGCD.', 'intermediaire', 'ecrire_programme', '{}'::text[], '[{"input":"48\n18","output":"6"}]'::jsonb, array['Ne pas utiliser math.gcd.']::text[], '', array['Cas de base : b == 0.', 'Cas récursif : return pgcd(b, a % b).']::text[], 10, true, 'publie', 85, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'py-pgcd');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-pgcd'), null, '48
+18', '6', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-pgcd'), null, '17
+5', '1', false, 1, 1, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-pgcd'), null, '1071
+462', '21', true, 1, 2, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'py-pgcd'), 'def pgcd(a, b):
+    if b == 0:
+        return a
+    return pgcd(b, a % b)
+
+a = int(input())
+b = int(input())
+print(pgcd(a, b))', 'À chaque appel, le second argument diminue strictement (a % b < b) : on atteint forcément le cas de base b = 0.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('py-division-securisee', (select id from public.courses where slug = 'python'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'python') and slug = 'exceptions'), 'python', 'Division sécurisée', 'Lisez deux valeurs a et b (une par ligne) et affichez a / b arrondi à 2 décimales. Gérez les erreurs :
+
+- si une valeur n''est pas un nombre : **Erreur : valeur invalide**
+- si b vaut 0 : **Erreur : division par zéro**', 'intermediaire', 'ecrire_programme', '{}'::text[], '[{"input":"7\n2","output":"3.5"}]'::jsonb, '{}'::text[], '', array['float() lève ValueError si la conversion échoue.', 'Utilisez plusieurs blocs except.', 'round(x, 2) arrondit.']::text[], 10, false, 'publie', 86, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'py-division-securisee');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-division-securisee'), null, '7
+2', '3.5', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-division-securisee'), null, '1
+0', 'Erreur : division par zéro', false, 1, 1, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-division-securisee'), null, 'abc
+2', 'Erreur : valeur invalide', false, 1, 2, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-division-securisee'), null, '10
+3', '3.33', true, 1, 3, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'py-division-securisee'), 'try:
+    a = float(input())
+    b = float(input())
+    print(round(a / b, 2))
+except ValueError:
+    print("Erreur : valeur invalide")
+except ZeroDivisionError:
+    print("Erreur : division par zéro")', 'Chaque type d''erreur a son propre **except**. On intercepte des exceptions précises plutôt qu''un except général.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('py-classe-rectangle', (select id from public.courses where slug = 'python'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'python') and slug = 'programmation-orientee-objet'), 'python', 'Classe Rectangle', 'Écrivez une classe **Rectangle** avec un constructeur (largeur, hauteur) et les méthodes **aire()**, **perimetre()** et **est_carre()**. Le programme lit la largeur et la hauteur (entiers) et affiche :
+
+~~~text
+Aire : …
+Périmètre : …
+Carré : True ou False
+~~~', 'intermediaire', 'ecrire_programme', '{}'::text[], '[{"input":"4\n5","output":"Aire : 20\nPérimètre : 18\nCarré : False"}]'::jsonb, '{}'::text[], 'class Rectangle:
+    def __init__(self, largeur, hauteur):
+        pass
+
+r = Rectangle(int(input()), int(input()))
+print("Aire :", r.aire())
+print("Périmètre :", r.perimetre())
+print("Carré :", r.est_carre())', array['Stockez les dimensions dans self.largeur et self.hauteur.', 'Chaque méthode reçoit self en premier paramètre.']::text[], 10, false, 'publie', 87, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'py-classe-rectangle');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-classe-rectangle'), null, '4
+5', 'Aire : 20
+Périmètre : 18
+Carré : False', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-classe-rectangle'), null, '3
+3', 'Aire : 9
+Périmètre : 12
+Carré : True', true, 1, 1, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'py-classe-rectangle'), 'class Rectangle:
+    def __init__(self, largeur, hauteur):
+        self.largeur = largeur
+        self.hauteur = hauteur
+
+    def aire(self):
+        return self.largeur * self.hauteur
+
+    def perimetre(self):
+        return 2 * (self.largeur + self.hauteur)
+
+    def est_carre(self):
+        return self.largeur == self.hauteur
+
+r = Rectangle(int(input()), int(input()))
+print("Aire :", r.aire())
+print("Périmètre :", r.perimetre())
+print("Carré :", r.est_carre())', 'Les attributs sont enregistrés dans le constructeur, puis utilisés par les méthodes via **self**.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('py-parentheses', (select id from public.courses where slug = 'python'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'python') and slug = 'structures-de-donnees'), 'python', 'Parenthèses équilibrées', 'Lisez une expression et affichez **OK** si les parenthèses (), crochets [] et accolades {} sont correctement équilibrés et imbriqués, **ERREUR** sinon.', 'avance', 'probleme', '{}'::text[], '[{"input":"{[(a+b)*c]}","output":"OK"},{"input":"(a]","output":"ERREUR"}]'::jsonb, '{}'::text[], '', array['Utilisez une pile : empilez chaque symbole ouvrant.', 'À chaque fermant, le sommet de la pile doit être l''ouvrant correspondant.', 'À la fin, la pile doit être vide.']::text[], 10, true, 'publie', 88, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'py-parentheses');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-parentheses'), null, '{[(a+b)*c]}', 'OK', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-parentheses'), null, '(a]', 'ERREUR', false, 1, 1, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-parentheses'), null, '((x)', 'ERREUR', false, 1, 2, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-parentheses'), null, 'x)(', 'ERREUR', true, 1, 3, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-parentheses'), null, 'sans symbole', 'OK', true, 1, 4, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'py-parentheses'), 'expr = input()
+paires = {")": "(", "]": "[", "}": "{"}
+pile = []
+ok = True
+for c in expr:
+    if c in "([{":
+        pile.append(c)
+    elif c in paires:
+        if not pile or pile.pop() != paires[c]:
+            ok = False
+            break
+print("OK" if ok and not pile else "ERREUR")', 'La pile mémorise les ouvrants en attente. Trois cas d''erreur : un fermant sans ouvrant, un fermant qui ne correspond pas, des ouvrants restants à la fin.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('py-tri-insertion', (select id from public.courses where slug = 'python'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'python') and slug = 'recherche-tri'), 'python', 'Tri par insertion', 'Lisez une ligne d''entiers et affichez-les triés par ordre croissant en programmant le **tri par insertion** (sans sorted() ni sort()).', 'avance', 'ecrire_programme', '{}'::text[], '[{"input":"5 2 9 1 5 6","output":"1 2 5 5 6 9"}]'::jsonb, array['Interdiction d''utiliser sorted() et sort().']::text[], '', array['Pour chaque indice i à partir de 1, mémorisez cle = L[i].', 'Décalez vers la droite les éléments plus grands que cle situés avant i.', 'Placez cle dans la case libérée.']::text[], 10, true, 'publie', 89, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'py-tri-insertion');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-tri-insertion'), null, '5 2 9 1 5 6', '1 2 5 5 6 9', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-tri-insertion'), null, '1', '1', false, 1, 1, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-tri-insertion'), null, '3 -1 0 -7 8', '-7 -1 0 3 8', true, 1, 2, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'py-tri-insertion'), 'L = list(map(int, input().split()))
+for i in range(1, len(L)):
+    cle = L[i]
+    j = i - 1
+    while j >= 0 and L[j] > cle:
+        L[j + 1] = L[j]
+        j -= 1
+    L[j + 1] = cle
+print(" ".join(map(str, L)))', 'La partie gauche L[0..i-1] est toujours triée. On y insère L[i] en décalant les éléments plus grands. Complexité : O(n²) dans le pire cas, O(n) si la liste est déjà triée.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('py-dichotomie', (select id from public.courses where slug = 'python'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'python') and slug = 'recherche-tri'), 'python', 'Recherche dichotomique', 'La première ligne contient des entiers **triés** ; la seconde une valeur x. Affichez l''indice (à partir de 0) de x dans la liste, ou **-1** s''il est absent. Utilisez une recherche **dichotomique**.', 'avance', 'ecrire_programme', '{}'::text[], '[{"input":"1 3 5 7 9 11\n7","output":"3"}]'::jsonb, '{}'::text[], '', array['Gardez deux bornes debut et fin.', 'milieu = (debut + fin) // 2']::text[], 10, false, 'publie', 90, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'py-dichotomie');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-dichotomie'), null, '1 3 5 7 9 11
+7', '3', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-dichotomie'), null, '1 3 5 7 9 11
+4', '-1', false, 1, 1, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-dichotomie'), null, '2
+2', '0', true, 1, 2, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-dichotomie'), null, '10 20 30 40 50 60 70 80
+80', '7', true, 1, 3, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'py-dichotomie'), 'L = list(map(int, input().split()))
+x = int(input())
+debut, fin = 0, len(L) - 1
+position = -1
+while debut <= fin:
+    milieu = (debut + fin) // 2
+    if L[milieu] == x:
+        position = milieu
+        break
+    elif x < L[milieu]:
+        fin = milieu - 1
+    else:
+        debut = milieu + 1
+print(position)', 'À chaque tour, la zone de recherche est divisée par deux : complexité O(log n).')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('py-statistiques', (select id from public.courses where slug = 'python'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'python') and slug = 'science-donnees-ia'), 'python', 'Statistiques descriptives', 'Lisez une ligne de notes (réels) et affichez, arrondis à 2 décimales :
+
+~~~text
+Moyenne : …
+Médiane : …
+Écart type : …
+~~~
+
+L''écart type est la racine de la moyenne des carrés des écarts à la moyenne (écart type de population). Programmez les calculs vous-même, sans le module statistics.', 'avance', 'mini_projet', '{}'::text[], '[{"input":"10 12 14 16","output":"Moyenne : 13.0\nMédiane : 13.0\nÉcart type : 2.24"}]'::jsonb, '{}'::text[], '', array['La médiane d''une liste triée de taille paire est la moyenne des deux valeurs centrales.', 'variance = sum((x - moyenne) ** 2 for x in notes) / n', 'round(valeur, 2)']::text[], 25, false, 'publie', 91, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'py-statistiques');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-statistiques'), null, '10 12 14 16', 'Moyenne : 13.0
+Médiane : 13.0
+Écart type : 2.24', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-statistiques'), null, '5 18 9', 'Moyenne : 10.67
+Médiane : 9.0
+Écart type : 5.44', false, 1, 1, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-statistiques'), null, '12', 'Moyenne : 12.0
+Médiane : 12.0
+Écart type : 0.0', true, 1, 2, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'py-statistiques'), 'notes = list(map(float, input().split()))
+n = len(notes)
+moyenne = sum(notes) / n
+triees = sorted(notes)
+if n % 2 == 1:
+    mediane = triees[n // 2]
+else:
+    mediane = (triees[n // 2 - 1] + triees[n // 2]) / 2
+ecart = (sum((x - moyenne) ** 2 for x in notes) / n) ** 0.5
+print("Moyenne :", round(moyenne, 2))
+print("Médiane :", round(mediane, 2))
+print("Écart type :", round(ecart, 2))', 'On trie une copie pour la médiane, en distinguant taille paire et impaire. L''écart type mesure la dispersion des notes autour de la moyenne.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('c-bonjour', (select id from public.courses where slug = 'langage-c'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'langage-c') and slug = 'structure-programme'), 'c', 'Bonjour en C', 'Affichez exactement **Bonjour UPL** suivi d''un retour à la ligne.', 'debutant', 'ecrire_programme', '{}'::text[], '[{"input":"","output":"Bonjour UPL"}]'::jsonb, '{}'::text[], '#include <stdio.h>
+
+int main(void) {
+    // Votre code ici
+    return 0;
+}', array['printf affiche du texte.', '\n passe à la ligne : printf("Bonjour UPL\n");']::text[], 5, false, 'publie', 92, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'c-bonjour');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'c-bonjour'), null, '', 'Bonjour UPL', false, 1, 0, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'c-bonjour'), '#include <stdio.h>
+
+int main(void) {
+    printf("Bonjour UPL\n");
+    return 0;
+}', 'Une seule instruction printf ; n''oubliez pas le point-virgule ni le \n final.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('c-somme', (select id from public.courses where slug = 'langage-c'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'langage-c') and slug = 'entrees-sorties'), 'c', 'Somme et moyenne', 'Lisez deux entiers et affichez :
+
+~~~text
+Somme : <a + b>
+Moyenne : <moyenne avec 1 décimale>
+~~~', 'debutant', 'ecrire_programme', '{}'::text[], '[{"input":"7 8","output":"Somme : 15\nMoyenne : 7.5"}]'::jsonb, '{}'::text[], '', array['scanf("%d %d", &a, &b);', 'Divisez par 2.0 pour obtenir un réel.', '%.1f affiche une décimale.']::text[], 10, false, 'publie', 93, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'c-somme');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'c-somme'), null, '7 8', 'Somme : 15
+Moyenne : 7.5', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'c-somme'), null, '10 10', 'Somme : 20
+Moyenne : 10.0', false, 1, 1, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'c-somme'), null, '-3 4', 'Somme : 1
+Moyenne : 0.5', true, 1, 2, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'c-somme'), '#include <stdio.h>
+
+int main(void) {
+    int a, b;
+    scanf("%d %d", &a, &b);
+    printf("Somme : %d\n", a + b);
+    printf("Moyenne : %.1f\n", (a + b) / 2.0);
+    return 0;
+}', '(a + b) / 2 serait une division entière (7 au lieu de 7.5) : on divise par **2.0**.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('c-pair-impair', (select id from public.courses where slug = 'langage-c'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'langage-c') and slug = 'conditions'), 'c', 'Pair ou impair', 'Lisez un entier et affichez **pair** ou **impair**.', 'debutant', 'ecrire_programme', '{}'::text[], '[{"input":"8","output":"pair"}]'::jsonb, '{}'::text[], '', array['n % 2 == 0 pour un nombre pair.']::text[], 5, false, 'publie', 94, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'c-pair-impair');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'c-pair-impair'), null, '8', 'pair', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'c-pair-impair'), null, '13', 'impair', false, 1, 1, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'c-pair-impair'), null, '-7', 'impair', true, 1, 2, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'c-pair-impair'), '#include <stdio.h>
+
+int main(void) {
+    int n;
+    scanf("%d", &n);
+    if (n % 2 == 0) printf("pair\n");
+    else printf("impair\n");
+    return 0;
+}', 'En C, -7 % 2 vaut -1 : tester == 0 fonctionne pour tous les signes.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
 insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
 values ('c-table', (select id from public.courses where slug = 'langage-c'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'langage-c') and slug = 'boucles'), 'c', 'Table de multiplication', 'Lisez n et affichez sa table de 1 à 10 au format **n x i = résultat**.', 'debutant', 'ecrire_programme', '{}'::text[], '[{"input":"4","output":"4 x 1 = 4\n…\n4 x 10 = 40"}]'::jsonb, '{}'::text[], '', array['for (int i = 1; i <= 10; i++)']::text[], 10, false, 'publie', 95, null, null)
 on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
@@ -308,4 +700,75 @@ public class Main {
     }
 }', 'hasNextInt() permet de lire jusqu''à la fin de l''entrée. La somme est un double pour que la division soit réelle.')
 on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('kplus-bonjour', (select id from public.courses where slug = 'kplus'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'kplus') and slug = 'kplus-introduction'), 'kplus', 'Bonjour en K+', 'Lisez un prénom avec `demander()` et affichez :
+
+~~~text
+Bonjour <prénom>, bienvenue dans K+ !
+~~~', 'debutant', 'ecrire_programme', '{}'::text[], '[{"input":"Amani","output":"Bonjour Amani, bienvenue dans K+ !"}]'::jsonb, '{}'::text[], 'variable prenom = demander()
+# Affichez le message', array['Assemblez les textes avec +.', 'afficher("Bonjour " + prenom + ", bienvenue dans K+ !")']::text[], 5, false, 'publie', 107, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'kplus-bonjour');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'kplus-bonjour'), null, 'Amani', 'Bonjour Amani, bienvenue dans K+ !', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'kplus-bonjour'), null, 'Grâce', 'Bonjour Grâce, bienvenue dans K+ !', true, 1, 1, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'kplus-bonjour'), 'variable prenom = demander()
+afficher("Bonjour " + prenom + ", bienvenue dans K+ !")', 'Le signe + assemble les textes. Avec afficher("Bonjour", prenom, …), K+ ajouterait une espace entre chaque valeur, y compris avant la virgule.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('kplus-presentation', (select id from public.courses where slug = 'kplus'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'kplus') and slug = 'kplus-variables'), 'kplus', 'Se présenter', 'Lisez un nom puis un âge (un par ligne) et affichez :
+
+~~~text
+<nom> a <âge> ans.
+Dans 10 ans, <nom> aura <âge + 10> ans.
+~~~', 'debutant', 'ecrire_programme', '{}'::text[], '[{"input":"Awa\n20","output":"Awa a 20 ans.\nDans 10 ans, Awa aura 30 ans."}]'::jsonb, '{}'::text[], 'variable nom = demander()
+variable age = demander()', array['demander renvoie un texte : convertissez l''âge avec entier(…).', 'Pour assembler un nombre et un texte, utilisez texte(…) ou plusieurs valeurs dans afficher.']::text[], 5, false, 'publie', 108, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'kplus-presentation');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'kplus-presentation'), null, 'Awa
+20', 'Awa a 20 ans.
+Dans 10 ans, Awa aura 30 ans.', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'kplus-presentation'), null, 'Koffi
+7', 'Koffi a 7 ans.
+Dans 10 ans, Koffi aura 17 ans.', true, 1, 1, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'kplus-presentation'), 'variable nom = demander()
+variable age = entier(demander())
+afficher(nom + " a " + texte(age) + " ans.")
+afficher("Dans 10 ans, " + nom + " aura " + texte(age + 10) + " ans.")', 'Sans entier(…), l''âge reste un texte et age + 10 provoque une erreur de type : K+ ne mélange pas texte et nombre sans conversion.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('kplus-moyenne', (select id from public.courses where slug = 'kplus'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'kplus') and slug = 'kplus-calculs'), 'kplus', 'Moyenne de trois notes', 'Lisez trois notes entières (une par ligne) et affichez leur moyenne arrondie à 2 chiffres après la virgule :
+
+~~~text
+Moyenne : <moyenne>
+~~~', 'debutant', 'ecrire_programme', '{}'::text[], '[{"input":"12\n15\n10","output":"Moyenne : 12.33"}]'::jsonb, '{}'::text[], '', array['La division / donne un décimal.', 'arrondir(x, 2) garde deux chiffres après la virgule.']::text[], 10, false, 'publie', 109, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'kplus-moyenne');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'kplus-moyenne'), null, '12
+15
+10', 'Moyenne : 12.33', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'kplus-moyenne'), null, '10
+10
+10', 'Moyenne : 10.0', false, 1, 1, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'kplus-moyenne'), null, '20
+19
+0', 'Moyenne : 13.0', true, 1, 2, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'kplus-moyenne'), 'variable a = entier(demander())
+variable b = entier(demander())
+variable c = entier(demander())
+afficher("Moyenne :", arrondir((a + b + c) / 3, 2))', 'Les parenthèses sont indispensables : a + b + c / 3 ne diviserait que c. La division / donne toujours un décimal, d''où 10.0.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('kplus-mention', (select id from public.courses where slug = 'kplus'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'kplus') and slug = 'kplus-conditions'), 'kplus', 'Mention au bac', 'Lisez une note entière sur 20 et affichez la mention :
+
+- moins de 0 ou plus de 20 : `Note invalide` ;
+- 16 ou plus : `Très bien` ;
+- 14 ou plus : `Bien` ;
+- 12 ou plus : `Assez bien` ;
+- 10 ou plus : `Admis` ;
+- sinon : `Ajourné`.', 'debutant', 'ecrire_programme', '{}'::text[], '[{"input":"15","output":"Bien"}]'::jsonb, '{}'::text[], '', array['Testez d''abord la note invalide, puis du plus grand au plus petit.', 'Utilisez sinon si pour enchaîner les cas avec un seul fin.']::text[], 10, false, 'publie', 110, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'kplus-mention');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'kplus-mention'), null, '15', 'Bien', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'kplus-mention'), null, '16', 'Très bien', false, 1, 1, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'kplus-mention'), null, '9', 'Ajourné', false, 1, 2, null);
 commit;
