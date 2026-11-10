@@ -3,9 +3,11 @@
 import type { LanguageId } from "@/content/types";
 import type { ExecutionResult, SourceFile } from "./types";
 
-const TIMEOUT_MS: Record<string, number> = { pseudocode: 8000, javascript: 5000, python: 10000 };
+const TIMEOUT_MS: Record<string, number> = { pseudocode: 8000, javascript: 5000, python: 10000, php: 10000, sql: 8000 };
 
-let pythonWorker: Worker | null = null;
+/** Moteurs chargés une fois puis réutilisés (Pyodide, PHP, SQLite). */
+const PERSISTENT: Partial<Record<LanguageId, Worker | null>> = {};
+const isPersistent = (l: LanguageId) => l === "python" || l === "php" || l === "sql";
 
 function createWorker(language: LanguageId): Worker {
   switch (language) {
@@ -15,21 +17,35 @@ function createWorker(language: LanguageId): Worker {
       return new Worker(new URL("../../workers/javascript.worker.ts", import.meta.url), { type: "module" });
     case "python":
       // Fichier statique (public/workers) : Pyodide exige un worker de type module.
-      pythonWorker ??= new Worker("/workers/python-worker.mjs", { type: "module" });
-      return pythonWorker;
+      return (PERSISTENT.python ??= new Worker("/workers/python-worker.mjs", { type: "module" }));
+    case "php":
+      // Vrai PHP 8.3 compilé en WebAssembly (php-wasm), avec PDO SQLite.
+      return (PERSISTENT.php ??= new Worker("/workers/php-worker.mjs", { type: "module" }));
+    case "sql":
+      // Vrai moteur SQLite compilé en WebAssembly (sql.js).
+      return (PERSISTENT.sql ??= new Worker("/workers/sql-worker.js"));
     default:
       throw new Error("Langage non exécutable dans le navigateur");
   }
 }
 
-/** Précharge Python (Pyodide) pour accélérer la première exécution. */
-export function warmupPython() {
+/** Précharge un moteur lourd (Python, PHP, SQLite) pour accélérer la première exécution. */
+export function warmupEngine(language: LanguageId) {
+  if (!isPersistent(language)) return;
   try {
-    createWorker("python").postMessage({ files: [], stdin: "", warmup: true });
+    createWorker(language).postMessage({ files: [], stdin: "", warmup: true });
   } catch {
     /* ignoré */
   }
 }
+
+/** Précharge Python (Pyodide) pour accélérer la première exécution. */
+export function warmupPython() {
+  warmupEngine("python");
+}
+
+/** Nom affiché du moteur navigateur. */
+const ENGINE_LABELS: Partial<Record<LanguageId, string>> = { php: "PHP 8.3 (WebAssembly)" };
 
 /**
  * Exécute un programme dans un Web Worker isolé du reste de la page.
@@ -43,7 +59,7 @@ export function runInBrowser(
 ): Promise<ExecutionResult> {
   return new Promise((resolve) => {
     const worker = createWorker(language);
-    const persistent = language === "python";
+    const persistent = isPersistent(language);
     let timer: ReturnType<typeof setTimeout> | undefined;
 
     const finish = (r: ExecutionResult) => {
@@ -55,7 +71,7 @@ export function runInBrowser(
     const arm = () => {
       timer = setTimeout(() => {
         worker.terminate();
-        if (persistent) pythonWorker = null;
+        if (persistent) PERSISTENT[language] = null;
         finish({
           status: "temps_depasse",
           stdout: "",
@@ -94,23 +110,33 @@ export function runInBrowser(
         });
         return;
       }
+      // PHP : une erreur d'analyse (Parse error) est l'équivalent d'une erreur de compilation.
+      const parse = language === "php" && d.parse;
       finish({
-        status: d.ok ? "ok" : "erreur_execution",
-        stdout: d.stdout ?? "",
-        stderr: d.stderr ?? "",
-        compileOutput: "",
+        status: d.ok ? "ok" : parse ? "erreur_compilation" : "erreur_execution",
+        stdout: parse ? "" : d.stdout ?? "",
+        stderr: parse ? "" : d.stderr ?? "",
+        compileOutput: parse ? `${d.stdout ?? ""}${d.stderr ?? ""}`.trim() : "",
         timeMs: d.timeMs ?? null,
         memoryKb: null,
         engine: "navigateur",
+        engineLabel: d.engineLabel ?? ENGINE_LABELS[language],
         errorLine: d.errorLine,
+        hint: d.hint,
+        tables: d.tables,
+        schema: d.schema,
+        log: d.log,
       });
     };
     worker.onerror = (e) => {
       finish({ status: "erreur_interne", stdout: "", stderr: e.message || "Erreur du moteur d'exécution.", compileOutput: "", timeMs: null, memoryKb: null, engine: "navigateur" });
     };
 
-    if (language === "python") {
-      // Le délai ne démarre qu'au signal « debut » : le chargement de Python peut prendre quelques secondes.
+    if (language === "sql") {
+      // Base neuve à chaque exécution ; la zone « Entrée » peut contenir des données de départ.
+      worker.postMessage({ files, setup: stdin });
+    } else if (persistent) {
+      // Le délai ne démarre qu'au signal « debut » : le chargement du moteur peut prendre quelques secondes.
       worker.postMessage({ files, stdin });
     } else {
       arm();
@@ -137,6 +163,11 @@ export async function runProgram(
   if (language === "pseudocode") {
     // L'interpréteur de la plateforme tourne directement dans le navigateur : réponse instantanée.
     return { result: await runInBrowser("pseudocode", files, stdin) };
+  }
+  if (language === "php" || language === "sql") {
+    // PHP et SQL ne sont jamais exécutés sur le serveur de la plateforme :
+    // le code de l'étudiant tourne dans un Web Worker isolé de son navigateur.
+    return { result: await runInBrowser(language, files, stdin, opts.onStatus) };
   }
   // Sans Internet : Python et JavaScript tournent sur l'appareil ; le C et le Java demandent le serveur.
   if (typeof navigator !== "undefined" && navigator.onLine === false) {

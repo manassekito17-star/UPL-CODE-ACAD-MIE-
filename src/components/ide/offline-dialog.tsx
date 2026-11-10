@@ -37,6 +37,7 @@ export function OfflineDialog({
   loadLanguages,
   warmPython,
   warmEngines,
+  warmPhpSql,
   appName = "UPL IDE",
   features,
 }: {
@@ -48,12 +49,15 @@ export function OfflineDialog({
   loadLanguages: () => Promise<void>;
   warmPython: () => Promise<void>;
   warmEngines: () => Promise<void>;
+  /** Télécharge PHP 8.3 et SQLite (facultatif, environ 13 Mo). */
+  warmPhpSql?: () => Promise<void>;
   /** Nom de l'application installée (UPL IDE, ou l'éditeur d'algorithmes « UPL »). */
   appName?: string;
   /** Liste « Ce qui marche sans Internet » propre à l'application. */
   features?: React.ReactNode;
 }) {
   const [withPython, setWithPython] = useState(true);
+  const [withPhp, setWithPhp] = useState(false);
   const [busy, setBusy] = useState(false);
   const [step, setStep] = useState<string | null>(null);
   const [message, setMessage] = useState<{ tone: "ok" | "erreur"; text: string } | null>(null);
@@ -88,6 +92,7 @@ export function OfflineDialog({
           await warmEngines();
         },
         warmPython: withPython ? warmPython : undefined,
+        extraEngines: withPhp && warmPhpSql ? [{ label: "PHP 8.3 et SQLite (environ 13 Mo)…", run: warmPhpSql }] : [],
         onStep: setStep,
       });
       setReady(offlineReadyInfo());
@@ -156,6 +161,12 @@ export function OfflineDialog({
                 <input type="checkbox" checked={withPython} onChange={(e) => setWithPython(e.target.checked)} disabled={busy} />
                 Inclure Python (environ 10 Mo)
               </label>
+              {warmPhpSql && (
+                <label className="mb-3 flex items-center gap-2">
+                  <input type="checkbox" checked={withPhp} onChange={(e) => setWithPhp(e.target.checked)} disabled={busy} />
+                  Inclure PHP 8.3 et SQL (SQLite) (environ 13 Mo)
+                </label>
+              )}
               <button type="button" onClick={() => void prepare()} disabled={busy || !online} className="rounded bg-[var(--ide-accent)] px-3 py-1.5 font-semibold text-white disabled:opacity-50" data-testid="ide-preparer-hors-ligne">
                 {busy ? "Téléchargement…" : ready ? "Mettre à jour la version hors ligne" : "Télécharger pour utiliser sans Internet"}
               </button>

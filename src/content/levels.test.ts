@@ -7,7 +7,7 @@ const exercises = new Map(staticExercises.map((e) => [e.slug, e]));
 
 describe("UPL ACADEMY multiniveaux", () => {
   it("propose les sept parcours du catalogue", () => {
-    expect(staticCourses.map((c) => c.slug).sort()).toEqual(["algorithmique", "css", "html", "java", "javascript", "langage-c", "python"]);
+    expect(staticCourses.map((c) => c.slug).sort()).toEqual(["algorithmique", "css", "html", "java", "javascript", "langage-c", "php", "python", "sql"]);
   });
 
   for (const c of staticCourses) {

@@ -5,6 +5,7 @@ import { useState } from "react";
 import type { CodeExample } from "@/content/types";
 import { runProgram } from "@/lib/execution/browser";
 import { buildPreviewDocument } from "@/lib/execution/web-document";
+import { ResultExtras, sqlConsoleText } from "../editor/result-extras";
 import { WebPreview } from "../editor/web-preview";
 import { LANGUAGES } from "@/lib/execution/languages";
 import type { ExecutionResult } from "@/lib/execution/types";
@@ -47,19 +48,32 @@ export function ExampleRunner({ example, editorHref }: { example: CodeExample; e
         </Link>
       </div>
       <pre className="overflow-x-auto p-4 font-mono text-[13px] leading-relaxed text-gray-100">{example.code}</pre>
-      {example.stdin && (
-        <div className="border-t border-white/10 px-4 py-2 text-xs text-gray-400">
-          Entrée : <span className="font-mono text-gray-200">{example.stdin.replace(/\n/g, " ⏎ ")}</span>
-        </div>
-      )}
+      {example.stdin &&
+        (example.language === "sql" ? (
+          <details className="border-t border-white/10 px-4 py-2 text-xs text-gray-400">
+            <summary className="cursor-pointer">Données de départ (exécutées avant la requête)</summary>
+            <pre className="mt-2 overflow-x-auto font-mono text-gray-200">{example.stdin}</pre>
+          </details>
+        ) : (
+          <div className="border-t border-white/10 px-4 py-2 text-xs text-gray-400">
+            Entrée : <span className="font-mono text-gray-200">{example.stdin.replace(/\n/g, " ⏎ ")}</span>
+          </div>
+        ))}
       {preview && <WebPreview doc={preview} className="h-64 w-full border-t border-white/10 bg-white" title={`Aperçu — ${example.title}`} />}
       {(result || error) && (
         <pre className="max-h-72 overflow-auto whitespace-pre-wrap border-t border-white/10 bg-black/60 p-4 font-mono text-[13px] text-gray-100" aria-live="polite">
           {error && <span className="text-red-300">{error}</span>}
           {result?.compileOutput && <span className="text-red-300">{result.compileOutput}</span>}
-          {result?.stdout}
+          {result && sqlConsoleText(result)}
           {result?.stderr && <span className="text-red-300">{result.stderr}</span>}
+          {result?.hint && <span className="mt-2 block text-amber-300">💡 {result.hint}</span>}
+          {result?.engineLabel && <span className="mt-2 block text-[11px] text-gray-500">Exécuté par {result.engineLabel} dans votre navigateur.</span>}
         </pre>
+      )}
+      {result && (result.tables || result.engineLabel?.startsWith("PHP")) && (
+        <div className="border-t border-white/10 bg-black/40 p-4 empty:hidden">
+          <ResultExtras result={result} files={[{ name: LANGUAGES[example.language].mainFile, content: example.code }]} />
+        </div>
       )}
       {example.explanation && <p className="border-t border-white/10 bg-nuit-900 px-4 py-3 text-sm text-gray-300">💬 {example.explanation}</p>}
     </div>

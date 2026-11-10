@@ -110,6 +110,16 @@ describe("langages, exécution, aperçu, recherche", () => {
     expect(runFiles(web, "index.html")).toBeNull();
   });
 
+  it("PHP : tout le projet (dossiers compris) est transmis, le fichier actif en premier ; SQL : le script actif seul", () => {
+    const php = { files: PROJECT_TEMPLATES.find((t) => t.id === "php")!.files, folders: ["includes", "css"] };
+    const r = runFiles(php, "includes/functions.php")!;
+    expect(r.language).toBe("php");
+    expect(r.files[0].name).toBe("includes/functions.php");
+    expect(r.files.map((f) => f.name).sort()).toEqual(php.files.map((f) => f.path).sort());
+    const sql = { files: [...PROJECT_TEMPLATES.find((t) => t.id === "sql")!.files, { path: "autre.sql", content: "SELECT 2;" }], folders: [] };
+    expect(runFiles(sql, "autre.sql")).toEqual({ language: "sql", files: [{ name: "autre.sql", content: "SELECT 2;" }] });
+  });
+
   it("aperçu d'une page située dans un sous-dossier", () => {
     const p = ok(createFile(web, "pages/contact.html", '<html><head><link rel="stylesheet" href="../css/style.css"></head><body><h1>Contact</h1></body></html>'));
     const doc = buildPreviewDocument(previewFiles(p, "pages/contact.html"));

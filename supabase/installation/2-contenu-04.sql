@@ -1,4 +1,4 @@
--- UPL CODE ACADEMY MK — installation, partie 2 (contenu), morceau 4 sur 10.
+-- UPL CODE ACADEMY MK — installation, partie 2 (contenu), morceau 4 sur 13.
 -- À exécuter dans l'ordre, après 1-structure.sql. Peut être relancé sans risque.
 begin;
 with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'html-positionnement'), 'qcm', 'À quoi sert l''attribut aria-label ?', null, '["à styliser","à donner un nom accessible","à valider un champ","à créer un lien"]'::jsonb, 6, 3) returning id)

@@ -1,4 +1,4 @@
--- UPL CODE ACADEMY MK — installation, partie 2 (contenu), morceau 1 sur 10.
+-- UPL CODE ACADEMY MK — installation, partie 2 (contenu), morceau 1 sur 13.
 -- À exécuter dans l'ordre, après 1-structure.sql. Peut être relancé sans risque.
 begin;
 

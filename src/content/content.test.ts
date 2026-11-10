@@ -12,6 +12,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { firstDifference, outputsMatch } from "@/lib/execution/compare";
 import { withNodePrelude } from "@/lib/execution/prelude";
+import { runSqlWorker } from "@/lib/execution/sql-worker-harness";
 import { runPseudocode } from "@/lib/pseudocode";
 import { staticCourses, staticExercises } from "./index";
 import type { LanguageId } from "./types";
@@ -29,9 +30,18 @@ const TOOLS: Record<LanguageId, boolean> = {
   // HTML / CSS : vérifiés par le correcteur web (voir web-grader.test.ts).
   html: false,
   css: false,
+  // PHP : vérifié avec l'interpréteur PHP local (le navigateur utilise PHP 8.3 en WebAssembly).
+  php: has("php"),
+  // SQL : vérifié avec le vrai worker du navigateur (sql.js, dépendance de développement).
+  sql: true,
 };
 
-function runLocal(language: LanguageId, code: string, stdin: string): { stdout: string; ok: boolean; err: string } {
+async function runLocal(language: LanguageId, code: string, stdin: string): Promise<{ stdout: string; ok: boolean; err: string }> {
+  if (language === "sql") {
+    // stdin = données de départ (exécutées avant le script), comme dans l'éditeur.
+    const r = await runSqlWorker({ files: [{ name: "requetes.sql", content: code }], setup: stdin });
+    return { stdout: r.stdout, ok: r.ok, err: `${r.stderr} ${r.hint ?? ""}` };
+  }
   if (language === "pseudocode") {
     const r = runPseudocode(code, stdin);
     return { stdout: r.stdout, ok: r.ok, err: r.error ? `ligne ${r.error.line} : ${r.error.message}` : "" };
@@ -49,6 +59,10 @@ function runLocal(language: LanguageId, code: string, stdin: string): { stdout: 
       writeFileSync(join(dir, "main.js"), withNodePrelude(code));
       cmd = "node";
       args = ["main.js"];
+    } else if (language === "php") {
+      writeFileSync(join(dir, "index.php"), code);
+      cmd = "php";
+      args = ["-d", "display_errors=stderr", "-d", "error_reporting=E_ALL", "-d", "date.timezone=Africa/Kinshasa", "index.php"];
     } else if (language === "c") {
       writeFileSync(join(dir, "main.c"), code);
       execFileSync("gcc", ["-std=c11", "-O1", "-o", "prog", "main.c", "-lm"], { cwd: dir });
@@ -61,7 +75,8 @@ function runLocal(language: LanguageId, code: string, stdin: string): { stdout: 
       args = ["-Dfile.encoding=UTF-8", "-Dstdout.encoding=UTF-8", "Main"];
     }
     const r = spawnSync(cmd, args, { cwd: dir, input: stdin, encoding: "utf8", timeout: 20_000, env });
-    return { stdout: r.stdout ?? "", ok: r.status === 0, err: r.stderr ?? "" };
+    // PHP : un avertissement (Warning, Notice, Deprecated) est aussi un échec — le code publié doit être propre.
+    return { stdout: r.stdout ?? "", ok: r.status === 0 && !(language === "php" && (r.stderr ?? "").trim()), err: r.stderr ?? "" };
   } catch (e) {
     return { stdout: "", ok: false, err: String((e as Error).message) };
   } finally {
@@ -71,7 +86,7 @@ function runLocal(language: LanguageId, code: string, stdin: string): { stdout: 
 
 describe("structure du contenu", () => {
   it("contient les sept parcours", () => {
-    expect(staticCourses.map((c) => c.language).sort()).toEqual(["c", "css", "html", "java", "javascript", "pseudocode", "python"]);
+    expect(staticCourses.map((c) => c.language).sort()).toEqual(["c", "css", "html", "java", "javascript", "php", "pseudocode", "python", "sql"]);
   });
 
   it("a des identifiants uniques et des références valides", () => {
@@ -109,8 +124,8 @@ describe("exemples des leçons", () => {
       for (const les of mod.lessons) {
         les.examples.forEach((ex, i) => {
           const run = TOOLS[ex.language] ? it : it.skip;
-          run(`${course.slug}/${les.slug} — exemple ${i + 1} (${ex.title})`, () => {
-            const r = runLocal(ex.language, ex.code, ex.stdin ?? "");
+          run(`${course.slug}/${les.slug} — exemple ${i + 1} (${ex.title})`, async () => {
+            const r = await runLocal(ex.language, ex.code, ex.stdin ?? "");
             expect(r.ok, r.err).toBe(true);
             expect(r.stdout.length).toBeGreaterThan(0);
           });
@@ -123,15 +138,32 @@ describe("exemples des leçons", () => {
 describe("solutions de référence des exercices", () => {
   for (const ex of staticExercises) {
     const run = TOOLS[ex.language] ? it : it.skip;
-    run(`${ex.slug} (${ex.language})`, () => {
+    run(`${ex.slug} (${ex.language})`, async () => {
       for (const t of ex.tests) {
-        const r = runLocal(ex.language, ex.solution, t.input);
+        const r = await runLocal(ex.language, ex.solution, t.input);
         expect(r.ok, `entrée ${JSON.stringify(t.input)} : ${r.err}`).toBe(true);
         const diff = firstDifference(r.stdout, t.expected);
         expect(outputsMatch(r.stdout, t.expected), `entrée ${JSON.stringify(t.input)} : ${JSON.stringify(diff)}`).toBe(true);
       }
     });
   }
+});
+
+/**
+ * Extensions absentes du PHP du navigateur (php-wasm : Core, standard, pcre, json, ctype,
+ * date, SPL, session, PDO, pdo_sqlite, sqlite3, bcmath, hash, filter…) : le code exécutable
+ * des leçons et des exercices ne doit pas en dépendre.
+ */
+const PHP_UNAVAILABLE = /\b(mb_\w+|iconv\w*|finfo_\w+|simplexml_\w+|curl_\w+|openssl_\w+|gz\w+|imagecreate\w*|mysqli_\w+)\s*\(|new\s+(DOMDocument|NumberFormatter|mysqli|finfo)\b/;
+
+describe("PHP : uniquement des fonctions disponibles dans le navigateur", () => {
+  const codes = [
+    ...staticCourses.flatMap((c) => c.modules.flatMap((m) => m.lessons.flatMap((l) => l.examples.filter((e) => e.language === "php").map((e) => [`${l.slug} / ${e.title}`, e.code] as const)))),
+    ...staticExercises.filter((e) => e.language === "php").flatMap((e) => [[`${e.slug} (solution)`, e.solution] as const, [`${e.slug} (départ)`, e.starterCode] as const]),
+  ];
+  it(`${codes.length} programmes PHP vérifiés`, () => {
+    for (const [name, code] of codes) expect(PHP_UNAVAILABLE.exec(code)?.[0], name).toBeUndefined();
+  });
 });
 
 describe("codes de départ", () => {

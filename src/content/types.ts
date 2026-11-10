@@ -7,7 +7,7 @@
  * depuis l'administration.
  */
 
-export type LanguageId = "pseudocode" | "python" | "c" | "javascript" | "java" | "html" | "css";
+export type LanguageId = "pseudocode" | "python" | "c" | "javascript" | "java" | "html" | "css" | "php" | "sql";
 
 /** Niveaux de chaque parcours : 1 très débutant, 2 débutant, 3 intermédiaire, 4 professionnel. */
 export type LevelNumber = 1 | 2 | 3 | 4;
@@ -189,7 +189,7 @@ export interface Course {
   slug: string;
   code: string;
   language: LanguageId;
-  category: "fondamentaux" | "programmation" | "web";
+  category: "fondamentaux" | "programmation" | "web" | "donnees";
   title: string;
   tagline: string;
   description: string;

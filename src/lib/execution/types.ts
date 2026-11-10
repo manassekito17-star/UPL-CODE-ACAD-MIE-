@@ -31,6 +31,37 @@ export interface ExecutionResult {
   /** Ligne de l'erreur (pseudocode), pour la souligner dans l'éditeur. */
   errorLine?: number;
   hint?: string;
+  /** Nom précis du moteur (ex. « PHP 8.3 (WebAssembly) », « SQLite 3.49 »). */
+  engineLabel?: string;
+  /** SQL : résultats des requêtes SELECT, affichés sous forme de tableaux. */
+  tables?: SqlResultSet[];
+  /** SQL : structure de la base après exécution (tables, colonnes, relations). */
+  schema?: SqlTableInfo[];
+  /** SQL : journal ordonné des instructions (message, ou numéro de tableau de résultats). */
+  log?: Array<{ table?: number; message?: string }>;
+}
+
+export interface SqlResultSet {
+  sql: string;
+  columns: string[];
+  rows: Array<Array<string | number | null>>;
+  truncated?: boolean;
+}
+
+export interface SqlTableInfo {
+  name: string;
+  type: "table" | "view";
+  rows: number | null;
+  columns: Array<{ name: string; type: string; notNull: boolean; pk: boolean }>;
+  foreignKeys: Array<{ from: string; table: string; to: string }>;
+}
+
+/** Nom du moteur affiché dans la console. */
+export function engineName(r: Pick<ExecutionResult, "engine" | "engineLabel">, long = false): string {
+  if (r.engineLabel) return r.engineLabel;
+  if (r.engine === "serveur") return long ? "bac à sable serveur (Judge0)" : "bac à sable serveur";
+  if (r.engine === "interpreteur") return "interpréteur UPL";
+  return long ? "navigateur (Web Worker isolé)" : "navigateur";
 }
 
 export const STATUS_LABELS: Record<ExecutionStatus, string> = {

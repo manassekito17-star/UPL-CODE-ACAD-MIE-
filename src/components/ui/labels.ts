@@ -14,6 +14,8 @@ export const LANGUAGE_COLORS: Record<LanguageId, string> = {
   java: "from-orange-500 to-red-600",
   html: "from-orange-500 to-amber-400",
   css: "from-electrique-600 to-cyan-accent",
+  php: "from-indigo-500 to-violet-600",
+  sql: "from-teal-500 to-cyan-600",
 };
 
 export const LANGUAGE_INITIALS: Record<LanguageId, string> = {
@@ -24,6 +26,8 @@ export const LANGUAGE_INITIALS: Record<LanguageId, string> = {
   java: "JV",
   html: "HTML",
   css: "CSS",
+  php: "PHP",
+  sql: "SQL",
 };
 
 export function formatDuration(minutes: number): string {

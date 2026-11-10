@@ -5,13 +5,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import type { LanguageId } from "@/content/types";
-import { runInBrowser, runProgram, warmupPython } from "@/lib/execution/browser";
+import { runInBrowser, runProgram, warmupEngine } from "@/lib/execution/browser";
 import { LANGUAGE_IDS, LANGUAGES } from "@/lib/execution/languages";
-import { STATUS_LABELS, type ExecutionResult, type SourceFile } from "@/lib/execution/types";
+import { STATUS_LABELS, engineName, type ExecutionResult, type SourceFile } from "@/lib/execution/types";
 import { buildPreviewDocument } from "@/lib/execution/web-document";
 import { OfflineDialog, type InstallPromptEvent } from "../ide/offline-dialog";
 import { cn } from "../ui";
 import type { MonacoEditor } from "./code-editor";
+import { ResultExtras, sqlConsoleText } from "./result-extras";
 import { WebPreview, type PreviewConsoleLine } from "./web-preview";
 
 const CodeEditor = dynamic(() => import("./code-editor").then((m) => m.CodeEditor), {
@@ -165,6 +166,10 @@ function keysFor(language: LanguageId): Key[] {
   ];
   if (language === "pseudocode")
     return [...nav, { label: "<-", title: "Affectation", text: "<- " }, t("<"), t(">"), t("-"), t("="), t("+"), t("/"), t("*"), t("("), t(")"), t('"', "Guillemets"), t(":"), t(","), t("≤", "Inférieur ou égal"), t("≥", "Supérieur ou égal"), t("≠", "Différent"), t("^", "Puissance"), t("["), t("]"), t("_")];
+  if (language === "php")
+    return [...nav, t("$", "Variable"), { label: "->", title: "Flèche (objet)", text: "->" }, { label: "=>", title: "Double flèche (tableau)", text: " => " }, t(";"), t("("), t(")"), t("{"), t("}"), t("["), t("]"), t('"', "Guillemets"), t("'", "Apostrophe"), t("."), t("="), t("<"), t(">"), t("!"), t("&"), t("|"), t("_"), t(","), t("?"), t(":")];
+  if (language === "sql")
+    return [...nav, t("*", "Toutes les colonnes"), t("'", "Apostrophe"), t(","), t(";"), t("("), t(")"), t("="), t("<"), t(">"), t("%", "Joker LIKE"), t("_"), t("."), t("-"), t("+")];
   if (LANGUAGES[language].preview) return [...nav, t("<"), t(">"), t("/"), t("="), t('"', "Guillemets"), t("{"), t("}"), t(":"), t(";"), t("."), t("#"), t("-"), t("("), t(")"), t("!")];
   return [...nav, t("("), t(")"), t("{"), t("}"), t("["), t("]"), t(";"), t(":"), t("="), t("<"), t(">"), t("+"), t("-"), t("*"), t("/"), t("%"), t('"', "Guillemets"), t("'", "Apostrophe"), t("!"), t("&"), t("|"), t("_"), t(","), t("."), t("#")];
 }
@@ -256,6 +261,12 @@ export function AlgoStudio({
     await Promise.all(LANGUAGE_IDS.map((id) => monaco.editor.colorize("x", LANGUAGES[id].monaco, {}).catch(() => "")));
     await runInBrowser("pseudocode", [{ name: "main.algo", content: "ALGORITHME Test\nDEBUT\n  ECRIRE(1)\nFIN\n" }], "");
     await runInBrowser("javascript", [{ name: "main.js", content: "console.log(1)" }], "");
+  };
+  const warmPhpSql = async () => {
+    const php = await runInBrowser("php", [{ name: "index.php", content: "<?php echo 1;" }], "");
+    if (php.status !== "ok") throw new Error(php.stderr || "PHP n'a pas pu être téléchargé.");
+    const sql = await runInBrowser("sql", [{ name: "requetes.sql", content: "SELECT 1;" }], "");
+    if (sql.status !== "ok") throw new Error(sql.stderr || "SQLite n'a pas pu être téléchargé.");
   };
   const warmPython = async () => {
     const r = await runInBrowser("python", [{ name: "main.py", content: "print(1)" }], "");
@@ -353,7 +364,7 @@ export function AlgoStudio({
   }, []);
 
   useEffect(() => {
-    if (language === "python") warmupPython();
+    warmupEngine(language);
   }, [language]);
 
   // Aperçu des projets web
@@ -827,14 +838,14 @@ export function AlgoStudio({
             <span className="text-sm font-semibold">{isWeb ? "Aperçu" : "Console"}</span>
             {result && missingInput && (
               <span className="truncate text-xs text-amber-300">
-                En attente de votre saisie… · {result.engine === "serveur" ? "bac à sable serveur" : result.engine === "interpreteur" ? "interpréteur UPL" : "navigateur"}
+                En attente de votre saisie… · {engineName(result)}
               </span>
             )}
             {result && !missingInput && (
               <span className={cn("truncate text-xs", result.status === "ok" ? "text-green-400" : "text-red-400")}>
                 {STATUS_LABELS[result.status]}
                 {result.timeMs !== null && ` · ${result.timeMs} ms`}
-                {` · ${result.engine === "serveur" ? "bac à sable serveur" : result.engine === "interpreteur" ? "interpréteur UPL" : "navigateur"}`}
+                {` · ${engineName(result)}`}
               </span>
             )}
             <button type="button" onClick={() => setPanel(false)} className="ml-auto grid h-8 w-8 place-items-center rounded-full hover:bg-white/10" aria-label="Fermer la console">
@@ -856,7 +867,7 @@ export function AlgoStudio({
           ) : (
             <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-auto p-2">
               <label className="flex shrink-0 flex-col gap-1 text-xs text-gray-400">
-                Entrées (facultatif : demandées au moment de « lire »)
+                {language === "sql" ? "Données de départ (SQL exécuté avant votre script, facultatif)" : "Entrées (facultatif : demandées au moment de « lire »)"}
                 <textarea
                   value={stdin}
                   onChange={(e) => setStdin(e.target.value)}
@@ -871,10 +882,11 @@ export function AlgoStudio({
                 {!running && !result && !error && <span className="text-gray-500">Appuyez sur ▶ pour exécuter votre algorithme.</span>}
                 {error && <span className="text-red-300">{error}</span>}
                 {result?.compileOutput && <span className="text-red-300">{result.compileOutput}{"\n"}</span>}
-                {result?.stdout}
+                {result && sqlConsoleText(result)}
                 {result?.stderr && !missingInput && <span className="text-red-300">{result.stdout && !result.stdout.endsWith("\n") ? "\n" : ""}{result.stderr}</span>}
                 {result?.hint && !missingInput && <span className="mt-2 block text-amber-300">💡 {result.hint}</span>}
               </pre>
+                <ResultExtras result={result} files={files} />
                 {missingInput && (
                   <form
                     className="flex shrink-0 items-center gap-2 rounded border border-[#f28c28]/60 bg-black/50 px-2 py-2 font-mono text-[13px]"
@@ -942,10 +954,11 @@ export function AlgoStudio({
         loadLanguages={loadLanguages}
         warmPython={warmPython}
         warmEngines={async () => {}}
+        warmPhpSql={warmPhpSql}
         appName="UPL Algo"
         features={
           <ul className="space-y-0.5 text-[var(--ide-muted)]">
-            <li>✓ Écrire et exécuter vos algorithmes (pseudocode), JavaScript et Python</li>
+            <li>✓ Écrire et exécuter vos algorithmes (pseudocode), JavaScript et Python (et PHP, SQL si vous les incluez)</li>
             <li>✓ Console, saisie au moment de « lire », clavier de symboles</li>
             <li>✓ Exemples, sélection, copier-coller, télécharger le fichier</li>
             <li>✗ Enregistrer dans « Mes programmes », C et Java, cours en ligne (Internet nécessaire)</li>

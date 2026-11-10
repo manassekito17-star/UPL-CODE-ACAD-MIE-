@@ -89,6 +89,124 @@ export const PROJECT_TEMPLATES: ProjectTemplate[] = [
     files: [{ path: "Main.java", content: 'public class Main {\n    public static void main(String[] args) {\n        System.out.println("Bonjour depuis Java !");\n    }\n}\n' }],
   },
   {
+    id: "php",
+    label: "Site PHP (pages, includes, PDO SQLite)",
+    description: "Vrai PHP 8.3 exécuté dans le navigateur (WebAssembly) : index.php, configuration, fonctions, base SQLite avec PDO et aperçu de la page générée.",
+    open: "index.php",
+    folders: ["includes", "css"],
+    files: [
+      {
+        path: "index.php",
+        content: `<?php
+declare(strict_types=1);
+
+require __DIR__ . "/includes/config.php";
+require __DIR__ . "/includes/functions.php";
+require __DIR__ . "/includes/database.php";
+
+$pdo = connexion();
+$etudiants = $pdo->query("SELECT nom, filiere FROM etudiants ORDER BY nom")->fetchAll();
+?>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title><?= e(APP_NAME) ?></title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <h1><?= e(APP_NAME) ?></h1>
+  <ul>
+    <?php foreach ($etudiants as $etudiant): ?>
+      <li><?= e($etudiant["nom"]) ?> — <?= e($etudiant["filiere"]) ?></li>
+    <?php endforeach; ?>
+  </ul>
+</body>
+</html>
+`,
+      },
+      { path: "includes/config.php", content: `<?php
+const APP_NAME = "Université — liste des étudiants";
+` },
+      {
+        path: "includes/functions.php",
+        content: `<?php
+/** Échappe un texte avant de l'afficher dans la page (protection contre le XSS). */
+function e(string $texte): string
+{
+    return htmlspecialchars($texte, ENT_QUOTES, "UTF-8");
+}
+`,
+      },
+      {
+        path: "includes/database.php",
+        content: `<?php
+/** Base SQLite en mémoire, recréée à chaque exécution (requêtes préparées avec PDO). */
+function connexion(): PDO
+{
+    $pdo = new PDO("sqlite::memory:", null, null, [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+    ]);
+    $pdo->exec("CREATE TABLE etudiants (id INTEGER PRIMARY KEY AUTOINCREMENT, nom TEXT NOT NULL, filiere TEXT NOT NULL)");
+    $ajout = $pdo->prepare("INSERT INTO etudiants (nom, filiere) VALUES (:nom, :filiere)");
+    foreach ([["Kito", "Informatique"], ["Mbuyi", "Droit"], ["Kabila", "Économie"]] as [$nom, $filiere]) {
+        $ajout->execute(["nom" => $nom, "filiere" => $filiere]);
+    }
+    return $pdo;
+}
+`,
+      },
+      { path: "css/style.css", content: `body {
+  font-family: Arial, sans-serif;
+  margin: 2rem;
+}
+
+h1 {
+  color: #4f46e5;
+}
+` },
+    ],
+  },
+  {
+    id: "sql",
+    label: "Base de données SQL (SQLite)",
+    description: "Script SQL exécuté par SQLite dans le navigateur : tables, clés, insertions et requêtes, résultats en tableaux.",
+    open: "universite.sql",
+    files: [
+      {
+        path: "universite.sql",
+        content: `-- Base « universite » (SQLite : certaines syntaxes diffèrent de MySQL et PostgreSQL)
+PRAGMA foreign_keys = ON;
+
+CREATE TABLE filieres (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  nom TEXT NOT NULL UNIQUE
+);
+
+CREATE TABLE etudiants (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  nom TEXT NOT NULL,
+  postnom TEXT NOT NULL,
+  age INTEGER CHECK (age >= 15),
+  filiere_id INTEGER REFERENCES filieres (id)
+);
+
+INSERT INTO filieres (nom) VALUES ('Informatique'), ('Droit');
+INSERT INTO etudiants (nom, postnom, age, filiere_id) VALUES
+  ('Kito', 'Manasse', 23, 1),
+  ('Mbuyi', 'Grace', 19, 2),
+  ('Kabila', 'Mutombo', 21, 1);
+
+SELECT e.nom, e.postnom, f.nom AS filiere
+FROM etudiants e
+JOIN filieres f ON f.id = e.filiere_id
+ORDER BY e.nom;
+`,
+      },
+    ],
+  },
+  {
     id: "vierge",
     label: "Projet vierge",
     description: "Un fichier README.md pour commencer.",

@@ -201,6 +201,86 @@ LANGUAGES.css = {
   exerciseTemplate: WEB_CSS,
 };
 
+const PHP_INDEX = `<?php
+// Ce code est exécuté par le vrai PHP 8.3 (WebAssembly), dans votre navigateur.
+require "functions.php";
+
+$nom = "UPL";
+$heure = (int) date("H");
+?>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>Ma page PHP</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1><?= salutation($heure) ?>, <?= htmlspecialchars($nom) ?> !</h1>
+  <p>Nous sommes le <?= date("d/m/Y") ?>.</p>
+</body>
+</html>
+`;
+const PHP_FUNCTIONS = `<?php
+/** Renvoie « Bonjour » le matin et « Bonsoir » ensuite. */
+function salutation(int $heure): string
+{
+    return $heure < 12 ? "Bonjour" : "Bonsoir";
+}
+`;
+
+LANGUAGES.php = {
+  id: "php",
+  label: "PHP",
+  shortLabel: "PHP",
+  monaco: "php",
+  extension: "php",
+  mainFile: "index.php",
+  browserFallback: true,
+  multiFile: true,
+  template: PHP_INDEX,
+  exerciseTemplate: `<?php
+// Écrivez votre programme ici
+`,
+  defaultFiles: [
+    { name: "index.php", content: PHP_INDEX },
+    { name: "functions.php", content: PHP_FUNCTIONS },
+    { name: "style.css", content: WEB_CSS },
+  ],
+};
+
+LANGUAGES.sql = {
+  id: "sql",
+  label: "SQL (SQLite)",
+  shortLabel: "SQL",
+  monaco: "sql",
+  extension: "sql",
+  mainFile: "requetes.sql",
+  browserFallback: true,
+  multiFile: false,
+  template: `-- Base « universite » : le script est exécuté par SQLite (WebAssembly) dans votre navigateur.
+CREATE TABLE etudiants (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  nom TEXT NOT NULL,
+  postnom TEXT NOT NULL,
+  age INTEGER,
+  filiere TEXT
+);
+
+INSERT INTO etudiants (nom, postnom, age, filiere) VALUES
+  ('Kabila', 'Mutombo', 21, 'Informatique'),
+  ('Mbuyi', 'Grace', 19, 'Droit'),
+  ('Kito', 'Manasse', 23, 'Informatique');
+
+SELECT nom, postnom, age FROM etudiants WHERE filiere = 'Informatique' ORDER BY age;
+`,
+  exerciseTemplate: `-- Écrivez votre requête ici
+`,
+};
+
+/** Langages exécutés uniquement dans le navigateur (jamais sur le serveur de la plateforme). */
+export const BROWSER_ONLY_LANGUAGES: LanguageId[] = ["pseudocode", "php", "sql"];
+
 export const LANGUAGE_IDS = Object.keys(LANGUAGES) as LanguageId[];
 
 export function isLanguageId(value: unknown): value is LanguageId {
