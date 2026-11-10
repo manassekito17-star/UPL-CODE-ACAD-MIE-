@@ -37,6 +37,8 @@ export function OfflineDialog({
   loadLanguages,
   warmPython,
   warmEngines,
+  appName = "UPL IDE",
+  features,
 }: {
   open: boolean;
   onClose: () => void;
@@ -46,6 +48,10 @@ export function OfflineDialog({
   loadLanguages: () => Promise<void>;
   warmPython: () => Promise<void>;
   warmEngines: () => Promise<void>;
+  /** Nom de l'application installée (UPL IDE, ou l'éditeur d'algorithmes « UPL »). */
+  appName?: string;
+  /** Liste « Ce qui marche sans Internet » propre à l'application. */
+  features?: React.ReactNode;
 }) {
   const [withPython, setWithPython] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -85,7 +91,7 @@ export function OfflineDialog({
         onStep: setStep,
       });
       setReady(offlineReadyInfo());
-      setMessage({ tone: "ok", text: `Prêt : UPL IDE fonctionne maintenant sans Internet sur cet appareil (${r.ok} fichier(s) enregistrés).` });
+      setMessage({ tone: "ok", text: `Prêt : ${appName} fonctionne maintenant sans Internet sur cet appareil (${r.ok} fichier(s) enregistrés).` });
     } catch (e) {
       setMessage({ tone: "erreur", text: e instanceof Error ? e.message : "Préparation impossible." });
     } finally {
@@ -98,7 +104,7 @@ export function OfflineDialog({
     <div className="fixed inset-0 z-[70] grid place-items-center bg-black/60 p-3" role="dialog" aria-modal="true" aria-labelledby="titre-hors-ligne" onClick={onClose}>
       <div className="max-h-full w-full max-w-lg overflow-auto rounded-lg border border-[var(--ide-border)] bg-[var(--ide-menu)] p-5 text-sm text-[var(--ide-text)] shadow-2xl" onClick={(e) => e.stopPropagation()} data-testid="ide-hors-ligne">
         <div className="mb-3 flex items-start gap-3">
-          <h2 id="titre-hors-ligne" className="flex-1 text-lg font-semibold">Installer UPL IDE et l&apos;utiliser sans Internet</h2>
+          <h2 id="titre-hors-ligne" className="flex-1 text-lg font-semibold">Installer {appName} et l&apos;utiliser sans Internet</h2>
           <button type="button" onClick={onClose} aria-label="Fermer" className="rounded px-2 text-lg text-[var(--ide-muted)] hover:bg-[var(--ide-hover)]">✕</button>
         </div>
         <p className={cn("mb-4 inline-block rounded px-2 py-0.5 text-xs", online ? "bg-emerald-500/15 text-emerald-300" : "bg-amber-500/15 text-amber-300")}>{online ? "● Connecté à Internet" : "● Hors connexion"}</p>
@@ -106,11 +112,11 @@ export function OfflineDialog({
         <section className="mb-5">
           <h3 className="mb-1 font-semibold">1. Installer sur l&apos;appareil</h3>
           {env.standalone ? (
-            <p className="text-emerald-300">✓ UPL IDE est installé : vous l&apos;utilisez depuis son icône.</p>
+            <p className="text-emerald-300">✓ {appName} est installé : vous l&apos;utilisez depuis son icône.</p>
           ) : installEvent ? (
             <>
-              <p className="mb-2 text-[var(--ide-muted)]">UPL IDE s&apos;ajoute à l&apos;écran d&apos;accueil (ou aux programmes de l&apos;ordinateur) et s&apos;ouvre comme une application, sans magasin d&apos;applications.</p>
-              <button type="button" onClick={() => void install()} className="rounded bg-[var(--ide-accent)] px-3 py-1.5 font-semibold text-white">Installer UPL IDE</button>
+              <p className="mb-2 text-[var(--ide-muted)]">{appName} s&apos;ajoute à l&apos;écran d&apos;accueil (ou aux programmes de l&apos;ordinateur) et s&apos;ouvre comme une vraie application, avec sa propre icône, sans magasin d&apos;applications.</p>
+              <button type="button" onClick={() => void install()} className="rounded bg-[var(--ide-accent)] px-3 py-1.5 font-semibold text-white">Installer {appName}</button>
             </>
           ) : env.platform === "ios" ? (
             <ol className="list-decimal space-y-1 pl-5 text-[var(--ide-muted)]">
@@ -122,10 +128,20 @@ export function OfflineDialog({
             <ol className="list-decimal space-y-1 pl-5 text-[var(--ide-muted)]">
               <li>Ouvrez cette page dans <b className="text-[var(--ide-text)]">Chrome</b>.</li>
               <li>Touchez le menu <b className="text-[var(--ide-text)]">⋮</b> en haut à droite.</li>
-              <li>Choisissez <b className="text-[var(--ide-text)]">« Installer l&apos;application »</b> ou <b className="text-[var(--ide-text)]">« Ajouter à l&apos;écran d&apos;accueil »</b>.</li>
+              <li>
+                Choisissez <b className="text-[var(--ide-text)]">« Installer l&apos;application »</b>. Si Chrome propose « Ajouter à l&apos;écran d&apos;accueil », touchez ensuite{" "}
+                <b className="text-[var(--ide-text)]">« Installer »</b> (et non « Créer un raccourci »).
+              </li>
+              <li>
+                Une ancienne icône porte le petit logo Chrome ? C&apos;est un simple raccourci : supprimez-la (appui long → Supprimer), puis installez à nouveau
+                avec « Installer l&apos;application ».
+              </li>
             </ol>
           ) : (
-            <p className="text-[var(--ide-muted)]">Dans <b className="text-[var(--ide-text)]">Chrome</b> ou <b className="text-[var(--ide-text)]">Edge</b>, cliquez sur l&apos;icône d&apos;installation à droite de la barre d&apos;adresse, puis sur « Installer ».</p>
+            <p className="text-[var(--ide-muted)]">
+              Dans <b className="text-[var(--ide-text)]">Chrome</b> ou <b className="text-[var(--ide-text)]">Edge</b>, cliquez sur l&apos;icône d&apos;installation (écran avec une flèche) à droite de la barre
+              d&apos;adresse, puis sur « Installer ». {appName} s&apos;ouvre alors dans sa propre fenêtre, avec son icône sur le bureau et dans le menu Démarrer.
+            </p>
           )}
         </section>
 
@@ -153,6 +169,7 @@ export function OfflineDialog({
 
         <section>
           <h3 className="mb-1 font-semibold">Ce qui marche sans Internet</h3>
+          {features ?? (
           <ul className="space-y-0.5 text-[var(--ide-muted)]">
             <li>✓ Éditeur, fichiers et dossiers, projet enregistré sur l&apos;appareil</li>
             <li>✓ Pseudocode, JavaScript{ready?.python || withPython ? ", Python, K+" : ""} et aperçu des pages HTML/CSS</li>
@@ -160,6 +177,7 @@ export function OfflineDialog({
             <li>✗ C et Java (exécutés sur le serveur), professeur IA, cours en ligne</li>
             <li>↻ Projets du compte : modifications gardées sur l&apos;appareil et envoyées au retour de la connexion</li>
           </ul>
+          )}
         </section>
       </div>
     </div>

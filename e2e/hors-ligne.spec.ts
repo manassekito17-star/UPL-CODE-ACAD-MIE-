@@ -65,3 +65,40 @@ test("préparation puis utilisation sans Internet : éditeur, JavaScript, pseudo
   await page.goto("/formations");
   await expect(page.getByText("Pas de connexion Internet")).toBeVisible();
 });
+
+test("éditeur « UPL Algo » : installation, préparation, puis algorithme exécuté sans Internet", async ({ page, context }) => {
+  test.setTimeout(180_000);
+  await page.goto("/editeur?langage=pseudocode");
+  await page.locator(".monaco-editor").first().waitFor({ timeout: 60_000 });
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  await expect(page.locator('link[rel="manifest"]')).toHaveAttribute("href", "/editeur.webmanifest");
+  const manifest = await (await page.request.get("/editeur.webmanifest")).json();
+  expect(manifest.short_name).toBe("UPL Algo");
+  // Vraie application installable (sans logo du navigateur) : icône adaptable et captures pour la fenêtre d'installation.
+  expect(manifest.icons.some((i: { purpose?: string }) => i.purpose === "maskable")).toBe(true);
+  expect(manifest.screenshots.map((s: { form_factor: string }) => s.form_factor).sort()).toEqual(["narrow", "wide"]);
+  for (const s of manifest.screenshots) expect((await page.request.get(s.src)).status()).toBe(200);
+
+  await page.getByRole("button", { name: "Plus d'options" }).click();
+  await page.getByRole("menuitem", { name: /Installer · utiliser sans Internet/ }).click();
+  const dialog = page.getByTestId("ide-hors-ligne");
+  await expect(dialog.getByRole("heading", { name: /Installer UPL Algo/ })).toBeVisible();
+  await dialog.getByLabel("Inclure Python (environ 10 Mo)").uncheck();
+  await dialog.getByTestId("ide-preparer-hors-ligne").click();
+  await expect(dialog.getByText(/Prêt : UPL Algo fonctionne maintenant sans Internet/)).toBeVisible({ timeout: 120_000 });
+  await dialog.getByRole("button", { name: "Fermer" }).click();
+
+  // Sans Internet : la page se rouvre, l'algorithme s'écrit et s'exécute.
+  await context.setOffline(true);
+  await page.reload();
+  await page.locator(".monaco-editor").first().waitFor({ timeout: 30_000 });
+  await expect(page.getByText("hors ligne", { exact: true })).toBeVisible();
+  await page.waitForFunction(() => Boolean((window as unknown as { monaco?: unknown }).monaco));
+  await page.evaluate(() => (window as unknown as { monaco: { editor: { getModels(): Array<{ setValue(v: string): void }> } } }).monaco.editor.getModels()[0].setValue('Algorithme carre\nVariable n : entier\nDébut\n  lire(n)\n  écrire("Carré = ", n * n)\nFin'));
+  await page.getByRole("button", { name: "▶ Exécuter" }).click();
+  const field = page.getByLabel("Valeur de n");
+  await field.fill("9");
+  await field.press("Enter");
+  await expect(page.locator("pre[aria-live]").last()).toContainText("Carré = 81");
+  await context.setOffline(false);
+});
