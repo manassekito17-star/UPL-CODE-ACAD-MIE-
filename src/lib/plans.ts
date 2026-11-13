@@ -18,7 +18,7 @@ export interface Entitlements {
 
 /** Fonctionnalités incluses dans l'offre gratuite (affichées aux étudiants). */
 export const FREE_FEATURES = [
-  "Les sept parcours (algorithmique, HTML, CSS, Python, C, JavaScript, Java) en quatre niveaux",
+  "Les neuf parcours (algorithmique, HTML, CSS, Python, C, JavaScript, Java, PHP, SQL) en quatre niveaux",
   "Exercices corrigés automatiquement, quiz, TD, évaluations, projets et certificats internes",
   "Éditeur, UPL IDE (projets, dossiers, historique) et laboratoire d'algorithmique",
   "Exécution dans le navigateur : pseudocode, Python, JavaScript, HTML/CSS",
