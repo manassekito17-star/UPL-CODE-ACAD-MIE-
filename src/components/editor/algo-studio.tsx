@@ -226,7 +226,8 @@ export function AlgoStudio({
   const [pasteText, setPasteText] = useState("");
   const editorRef = useRef<MonacoEditor | null>(null);
   // Installation (écran d'accueil) et utilisation sans Internet.
-  const [offlineOpen, setOfflineOpen] = useState(false);
+  // « ?installer=1 » (page Télécharger l'application) : la fenêtre d'installation s'ouvre directement.
+  const [offlineOpen, setOfflineOpen] = useState(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).has("installer"));
   const [installEvent, setInstallEvent] = useState<InstallPromptEvent | null>(null);
   const [online, setOnline] = useState(true);
   useEffect(() => {

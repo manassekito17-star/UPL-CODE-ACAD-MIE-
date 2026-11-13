@@ -17,6 +17,7 @@ const PUBLIC_PATHS = new Set([
   "/reinitialiser-mot-de-passe",
   "/confidentialite",
   "/conditions",
+  "/telecharger",
   "/compte-suspendu",
   "/acces-refuse",
   "/robots.txt",

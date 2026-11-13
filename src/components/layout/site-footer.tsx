@@ -20,6 +20,7 @@ export function SiteFooter() {
             <li><Link href="/exercices" className="hover:text-cyan-accent">Exercices</Link></li>
             <li><Link href="/editeur" className="hover:text-cyan-accent">Éditeur de code</Link></li>
             <li><Link href="/professeur-ia" className="hover:text-cyan-accent">Professeur IA</Link></li>
+            <li><Link href="/telecharger" className="hover:text-cyan-accent">Télécharger l&apos;application</Link></li>
           </ul>
         </div>
         <div>

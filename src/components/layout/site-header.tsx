@@ -12,6 +12,7 @@ const PUBLIC_LINKS = [
   { href: "/ide", label: "UPL IDE" },
   { href: "/laboratoire", label: "Laboratoire" },
   { href: "/professeur-ia", label: "Professeur IA" },
+  { href: "/telecharger", label: "📲 Télécharger" },
 ];
 
 export async function SiteHeader() {
