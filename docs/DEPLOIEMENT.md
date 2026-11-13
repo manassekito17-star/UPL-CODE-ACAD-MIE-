@@ -174,3 +174,13 @@ Une modification de variable dans Vercel ne s'applique qu'après un **Redeploy**
 | Supabase : « Invalid characters » dans Client IDs | `/` ou espace en trop | la valeur se termine exactement par `.apps.googleusercontent.com` |
 | Google : « Publish app » grisé | Branding incomplet | étape 2.4 (pages et domaines autorisés) |
 | Projet Supabase en pause | 7 jours sans activité (offre Free) | bouton **Restore** dans Supabase |
+
+## Accès rapide sans mot de passe (profil Nom / Prénom / Poste / Sexe / Filière)
+
+L'accès rapide utilise les **connexions anonymes de Supabase Auth** : chaque profil est un vrai utilisateur (identifiant interne unique, session sécurisée par cookies, rôle « etudiant » imposé par la base). À activer une fois :
+
+1. **Supabase → SQL Editor** : exécuter `supabase/migrations/20261114000001_acces_rapide.sql` (relançable sans risque).
+2. **Supabase → Authentication → Sign In / Providers** : activer **« Allow anonymous sign-ins »**.
+3. Même page : activer **« Allow manual linking »** (bouton « Lier mon profil à Google » de la page Mon profil).
+
+Limites, affichées aux utilisateurs : le profil n'est pas vérifié (nom et prénom ne prouvent pas l'identité) ; il est gardé sur l'appareil (session fermée après 30 jours sans visite ou à la déconnexion) ; pour le retrouver sur un autre appareil, il faut le lier à Google ou à une adresse e-mail. Le poste « Enseignant » déclaré ne donne aucun droit : les rôles restent attribués par un administrateur. Limite : 10 accès rapides par heure et par adresse IP (plus la limite propre à Supabase).

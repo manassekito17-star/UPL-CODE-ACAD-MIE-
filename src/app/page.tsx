@@ -1,7 +1,10 @@
 import { EditorDemo } from "@/components/home/editor-demo";
 import { CourseCard } from "@/components/learning/course-card";
 import { ButtonLink, Card, Container } from "@/components/ui";
+import { GoogleButton } from "@/components/auth/google-button";
+import { QuickAccessForm } from "@/components/auth/quick-access-form";
 import { getCurrentUser } from "@/lib/auth";
+import { isSupabaseConfigured, publicEnv } from "@/lib/env";
 import { listCourses } from "@/lib/content/repository";
 
 const FEATURES = [
@@ -50,6 +53,27 @@ export default async function HomePage() {
           </div>
         </Container>
       </section>
+
+      {!user && isSupabaseConfigured() && (
+        <section className="border-b border-gris-200 bg-gris-50 py-12" aria-labelledby="acces-plateforme" id="acces">
+          <Container>
+            <h2 id="acces-plateforme" className="text-2xl font-bold text-nuit-900 sm:text-3xl">Accéder à la plateforme</h2>
+            <p className="mt-2 max-w-2xl text-gris-700">Deux possibilités, sans mot de passe à retenir.</p>
+            <div className="mt-6 grid gap-6 lg:grid-cols-2">
+              <Card className="p-6">
+                <h3 className="mb-1 text-lg font-bold text-nuit-900">Option A — Continuer avec Google</h3>
+                <p className="mb-4 text-sm text-gris-700">Choisissez votre compte Gmail : votre profil est créé automatiquement et vous le retrouvez sur tous vos appareils.</p>
+                {publicEnv.googleAuth ? <GoogleButton /> : <p className="text-sm text-gris-500">Connexion Google non configurée sur cette installation.</p>}
+              </Card>
+              <Card className="p-6">
+                <h3 className="mb-1 text-lg font-bold text-nuit-900">Option B — Accès rapide avec un profil</h3>
+                <p className="mb-4 text-sm text-gris-700">Remplissez votre profil et entrez directement dans votre espace.</p>
+                <QuickAccessForm />
+              </Card>
+            </div>
+          </Container>
+        </section>
+      )}
 
       <section className="py-16">
         <Container>

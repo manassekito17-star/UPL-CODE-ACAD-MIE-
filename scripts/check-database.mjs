@@ -223,4 +223,23 @@ check("Stockage : avatars limités aux images de 2 Mo", Number(bk.avatars.file_s
 check("Stockage : ressources limitées à 20 Mo et aux types autorisés", Number(bk.ressources.file_size_limit) === 20971520 && bk.ressources.allowed_mime_types.includes("application/pdf") && !bk.ressources.allowed_mime_types.includes("image/svg+xml"));
 await as(ADM, "update public.profiles set status = 'suspendu', suspended_until = now() - interval '1 minute' where id = $1", [B]);
 check("Enseignant dont la suspension est terminée : droits rétablis automatiquement", (await as(B, "select public.can_teach('contenus') c")).rows[0].c === true);
+
+// --- Accès rapide (utilisateur anonyme de Supabase Auth) ---
+const Q = "a7a7a7a7-0000-4000-8000-00000000a001";
+await db.query(`insert into auth.users (id, email, raw_user_meta_data) values ($1, null, $2)`, [Q, { first_name: "Grace", last_name: "Mbuyi", position: "enseignant", sex: "feminin", faculty: "Droit", role: "administrateur" }]);
+const qp = (await db.query("select full_name, first_name, last_name, position, sex, faculty from public.profiles where id = $1", [Q])).rows[0];
+check("Accès rapide : profil créé avec nom, prénom, poste, sexe et filière", qp.full_name === "Grace Mbuyi" && qp.first_name === "Grace" && qp.position === "enseignant" && qp.sex === "feminin" && qp.faculty === "Droit");
+const qr = (await db.query("select role from public.user_roles where user_id = $1", [Q])).rows.map((r) => r.role);
+check("Accès rapide : rôle étudiant uniquement, même si « enseignant » ou « administrateur » est déclaré", qr.length === 1 && qr[0] === "etudiant");
+const Q2 = "a7a7a7a7-0000-4000-8000-00000000a002";
+await db.query(`insert into auth.users (id, email, raw_user_meta_data) values ($1, null, $2)`, [Q2, { first_name: "X", position: "administrateur", sex: "autre" }]);
+const qp2 = (await db.query("select position, sex from public.profiles where id = $1", [Q2])).rows[0];
+check("Accès rapide : poste et sexe hors liste ignorés", qp2.position === null && qp2.sex === null);
+denied = false; try { await as(Q, `insert into public.user_roles (user_id, role) values ($1, 'administrateur')`, [Q]); } catch { denied = true; }
+check("Accès rapide : impossible de s'attribuer le rôle administrateur", denied && (await db.query("select count(*)::int n from public.user_roles where user_id = $1 and role = 'administrateur'", [Q])).rows[0].n === 0);
+check("Accès rapide : modifie ses informations", (await as(Q, "update public.profiles set first_name = 'Grâce', faculty = 'Informatique' where id = $1 returning id", [Q])).rows.length === 1);
+check("Accès rapide : ne modifie pas le profil d'un autre", (await as(Q, "update public.profiles set first_name = 'pirate' where id = $1 returning id", [A])).rows.length === 0);
+denied = false; try { await as(Q, "update public.profiles set id = $1 where id = $2", [B, Q]); } catch { denied = true; }
+check("Accès rapide : ne peut pas prendre l'identifiant interne d'un autre", denied || (await db.query("select count(*)::int n from public.profiles where id = $1", [Q])).rows[0].n === 1);
+check("Accès rapide : ne lit pas les profils des autres", (await as(Q, "select id from public.profiles")).rows.every((r) => r.id === Q));
 await as(ADM, "update public.profiles set status = 'actif', suspended_until = null where id = $1", [B]);
