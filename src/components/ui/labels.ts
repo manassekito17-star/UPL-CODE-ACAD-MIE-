@@ -15,6 +15,8 @@ export const LANGUAGE_COLORS: Record<LanguageId, string> = {
   html: "from-orange-500 to-amber-400",
   css: "from-electrique-600 to-cyan-accent",
   kplus: "from-electrique-600 to-yellow-400",
+  php: "from-indigo-500 to-violet-600",
+  sql: "from-teal-500 to-cyan-600",
 };
 
 export const LANGUAGE_INITIALS: Record<LanguageId, string> = {
@@ -26,6 +28,8 @@ export const LANGUAGE_INITIALS: Record<LanguageId, string> = {
   html: "HTML",
   css: "CSS",
   kplus: "K+",
+  php: "PHP",
+  sql: "SQL",
 };
 
 export function formatDuration(minutes: number): string {

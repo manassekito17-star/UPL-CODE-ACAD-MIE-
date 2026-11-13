@@ -57,7 +57,7 @@ export async function runOnJudge0(
   req: ExecutionRequest,
   limits: { cpuTimeLimitSeconds?: number; memoryLimitKb?: number } = {},
 ): Promise<ExecutionResult> {
-  const language = req.language as Exclude<LanguageId, "pseudocode" | "html" | "css">;
+  const language = req.language as Exclude<LanguageId, "pseudocode" | "html" | "css" | "php" | "sql">;
   // K+ est exécuté par son moteur, écrit en Python.
   const languageId = serverEnv.judge0LanguageIds[language === "kplus" ? "python" : language];
   const body = {

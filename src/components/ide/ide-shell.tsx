@@ -9,7 +9,7 @@ import { runInBrowser, runProgram } from "@/lib/execution/browser";
 import { warmupKPlus } from "@/lib/kplus";
 import { KPlusPage } from "../editor/kplus-page";
 import { registerServiceWorker } from "@/lib/offline/client";
-import { STATUS_LABELS, type ExecutionResult } from "@/lib/execution/types";
+import { STATUS_LABELS, engineName, type ExecutionResult } from "@/lib/execution/types";
 import { buildPreviewDocument } from "@/lib/execution/web-document";
 import {
   basename,
@@ -33,6 +33,7 @@ import { attributeBacktrack } from "@/lib/ide/html-close";
 import { starterContent, starterCursor } from "@/lib/ide/starters";
 import { PROJECT_TEMPLATES } from "@/lib/ide/templates";
 import { exportZip, importEntries, importZip } from "@/lib/ide/zip";
+import { ResultExtras, sqlConsoleText } from "../editor/result-extras";
 import { WebPreview, type PreviewConsoleLine } from "../editor/web-preview";
 import { TutorChat } from "../tutor/tutor-chat";
 import { cn } from "../ui";
@@ -477,6 +478,12 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
   const warmEngines = async () => {
     await runInBrowser("pseudocode", [{ name: "main.algo", content: "ALGORITHME Test\nDEBUT\n  ECRIRE(1)\nFIN\n" }], "");
     await runInBrowser("javascript", [{ name: "main.js", content: "console.log(1)" }], "");
+  };
+  const warmPhpSql = async () => {
+    const php = await runInBrowser("php", [{ name: "index.php", content: "<?php echo 1;" }], "");
+    if (php.status !== "ok") throw new Error(php.stderr || "PHP n'a pas pu être téléchargé.");
+    const sql = await runInBrowser("sql", [{ name: "requetes.sql", content: "SELECT 1;" }], "");
+    if (sql.status !== "ok") throw new Error(sql.stderr || "SQLite n'a pas pu être téléchargé.");
   };
   const warmPython = async () => {
     const r = await runInBrowser("python", [{ name: "main.py", content: "print(1)" }], "");
@@ -1078,7 +1085,7 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
                     <div className="flex h-full min-h-0 flex-col gap-2 p-2 md:flex-row">
                       <label className="flex shrink-0 flex-col gap-1 font-sans md:w-56">
                         <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--ide-muted)]">Entrées (une par ligne)</span>
-                        <textarea value={stdin} onChange={(e) => setStdin(e.target.value)} rows={3} className="min-h-12 flex-1 resize-none rounded border border-[var(--ide-border)] bg-[var(--ide-input)] p-1.5 font-mono text-xs text-[var(--ide-text)]" placeholder="input(), LIRE, demander(), scanf…" aria-label="Entrées du programme" />
+                        <textarea value={stdin} onChange={(e) => setStdin(e.target.value)} rows={3} className="min-h-12 flex-1 resize-none rounded border border-[var(--ide-border)] bg-[var(--ide-input)] p-1.5 font-mono text-xs text-[var(--ide-text)]" placeholder="input(), LIRE, demander(), scanf, fgets(STDIN)…" aria-label="Entrées du programme" />
                       </label>
                       {result?.kplusPage && (
                         <KPlusPage
@@ -1087,12 +1094,13 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
                           className="min-h-0 flex-1 overflow-auto rounded font-sans"
                         />
                       )}
-                      <pre className="min-h-0 flex-1 overflow-auto whitespace-pre-wrap break-words rounded bg-black/40 p-2 text-gray-100" aria-live="polite" data-testid="ide-console">
+                      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-auto">
+                      <pre className="min-h-16 flex-1 overflow-auto whitespace-pre-wrap break-words rounded bg-black/40 p-2 text-gray-100" aria-live="polite" data-testid="ide-console">
                         {running && <span className="text-cyan-accent">{runStatus ?? "Exécution en cours…"}{"\n"}</span>}
                         {!running && !result && !runError && !consoleLines.length && <span className="text-gray-500">Ctrl + Entrée pour exécuter le fichier actif. Les messages console.log() de l&apos;aperçu web s&apos;affichent aussi ici.</span>}
                         {runError && <span className="text-red-300">{runError}{"\n"}</span>}
                         {result?.compileOutput && <span className="text-red-300">{result.compileOutput}{"\n"}</span>}
-                        {result?.stdout}
+                        {result && sqlConsoleText(result)}
                         {result?.stderr && <span className="text-red-300">{result.stderr}</span>}
                         {result?.hint && <span className="block text-amber-300">💡 {result.hint}</span>}
                         {consoleLines.map((l, i) => (
@@ -1101,6 +1109,8 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
                           </span>
                         ))}
                       </pre>
+                      <ResultExtras result={result} files={runnable?.files ?? []} />
+                      </div>
                     </div>
                   )}
                   {bottom === "sortie" && (
@@ -1108,7 +1118,7 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
                       {result ? (
                         <>
                           <p>Statut : <strong>{STATUS_LABELS[result.status]}</strong></p>
-                          <p>Moteur : {result.engine === "serveur" ? "bac à sable serveur (Judge0)" : result.engine === "interpreteur" ? "interpréteur UPL" : "navigateur (Web Worker isolé)"}</p>
+                          <p>Moteur : {engineName(result, true)}</p>
                           {result.timeMs !== null && <p>Durée : {result.timeMs} ms</p>}
                           {result.memoryKb ? <p>Mémoire : {Math.round(result.memoryKb / 1024)} Mo</p> : null}
                           {result.errorLine && <p>Ligne de l&apos;erreur : {result.errorLine}</p>}
@@ -1218,7 +1228,7 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
           </div>
         </div>
       )}
-      <OfflineDialog open={offlineOpen} onClose={() => setOfflineOpen(false)} installEvent={installEvent} onInstalled={() => setInstallEvent(null)} online={online} loadLanguages={loadLanguages} warmPython={warmPython} warmEngines={warmEngines} />
+      <OfflineDialog open={offlineOpen} onClose={() => setOfflineOpen(false)} installEvent={installEvent} onInstalled={() => setInstallEvent(null)} online={online} loadLanguages={loadLanguages} warmPython={warmPython} warmEngines={warmEngines} warmPhpSql={warmPhpSql} />
       {touch && activePath && !(bottom && bottomMax) && <MobileKeys language={activeLang?.monaco ?? null} onAction={keyAction} />}
     </div>
   );

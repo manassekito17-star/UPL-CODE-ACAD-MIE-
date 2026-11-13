@@ -1,4 +1,4 @@
--- UPL CODE ACADEMY MK — installation, partie 2 (contenu), morceau 5 sur 11.
+-- UPL CODE ACADEMY MK — installation, partie 2 (contenu), morceau 5 sur 14.
 -- À exécuter dans l'ordre, après 1-structure.sql. Peut être relancé sans risque.
 begin;
 insert into public.lessons (module_id, course_id, slug, title, level, duration_minutes, objectives, prerequisites, content, summary, examples, pedagogy, status, position, validated_at)

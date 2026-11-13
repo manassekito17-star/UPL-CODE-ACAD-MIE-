@@ -27,6 +27,8 @@ export async function POST(request: Request) {
   const lang = LANGUAGES[language as ExecutionRequest["language"]];
   // HTML et CSS ne sont jamais exécutés sur le serveur : ils s'affichent dans l'aperçu isolé du navigateur.
   if (lang.preview) return jsonError(400, "HTML et CSS s'affichent dans l'aperçu de l'éditeur ; ils ne sont pas exécutés sur le serveur.");
+  // PHP et SQL ne sont jamais exécutés sur le serveur : moteur WebAssembly du navigateur.
+  if (language === "php" || language === "sql") return jsonError(503, "Exécution dans le navigateur.", { fallback: "navigateur" });
   // Sans compte, seul le pseudocode est exécuté sur le serveur (il ne coûte rien) ;
   // Python et JavaScript s'exécutent alors dans le navigateur de l'utilisateur.
   if (!user && isSupabaseConfigured() && language !== "pseudocode") {

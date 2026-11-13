@@ -1,959 +1,647 @@
--- UPL CODE ACADEMY MK — installation, partie 2 (contenu), morceau 8 sur 11.
+-- UPL CODE ACADEMY MK — installation, partie 2 (contenu), morceau 8 sur 14.
 -- À exécuter dans l'ordre, après 1-structure.sql. Peut être relancé sans risque.
 begin;
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-trois-lignes', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'introduction-algorithmique'), 'pseudocode', 'Présentation en trois lignes', 'Lisez un prénom puis une filière et affichez exactement ces trois lignes :
+insert into public.lessons (module_id, course_id, slug, title, level, duration_minutes, objectives, prerequisites, content, summary, examples, pedagogy, status, position, validated_at)
+values ((select id from public.modules where course_id = (select id from public.courses where slug = 'php') and slug = 'php-objet'), (select id from public.courses where slug = 'php'), 'php-heritage-interfaces', 'Héritage, polymorphisme, interfaces, traits et namespaces', 'intermediaire', 45, array['Réutiliser du code par héritage.', 'Exploiter le polymorphisme.', 'Définir des contrats avec les interfaces.', 'Partager du code avec les traits et organiser avec les namespaces.']::text[], array['Classes et objets']::text[], '## Héritage
+
+Une classe **fille** hérite des propriétés et méthodes de sa classe **mère** avec **extends**. Elle peut ajouter des éléments ou **redéfinir** une méthode ; **parent::methode()** appelle la version de la mère.
+
+~~~php
+<?php
+class Personne
+{
+    public function __construct(protected string $nom) {}
+    public function presenter(): string { return "Je suis {$this->nom}"; }
+}
+
+class Enseignant extends Personne
+{
+    public function __construct(string $nom, private string $cours) { parent::__construct($nom); }
+    public function presenter(): string { return parent::presenter() . ", j''enseigne {$this->cours}"; }
+}
+~~~
+
+## Classes abstraites
+
+Une classe **abstract** ne peut pas être instanciée ; elle peut déclarer des méthodes **abstract** que chaque fille doit écrire.
+
+## Polymorphisme
+
+Des objets de classes différentes répondent au **même appel** chacun à leur manière. Une boucle peut appeler **->presenter()** sur une liste mêlant étudiants et enseignants : chaque objet utilise sa propre version.
+
+## Interfaces
+
+Une **interface** est un contrat : la liste des méthodes qu''une classe s''engage à fournir (**implements**). Une classe peut implémenter plusieurs interfaces. Le code qui reçoit un objet typé par l''interface fonctionne avec toutes les implémentations : c''est la base des architectures professionnelles (un « dépôt » de données en mémoire pour les tests, en base de données en production).
+
+## Traits
+
+Un **trait** regroupe des méthodes à copier dans plusieurs classes sans lien d''héritage (par exemple un horodatage de création) : **use Horodatable;** dans la classe.
+
+## Namespaces
+
+Les **espaces de noms** évitent les conflits de noms entre bibliothèques : **namespace App\Modeles;** en tête du fichier, puis **use App\Modeles\Etudiant;** ailleurs. Composer s''appuie dessus pour charger automatiquement les classes (norme PSR-4).', array['extends hérite ; parent:: appelle la version de la mère.', 'Une interface est un contrat ; implements s''y engage.', 'Polymorphisme : même appel, comportements différents.', 'Traits : partage de méthodes ; namespaces : organisation des classes.']::text[], '[{"language":"php","title":"Polymorphisme avec une interface","code":"<?php\ninterface Payable\n{\n    public function montant(): float;\n}\n\nabstract class Personne implements Payable\n{\n    public function __construct(protected string $nom) {}\n    abstract public function role(): string;\n    public function fiche(): string\n    {\n        return sprintf(\"%-8s %-12s %8.2f $\", $this->nom, $this->role(), $this->montant());\n    }\n}\n\ntrait Prime\n{\n    public function prime(float $base): float { return $base * 0.1; }\n}\n\nclass Enseignant extends Personne\n{\n    use Prime;\n    public function __construct(string $nom, private float $salaire) { parent::__construct($nom); }\n    public function role(): string { return \"enseignant\"; }\n    public function montant(): float { return $this->salaire + $this->prime($this->salaire); }\n}\n\nclass Etudiant extends Personne\n{\n    public function __construct(string $nom, private float $frais) { parent::__construct($nom); }\n    public function role(): string { return \"étudiant\"; }\n    public function montant(): float { return -$this->frais; }\n}\n\n$personnes = [new Enseignant(\"Mukendi\", 800), new Etudiant(\"Kito\", 450)];\nforeach ($personnes as $p) {\n    echo $p->fiche(), \"\\n\";\n}"}]'::jsonb, null, 'publie', 2, now())
+on conflict (course_id, slug) do update set module_id = excluded.module_id, title = excluded.title, level = excluded.level, duration_minutes = excluded.duration_minutes, objectives = excluded.objectives, prerequisites = excluded.prerequisites, content = excluded.content, summary = excluded.summary, examples = excluded.examples, pedagogy = excluded.pedagogy, status = excluded.status, position = excluded.position;
+insert into public.quizzes (course_id, lesson_id, slug, title, is_final, pass_score, status, kind, duration_minutes, level_number) values ((select id from public.courses where slug = 'php'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'php') and slug = 'php-heritage-interfaces'), 'php-heritage-quiz', 'Vérification — Héritage et interfaces', false, 60, 'publie', 'verification', null, null)
+on conflict (slug) do update set title = excluded.title, is_final = excluded.is_final, pass_score = excluded.pass_score, lesson_id = excluded.lesson_id, kind = excluded.kind, duration_minutes = excluded.duration_minutes, level_number = excluded.level_number;
+delete from public.quiz_questions where quiz_id = (select id from public.quizzes where slug = 'php-heritage-quiz');
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-heritage-quiz'), 'qcm', 'Quel mot-clé crée une classe fille ?', null, '["implements","extends","use","inherits"]'::jsonb, 0, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-heritage-quiz'), 'qcm', 'Peut-on instancier une classe abstraite ?', null, '["Oui","Non"]'::jsonb, 1, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-heritage-quiz'), 'qcm', 'Combien d''interfaces une classe peut-elle implémenter ?', null, '["Une seule","Deux au plus","Plusieurs","Aucune"]'::jsonb, 2, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[2]'::jsonb, null from qq;
+insert into public.lessons (module_id, course_id, slug, title, level, duration_minutes, objectives, prerequisites, content, summary, examples, pedagogy, status, position, validated_at)
+values ((select id from public.modules where course_id = (select id from public.courses where slug = 'php') and slug = 'php-objet'), (select id from public.courses where slug = 'php'), 'php-exceptions', 'Exceptions et gestion des erreurs', 'intermediaire', 30, array['Lever et intercepter des exceptions.', 'Créer ses propres exceptions.', 'Utiliser finally pour libérer les ressources.']::text[], array['Héritage et interfaces']::text[], '## Lever une exception
+
+Quand une situation empêche une fonction de faire son travail, elle **lève** une exception avec **throw** :
+
+~~~php
+<?php
+function diviser(float $a, float $b): float
+{
+    if ($b == 0) {
+        throw new DivisionByZeroError("Division par zéro");
+    }
+    return $a / $b;
+}
+~~~
+
+## Intercepter avec try / catch
+
+~~~php
+<?php
+try {
+    echo diviser(10, 0);
+} catch (DivisionByZeroError $e) {
+    echo "Erreur : ", $e->getMessage();
+} finally {
+    echo "Toujours exécuté";
+}
+~~~
+
+Le bloc **finally** s''exécute dans tous les cas (fermeture d''un fichier, d''une transaction…).
+
+## La hiérarchie
+
+Tout ce qui peut être levé implémente **Throwable**. Deux familles : **Exception** (erreurs prévisibles de l''application : donnée invalide, ressource introuvable) et **Error** (erreurs du moteur : TypeError, DivisionByZeroError). On intercepte du plus précis au plus général.
+
+## Exceptions personnalisées
+
+~~~php
+<?php
+class NoteInvalideException extends InvalidArgumentException {}
+~~~
+
+Une exception propre au métier rend le code lisible et permet de réagir précisément (afficher un message à l''utilisateur, journaliser, annuler une transaction).
+
+## En production
+
+Les messages techniques (requête SQL, chemin des fichiers) ne doivent pas être montrés aux visiteurs : on affiche un message générique et on enregistre le détail dans un journal (**error_log**).', array['throw lève, try/catch intercepte, finally s''exécute toujours.', 'Exception = erreurs de l''application ; Error = erreurs du moteur.', 'Créer ses exceptions rend le traitement précis.']::text[], '[{"language":"php","title":"Exception personnalisée","code":"<?php\nclass NoteInvalideException extends InvalidArgumentException {}\n\nfunction verifierNote(mixed $saisie): float\n{\n    if (!is_numeric($saisie)) {\n        throw new NoteInvalideException(\"« $saisie » n''est pas un nombre\");\n    }\n    $note = (float) $saisie;\n    if ($note < 0 || $note > 20) {\n        throw new NoteInvalideException(\"$note est hors de l''intervalle 0–20\");\n    }\n    return $note;\n}\n\nforeach ([\"15\", \"abc\", \"23\", \"9.5\"] as $saisie) {\n    try {\n        echo \"Note acceptée : \", verifierNote($saisie), \"\\n\";\n    } catch (NoteInvalideException $e) {\n        echo \"Refusée : \", $e->getMessage(), \"\\n\";\n    }\n}"}]'::jsonb, null, 'publie', 3, now())
+on conflict (course_id, slug) do update set module_id = excluded.module_id, title = excluded.title, level = excluded.level, duration_minutes = excluded.duration_minutes, objectives = excluded.objectives, prerequisites = excluded.prerequisites, content = excluded.content, summary = excluded.summary, examples = excluded.examples, pedagogy = excluded.pedagogy, status = excluded.status, position = excluded.position;
+insert into public.quizzes (course_id, lesson_id, slug, title, is_final, pass_score, status, kind, duration_minutes, level_number) values ((select id from public.courses where slug = 'php'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'php') and slug = 'php-exceptions'), 'php-exceptions-quiz', 'Vérification — Exceptions', false, 60, 'publie', 'verification', null, null)
+on conflict (slug) do update set title = excluded.title, is_final = excluded.is_final, pass_score = excluded.pass_score, lesson_id = excluded.lesson_id, kind = excluded.kind, duration_minutes = excluded.duration_minutes, level_number = excluded.level_number;
+delete from public.quiz_questions where quiz_id = (select id from public.quizzes where slug = 'php-exceptions-quiz');
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-exceptions-quiz'), 'qcm', 'Quel bloc s''exécute même si une exception est levée ?', null, '["catch","finally","else","default"]'::jsonb, 0, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-exceptions-quiz'), 'qcm', 'Quelle interface est commune à Exception et Error ?', null, '["Countable","Throwable","Stringable","Iterator"]'::jsonb, 1, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-exceptions-quiz'), 'vrai_faux', 'On peut afficher le message SQL complet d''une exception aux visiteurs en production.', null, '["Vrai","Faux"]'::jsonb, 2, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+insert into public.modules (course_id, slug, title, description, position, level_number) values ((select id from public.courses where slug = 'php'), 'php-donnees-api', 'Bases de données avec PDO, JSON et API', null, 5, 3)
+on conflict (course_id, slug) do update set title = excluded.title, description = excluded.description, position = excluded.position, level_number = excluded.level_number;
+insert into public.lessons (module_id, course_id, slug, title, level, duration_minutes, objectives, prerequisites, content, summary, examples, pedagogy, status, position, validated_at)
+values ((select id from public.modules where course_id = (select id from public.courses where slug = 'php') and slug = 'php-donnees-api'), (select id from public.courses where slug = 'php'), 'php-pdo', 'PDO : se connecter et interroger une base de données', 'intermediaire', 50, array['Se connecter à une base avec PDO.', 'Exécuter des requêtes préparées (CRUD).', 'Comprendre et empêcher l''injection SQL.', 'Utiliser les transactions.']::text[], array['Exceptions', 'Parcours SQL, niveau 1']::text[], '## PDO, une interface unique
+
+**PDO** (PHP Data Objects) dialogue avec MySQL, MariaDB, PostgreSQL, SQLite… avec le même code. Seule la **chaîne de connexion** (DSN) change :
+
+~~~php
+<?php
+// MySQL / MariaDB sur un serveur
+$pdo = new PDO("mysql:host=localhost;dbname=universite;charset=utf8mb4", "utilisateur", "mot_de_passe");
+// SQLite (fichier ou mémoire) — utilisé sur la plateforme
+$pdo = new PDO("sqlite::memory:");
+~~~
+
+Options recommandées : **PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION** (les erreurs SQL deviennent des exceptions) et **PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC** (lignes sous forme de tableaux associatifs).
+
+Sur la plateforme, PHP tourne dans votre navigateur : il n''y a pas de serveur MySQL. Les exemples utilisent **SQLite** avec PDO. Le code PDO est identique ; seules quelques syntaxes SQL diffèrent (AUTO_INCREMENT en MySQL, AUTOINCREMENT en SQLite).
+
+## L''injection SQL
+
+Ne construisez **jamais** une requête en collant une donnée de l''utilisateur :
+
+~~~php
+<?php
+// DANGEREUX
+$sql = "SELECT * FROM utilisateurs WHERE email = ''" . $_POST["email"] . "''";
+~~~
+
+Avec l''e-mail **'' OR ''1''=''1**, la condition devient toujours vraie : l''attaquant lit toute la table, voire la supprime.
+
+## Les requêtes préparées
+
+La requête et les données voyagent **séparément** : la donnée ne peut jamais être interprétée comme du SQL.
+
+~~~php
+<?php
+$stmt = $pdo->prepare("SELECT * FROM etudiants WHERE filiere = :filiere AND age >= :age");
+$stmt->execute(["filiere" => $filiere, "age" => 18]);
+$lignes = $stmt->fetchAll();
+~~~
+
+**fetch()** lit une ligne, **fetchAll()** toutes, **fetchColumn()** une seule valeur ; **rowCount()** donne le nombre de lignes modifiées et **lastInsertId()** l''identifiant créé.
+
+## CRUD
+
+| Opération | SQL | Méthode PDO |
+|---|---|---|
+| Créer | INSERT | prepare + execute, lastInsertId |
+| Lire | SELECT | prepare + execute, fetch / fetchAll |
+| Modifier | UPDATE | prepare + execute, rowCount |
+| Supprimer | DELETE | prepare + execute, rowCount |
+
+## Transactions
+
+Plusieurs requêtes qui doivent réussir **ensemble** (virement : débit puis crédit) se placent dans une transaction : **beginTransaction()**, puis **commit()** si tout va bien, **rollBack()** en cas d''exception.', array['PDO : même code pour MySQL, PostgreSQL, SQLite ; seule la DSN change.', 'Jamais de donnée collée dans le SQL : requêtes préparées obligatoires.', 'fetch, fetchAll, fetchColumn, rowCount, lastInsertId.', 'beginTransaction / commit / rollBack : tout ou rien.']::text[], '[{"language":"php","title":"CRUD complet avec PDO et SQLite","code":"<?php\n$pdo = new PDO(\"sqlite::memory:\", null, null, [\n    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,\n    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,\n]);\n$pdo->exec(\"CREATE TABLE etudiants (id INTEGER PRIMARY KEY AUTOINCREMENT, nom TEXT NOT NULL, filiere TEXT NOT NULL, moyenne REAL)\");\n\n$ajout = $pdo->prepare(\"INSERT INTO etudiants (nom, filiere, moyenne) VALUES (:nom, :filiere, :moyenne)\");\nforeach ([[\"Kito\", \"Informatique\", 14.5], [\"Mbuyi\", \"Droit\", 11], [\"Kabila\", \"Informatique\", 9.5]] as [$nom, $filiere, $moyenne]) {\n    $ajout->execute(compact(\"nom\", \"filiere\", \"moyenne\"));\n}\necho \"Dernier identifiant : \", $pdo->lastInsertId(), \"\\n\";\n\n$maj = $pdo->prepare(\"UPDATE etudiants SET moyenne = :m WHERE nom = :n\");\n$maj->execute([\"m\" => 10.5, \"n\" => \"Kabila\"]);\necho \"Lignes modifiées : \", $maj->rowCount(), \"\\n\";\n\n$liste = $pdo->prepare(\"SELECT nom, moyenne FROM etudiants WHERE filiere = ? ORDER BY moyenne DESC\");\n$liste->execute([\"Informatique\"]);\nforeach ($liste->fetchAll() as $e) {\n    echo $e[\"nom\"], \" : \", $e[\"moyenne\"], \"\\n\";\n}\n\n// Tentative d''injection : traitée comme un simple texte\n$liste->execute([\"'' OR ''1''=''1\"]);\necho \"Résultats de l''injection : \", count($liste->fetchAll()), \"\\n\";"},{"language":"php","title":"Transaction : tout ou rien","code":"<?php\n$pdo = new PDO(\"sqlite::memory:\", null, null, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);\n$pdo->exec(\"CREATE TABLE comptes (nom TEXT PRIMARY KEY, solde INTEGER NOT NULL CHECK (solde >= 0))\");\n$pdo->exec(\"INSERT INTO comptes VALUES (''A'', 100), (''B'', 50)\");\n\nfunction virement(PDO $pdo, string $de, string $vers, int $montant): void\n{\n    $pdo->beginTransaction();\n    try {\n        $pdo->prepare(\"UPDATE comptes SET solde = solde + ? WHERE nom = ?\")->execute([$montant, $vers]);\n        $pdo->prepare(\"UPDATE comptes SET solde = solde - ? WHERE nom = ?\")->execute([$montant, $de]);\n        $pdo->commit();\n        echo \"Virement de $montant réussi\\n\";\n    } catch (PDOException $e) {\n        $pdo->rollBack();\n        echo \"Virement de $montant annulé (solde insuffisant)\\n\";\n    }\n}\n\nvirement($pdo, \"A\", \"B\", 30);\nvirement($pdo, \"A\", \"B\", 500);\nforeach ($pdo->query(\"SELECT nom, solde FROM comptes\") as $c) {\n    echo $c[\"nom\"], \" : \", $c[\"solde\"], \"\\n\";\n}"}]'::jsonb, null, 'publie', 1, now())
+on conflict (course_id, slug) do update set module_id = excluded.module_id, title = excluded.title, level = excluded.level, duration_minutes = excluded.duration_minutes, objectives = excluded.objectives, prerequisites = excluded.prerequisites, content = excluded.content, summary = excluded.summary, examples = excluded.examples, pedagogy = excluded.pedagogy, status = excluded.status, position = excluded.position;
+insert into public.quizzes (course_id, lesson_id, slug, title, is_final, pass_score, status, kind, duration_minutes, level_number) values ((select id from public.courses where slug = 'php'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'php') and slug = 'php-pdo'), 'php-pdo-quiz', 'Vérification — PDO', false, 60, 'publie', 'verification', null, null)
+on conflict (slug) do update set title = excluded.title, is_final = excluded.is_final, pass_score = excluded.pass_score, lesson_id = excluded.lesson_id, kind = excluded.kind, duration_minutes = excluded.duration_minutes, level_number = excluded.level_number;
+delete from public.quiz_questions where quiz_id = (select id from public.quizzes where slug = 'php-pdo-quiz');
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-pdo-quiz'), 'qcm', 'Qu''est-ce qui protège contre l''injection SQL ?', null, '["htmlspecialchars","Les requêtes préparées","trim","Un mot de passe long"]'::jsonb, 0, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-pdo-quiz'), 'qcm', 'Quelle méthode renvoie l''identifiant de la dernière ligne insérée ?', null, '["rowCount()","lastInsertId()","fetch()","insertId"]'::jsonb, 1, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-pdo-quiz'), 'qcm', 'Que fait rollBack() ?', null, '["Valide la transaction","Annule les modifications de la transaction","Ferme la connexion","Supprime la table"]'::jsonb, 2, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-pdo-quiz'), 'vrai_faux', 'Le code PDO change complètement entre MySQL et SQLite.', null, '["Vrai","Faux"]'::jsonb, 3, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, 'Seules la chaîne de connexion et quelques syntaxes SQL changent.' from qq;
+insert into public.lessons (module_id, course_id, slug, title, level, duration_minutes, objectives, prerequisites, content, summary, examples, pedagogy, status, position, validated_at)
+values ((select id from public.modules where course_id = (select id from public.courses where slug = 'php') and slug = 'php-donnees-api'), (select id from public.courses where slug = 'php'), 'php-json-api', 'JSON et API REST en PHP', 'intermediaire', 35, array['Encoder et décoder du JSON.', 'Comprendre les principes d''une API REST.', 'Produire une réponse d''API avec le bon code HTTP.']::text[], array['PDO']::text[], '## JSON
+
+**JSON** est le format d''échange des API : objets {"cle": valeur}, listes [ … ], nombres, textes, true/false/null.
+
+- **json_encode($tableau)** produit du JSON ; l''option **JSON_PRETTY_PRINT** l''indente, **JSON_UNESCAPED_UNICODE** garde les accents lisibles ;
+- **json_decode($texte, true)** renvoie un tableau associatif ; avec **JSON_THROW_ON_ERROR**, un JSON invalide lève une exception.
+
+## Une API REST
+
+Une API expose des **ressources** (étudiants, produits) à des adresses, et l''action dépend de la **méthode HTTP** :
+
+| Méthode | Adresse | Action | Code de réponse |
+|---|---|---|---|
+| GET | /api/etudiants | liste | 200 |
+| GET | /api/etudiants/7 | détail | 200 ou 404 |
+| POST | /api/etudiants | création | 201 |
+| PUT / PATCH | /api/etudiants/7 | modification | 200 |
+| DELETE | /api/etudiants/7 | suppression | 204 |
+
+Codes d''erreur courants : **400** (données invalides), **401** (non connecté), **403** (interdit), **404** (introuvable), **422** (validation), **500** (erreur serveur).
+
+## Répondre en JSON
+
+~~~php
+<?php
+header("Content-Type: application/json; charset=utf-8");
+http_response_code(201);
+echo json_encode(["id" => 7, "nom" => "Kito"]);
+~~~
+
+Le corps d''une requête POST en JSON se lit avec **file_get_contents("php://input")** puis json_decode. On valide ces données exactement comme un formulaire.
+
+## Routage simple
+
+Un **routeur** associe méthode + chemin à une fonction. Les frameworks (Laravel, Symfony, Slim) fournissent des routeurs complets ; écrire le sien une fois aide à comprendre leur fonctionnement.', array['json_encode / json_decode(…, true).', 'REST : ressource + méthode HTTP + code de réponse.', 'Content-Type: application/json et http_response_code().']::text[], '[{"language":"php","title":"Mini API avec routeur","code":"<?php\n$etudiants = [1 => [\"id\" => 1, \"nom\" => \"Kito\"], 2 => [\"id\" => 2, \"nom\" => \"Mbuyi\"]];\n\nfunction repondre(int $code, mixed $donnees): void\n{\n    echo \"HTTP $code\\n\", json_encode($donnees, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), \"\\n\\n\";\n}\n\nfunction traiter(string $methode, string $chemin, array &$etudiants, ?string $corps = null): void\n{\n    if ($methode === \"GET\" && $chemin === \"/api/etudiants\") {\n        repondre(200, array_values($etudiants));\n    } elseif ($methode === \"GET\" && preg_match(\"#^/api/etudiants/(\\d+)$#\", $chemin, $m)) {\n        isset($etudiants[(int) $m[1]]) ? repondre(200, $etudiants[(int) $m[1]]) : repondre(404, [\"erreur\" => \"Étudiant introuvable\"]);\n    } elseif ($methode === \"POST\" && $chemin === \"/api/etudiants\") {\n        $donnees = json_decode($corps ?? \"\", true);\n        if (!is_array($donnees) || trim($donnees[\"nom\"] ?? \"\") === \"\") {\n            repondre(422, [\"erreur\" => \"Le nom est obligatoire\"]);\n            return;\n        }\n        $id = max(array_keys($etudiants)) + 1;\n        $etudiants[$id] = [\"id\" => $id, \"nom\" => trim($donnees[\"nom\"])];\n        repondre(201, $etudiants[$id]);\n    } else {\n        repondre(404, [\"erreur\" => \"Route inconnue\"]);\n    }\n}\n\ntraiter(\"GET\", \"/api/etudiants/2\", $etudiants);\ntraiter(\"POST\", \"/api/etudiants\", $etudiants, ''{\"nom\": \"Kabila\"}'');\ntraiter(\"POST\", \"/api/etudiants\", $etudiants, ''{\"nom\": \"\"}'');\ntraiter(\"GET\", \"/api/etudiants/9\", $etudiants);"}]'::jsonb, null, 'publie', 2, now())
+on conflict (course_id, slug) do update set module_id = excluded.module_id, title = excluded.title, level = excluded.level, duration_minutes = excluded.duration_minutes, objectives = excluded.objectives, prerequisites = excluded.prerequisites, content = excluded.content, summary = excluded.summary, examples = excluded.examples, pedagogy = excluded.pedagogy, status = excluded.status, position = excluded.position;
+insert into public.quizzes (course_id, lesson_id, slug, title, is_final, pass_score, status, kind, duration_minutes, level_number) values ((select id from public.courses where slug = 'php'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'php') and slug = 'php-json-api'), 'php-json-quiz', 'Vérification — JSON et API', false, 60, 'publie', 'verification', null, null)
+on conflict (slug) do update set title = excluded.title, is_final = excluded.is_final, pass_score = excluded.pass_score, lesson_id = excluded.lesson_id, kind = excluded.kind, duration_minutes = excluded.duration_minutes, level_number = excluded.level_number;
+delete from public.quiz_questions where quiz_id = (select id from public.quizzes where slug = 'php-json-quiz');
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-json-quiz'), 'qcm', 'Quel code HTTP pour une ressource créée ?', null, '["200","201","204","404"]'::jsonb, 0, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-json-quiz'), 'qcm', 'Que renvoie json_decode(''{"a":1}'', true) ?', null, '["un objet stdClass","un tableau associatif","une chaîne","null"]'::jsonb, 1, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-json-quiz'), 'qcm', 'Quelle méthode HTTP pour supprimer ?', null, '["GET","POST","DELETE","PATCH"]'::jsonb, 2, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[2]'::jsonb, null from qq;
+insert into public.modules (course_id, slug, title, description, position, level_number) values ((select id from public.courses where slug = 'php'), 'php-professionnel', 'PHP professionnel : sécurité, architecture et tests', null, 6, 4)
+on conflict (course_id, slug) do update set title = excluded.title, description = excluded.description, position = excluded.position, level_number = excluded.level_number;
+insert into public.lessons (module_id, course_id, slug, title, level, duration_minutes, objectives, prerequisites, content, summary, examples, pedagogy, status, position, validated_at)
+values ((select id from public.modules where course_id = (select id from public.courses where slug = 'php') and slug = 'php-professionnel'), (select id from public.courses where slug = 'php'), 'php-securite', 'Sécurité d''une application PHP', 'avance', 50, array['Stocker les mots de passe avec password_hash.', 'Se protéger du XSS, de l''injection SQL et du CSRF.', 'Sécuriser les sessions et les téléversements de fichiers.']::text[], array['PDO', 'Formulaires et sessions']::text[], '## Les mots de passe
+
+On ne stocke **jamais** un mot de passe en clair, ni avec md5 ou sha1 (trop rapides à casser). On utilise :
+
+~~~php
+<?php
+$empreinte = password_hash($motDePasse, PASSWORD_DEFAULT); // bcrypt ou argon2, avec sel aléatoire
+if (password_verify($saisie, $empreinte)) { /* connecté */ }
+~~~
+
+**password_needs_rehash()** permet de renforcer l''empreinte lorsque l''algorithme évolue.
+
+## Les principales failles
+
+| Faille | Principe | Protection |
+|---|---|---|
+| Injection SQL | une donnée modifie la requête | requêtes préparées (PDO) |
+| XSS | un script injecté s''exécute chez les visiteurs | htmlspecialchars à l''affichage, en-tête Content-Security-Policy |
+| CSRF | un autre site fait envoyer un formulaire à la victime connectée | jeton aléatoire en session, vérifié à chaque POST ; cookies SameSite |
+| Fixation / vol de session | l''identifiant de session est deviné ou volé | session_regenerate_id(true) à la connexion ; cookies httponly, secure, samesite |
+| Téléversement malveillant | un fichier .php déguisé est envoyé puis exécuté | vérifier taille et type réel, renommer avec un nom aléatoire, stocker hors du dossier public |
+| Force brute | essais répétés de mots de passe | limiter les tentatives, délai progressif |
+
+## Le jeton CSRF
+
+~~~php
+<?php
+$_SESSION["csrf"] ??= bin2hex(random_bytes(32));
+// dans le formulaire : <input type="hidden" name="csrf" value="…">
+if (!hash_equals($_SESSION["csrf"], $_POST["csrf"] ?? "")) {
+    http_response_code(403);
+    exit("Requête refusée");
+}
+~~~
+
+**hash_equals** compare en temps constant ; **random_bytes** produit un aléa cryptographique (jamais rand()).
+
+## Téléversement de fichiers
+
+Avec **$_FILES** : vérifier **error === UPLOAD_ERR_OK**, la **taille**, le **type réel** (extension fileinfo : finfo_file), générer un nom aléatoire et déplacer avec **move_uploaded_file** dans un dossier où PHP ne s''exécute pas. Ne jamais faire confiance au nom ni au type envoyés par le navigateur.
+
+## Principes généraux
+
+- **moindre privilège** : l''utilisateur de la base n''a que les droits nécessaires ;
+- **défense en profondeur** : plusieurs protections indépendantes ;
+- **secrets hors du code** : mots de passe de base et clés dans des variables d''environnement, jamais dans Git ;
+- **mises à jour** : PHP et les dépendances (composer audit).', array['password_hash / password_verify, jamais md5 ni mot de passe en clair.', 'Préparer (SQL), échapper (HTML), jeton (CSRF), régénérer (session).', 'Fichiers téléversés : taille, type réel, nom aléatoire, hors du dossier public.']::text[], '[{"language":"php","title":"Inscription et connexion sécurisées","code":"<?php\n$pdo = new PDO(\"sqlite::memory:\", null, null, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);\n$pdo->exec(\"CREATE TABLE utilisateurs (id INTEGER PRIMARY KEY, email TEXT UNIQUE NOT NULL, mot_de_passe TEXT NOT NULL)\");\n\nfunction inscrire(PDO $pdo, string $email, string $mdp): string\n{\n    if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($mdp) < 10) {\n        return \"Inscription refusée : e-mail invalide ou mot de passe trop court\";\n    }\n    $pdo->prepare(\"INSERT INTO utilisateurs (email, mot_de_passe) VALUES (?, ?)\")->execute([$email, password_hash($mdp, PASSWORD_DEFAULT)]);\n    return \"Compte créé pour $email\";\n}\n\nfunction connecter(PDO $pdo, string $email, string $mdp): string\n{\n    $stmt = $pdo->prepare(\"SELECT mot_de_passe FROM utilisateurs WHERE email = ?\");\n    $stmt->execute([$email]);\n    $empreinte = $stmt->fetchColumn();\n    // Même message dans les deux cas : on ne révèle pas si l''e-mail existe.\n    return $empreinte !== false && password_verify($mdp, $empreinte) ? \"Connexion réussie\" : \"Identifiants incorrects\";\n}\n\necho inscrire($pdo, \"kito@upl.cd\", \"court\"), \"\\n\";\necho inscrire($pdo, \"kito@upl.cd\", \"Un-mot-de-passe-solide\"), \"\\n\";\necho connecter($pdo, \"kito@upl.cd\", \"mauvais\"), \"\\n\";\necho connecter($pdo, \"kito@upl.cd\", \"Un-mot-de-passe-solide\"), \"\\n\";\n$stocke = $pdo->query(\"SELECT mot_de_passe FROM utilisateurs\")->fetchColumn();\necho \"Stocké en base : \", substr($stocke, 0, 7), \"… (\", strlen($stocke), \" caractères, jamais le mot de passe)\\n\";\necho \"Jeton CSRF : \", strlen(bin2hex(random_bytes(32))), \" caractères aléatoires\\n\";"}]'::jsonb, null, 'publie', 1, now())
+on conflict (course_id, slug) do update set module_id = excluded.module_id, title = excluded.title, level = excluded.level, duration_minutes = excluded.duration_minutes, objectives = excluded.objectives, prerequisites = excluded.prerequisites, content = excluded.content, summary = excluded.summary, examples = excluded.examples, pedagogy = excluded.pedagogy, status = excluded.status, position = excluded.position;
+insert into public.quizzes (course_id, lesson_id, slug, title, is_final, pass_score, status, kind, duration_minutes, level_number) values ((select id from public.courses where slug = 'php'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'php') and slug = 'php-securite'), 'php-securite-quiz', 'Vérification — Sécurité', false, 60, 'publie', 'verification', null, null)
+on conflict (slug) do update set title = excluded.title, is_final = excluded.is_final, pass_score = excluded.pass_score, lesson_id = excluded.lesson_id, kind = excluded.kind, duration_minutes = excluded.duration_minutes, level_number = excluded.level_number;
+delete from public.quiz_questions where quiz_id = (select id from public.quizzes where slug = 'php-securite-quiz');
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-securite-quiz'), 'qcm', 'Quelle fonction pour stocker un mot de passe ?', null, '["md5","sha1","password_hash","base64_encode"]'::jsonb, 0, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[2]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-securite-quiz'), 'qcm', 'Contre quelle attaque protège un jeton dans les formulaires ?', null, '["XSS","CSRF","Injection SQL","Force brute"]'::jsonb, 1, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-securite-quiz'), 'qcm', 'Quelle fonction pour générer un jeton de sécurité ?', null, '["rand()","uniqid()","random_bytes()","time()"]'::jsonb, 2, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[2]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-securite-quiz'), 'vrai_faux', 'On peut se fier au type MIME envoyé par le navigateur pour un fichier téléversé.', null, '["Vrai","Faux"]'::jsonb, 3, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+insert into public.lessons (module_id, course_id, slug, title, level, duration_minutes, objectives, prerequisites, content, summary, examples, pedagogy, status, position, validated_at)
+values ((select id from public.modules where course_id = (select id from public.courses where slug = 'php') and slug = 'php-professionnel'), (select id from public.courses where slug = 'php'), 'php-architecture-tests', 'Architecture MVC, middleware et tests automatisés', 'avance', 50, array['Organiser une application en couches (MVC).', 'Comprendre le rôle d''un routeur et des middlewares.', 'Écrire des tests automatisés.']::text[], array['Sécurité d''une application PHP', 'Héritage et interfaces']::text[], '## Pourquoi une architecture ?
+
+Un script de 2 000 lignes qui mélange SQL, HTML et règles métier devient impossible à maintenir. On sépare les **responsabilités** :
+
+- **Modèle** : les données et les règles métier (classes Etudiant, dépôts d''accès à la base) ;
+- **Vue** : l''affichage (gabarits HTML, sans requêtes SQL) ;
+- **Contrôleur** : reçoit la requête, appelle le modèle, choisit la vue.
+
+## Arborescence type
 
 ~~~text
-Bienvenue <prénom> !
-Filière : <filière>
-Bon courage pour cette année.
-~~~', 'debutant', 'ecrire_algorithme', '{}'::text[], '[{"input":"Amani\nInformatique","output":"Bienvenue Amani !\nFilière : Informatique\nBon courage pour cette année."}]'::jsonb, '{}'::text[], '', array['Deux LIRE, puis trois ECRIRE, dans cet ordre.', 'Attention à l''espace avant le point d''exclamation : ECRIRE("Bienvenue ", prenom, " !").']::text[], 5, false, 'publie', 22, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-trois-lignes');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-trois-lignes'), null, 'Amani
-Informatique', 'Bienvenue Amani !
-Filière : Informatique
-Bon courage pour cette année.', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-trois-lignes'), null, 'Grâce
-Intelligence Artificielle', 'Bienvenue Grâce !
-Filière : Intelligence Artificielle
-Bon courage pour cette année.', true, 1, 1, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-trois-lignes'), 'ALGORITHME Presentation
-VARIABLES
-  prenom, filiere : CHAINE
-DEBUT
-  LIRE(prenom)
-  LIRE(filiere)
-  ECRIRE("Bienvenue ", prenom, " !")
-  ECRIRE("Filière : ", filiere)
-  ECRIRE("Bon courage pour cette année.")
-FIN', 'Exécution séquentielle : les deux lectures d''abord, puis les trois affichages dans l''ordre demandé. Une filière peut contenir des espaces : une variable CHAINE reçoit toute la ligne.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-carre-perimetre', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'introduction-algorithmique'), 'pseudocode', 'Périmètre et aire d''un carré', 'Lisez la longueur du côté d''un carré (un réel) et affichez :
+public/index.php        ← point d''entrée unique (front controller)
+src/Controleurs/        ← EtudiantControleur.php
+src/Modeles/            ← Etudiant.php, EtudiantDepot.php
+src/Middlewares/        ← Authentification.php
+vues/                   ← etudiants/liste.php
+config/                 ← paramètres (sans secrets)
+tests/                  ← tests automatisés
+vendor/                 ← dépendances installées par Composer
+~~~
 
-~~~text
-Périmètre : <4 × côté>
-Aire : <côté × côté>
-~~~', 'debutant', 'ecrire_algorithme', '{}'::text[], '[{"input":"3","output":"Périmètre : 12\nAire : 9"}]'::jsonb, '{}'::text[], '', array['Entrée : le côté. Sorties : le périmètre et l''aire.', 'Le côté peut être décimal : choisissez le type REEL.']::text[], 5, false, 'publie', 23, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-carre-perimetre');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-carre-perimetre'), null, '3', 'Périmètre : 12
-Aire : 9', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-carre-perimetre'), null, '2.5', 'Périmètre : 10
-Aire : 6.25', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-carre-perimetre'), null, '0', 'Périmètre : 0
-Aire : 0', true, 1, 2, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-carre-perimetre'), 'ALGORITHME Carre
-VARIABLES
-  cote : REEL
-DEBUT
-  LIRE(cote)
-  ECRIRE("Périmètre : ", 4 * cote)
-  ECRIRE("Aire : ", cote * cote)
-FIN', 'Les expressions sont calculées directement dans ECRIRE. Le cas limite côté = 0 est valide et donne 0 pour les deux résultats.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-intervalle', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'logique-raisonnement'), 'pseudocode', 'Appartenance à un intervalle', 'Lisez un nombre x (réel). Affichez **VRAI** si x appartient à l''intervalle [10 ; 20] (bornes incluses), **FAUX** sinon. N''utilisez pas de structure SI : affichez directement la valeur d''une condition.', 'debutant', 'ecrire_algorithme', '{}'::text[], '[{"input":"15","output":"VRAI"}]'::jsonb, array['Ne pas utiliser SI.']::text[], '', array['Une condition a une valeur VRAI ou FAUX : on peut l''afficher avec ECRIRE.', 'Deux comparaisons reliées par ET : (x >= 10) ET (x <= 20).']::text[], 10, false, 'publie', 24, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-intervalle');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-intervalle'), null, '15', 'VRAI', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-intervalle'), null, '25', 'FAUX', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-intervalle'), null, '10', 'VRAI', true, 1, 2, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-intervalle'), null, '20', 'VRAI', true, 1, 3, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-intervalle'), null, '9.99', 'FAUX', true, 1, 4, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-intervalle'), 'ALGORITHME Intervalle
-VARIABLES
-  x : REEL
-DEBUT
-  LIRE(x)
-  ECRIRE((x >= 10) ET (x <= 20))
-FIN', 'Les bornes sont incluses : on utilise >= et <=. Les tests cachés vérifient précisément les cas limites 10 et 20.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-table-verite', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'logique-raisonnement'), 'pseudocode', 'Calculateur de connecteurs logiques', 'Lisez deux booléens a et b (saisis VRAI ou FAUX) et affichez :
+Seul le dossier **public/** est accessible depuis le web : le code et la configuration restent hors d''atteinte.
 
-~~~text
-a ET b : <valeur>
-a OU b : <valeur>
-NON a : <valeur>
-~~~', 'debutant', 'ecrire_algorithme', '{}'::text[], '[{"input":"VRAI\nFAUX","output":"a ET b : FAUX\na OU b : VRAI\nNON a : FAUX"}]'::jsonb, '{}'::text[], '', array['Déclarez a et b de type BOOLEEN : LIRE convertit VRAI/FAUX.', 'ECRIRE("a ET b : ", a ET b)']::text[], 10, false, 'publie', 25, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-table-verite');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-table-verite'), null, 'VRAI
-FAUX', 'a ET b : FAUX
-a OU b : VRAI
-NON a : FAUX', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-table-verite'), null, 'VRAI
-VRAI', 'a ET b : VRAI
-a OU b : VRAI
-NON a : FAUX', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-table-verite'), null, 'FAUX
-FAUX', 'a ET b : FAUX
-a OU b : FAUX
-NON a : VRAI', true, 1, 2, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-table-verite'), null, 'FAUX
-VRAI', 'a ET b : FAUX
-a OU b : VRAI
-NON a : VRAI', true, 1, 3, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-table-verite'), 'ALGORITHME Connecteurs
-VARIABLES
-  a, b : BOOLEEN
-DEBUT
-  LIRE(a)
-  LIRE(b)
-  ECRIRE("a ET b : ", a ET b)
-  ECRIRE("a OU b : ", a OU b)
-  ECRIRE("NON a : ", NON a)
-FIN', 'Les quatre tests correspondent aux quatre lignes de la table de vérité : c''est un jeu d''essai **exhaustif**.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-de-morgan', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'logique-raisonnement'), 'pseudocode', 'Vérifier une loi de De Morgan', 'Lisez deux booléens a et b. Affichez la valeur de NON (a ET b), puis celle de (NON a) OU (NON b), puis si les deux sont égales :
+## Composer et l''autochargement
 
-~~~text
-NON (a ET b) : <valeur>
-NON a OU NON b : <valeur>
-Égales : <valeur>
-~~~', 'intermediaire', 'ecrire_algorithme', '{}'::text[], '[{"input":"VRAI\nFAUX","output":"NON (a ET b) : VRAI\nNON a OU NON b : VRAI\nÉgales : VRAI"}]'::jsonb, '{}'::text[], '', array['Deux booléens se comparent avec =.', 'Mettez des parenthèses : (NON (a ET b)) = ((NON a) OU (NON b)).']::text[], 10, false, 'publie', 26, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-de-morgan');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-de-morgan'), null, 'VRAI
-FAUX', 'NON (a ET b) : VRAI
-NON a OU NON b : VRAI
-Égales : VRAI', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-de-morgan'), null, 'VRAI
-VRAI', 'NON (a ET b) : FAUX
-NON a OU NON b : FAUX
-Égales : VRAI', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-de-morgan'), null, 'FAUX
-FAUX', 'NON (a ET b) : VRAI
-NON a OU NON b : VRAI
-Égales : VRAI', true, 1, 2, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-de-morgan'), 'ALGORITHME VerifDeMorgan
-VARIABLES
-  a, b, g, d : BOOLEEN
-DEBUT
-  LIRE(a)
-  LIRE(b)
-  g ← NON (a ET b)
-  d ← (NON a) OU (NON b)
-  ECRIRE("NON (a ET b) : ", g)
-  ECRIRE("NON a OU NON b : ", d)
-  ECRIRE("Égales : ", g = d)
-FIN', 'Pour toutes les entrées, les deux expressions sont égales : c''est exactement ce qu''affirme la loi de De Morgan. Ranger chaque expression dans une variable rend l''algorithme plus lisible.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-prix-ttc', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'analyse-problemes'), 'pseudocode', 'Prix toutes taxes comprises', 'Un magasin applique une TVA de **16 %**. Lisez le prix unitaire hors taxes (réel) puis la quantité (entier) et affichez :
+**Composer** installe les bibliothèques (composer require) et génère un **autochargeur** : avec la norme **PSR-4**, la classe App\Modeles\Etudiant est cherchée dans src/Modeles/Etudiant.php ; un seul **require "vendor/autoload.php"** suffit.
 
-~~~text
-Total HT : <prix × quantité>
-TVA : <16 % du total HT>
-Total TTC : <total HT + TVA>
-~~~', 'debutant', 'probleme', '{}'::text[], '[{"input":"1000\n3","output":"Total HT : 3000\nTVA : 480\nTotal TTC : 3480"}]'::jsonb, '{}'::text[], '', array['Commencez par écrire les données, les résultats et un jeu d''essai.', 'Déclarez TAUX_TVA = 0.16 dans la section CONSTANTES.', 'Calculez d''abord le total HT, puis la TVA à partir de ce total.']::text[], 10, false, 'publie', 27, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-prix-ttc');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-prix-ttc'), null, '1000
-3', 'Total HT : 3000
-TVA : 480
-Total TTC : 3480', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-prix-ttc'), null, '2500
-0', 'Total HT : 0
-TVA : 0
-Total TTC : 0', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-prix-ttc'), null, '125
-4', 'Total HT : 500
-TVA : 80
-Total TTC : 580', true, 1, 2, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-prix-ttc'), 'ALGORITHME PrixTTC
-CONSTANTES
-  TAUX_TVA = 0.16
-VARIABLES
-  prix, totalHT, tva : REEL
-  quantite : ENTIER
-DEBUT
-  LIRE(prix)
-  LIRE(quantite)
-  totalHT ← prix * quantite
-  tva ← totalHT * TAUX_TVA
-  ECRIRE("Total HT : ", totalHT)
-  ECRIRE("TVA : ", tva)
-  ECRIRE("Total TTC : ", totalHT + tva)
-FIN', 'Décomposition : total HT, puis TVA, puis total TTC. La constante TAUX_TVA permet de changer le taux en une seule ligne. Le cas quantité = 0 est un cas limite valide.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-rendu-monnaie', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'analyse-problemes'), 'pseudocode', 'Rendu de monnaie', 'Lisez un montant m en francs congolais (entier, multiple de 100). Décomposez-le avec le moins de coupures possible en billets de 5 000, 1 000 et 500 FC et en pièces de 100 FC. Affichez :
+## Routeur et middlewares
 
-~~~text
-5000 FC : <nombre>
-1000 FC : <nombre>
-500 FC : <nombre>
-100 FC : <nombre>
-~~~', 'intermediaire', 'probleme', '{}'::text[], '[{"input":"7600","output":"5000 FC : 1\n1000 FC : 2\n500 FC : 1\n100 FC : 1"}]'::jsonb, '{}'::text[], '', array['Le nombre de billets de 5 000 est le quotient m DIV 5000.', 'Il reste alors m MOD 5000 à rendre : recommencez avec 1 000.', 'Utilisez une variable reste mise à jour après chaque coupure.']::text[], 10, true, 'publie', 28, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-rendu-monnaie');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-rendu-monnaie'), null, '7600', '5000 FC : 1
-1000 FC : 2
-500 FC : 1
-100 FC : 1', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-rendu-monnaie'), null, '0', '5000 FC : 0
-1000 FC : 0
-500 FC : 0
-100 FC : 0', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-rendu-monnaie'), null, '5000', '5000 FC : 1
-1000 FC : 0
-500 FC : 0
-100 FC : 0', true, 1, 2, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-rendu-monnaie'), null, '400', '5000 FC : 0
-1000 FC : 0
-500 FC : 0
-100 FC : 4', true, 1, 3, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-rendu-monnaie'), null, '23900', '5000 FC : 4
-1000 FC : 3
-500 FC : 1
-100 FC : 4', true, 1, 4, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-rendu-monnaie'), 'ALGORITHME Monnaie
-VARIABLES
-  m, reste : ENTIER
-DEBUT
-  LIRE(m)
-  ECRIRE("5000 FC : ", m DIV 5000)
-  reste ← m MOD 5000
-  ECRIRE("1000 FC : ", reste DIV 1000)
-  reste ← reste MOD 1000
-  ECRIRE("500 FC : ", reste DIV 500)
-  reste ← reste MOD 500
-  ECRIRE("100 FC : ", reste DIV 100)
-FIN', 'À chaque étape, le quotient donne le nombre de coupures et le reste ce qu''il reste à rendre. Le jeu d''essai du cours (0, 5 000, 400) couvre les cas limites.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-semaines-jours', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'analyse-problemes'), 'pseudocode', 'Semaines, jours et heures', 'Lisez une durée en heures (entier ≥ 0) et affichez-la en semaines, jours et heures :
+Le **routeur** associe une adresse à une action de contrôleur. Un **middleware** est une couche traversée par chaque requête avant le contrôleur : vérifier la connexion, le rôle (étudiant, enseignant, administrateur), limiter le débit, journaliser. Chaque middleware peut laisser passer la requête ou répondre lui-même (403, redirection).
 
-~~~text
-<s> semaine(s) <j> jour(s) <h> heure(s)
-~~~', 'intermediaire', 'probleme', '{}'::text[], '[{"input":"200","output":"1 semaine(s) 1 jour(s) 8 heure(s)"}]'::jsonb, '{}'::text[], '', array['Une semaine = 168 heures, un jour = 24 heures.', 'Semaines : total DIV 168 ; il reste total MOD 168 heures.']::text[], 10, false, 'publie', 29, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-semaines-jours');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-semaines-jours'), null, '200', '1 semaine(s) 1 jour(s) 8 heure(s)', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-semaines-jours'), null, '23', '0 semaine(s) 0 jour(s) 23 heure(s)', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-semaines-jours'), null, '168', '1 semaine(s) 0 jour(s) 0 heure(s)', true, 1, 2, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-semaines-jours'), null, '0', '0 semaine(s) 0 jour(s) 0 heure(s)', true, 1, 3, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-semaines-jours'), 'ALGORITHME DureeHeures
-CONSTANTES
-  H_SEMAINE = 168
-  H_JOUR = 24
-VARIABLES
-  total, s, j, h : ENTIER
-DEBUT
-  LIRE(total)
-  s ← total DIV H_SEMAINE
-  j ← (total MOD H_SEMAINE) DIV H_JOUR
-  h ← total MOD H_JOUR
-  ECRIRE(s, " semaine(s) ", j, " jour(s) ", h, " heure(s)")
-FIN', 'Les heures restantes se calculent directement par total MOD 24, car 168 est un multiple de 24.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-permutation-circulaire', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'variables-constantes'), 'pseudocode', 'Permutation circulaire', 'Lisez trois entiers a, b et c. Faites tourner leurs valeurs : a reçoit l''ancienne valeur de b, b celle de c, c celle de a. Affichez ensuite a, b et c séparés par un espace.', 'debutant', 'ecrire_algorithme', '{}'::text[], '[{"input":"1\n2\n3","output":"2 3 1"}]'::jsonb, array['Utilisez exactement une variable auxiliaire.', 'Les valeurs doivent réellement être échangées dans les variables (pas seulement affichées dans un autre ordre).']::text[], '', array['Sauvegardez d''abord la valeur qui va être écrasée en premier.', 'temp ← a, puis a ← b, b ← c, c ← temp.']::text[], 10, false, 'publie', 30, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-permutation-circulaire');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-permutation-circulaire'), null, '1
-2
-3', '2 3 1', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-permutation-circulaire'), null, '7
-7
-0', '7 0 7', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-permutation-circulaire'), null, '-5
-10
-20', '10 20 -5', true, 1, 2, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-permutation-circulaire'), 'ALGORITHME Rotation
-VARIABLES
-  a, b, c, temp : ENTIER
-DEBUT
-  LIRE(a)
-  LIRE(b)
-  LIRE(c)
-  temp ← a
-  a ← b
-  b ← c
-  c ← temp
-  ECRIRE(a, " ", b, " ", c)
-FIN', 'Chaque affectation écrase une valeur : on sauvegarde **a** avant tout. Faites la trace : avec 1, 2, 3, temp = 1, puis a = 2, b = 3, c = 1.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-solde-compte', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'variables-constantes'), 'pseudocode', 'Suivi d''un compte', 'Lisez le solde initial d''un compte, puis le montant d''un dépôt, puis le montant d''un retrait (des réels). Mettez à jour **une seule variable solde** après chaque opération et affichez :
+## Injection de dépendances
 
-~~~text
-Après dépôt : <solde>
-Après retrait : <solde>
-~~~', 'debutant', 'ecrire_algorithme', '{}'::text[], '[{"input":"10000\n2500\n4000","output":"Après dépôt : 12500\nAprès retrait : 8500"}]'::jsonb, '{}'::text[], '', array['solde ← solde + depot', 'Affichez le solde juste après chaque mise à jour.']::text[], 10, false, 'publie', 31, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-solde-compte');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-solde-compte'), null, '10000
-2500
-4000', 'Après dépôt : 12500
-Après retrait : 8500', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-solde-compte'), null, '0
-0
-0', 'Après dépôt : 0
-Après retrait : 0', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-solde-compte'), null, '150.5
-49.5
-200', 'Après dépôt : 200
-Après retrait : 0', true, 1, 2, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-solde-compte'), 'ALGORITHME Compte
-VARIABLES
-  solde, depot, retrait : REEL
-DEBUT
-  LIRE(solde)
-  LIRE(depot)
-  LIRE(retrait)
-  solde ← solde + depot
-  ECRIRE("Après dépôt : ", solde)
-  solde ← solde - retrait
-  ECRIRE("Après retrait : ", solde)
-FIN', 'La même variable évolue : sa valeur dépend du moment où on l''affiche. C''est ce que montre un tableau de suivi.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-celsius-fahrenheit', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'types-donnees'), 'pseudocode', 'Conversion Celsius → Fahrenheit', 'Lisez une température en degrés Celsius (réel) et affichez-la en degrés Fahrenheit, sachant que F = C × 9 / 5 + 32 :
+Une classe **reçoit** ce dont elle a besoin (dans son constructeur) au lieu de le créer : un contrôleur reçoit un **EtudiantDepot** (interface). En test, on lui donne un dépôt en mémoire ; en production, un dépôt PDO.
 
-~~~text
-<F> °F
-~~~', 'debutant', 'ecrire_algorithme', '{}'::text[], '[{"input":"100","output":"212 °F"}]'::jsonb, '{}'::text[], '', array['La division produit un réel : déclarez des variables REEL.', 'ECRIRE(f, " °F")']::text[], 10, false, 'publie', 32, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-celsius-fahrenheit');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-celsius-fahrenheit'), null, '100', '212 °F', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-celsius-fahrenheit'), null, '0', '32 °F', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-celsius-fahrenheit'), null, '-40', '-40 °F', true, 1, 2, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-celsius-fahrenheit'), null, '36.6', '97.88 °F', true, 1, 3, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-celsius-fahrenheit'), 'ALGORITHME Fahrenheit
-VARIABLES
-  c, f : REEL
-DEBUT
-  LIRE(c)
-  f ← c * 9 / 5 + 32
-  ECRIRE(f, " °F")
-FIN', 'Avec des variables ENTIER, 36.6 ne pourrait pas être lu et c × 9 / 5 ne pourrait pas être rangé : le type REEL s''impose. −40 est la température où les deux échelles coïncident.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-initiales', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'types-donnees'), 'pseudocode', 'Initiales', 'Lisez un prénom puis un nom et affichez les initiales en majuscules, chacune suivie d''un point (exemple : « Grâce » et « mutombo » → **G.M.**).', 'debutant', 'ecrire_algorithme', '{}'::text[], '[{"input":"Grâce\nmutombo","output":"G.M."}]'::jsonb, '{}'::text[], '', array['Le premier caractère d''une chaîne s s''obtient par s[1].', 'MAJUSCULE transforme un texte en majuscules ; + concatène des chaînes.']::text[], 10, false, 'publie', 33, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-initiales');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-initiales'), null, 'Grâce
-mutombo', 'G.M.', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-initiales'), null, 'jean
-Kabila', 'J.K.', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-initiales'), null, 'élise
-ngoy', 'É.N.', true, 1, 2, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-initiales'), 'ALGORITHME Initiales
-VARIABLES
-  prenom, nom : CHAINE
-DEBUT
-  LIRE(prenom)
-  LIRE(nom)
-  ECRIRE(MAJUSCULE(prenom[1] + "." + nom[1] + "."))
-FIN', 'prenom[1] est un caractère, que l''on concatène avec "." pour former une chaîne, puis MAJUSCULE s''applique à l''ensemble.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-majeur', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'types-donnees'), 'pseudocode', 'Majeur ou mineur ?', 'Lisez l''année de naissance d''une personne. Calculez son âge en 2026 et rangez dans une variable **BOOLEEN** le fait qu''elle soit majeure (18 ans ou plus). Affichez :
+## Tests automatisés
 
-~~~text
-Âge : <âge>
-Majeur : <VRAI ou FAUX>
-~~~', 'debutant', 'ecrire_algorithme', '{}'::text[], '[{"input":"2005","output":"Âge : 21\nMajeur : VRAI"}]'::jsonb, '{}'::text[], '', array['majeur ← age >= 18', 'Pas besoin de SI : une comparaison produit déjà un booléen.']::text[], 10, false, 'publie', 34, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-majeur');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-majeur'), null, '2005', 'Âge : 21
-Majeur : VRAI', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-majeur'), null, '2010', 'Âge : 16
-Majeur : FAUX', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-majeur'), null, '2008', 'Âge : 18
-Majeur : VRAI', true, 1, 2, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-majeur'), 'ALGORITHME Majorite
-CONSTANTES
-  ANNEE = 2026
-VARIABLES
-  naissance, age : ENTIER
-  majeur : BOOLEEN
-DEBUT
-  LIRE(naissance)
-  age ← ANNEE - naissance
-  majeur ← age >= 18
-  ECRIRE("Âge : ", age)
-  ECRIRE("Majeur : ", majeur)
-FIN', 'Le cas limite 18 ans doit donner VRAI : la comparaison est **>=**.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-chiffres', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'operateurs'), 'pseudocode', 'Somme et inversion des chiffres', 'Lisez un entier n compris entre 100 et 999. Affichez la somme de ses chiffres, puis le nombre obtenu en inversant ses chiffres :
+Un **test unitaire** vérifie une petite unité (une fonction, une méthode) ; un **test d''intégration** vérifie plusieurs couches ensemble (contrôleur + base). En PHP, l''outil standard est **PHPUnit** (installé avec Composer) : **$this->assertSame(14.0, $e->moyenne());**. Les tests s''exécutent à chaque modification, souvent automatiquement (intégration continue).
 
-~~~text
-Somme : <somme>
-Inversé : <nombre inversé>
-~~~', 'intermediaire', 'ecrire_algorithme', '{}'::text[], '[{"input":"375","output":"Somme : 15\nInversé : 573"}]'::jsonb, '{}'::text[], '', array['Unités : n MOD 10 ; dizaines : (n DIV 10) MOD 10 ; centaines : n DIV 100.', 'Nombre inversé : u × 100 + d × 10 + c.']::text[], 10, true, 'publie', 35, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-chiffres');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-chiffres'), null, '375', 'Somme : 15
-Inversé : 573', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-chiffres'), null, '100', 'Somme : 1
-Inversé : 1', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-chiffres'), null, '999', 'Somme : 27
-Inversé : 999', true, 1, 2, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-chiffres'), null, '120', 'Somme : 3
-Inversé : 21', true, 1, 3, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-chiffres'), 'ALGORITHME Chiffres
-VARIABLES
-  n, c, d, u : ENTIER
-DEBUT
-  LIRE(n)
-  u ← n MOD 10
-  d ← (n DIV 10) MOD 10
-  c ← n DIV 100
-  ECRIRE("Somme : ", c + d + u)
-  ECRIRE("Inversé : ", u * 100 + d * 10 + c)
-FIN', 'DIV et MOD par 10 isolent les chiffres. Pour 100, l''inversé est 001, c''est-à-dire le nombre 1 : un entier n''a pas de zéros en tête.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-divisibilite', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'operateurs'), 'pseudocode', 'Tests de divisibilité', 'Lisez un entier n et affichez, sans structure SI :
+## Vers Laravel
 
-~~~text
-Pair : <VRAI/FAUX>
-Multiple de 3 : <VRAI/FAUX>
-Multiple de 6 : <VRAI/FAUX>
-~~~', 'debutant', 'ecrire_algorithme', '{}'::text[], '[{"input":"12","output":"Pair : VRAI\nMultiple de 3 : VRAI\nMultiple de 6 : VRAI"}]'::jsonb, array['Ne pas utiliser SI.']::text[], '', array['n est un multiple de k si n MOD k = 0.', 'Un multiple de 6 est un nombre pair ET multiple de 3 (ou simplement n MOD 6 = 0).']::text[], 10, false, 'publie', 36, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-divisibilite');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-divisibilite'), null, '12', 'Pair : VRAI
-Multiple de 3 : VRAI
-Multiple de 6 : VRAI', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-divisibilite'), null, '9', 'Pair : FAUX
-Multiple de 3 : VRAI
-Multiple de 6 : FAUX', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-divisibilite'), null, '0', 'Pair : VRAI
-Multiple de 3 : VRAI
-Multiple de 6 : VRAI', true, 1, 2, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-divisibilite'), null, '-4', 'Pair : VRAI
-Multiple de 3 : FAUX
-Multiple de 6 : FAUX', true, 1, 3, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-divisibilite'), 'ALGORITHME Divisibilite
-VARIABLES
-  n : ENTIER
-DEBUT
-  LIRE(n)
-  ECRIRE("Pair : ", n MOD 2 = 0)
-  ECRIRE("Multiple de 3 : ", n MOD 3 = 0)
-  ECRIRE("Multiple de 6 : ", (n MOD 2 = 0) ET (n MOD 3 = 0))
-FIN', '0 est un multiple de tous les entiers (0 MOD k = 0). Pour −4, le reste de la division par 2 est 0 : on teste « = 0 », ce qui fonctionne quel que soit le signe.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-facture', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'entrees-sorties'), 'pseudocode', 'Facture formatée', 'Lisez le nom d''un article, son prix unitaire (réel) et la quantité (entier). Affichez exactement :
+**Laravel** fournit tout cela prêt à l''emploi : routeur, contrôleurs, modèles Eloquent, vues Blade, middlewares, migrations, validation, authentification et tests. Comprendre les briques ci-dessus permet de l''utiliser en sachant ce qui se passe.', array['MVC : Modèle (données), Vue (affichage), Contrôleur (orchestration).', 'public/ seul exposé ; Composer + PSR-4 chargent les classes.', 'Routeur et middlewares filtrent les requêtes ; on injecte les dépendances.', 'Tests unitaires et d''intégration (PHPUnit) à chaque modification.']::text[], '[{"language":"php","title":"Mini-framework : routeur, middleware, contrôleur et tests","code":"<?php\ndeclare(strict_types=1);\n\ninterface EtudiantDepot { public function tous(): array; }\n\nfinal class DepotMemoire implements EtudiantDepot\n{\n    public function __construct(private array $donnees) {}\n    public function tous(): array { return $this->donnees; }\n}\n\nfinal class EtudiantControleur\n{\n    public function __construct(private EtudiantDepot $depot) {}\n    public function liste(): string\n    {\n        return implode(\", \", array_map(fn(array $e): string => $e[\"nom\"], $this->depot->tous()));\n    }\n}\n\n/** Middleware : refuse la requête si l''utilisateur n''a pas le rôle demandé. */\nfunction exigerRole(string $role, callable $suivant): callable\n{\n    return fn(array $requete): string => ($requete[\"role\"] ?? \"\") === $role ? $suivant($requete) : \"403 Accès refusé\";\n}\n\n$controleur = new EtudiantControleur(new DepotMemoire([[\"nom\" => \"Kito\"], [\"nom\" => \"Mbuyi\"]]));\n$routes = [\"GET /admin/etudiants\" => exigerRole(\"administrateur\", fn(array $r): string => \"200 \" . $controleur->liste())];\n\nfunction dispatcher(array $routes, array $requete): string\n{\n    return isset($routes[$requete[\"route\"]]) ? $routes[$requete[\"route\"]]($requete) : \"404 Introuvable\";\n}\n\necho dispatcher($routes, [\"route\" => \"GET /admin/etudiants\", \"role\" => \"administrateur\"]), \"\\n\";\necho dispatcher($routes, [\"route\" => \"GET /admin/etudiants\", \"role\" => \"etudiant\"]), \"\\n\";\necho dispatcher($routes, [\"route\" => \"GET /inconnu\"]), \"\\n\";\n\n// Tests unitaires minimalistes (PHPUnit fait la même chose, en plus complet)\nfunction verifier(string $nom, bool $condition): void { echo ($condition ? \"✓ \" : \"✗ \"), $nom, \"\\n\"; }\nverifier(\"la liste contient Kito\", str_contains($controleur->liste(), \"Kito\"));\nverifier(\"un étudiant est refusé\", dispatcher($routes, [\"route\" => \"GET /admin/etudiants\", \"role\" => \"etudiant\"]) === \"403 Accès refusé\");"}]'::jsonb, null, 'publie', 2, now())
+on conflict (course_id, slug) do update set module_id = excluded.module_id, title = excluded.title, level = excluded.level, duration_minutes = excluded.duration_minutes, objectives = excluded.objectives, prerequisites = excluded.prerequisites, content = excluded.content, summary = excluded.summary, examples = excluded.examples, pedagogy = excluded.pedagogy, status = excluded.status, position = excluded.position;
+insert into public.quizzes (course_id, lesson_id, slug, title, is_final, pass_score, status, kind, duration_minutes, level_number) values ((select id from public.courses where slug = 'php'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'php') and slug = 'php-architecture-tests'), 'php-architecture-quiz', 'Vérification — Architecture', false, 60, 'publie', 'verification', null, null)
+on conflict (slug) do update set title = excluded.title, is_final = excluded.is_final, pass_score = excluded.pass_score, lesson_id = excluded.lesson_id, kind = excluded.kind, duration_minutes = excluded.duration_minutes, level_number = excluded.level_number;
+delete from public.quiz_questions where quiz_id = (select id from public.quizzes where slug = 'php-architecture-quiz');
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-architecture-quiz'), 'qcm', 'Dans MVC, qui contient les requêtes SQL ?', null, '["La vue","Le modèle (ou le dépôt)","Le contrôleur uniquement","Le fichier CSS"]'::jsonb, 0, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-architecture-quiz'), 'qcm', 'Quel est le rôle d''un middleware d''authentification ?', null, '["Afficher la page","Filtrer les requêtes avant le contrôleur","Créer les tables","Compiler PHP"]'::jsonb, 1, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-architecture-quiz'), 'qcm', 'Quel outil installe les dépendances PHP ?', null, '["npm","pip","Composer","Maven"]'::jsonb, 2, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[2]'::jsonb, null from qq;
+delete from public.modules m where m.course_id = (select id from public.courses where slug = 'php') and m.slug not in ('php-premiers-pas', 'php-controle-donnees', 'php-web', 'php-objet', 'php-donnees-api', 'php-professionnel') and not exists (select 1 from public.lessons l where l.module_id = m.id);
+insert into public.course_levels (course_id, number, title, description, objectives, planned_chapters, chapters_validated_pct, exam_pass_score) values ((select id from public.courses where slug = 'php'), 1, 'Niveau 1 — Très débutant : premières pages dynamiques', 'Comprendre le rôle de PHP côté serveur et écrire ses premiers scripts : echo, variables, types, constantes, opérateurs, concaténation et premières conditions. Projet : une page personnalisée.', array['Expliquer le fonctionnement client / serveur.', 'Écrire et exécuter un script PHP.', 'Manipuler variables, types, constantes et opérateurs.', 'Produire une page HTML qui change selon les données.']::text[], '{}'::text[], 100, 70)
+on conflict (course_id, number) do update set title = excluded.title, description = excluded.description, objectives = excluded.objectives, planned_chapters = excluded.planned_chapters, chapters_validated_pct = excluded.chapters_validated_pct, exam_pass_score = excluded.exam_pass_score;
+insert into public.quizzes (course_id, lesson_id, slug, title, is_final, pass_score, status, kind, duration_minutes, level_number) values ((select id from public.courses where slug = 'php'), null, 'php-examen-niveau-1', 'Examen du niveau 1 — Premiers pas en PHP', false, 70, 'publie', 'examen_niveau', null, 1)
+on conflict (slug) do update set title = excluded.title, is_final = excluded.is_final, pass_score = excluded.pass_score, lesson_id = excluded.lesson_id, kind = excluded.kind, duration_minutes = excluded.duration_minutes, level_number = excluded.level_number;
+delete from public.quiz_questions where quiz_id = (select id from public.quizzes where slug = 'php-examen-niveau-1');
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-examen-niveau-1'), 'qcm', 'Que reçoit le navigateur quand il demande une page PHP ?', null, '["Le code PHP","Le HTML produit par PHP","Un fichier binaire","Le code et le HTML"]'::jsonb, 0, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-examen-niveau-1'), 'qcm', 'Quel symbole commence le nom d''une variable ?', null, '["@","#","$","&"]'::jsonb, 1, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[2]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-examen-niveau-1'), 'qcm', 'Qu''affiche echo "Total : " . 2 + 3; en PHP 8 ?', null, '["Total : 5","Total : 23","une erreur","5"]'::jsonb, 2, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[0]'::jsonb, 'En PHP 8, + et - sont prioritaires sur le point : 2 + 3 est calculé d''abord.' from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-examen-niveau-1'), 'qcm', 'Que vaut 7 % 3 ?', null, '["2","1","2.33","0"]'::jsonb, 3, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-examen-niveau-1'), 'qcm', 'Que vaut "7" === 7 ?', null, '["true","false"]'::jsonb, 4, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-examen-niveau-1'), 'qcm', 'Comment déclarer une constante ?', null, '["$TAUX = 0.16;","const TAUX = 0.16;","constant TAUX 0.16;","let TAUX = 0.16;"]'::jsonb, 5, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-examen-niveau-1'), 'qcm', 'Quelle forme affiche une valeur au milieu du HTML ?', null, '["<? echo ?>","<?= $valeur ?>","{{ $valeur }}","<%= valeur %>"]'::jsonb, 6, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-examen-niveau-1'), 'vrai_faux', 'Une donnée saisie au clavier ou dans un formulaire arrive sous forme de chaîne.', null, '["Vrai","Faux"]'::jsonb, 7, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[0]'::jsonb, null from qq;
+insert into public.course_levels (course_id, number, title, description, objectives, planned_chapters, chapters_validated_pct, exam_pass_score) values ((select id from public.courses where slug = 'php'), 2, 'Niveau 2 — Débutant : programmes et formulaires', 'Structures de contrôle, tableaux, fonctions, chaînes et dates, puis le web : formulaires GET/POST, validation, sécurité de l''affichage, sessions, cookies et inclusion de fichiers. Projets : inscription, calculatrice, gestion de notes.', array['Choisir la bonne structure de contrôle.', 'Organiser les données en tableaux associatifs.', 'Écrire des fonctions réutilisables.', 'Traiter un formulaire de façon sûre et conserver un état avec les sessions.']::text[], array['Projet guidé : formulaire de connexion complet (pages, session, déconnexion)', 'Projet guidé : formulaire de contact avec validation et message de confirmation']::text[], 100, 70)
+on conflict (course_id, number) do update set title = excluded.title, description = excluded.description, objectives = excluded.objectives, planned_chapters = excluded.planned_chapters, chapters_validated_pct = excluded.chapters_validated_pct, exam_pass_score = excluded.exam_pass_score;
+insert into public.quizzes (course_id, lesson_id, slug, title, is_final, pass_score, status, kind, duration_minutes, level_number) values ((select id from public.courses where slug = 'php'), null, 'php-examen-niveau-2', 'Examen du niveau 2 — Programmes et formulaires', false, 70, 'publie', 'examen_niveau', null, 2)
+on conflict (slug) do update set title = excluded.title, is_final = excluded.is_final, pass_score = excluded.pass_score, lesson_id = excluded.lesson_id, kind = excluded.kind, duration_minutes = excluded.duration_minutes, level_number = excluded.level_number;
+delete from public.quiz_questions where quiz_id = (select id from public.quizzes where slug = 'php-examen-niveau-2');
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-examen-niveau-2'), 'qcm', 'Que se passe-t-il sans break dans un case de switch ?', null, '["Erreur","L''exécution continue dans le cas suivant","Le switch s''arrête","Rien"]'::jsonb, 0, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-examen-niveau-2'), 'qcm', 'Quelle boucle pour parcourir un tableau associatif ?', null, '["for","foreach ($t as $cle => $valeur)","while","do…while"]'::jsonb, 1, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-examen-niveau-2'), 'qcm', 'Que renvoie count([3, 5, 8]) ?', null, '["8","3","16","2"]'::jsonb, 2, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-examen-niveau-2'), 'qcm', 'Quelle fonction découpe une chaîne en tableau ?', null, '["implode","explode","split","substr"]'::jsonb, 3, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-examen-niveau-2'), 'qcm', 'Une variable créée dans une fonction est visible…', null, '["partout","dans la fonction seulement","dans les fichiers inclus","dans la session"]'::jsonb, 4, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-examen-niveau-2'), 'qcm', 'Quel tableau contient les champs d''un formulaire method="post" ?', null, '["$_GET","$_POST","$_FORM","$_REQUEST_POST"]'::jsonb, 5, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-examen-niveau-2'), 'qcm', 'Avant d''afficher une saisie dans une page, on utilise…', null, '["htmlspecialchars","trim","intval","json_encode"]'::jsonb, 6, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[0]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-examen-niveau-2'), 'qcm', 'Où sont conservées les données de $_SESSION ?', null, '["Dans le navigateur","Sur le serveur","Dans l''URL","Dans le cache"]'::jsonb, 7, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-examen-niveau-2'), 'qcm', 'Quelle instruction arrête le script si le fichier inclus est absent ?', null, '["include","require","use","import"]'::jsonb, 8, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+insert into public.course_levels (course_id, number, title, description, objectives, planned_chapters, chapters_validated_pct, exam_pass_score) values ((select id from public.courses where slug = 'php'), 3, 'Niveau 3 — Intermédiaire : objets, données et API', 'Programmation orientée objet (classes, encapsulation, héritage, polymorphisme, interfaces, traits, namespaces), exceptions, base de données avec PDO, JSON et API REST.', array['Modéliser un domaine avec des classes.', 'Gérer les erreurs avec des exceptions.', 'Accéder à une base de données de façon sûre avec PDO.', 'Produire et consommer du JSON dans une API REST.']::text[], array['Fichiers : lecture, écriture et téléversement sécurisé', 'Architecture MVC appliquée à un projet', 'Composer et autoloading (PSR-4)', 'Projets : gestion des étudiants, authentification, gestion des produits et des articles, tableau de bord administrateur']::text[], 100, 70)
+on conflict (course_id, number) do update set title = excluded.title, description = excluded.description, objectives = excluded.objectives, planned_chapters = excluded.planned_chapters, chapters_validated_pct = excluded.chapters_validated_pct, exam_pass_score = excluded.exam_pass_score;
+insert into public.quizzes (course_id, lesson_id, slug, title, is_final, pass_score, status, kind, duration_minutes, level_number) values ((select id from public.courses where slug = 'php'), null, 'php-examen-niveau-3', 'Examen du niveau 3 — Objets, données et API', false, 70, 'publie', 'examen_niveau', null, 3)
+on conflict (slug) do update set title = excluded.title, is_final = excluded.is_final, pass_score = excluded.pass_score, lesson_id = excluded.lesson_id, kind = excluded.kind, duration_minutes = excluded.duration_minutes, level_number = excluded.level_number;
+delete from public.quiz_questions where quiz_id = (select id from public.quizzes where slug = 'php-examen-niveau-3');
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-examen-niveau-3'), 'qcm', 'Quel mot-clé crée un objet ?', null, '["class","new","object","create"]'::jsonb, 0, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-examen-niveau-3'), 'qcm', 'Quelle visibilité réserve une propriété à la classe ?', null, '["public","protected","private","final"]'::jsonb, 1, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[2]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-examen-niveau-3'), 'qcm', 'Que permet une interface ?', null, '["Hériter du code","Définir un contrat de méthodes","Créer des variables globales","Se connecter à la base"]'::jsonb, 2, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-examen-niveau-3'), 'qcm', 'Quel bloc s''exécute toujours, exception ou non ?', null, '["catch","finally","try","throw"]'::jsonb, 3, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-examen-niveau-3'), 'qcm', 'Que protège une requête préparée ?', null, '["Le XSS","L''injection SQL","Le CSRF","La force brute"]'::jsonb, 4, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-examen-niveau-3'), 'qcm', 'Que fait $pdo->rollBack() ?', null, '["Valide","Annule la transaction","Ferme la connexion","Rejoue la requête"]'::jsonb, 5, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-examen-niveau-3'), 'qcm', 'Quel code HTTP pour « ressource introuvable » ?', null, '["200","201","404","500"]'::jsonb, 6, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[2]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-examen-niveau-3'), 'qcm', 'Que renvoie json_decode sur un JSON invalide (sans option) ?', null, '["false","null","une exception","\"\""]'::jsonb, 7, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+insert into public.course_levels (course_id, number, title, description, objectives, planned_chapters, chapters_validated_pct, exam_pass_score) values ((select id from public.courses where slug = 'php'), 4, 'Niveau 4 — Professionnel : sécurité, architecture et mise en production', 'Sécurité d''une application (mots de passe, XSS, injection SQL, CSRF, sessions, fichiers), architecture professionnelle (MVC, routeur, middlewares, injection de dépendances), tests automatisés, Composer, Laravel et déploiement.', array['Sécuriser une application PHP de bout en bout.', 'Concevoir une architecture maintenable.', 'Tester automatiquement son code.', 'Préparer un déploiement et la maintenance.']::text[], array['PHP moderne : enums, readonly, attributs, types avancés', 'API sécurisées : authentification par jeton, rôles et permissions', 'Tests unitaires et d''intégration avec PHPUnit', 'Introduction à Laravel (routes, Eloquent, Blade, migrations)', 'Optimisation : cache, OPcache, requêtes et profilage', 'Déploiement et maintenance d''une application PHP', 'Projet final : application web complète (authentification, rôles, CRUD, API, tests)']::text[], 100, 70)
+on conflict (course_id, number) do update set title = excluded.title, description = excluded.description, objectives = excluded.objectives, planned_chapters = excluded.planned_chapters, chapters_validated_pct = excluded.chapters_validated_pct, exam_pass_score = excluded.exam_pass_score;
+insert into public.quizzes (course_id, lesson_id, slug, title, is_final, pass_score, status, kind, duration_minutes, level_number) values ((select id from public.courses where slug = 'php'), null, 'php-examen-niveau-4', 'Examen du niveau 4 — PHP professionnel', false, 70, 'publie', 'examen_niveau', null, 4)
+on conflict (slug) do update set title = excluded.title, is_final = excluded.is_final, pass_score = excluded.pass_score, lesson_id = excluded.lesson_id, kind = excluded.kind, duration_minutes = excluded.duration_minutes, level_number = excluded.level_number;
+delete from public.quiz_questions where quiz_id = (select id from public.quizzes where slug = 'php-examen-niveau-4');
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-examen-niveau-4'), 'qcm', 'Quelle fonction pour stocker un mot de passe ?', null, '["md5","sha1","password_hash","base64_encode"]'::jsonb, 0, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[2]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-examen-niveau-4'), 'qcm', 'Contre quelle attaque protège un jeton caché dans chaque formulaire ?', null, '["XSS","CSRF","Injection SQL","DDoS"]'::jsonb, 1, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-examen-niveau-4'), 'qcm', 'Que faire juste après une connexion réussie ?', null, '["session_destroy()","session_regenerate_id(true)","setcookie(\"mdp\", …)","rien"]'::jsonb, 2, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-examen-niveau-4'), 'qcm', 'Quel dossier doit être le seul accessible depuis le web ?', null, '["src/","vendor/","public/","config/"]'::jsonb, 3, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[2]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-examen-niveau-4'), 'qcm', 'Qu''est-ce qu''un middleware ?', null, '["Une vue","Une couche traversée par la requête avant le contrôleur","Une table SQL","Un fichier CSS"]'::jsonb, 4, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-examen-niveau-4'), 'qcm', 'Quel outil standard pour les tests unitaires en PHP ?', null, '["Jest","PHPUnit","pytest","JUnit"]'::jsonb, 5, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-examen-niveau-4'), 'vrai_faux', 'Les mots de passe de la base de données doivent être écrits dans le code source versionné.', null, '["Vrai","Faux"]'::jsonb, 6, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+insert into public.quizzes (course_id, lesson_id, slug, title, is_final, pass_score, status, kind, duration_minutes, level_number) values ((select id from public.courses where slug = 'php'), null, 'php-positionnement', 'Test de positionnement — PHP', false, 0, 'publie', 'positionnement', null, null)
+on conflict (slug) do update set title = excluded.title, is_final = excluded.is_final, pass_score = excluded.pass_score, lesson_id = excluded.lesson_id, kind = excluded.kind, duration_minutes = excluded.duration_minutes, level_number = excluded.level_number;
+delete from public.quiz_questions where quiz_id = (select id from public.quizzes where slug = 'php-positionnement');
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-positionnement'), 'qcm', 'Où s''exécute PHP ?', null, '["Dans le navigateur","Sur le serveur","Dans la base","Nulle part"]'::jsonb, 0, 1) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-positionnement'), 'qcm', 'Quel opérateur concatène des chaînes ?', null, '["+",".","&","concat"]'::jsonb, 1, 1) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-positionnement'), 'qcm', 'Que vaut 17 % 5 ?', null, '["3","2","3.4","12"]'::jsonb, 2, 1) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-positionnement'), 'qcm', 'Comment parcourir clés et valeurs d''un tableau ?', null, '["for ($t)","foreach ($t as $k => $v)","while ($t)","each($t)"]'::jsonb, 3, 2) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-positionnement'), 'qcm', 'Que contient $_POST ?', null, '["Les cookies","Les champs d''un formulaire envoyé en POST","La session","Les fichiers"]'::jsonb, 4, 2) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-positionnement'), 'qcm', 'Quelle fonction protège l''affichage contre le XSS ?', null, '["htmlspecialchars","trim","strlen","md5"]'::jsonb, 5, 2) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[0]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-positionnement'), 'qcm', 'Que désigne $this ?', null, '["La classe mère","L''objet courant","Le fichier","La session"]'::jsonb, 6, 3) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-positionnement'), 'qcm', 'Quel mécanisme empêche l''injection SQL avec PDO ?', null, '["Les requêtes préparées","Les exceptions","Les sessions","Les transactions"]'::jsonb, 7, 3) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[0]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-positionnement'), 'qcm', 'Quel mot-clé lève une exception ?', null, '["catch","throw","raise","error"]'::jsonb, 8, 3) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-positionnement'), 'qcm', 'Quelle protection contre le CSRF ?', null, '["htmlspecialchars","Un jeton aléatoire vérifié à chaque POST","md5","Un captcha seulement"]'::jsonb, 9, 4) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-positionnement'), 'qcm', 'Dans MVC, quelle couche contient les gabarits HTML ?', null, '["Modèle","Vue","Contrôleur","Routeur"]'::jsonb, 10, 4) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-positionnement'), 'qcm', 'Quel outil gère les dépendances PHP ?', null, '["Composer","npm","pip","apt"]'::jsonb, 11, 4) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[0]'::jsonb, null from qq;
+insert into public.quizzes (course_id, lesson_id, slug, title, is_final, pass_score, status, kind, duration_minutes, level_number) values ((select id from public.courses where slug = 'php'), null, 'php-evaluation-finale', 'Évaluation finale — PHP', true, 60, 'publie', 'verification', null, null)
+on conflict (slug) do update set title = excluded.title, is_final = excluded.is_final, pass_score = excluded.pass_score, lesson_id = excluded.lesson_id, kind = excluded.kind, duration_minutes = excluded.duration_minutes, level_number = excluded.level_number;
+delete from public.quiz_questions where quiz_id = (select id from public.quizzes where slug = 'php-evaluation-finale');
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-evaluation-finale'), 'qcm', 'Où s''exécute le code PHP d''un site ?', null, '["Navigateur","Serveur","Base de données","CSS"]'::jsonb, 0, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-evaluation-finale'), 'qcm', 'Quel opérateur concatène deux chaînes ?', null, '["+",".","&","concat"]'::jsonb, 1, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-evaluation-finale'), 'qcm', 'Quelle boucle parcourt un tableau associatif avec ses clés ?', null, '["for","while","foreach ($t as $k => $v)","do…while"]'::jsonb, 2, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[2]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-evaluation-finale'), 'qcm', 'Quelle fonction échappe le HTML à l''affichage ?', null, '["htmlspecialchars","strip_tags","trim","addslashes"]'::jsonb, 3, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[0]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-evaluation-finale'), 'qcm', 'Quel mécanisme empêche l''injection SQL ?', null, '["Les requêtes préparées","Les sessions","Les cookies","json_encode"]'::jsonb, 4, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[0]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-evaluation-finale'), 'qcm', 'Quelle fonction pour vérifier un mot de passe haché ?', null, '["password_verify","md5","hash_equals seul","crypt"]'::jsonb, 5, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[0]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-evaluation-finale'), 'qcm', 'Quel mot-clé crée une classe fille ?', null, '["implements","extends","trait","new"]'::jsonb, 6, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-evaluation-finale'), 'vrai_faux', 'Les données de $_SESSION sont stockées dans le navigateur.', null, '["Vrai","Faux"]'::jsonb, 7, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
 
-~~~text
-===== FACTURE =====
-Article : <nom>
-Quantité : <quantité> x <prix> FC
-Total : <total> FC
-===================
-~~~', 'debutant', 'ecrire_algorithme', '{}'::text[], '[{"input":"Cahier\n1500\n4","output":"===== FACTURE =====\nArticle : Cahier\nQuantité : 4 x 1500 FC\nTotal : 6000 FC\n==================="}]'::jsonb, '{}'::text[], '', array['Cinq ECRIRE ; respectez les espaces autour de « : » et de « x ».', 'Le total est prix × quantité.']::text[], 10, false, 'publie', 37, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-facture');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-facture'), null, 'Cahier
-1500
-4', '===== FACTURE =====
-Article : Cahier
-Quantité : 4 x 1500 FC
-Total : 6000 FC
-===================', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-facture'), null, 'Stylo bleu
-250.5
-2', '===== FACTURE =====
-Article : Stylo bleu
-Quantité : 2 x 250.5 FC
-Total : 501 FC
-===================', true, 1, 1, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-facture'), 'ALGORITHME Facture
-VARIABLES
-  article : CHAINE
-  prix : REEL
-  quantite : ENTIER
-DEBUT
-  LIRE(article)
-  LIRE(prix)
-  LIRE(quantite)
-  ECRIRE("===== FACTURE =====")
-  ECRIRE("Article : ", article)
-  ECRIRE("Quantité : ", quantite, " x ", prix, " FC")
-  ECRIRE("Total : ", prix * quantite, " FC")
-  ECRIRE("===================")
-FIN', 'L''essentiel est le **format** : la sortie est comparée ligne par ligne. Le nom de l''article peut contenir des espaces.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-fiche-etudiant', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'entrees-sorties'), 'pseudocode', 'Fiche étudiant', 'Lisez un nom, un prénom, une année de naissance et une moyenne (réel). Affichez :
+-- ===== Formation complète SQL — maîtriser les bases de données =====
+insert into public.courses (slug, language_id, category_id, code, title, tagline, description, level, prerequisites, objectives, duration_hours, status, sort_order, validated_at)
+values ('sql', 'sql', (select id from public.course_categories where slug = 'donnees'), 'Parcours I', 'Formation complète SQL — maîtriser les bases de données', 'Créer, interroger et concevoir des bases de données relationnelles.', 'Toute application sérieuse (université, pharmacie, banque, boutique) range ses données dans une base relationnelle. Cette formation va de la première table jusqu''aux jointures, sous-requêtes, transactions, normalisation, conception MERISE, déclencheurs et sécurité. Chaque requête s''exécute réellement avec SQLite dans votre navigateur ; les différences avec MySQL et PostgreSQL sont expliquées.', 'debutant', array['Aucun prérequis pour le niveau 1.', 'Notions d''algorithmique utiles à partir du niveau 2.']::text[], array['Créer des tables et manipuler les données (CREATE, INSERT, SELECT, UPDATE, DELETE).', 'Écrire des requêtes avec filtres, tris, agrégats, jointures et sous-requêtes.', 'Concevoir une base normalisée à partir d''un cahier des charges (MERISE).', 'Garantir l''intégrité, la sécurité et les performances d''une base.']::text[], 50, 'publie', 10, now())
+on conflict (slug) do update set language_id = excluded.language_id, category_id = excluded.category_id, code = excluded.code, title = excluded.title, tagline = excluded.tagline, description = excluded.description, level = excluded.level, prerequisites = excluded.prerequisites, objectives = excluded.objectives, duration_hours = excluded.duration_hours, status = excluded.status, sort_order = excluded.sort_order;
+insert into public.modules (course_id, slug, title, description, position, level_number) values ((select id from public.courses where slug = 'sql'), 'sql-fondements', 'Les fondements des bases de données', null, 1, 1)
+on conflict (course_id, slug) do update set title = excluded.title, description = excluded.description, position = excluded.position, level_number = excluded.level_number;
+insert into public.lessons (module_id, course_id, slug, title, level, duration_minutes, objectives, prerequisites, content, summary, examples, pedagogy, status, position, validated_at)
+values ((select id from public.modules where course_id = (select id from public.courses where slug = 'sql') and slug = 'sql-fondements'), (select id from public.courses where slug = 'sql'), 'sql-introduction', 'Qu''est-ce qu''une base de données ? Tables, lignes, clés', 'debutant', 35, array['Définir base de données, SGBD, table, colonne, ligne.', 'Expliquer le rôle des clés primaires et étrangères.', 'Situer MySQL, MariaDB, PostgreSQL et SQLite.']::text[], '{}'::text[], '## Pourquoi une base de données ?
 
-~~~text
-NOM : <nom en majuscules>
-Prénom : <prénom>
-Âge en 2026 : <âge>
-Moyenne : <moyenne>/20
-Admis : <VRAI si moyenne >= 10, sinon FAUX>
-~~~', 'intermediaire', 'ecrire_algorithme', '{}'::text[], '[{"input":"Kalenga\nRuth\n2006\n13.5","output":"NOM : KALENGA\nPrénom : Ruth\nÂge en 2026 : 20\nMoyenne : 13.5/20\nAdmis : VRAI"}]'::jsonb, '{}'::text[], '', array['MAJUSCULE(nom) met le nom en majuscules.', '« /20 » est un texte collé juste après la moyenne.']::text[], 10, false, 'publie', 38, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-fiche-etudiant');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-fiche-etudiant'), null, 'Kalenga
-Ruth
-2006
-13.5', 'NOM : KALENGA
-Prénom : Ruth
-Âge en 2026 : 20
-Moyenne : 13.5/20
-Admis : VRAI', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-fiche-etudiant'), null, 'ilunga
-Josué
-2007
-9.99', 'NOM : ILUNGA
-Prénom : Josué
-Âge en 2026 : 19
-Moyenne : 9.99/20
-Admis : FAUX', true, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-fiche-etudiant'), null, 'Banza
-Marie
-2004
-10', 'NOM : BANZA
-Prénom : Marie
-Âge en 2026 : 22
-Moyenne : 10/20
-Admis : VRAI', true, 1, 2, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-fiche-etudiant'), 'ALGORITHME Fiche
-VARIABLES
-  nom, prenom : CHAINE
-  annee : ENTIER
-  moyenne : REEL
-DEBUT
-  LIRE(nom)
-  LIRE(prenom)
-  LIRE(annee)
-  LIRE(moyenne)
-  ECRIRE("NOM : ", MAJUSCULE(nom))
-  ECRIRE("Prénom : ", prenom)
-  ECRIRE("Âge en 2026 : ", 2026 - annee)
-  ECRIRE("Moyenne : ", moyenne, "/20")
-  ECRIRE("Admis : ", moyenne >= 10)
-FIN', 'Quatre lectures typées, cinq affichages. Le test caché avec la moyenne 10 vérifie la borne : 10 est admis.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-projet-carte', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'introduction-algorithmique'), 'pseudocode', 'Projet : carte de visite numérique', 'Lisez un prénom, une filière puis une année d''études (texte, par exemple « Bac 1 ») et affichez exactement :
+Une université doit retrouver en une seconde les notes d''un étudiant parmi des milliers, empêcher deux étudiants d''avoir le même matricule, et permettre à plusieurs secrétaires de travailler en même temps sans écraser leurs modifications. Un fichier Excel ne suffit plus : on utilise une **base de données** gérée par un **SGBD** (système de gestion de bases de données).
 
-~~~text
-+----------------------+
-Nom : <prénom>
-Filière : <filière>
-Année : <année>
-+----------------------+
-~~~', 'debutant', 'mini_projet', '{}'::text[], '[{"input":"Amani\nInformatique\nBac 1","output":"+----------------------+\nNom : Amani\nFilière : Informatique\nAnnée : Bac 1\n+----------------------+"}]'::jsonb, '{}'::text[], '', array['Trois LIRE puis cinq ECRIRE.', 'Les deux bordures sont identiques : copiez-les exactement.']::text[], 15, false, 'publie', 39, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-projet-carte');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-projet-carte'), null, 'Amani
-Informatique
-Bac 1', '+----------------------+
-Nom : Amani
-Filière : Informatique
-Année : Bac 1
-+----------------------+', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-projet-carte'), null, 'Ruth
-Intelligence Artificielle
-Bac 2', '+----------------------+
-Nom : Ruth
-Filière : Intelligence Artificielle
-Année : Bac 2
-+----------------------+', true, 1, 1, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-projet-carte'), 'ALGORITHME Carte
-VARIABLES
-  prenom, filiere, annee : CHAINE
-DEBUT
-  LIRE(prenom)
-  LIRE(filiere)
-  LIRE(annee)
-  ECRIRE("+----------------------+")
-  ECRIRE("Nom : ", prenom)
-  ECRIRE("Filière : ", filiere)
-  ECRIRE("Année : ", annee)
-  ECRIRE("+----------------------+")
-FIN', 'L''année est lue comme un texte car elle contient « Bac ». L''algorithme est purement séquentiel.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-projet-bibliotheque', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'logique-raisonnement'), 'pseudocode', 'Projet : contrôle d''accès à la bibliothèque', 'Lisez l''âge (entier), puis si la carte est valide (booléen), puis si la cotisation est payée (booléen). L''accès est autorisé si **la carte est valide ET (la cotisation est payée OU l''âge est inférieur à 18)**. L''accès est gratuit si l''âge est inférieur à 18. Affichez, sans utiliser SI :
+## Le modèle relationnel
 
-~~~text
-Accès : <VRAI/FAUX>
-Gratuit : <VRAI/FAUX>
-~~~', 'intermediaire', 'mini_projet', '{}'::text[], '[{"input":"20\nVRAI\nFAUX","output":"Accès : FAUX\nGratuit : FAUX"}]'::jsonb, array['Ne pas utiliser SI.']::text[], '', array['Traduisez mot à mot : carte ET (cotisation OU age < 18).', 'Les parenthèses sont indispensables : ET est prioritaire sur OU.']::text[], 20, true, 'publie', 40, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-projet-bibliotheque');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-projet-bibliotheque'), null, '20
-VRAI
-FAUX', 'Accès : FAUX
-Gratuit : FAUX', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-projet-bibliotheque'), null, '16
-VRAI
-FAUX', 'Accès : VRAI
-Gratuit : VRAI', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-projet-bibliotheque'), null, '25
-VRAI
-VRAI', 'Accès : VRAI
-Gratuit : FAUX', true, 1, 2, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-projet-bibliotheque'), null, '15
-FAUX
-VRAI', 'Accès : FAUX
-Gratuit : VRAI', true, 1, 3, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-projet-bibliotheque'), null, '18
-VRAI
-FAUX', 'Accès : FAUX
-Gratuit : FAUX', true, 1, 4, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-projet-bibliotheque'), 'ALGORITHME Bibliotheque
-VARIABLES
-  age : ENTIER
-  carte, cotisation : BOOLEEN
-DEBUT
-  LIRE(age)
-  LIRE(carte)
-  LIRE(cotisation)
-  ECRIRE("Accès : ", carte ET (cotisation OU age < 18))
-  ECRIRE("Gratuit : ", age < 18)
-FIN', 'Sans parenthèses, « carte ET cotisation OU age < 18 » autoriserait un mineur sans carte valide (cas 15, FAUX, VRAI). Le cas 18 ans vérifie la borne stricte < 18.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-projet-budget', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'analyse-problemes'), 'pseudocode', 'Projet : budget mensuel', 'Lisez (entiers, en FC) : le revenu mensuel, le loyer, le coût du transport **par jour de cours** et le coût d''un repas. Un mois compte **22 jours de cours** avec **un repas par jour**. Affichez :
+Les données sont rangées dans des **tables** :
 
-~~~text
-Transport : <total transport>
-Repas : <total repas>
-Dépenses : <loyer + transport + repas>
-Reste : <revenu - dépenses>
-~~~', 'intermediaire', 'mini_projet', '{}'::text[], '[{"input":"200000\n60000\n2000\n3000","output":"Transport : 44000\nRepas : 66000\nDépenses : 170000\nReste : 30000"}]'::jsonb, '{}'::text[], '', array['Déclarez JOURS = 22 en constante.', 'Calculez chaque total dans sa propre variable avant de les additionner.']::text[], 20, false, 'publie', 41, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-projet-budget');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-projet-budget'), null, '200000
-60000
-2000
-3000', 'Transport : 44000
-Repas : 66000
-Dépenses : 170000
-Reste : 30000', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-projet-budget'), null, '110000
-0
-2500
-2500', 'Transport : 55000
-Repas : 55000
-Dépenses : 110000
-Reste : 0', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-projet-budget'), null, '150000
-80000
-1500
-2000', 'Transport : 33000
-Repas : 44000
-Dépenses : 157000
-Reste : -7000', true, 1, 2, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-projet-budget'), 'ALGORITHME Budget
-CONSTANTES
-  JOURS = 22
-VARIABLES
-  revenu, loyer, transportJour, repas, transport, totalRepas, depenses : ENTIER
-DEBUT
-  LIRE(revenu)
-  LIRE(loyer)
-  LIRE(transportJour)
-  LIRE(repas)
-  transport ← transportJour * JOURS
-  totalRepas ← repas * JOURS
-  depenses ← loyer + transport + totalRepas
-  ECRIRE("Transport : ", transport)
-  ECRIRE("Repas : ", totalRepas)
-  ECRIRE("Dépenses : ", depenses)
-  ECRIRE("Reste : ", revenu - depenses)
-FIN', 'La décomposition suit l''analyse : un total par poste, puis la somme, puis le reste. Le test caché montre qu''un reste négatif est possible : un futur chapitre permettra d''afficher un avertissement avec une condition.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-projet-caisse-simple', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'variables-constantes'), 'pseudocode', 'Projet : caisse enregistreuse', 'Lisez les prix de trois articles (réels). Après chaque lecture, ajoutez le prix à une variable **total** et affichez le sous-total :
+| id | nom | postnom | age | filiere |
+|---|---|---|---|---|
+| 1 | Kito | Manasse | 23 | Informatique |
+| 2 | Mbuyi | Grace | 19 | Droit |
 
-~~~text
-Sous-total : <après article 1>
-Sous-total : <après article 2>
-Total : <après article 3>
-~~~', 'debutant', 'mini_projet', '{}'::text[], '[{"input":"1500\n250.5\n3000","output":"Sous-total : 1500\nSous-total : 1750.5\nTotal : 4750.5"}]'::jsonb, array['Une seule variable pour le cumul.']::text[], '', array['Initialisez total à 0 avant la première lecture.', 'Lisez le prix dans une variable prix, puis total ← total + prix.']::text[], 15, false, 'publie', 42, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-projet-caisse-simple');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-projet-caisse-simple'), null, '1500
-250.5
-3000', 'Sous-total : 1500
-Sous-total : 1750.5
-Total : 4750.5', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-projet-caisse-simple'), null, '0
-0
-0', 'Sous-total : 0
-Sous-total : 0
-Total : 0', true, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-projet-caisse-simple'), null, '100
-200
-300', 'Sous-total : 100
-Sous-total : 300
-Total : 600', true, 1, 2, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-projet-caisse-simple'), 'ALGORITHME Caisse
-VARIABLES
-  prix, total : REEL
-DEBUT
-  total ← 0
-  LIRE(prix)
-  total ← total + prix
-  ECRIRE("Sous-total : ", total)
-  LIRE(prix)
-  total ← total + prix
-  ECRIRE("Sous-total : ", total)
-  LIRE(prix)
-  total ← total + prix
-  ECRIRE("Total : ", total)
-FIN', 'La même variable prix est réutilisée pour chaque lecture ; total accumule. Ce motif répété sera écrit avec une boucle au niveau 2.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-projet-fiche', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'types-donnees'), 'pseudocode', 'Projet : fiche de résultats', 'Lisez un nom, un prénom, puis deux notes (réels). Affichez :
+- une **colonne** (ou attribut) a un nom et un **type** (nombre, texte, date…) ;
+- une **ligne** (ou enregistrement) décrit un élément : ici, un étudiant ;
+- le **schéma** est la description des tables et de leurs colonnes.
 
-~~~text
-Étudiant : <NOM EN MAJUSCULES> <initiale du prénom en majuscule>.
-Moyenne : <moyenne des deux notes>
-Admis : <VRAI si moyenne >= 10>
-~~~', 'intermediaire', 'mini_projet', '{}'::text[], '[{"input":"mbuyi\njoël\n12\n9","output":"Étudiant : MBUYI J.\nMoyenne : 10.5\nAdmis : VRAI"}]'::jsonb, '{}'::text[], '', array['MAJUSCULE(nom) et MAJUSCULE(prenom[1]).', 'La moyenne est un REEL.']::text[], 20, false, 'publie', 43, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-projet-fiche');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-projet-fiche'), null, 'mbuyi
-joël
-12
-9', 'Étudiant : MBUYI J.
-Moyenne : 10.5
-Admis : VRAI', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-projet-fiche'), null, 'Kabeya
-esther
-8
-11.5', 'Étudiant : KABEYA E.
-Moyenne : 9.75
-Admis : FAUX', true, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-projet-fiche'), null, 'ilunga
-Anne
-10
-10', 'Étudiant : ILUNGA A.
-Moyenne : 10
-Admis : VRAI', true, 1, 2, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-projet-fiche'), 'ALGORITHME FicheResultats
-VARIABLES
-  nom, prenom : CHAINE
-  n1, n2, moyenne : REEL
-DEBUT
-  LIRE(nom)
-  LIRE(prenom)
-  LIRE(n1)
-  LIRE(n2)
-  moyenne ← (n1 + n2) / 2
-  ECRIRE("Étudiant : ", MAJUSCULE(nom), " ", MAJUSCULE(prenom[1]), ".")
-  ECRIRE("Moyenne : ", moyenne)
-  ECRIRE("Admis : ", moyenne >= 10)
-FIN', 'Chaque donnée a son type : CHAINE pour l''identité, REEL pour les notes, et la décision est un BOOLEEN obtenu par comparaison.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-projet-horloge', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'operateurs'), 'pseudocode', 'Projet : horloge de la semaine', 'Lisez un nombre de minutes écoulées depuis lundi 00 h 00 (entier entre 0 et 10 079). Les jours sont numérotés de 1 (lundi) à 7 (dimanche). Affichez :
+## Les clés
 
-~~~text
-Jour <n>, <h> h <m> min
-~~~', 'intermediaire', 'mini_projet', '{}'::text[], '[{"input":"1530","output":"Jour 2, 1 h 30 min"}]'::jsonb, '{}'::text[], '', array['Un jour compte 1 440 minutes.', 'Jour : minutes DIV 1440 + 1 ; heures : (minutes MOD 1440) DIV 60 ; minutes : minutes MOD 60.']::text[], 20, true, 'publie', 44, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-projet-horloge');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-projet-horloge'), null, '1530', 'Jour 2, 1 h 30 min', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-projet-horloge'), null, '0', 'Jour 1, 0 h 0 min', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-projet-horloge'), null, '1439', 'Jour 1, 23 h 59 min', true, 1, 2, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-projet-horloge'), null, '1440', 'Jour 2, 0 h 0 min', true, 1, 3, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-projet-horloge'), null, '10079', 'Jour 7, 23 h 59 min', true, 1, 4, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-projet-horloge'), 'ALGORITHME Horloge
-CONSTANTES
-  MIN_JOUR = 1440
-VARIABLES
-  minutes, jour, h, m : ENTIER
-DEBUT
-  LIRE(minutes)
-  jour ← minutes DIV MIN_JOUR + 1
-  h ← (minutes MOD MIN_JOUR) DIV 60
-  m ← minutes MOD 60
-  ECRIRE("Jour ", jour, ", ", h, " h ", m, " min")
-FIN', 'DIV donne le nombre de jours complets écoulés (on ajoute 1 car lundi est le jour 1) ; MOD 1440 donne les minutes du jour courant. Les cas 1 439 et 1 440 vérifient le passage de minuit.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-projet-recu', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'entrees-sorties'), 'pseudocode', 'Projet : reçu de paiement', 'Lisez le nom de l''étudiant, son matricule (texte), le montant total des frais et le montant payé (entiers, en dollars). Affichez exactement :
+- la **clé primaire** (PRIMARY KEY) identifie chaque ligne de façon **unique** et n''est jamais vide : ici **id** ;
+- une **clé étrangère** (FOREIGN KEY) est une colonne qui fait référence à la clé primaire d''une autre table : la table des inscriptions contient **etudiant_id**, qui renvoie à **etudiants.id**. C''est ainsi que les tables sont **reliées**.
 
-~~~text
-===== REÇU =====
-Étudiant : <nom>
-Matricule : <matricule>
-Payé : <payé> $ / <total> $
-Reste à payer : <total - payé> $
-================
-~~~', 'intermediaire', 'mini_projet', '{}'::text[], '[{"input":"Kasongo Amani\nUPL-2026-0042\n600\n450","output":"===== REÇU =====\nÉtudiant : Kasongo Amani\nMatricule : UPL-2026-0042\nPayé : 450 $ / 600 $\nReste à payer : 150 $\n================"}]'::jsonb, '{}'::text[], '', array['Le matricule contient des lettres et des tirets : type CHAINE.', 'Respectez les espaces autour de « / » et avant « $ ».']::text[], 20, false, 'publie', 45, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-projet-recu');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-projet-recu'), null, 'Kasongo Amani
-UPL-2026-0042
-600
-450', '===== REÇU =====
-Étudiant : Kasongo Amani
-Matricule : UPL-2026-0042
-Payé : 450 $ / 600 $
-Reste à payer : 150 $
-================', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-projet-recu'), null, 'Ruth Kalenga
-UPL-2025-0007
-800
-800', '===== REÇU =====
-Étudiant : Ruth Kalenga
-Matricule : UPL-2025-0007
-Payé : 800 $ / 800 $
-Reste à payer : 0 $
-================', true, 1, 1, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-projet-recu'), 'ALGORITHME Recu
-VARIABLES
-  nom, matricule : CHAINE
-  total, paye : ENTIER
-DEBUT
-  LIRE(nom)
-  LIRE(matricule)
-  LIRE(total)
-  LIRE(paye)
-  ECRIRE("===== REÇU =====")
-  ECRIRE("Étudiant : ", nom)
-  ECRIRE("Matricule : ", matricule)
-  ECRIRE("Payé : ", paye, " $ / ", total, " $")
-  ECRIRE("Reste à payer : ", total - paye, " $")
-  ECRIRE("================")
-FIN', 'L''ordre des LIRE suit l''ordre des données ; l''affichage reprend exactement le modèle, espaces compris.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('html-premier-paragraphe', (select id from public.courses where slug = 'html'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'html') and slug = 'html-introduction-web'), 'html', 'Un titre et un paragraphe', 'Dans le corps de la page, ajoutez un titre principal **h1** contenant « Bienvenue » et un paragraphe contenant le mot **important** mis en valeur avec **strong**.', 'debutant', 'ecrire_programme', '{}'::text[], '[]'::jsonb, '{}'::text[], '<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="utf-8">
-  <title>Exercice</title>
-</head>
-<body>
+## SQL, le langage
 
+**SQL** (Structured Query Language) sert à :
 
-</body>
-</html>', array['Le contenu visible se place entre <body> et </body>.', '<p>Texte <strong>important</strong></p>']::text[], 5, false, 'publie', 46, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'html-premier-paragraphe');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'html-premier-paragraphe'), 'Un h1 contient « Bienvenue »', '', '', false, 1, 0, '{"type":"text","selector":"h1","contains":"Bienvenue","message":"Un h1 contient « Bienvenue »"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'html-premier-paragraphe'), 'La page contient un paragraphe', '', '', false, 1, 1, '{"type":"element","selector":"p","message":"La page contient un paragraphe"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'html-premier-paragraphe'), 'Le mot « important » est dans un strong à l''intérieur d''un paragraphe', '', '', false, 1, 2, '{"type":"text","selector":"p strong","contains":"important","message":"Le mot « important » est dans un strong à l''intérieur d''un paragraphe"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'html-premier-paragraphe'), 'Un seul h1', '', '', true, 1, 3, '{"type":"element","selector":"h1","max":1,"message":"Un seul h1"}'::jsonb);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'html-premier-paragraphe'), '<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="utf-8">
-  <title>Exercice</title>
-</head>
-<body>
-  <h1>Bienvenue</h1>
-  <p>Ce message est <strong>important</strong>.</p>
-</body>
-</html>', 'Le h1 donne le titre principal ; strong est imbriqué dans p et fermé avant lui.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('html-titre-et-texte', (select id from public.courses where slug = 'html'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'html') and slug = 'html-introduction-web'), 'html', 'Présentation personnelle', 'Écrivez une page avec un **h1** « Qui suis-je ? » et **deux paragraphes** : le premier contient votre prénom, le second votre filière, mise en valeur avec **em**.', 'debutant', 'ecrire_programme', '{}'::text[], '[]'::jsonb, '{}'::text[], '<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="utf-8">
-  <title>Exercice</title>
-</head>
-<body>
+- **définir** la structure : CREATE, ALTER, DROP ;
+- **manipuler** les données : INSERT, SELECT, UPDATE, DELETE ;
+- **contrôler** les accès : GRANT, REVOKE ; et les transactions : COMMIT, ROLLBACK.
 
+Les mots-clés ne sont pas sensibles à la casse (on les écrit en majuscules par convention) ; chaque instruction se termine par un **point-virgule**.
 
-</body>
-</html>', array['Deux éléments p successifs.', '<p>Filière : <em>Informatique</em></p>']::text[], 5, false, 'publie', 47, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'html-titre-et-texte');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'html-titre-et-texte'), 'Le h1 vaut exactement « Qui suis-je ? »', '', '', false, 1, 0, '{"type":"text","selector":"h1","equals":"Qui suis-je ?","message":"Le h1 vaut exactement « Qui suis-je ? »"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'html-titre-et-texte'), 'Au moins deux paragraphes', '', '', false, 1, 1, '{"type":"element","selector":"p","min":2,"message":"Au moins deux paragraphes"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'html-titre-et-texte'), 'Un em dans un paragraphe', '', '', false, 1, 2, '{"type":"element","selector":"p em","message":"Un em dans un paragraphe"}'::jsonb);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'html-titre-et-texte'), '<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="utf-8">
-  <title>Exercice</title>
-</head>
-<body>
-  <h1>Qui suis-je ?</h1>
-  <p>Je m''appelle Amani.</p>
-  <p>Filière : <em>Informatique</em></p>
-</body>
-</html>', 'Chaque bloc de texte est un p ; em exprime l''insistance.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('html-lien-mdn', (select id from public.courses where slug = 'html'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'html') and slug = 'html-introduction-web'), 'html', 'Un lien vers la documentation', 'Ajoutez un paragraphe contenant un lien vers **https://developer.mozilla.org/fr/** dont le texte est « Documentation MDN ».', 'debutant', 'ecrire_programme', '{}'::text[], '[]'::jsonb, '{}'::text[], '<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="utf-8">
-  <title>Exercice</title>
-</head>
-<body>
+## Les principaux SGBD
 
+| SGBD | Utilisation typique |
+|---|---|
+| **MySQL** / **MariaDB** | sites web (PHP, WordPress), hébergements mutualisés |
+| **PostgreSQL** | applications professionnelles, données complexes, très conforme à la norme SQL |
+| **SQLite** | base dans un simple fichier : téléphones, navigateurs, applications de bureau, tests |
+| Oracle, SQL Server | grandes entreprises (payants) |
 
-</body>
-</html>', array['L''élément a et son attribut href.', '<a href="https://developer.mozilla.org/fr/">Documentation MDN</a>']::text[], 5, false, 'publie', 48, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'html-lien-mdn');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'html-lien-mdn'), 'Le lien pointe vers https://developer.mozilla.org/fr/', '', '', false, 1, 0, '{"type":"attribute","selector":"a","name":"href","equals":"https://developer.mozilla.org/fr/","message":"Le lien pointe vers https://developer.mozilla.org/fr/"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'html-lien-mdn'), 'Le texte du lien est « Documentation MDN »', '', '', false, 1, 1, '{"type":"text","selector":"a","equals":"Documentation MDN","message":"Le texte du lien est « Documentation MDN »"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'html-lien-mdn'), 'Le lien est dans un paragraphe', '', '', true, 1, 2, '{"type":"element","selector":"p a","message":"Le lien est dans un paragraphe"}'::jsonb);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'html-lien-mdn'), '<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="utf-8">
-  <title>Exercice</title>
-</head>
-<body>
-  <p><a href="https://developer.mozilla.org/fr/">Documentation MDN</a></p>
-</body>
-</html>', 'href porte l''adresse complète (URL absolue) ; le texte du lien décrit la destination.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('html-projet-presentation', (select id from public.courses where slug = 'html'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'html') and slug = 'html-introduction-web'), 'html', 'Projet : ma page de présentation', 'Créez une page avec : un **h1** contenant votre prénom, un paragraphe de présentation avec au moins un mot en **strong**, un paragraphe avec un lien vers **https://www.wikipedia.org**, et un commentaire HTML indiquant l''auteur.', 'debutant', 'mini_projet', '{}'::text[], '[]'::jsonb, '{}'::text[], '<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="utf-8">
-  <title>Exercice</title>
-</head>
-<body>
+## Le laboratoire de la plateforme
 
+Vos requêtes sont exécutées par **SQLite** (version 3), compilé en WebAssembly, **dans votre navigateur** : chaque étudiant a sa propre base, isolée. **SQLite n''est pas identique à MySQL ni à PostgreSQL** : le SQL de base (CREATE, INSERT, SELECT, JOIN, GROUP BY…) est le même, mais certains types et certaines instructions diffèrent. La formation le signale chaque fois, avec la syntaxe de chaque système.', array['Une base relationnelle range les données dans des tables (colonnes × lignes).', 'La clé primaire identifie une ligne ; la clé étrangère relie deux tables.', 'SQL définit, manipule et contrôle les données.', 'Le laboratoire utilise SQLite : proche, mais pas identique, de MySQL et PostgreSQL.']::text[], '[{"language":"sql","title":"Première requête sur la table etudiants","code":"SELECT * FROM etudiants;","stdin":"CREATE TABLE etudiants (\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  nom TEXT NOT NULL,\n  postnom TEXT NOT NULL,\n  age INTEGER,\n  filiere TEXT\n);\nINSERT INTO etudiants (nom, postnom, age, filiere) VALUES\n  (''Kito'', ''Manasse'', 23, ''Informatique''),\n  (''Mbuyi'', ''Grace'', 19, ''Droit''),\n  (''Kabila'', ''Mutombo'', 21, ''Informatique''),\n  (''Ilunga'', ''Sarah'', 25, ''Médecine''),\n  (''Tshala'', ''Benie'', 20, ''Droit''),\n  (''Nsimba'', ''Joel'', 22, NULL);","explanation":"La table a été créée et remplie par les « données de départ » ; * signifie « toutes les colonnes »."}]'::jsonb, null, 'publie', 1, now())
+on conflict (course_id, slug) do update set module_id = excluded.module_id, title = excluded.title, level = excluded.level, duration_minutes = excluded.duration_minutes, objectives = excluded.objectives, prerequisites = excluded.prerequisites, content = excluded.content, summary = excluded.summary, examples = excluded.examples, pedagogy = excluded.pedagogy, status = excluded.status, position = excluded.position;
+insert into public.quizzes (course_id, lesson_id, slug, title, is_final, pass_score, status, kind, duration_minutes, level_number) values ((select id from public.courses where slug = 'sql'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'sql') and slug = 'sql-introduction'), 'sql-introduction-quiz', 'Vérification — Bases de données', false, 60, 'publie', 'verification', null, null)
+on conflict (slug) do update set title = excluded.title, is_final = excluded.is_final, pass_score = excluded.pass_score, lesson_id = excluded.lesson_id, kind = excluded.kind, duration_minutes = excluded.duration_minutes, level_number = excluded.level_number;
+delete from public.quiz_questions where quiz_id = (select id from public.quizzes where slug = 'sql-introduction-quiz');
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'sql-introduction-quiz'), 'qcm', 'Que contient une ligne d''une table ?', null, '["Un type de donnée","Les informations d''un élément (un étudiant…)","Le nom de la base","Une requête"]'::jsonb, 0, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'sql-introduction-quiz'), 'qcm', 'Quel est le rôle d''une clé primaire ?', null, '["Relier deux tables","Identifier chaque ligne de façon unique","Trier la table","Chiffrer les données"]'::jsonb, 1, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'sql-introduction-quiz'), 'qcm', 'Une clé étrangère…', null, '["fait référence à la clé primaire d''une autre table","est toujours un texte","est facultative partout","remplace la clé primaire"]'::jsonb, 2, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[0]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'sql-introduction-quiz'), 'vrai_faux', 'SQLite et MySQL acceptent exactement les mêmes instructions.', null, '["Vrai","Faux"]'::jsonb, 3, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, 'Le cœur du langage est commun, mais des types et instructions diffèrent.' from qq;
+insert into public.lessons (module_id, course_id, slug, title, level, duration_minutes, objectives, prerequisites, content, summary, examples, pedagogy, status, position, validated_at)
+values ((select id from public.modules where course_id = (select id from public.courses where slug = 'sql') and slug = 'sql-fondements'), (select id from public.courses where slug = 'sql'), 'sql-create-insert', 'Créer une table et insérer des données', 'debutant', 40, array['Créer une table avec CREATE TABLE.', 'Choisir les types de colonnes.', 'Insérer une ou plusieurs lignes avec INSERT.']::text[], array['Qu''est-ce qu''une base de données ?']::text[], '## CREATE TABLE
 
-</body>
-</html>', array['Un commentaire s''écrit <!-- … -->.', 'Vérifiez l''imbrication : le dernier ouvert est le premier fermé.']::text[], 15, false, 'publie', 49, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'html-projet-presentation');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'html-projet-presentation'), 'Un seul h1', '', '', false, 1, 0, '{"type":"element","selector":"h1","min":1,"max":1,"message":"Un seul h1"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'html-projet-presentation'), 'Un mot important dans un paragraphe', '', '', false, 1, 1, '{"type":"element","selector":"p strong","message":"Un mot important dans un paragraphe"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'html-projet-presentation'), 'Un lien vers wikipedia.org dans un paragraphe', '', '', false, 1, 2, '{"type":"attribute","selector":"p a","name":"href","contains":"wikipedia.org","message":"Un lien vers wikipedia.org dans un paragraphe"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'html-projet-presentation'), 'Au moins deux paragraphes', '', '', true, 1, 3, '{"type":"element","selector":"p","min":2,"message":"Au moins deux paragraphes"}'::jsonb);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'html-projet-presentation'), '<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="utf-8">
-  <title>Exercice</title>
-</head>
-<body>
-  <!-- Auteur : Amani -->
-  <h1>Amani</h1>
-  <p>Je suis étudiant en <strong>informatique</strong> à l''UPL.</p>
-  <p>Ma référence : <a href="https://www.wikipedia.org">Wikipédia</a>.</p>
-</body>
-</html>', 'La page combine les éléments du chapitre : titre, paragraphes, mise en valeur, lien et commentaire.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('html-squelette', (select id from public.courses where slug = 'html'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'html') and slug = 'html-structure-document'), 'html', 'Squelette complet', 'Écrivez un document HTML complet : DOCTYPE, élément html avec **lang="fr"**, head contenant **meta charset utf-8** et un **title** « Accueil », body contenant un **h1** « Accueil ».', 'debutant', 'ecrire_programme', '{}'::text[], '[]'::jsonb, '{}'::text[], '', array['Commencez par <!DOCTYPE html>.', 'L''attribut lang se place sur l''élément html.']::text[], 5, false, 'publie', 50, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'html-squelette');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'html-squelette'), 'html a l''attribut lang="fr"', '', '', false, 1, 0, '{"type":"attribute","selector":"html","name":"lang","equals":"fr","message":"html a l''attribut lang=\"fr\""}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'html-squelette'), 'meta charset="utf-8" dans head', '', '', false, 1, 1, '{"type":"attribute","selector":"head meta[charset]","name":"charset","equals":"utf-8","message":"meta charset=\"utf-8\" dans head"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'html-squelette'), 'Le titre de l''onglet est « Accueil »', '', '', false, 1, 2, '{"type":"text","selector":"head title","equals":"Accueil","message":"Le titre de l''onglet est « Accueil »"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'html-squelette'), 'Un h1 « Accueil » dans body', '', '', false, 1, 3, '{"type":"text","selector":"body h1","equals":"Accueil","message":"Un h1 « Accueil » dans body"}'::jsonb);
+~~~sql
+CREATE TABLE etudiants (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  nom TEXT NOT NULL,
+  postnom TEXT NOT NULL,
+  age INTEGER,
+  filiere TEXT
+);
+~~~
+
+Chaque colonne : **nom**, **type**, puis des **contraintes** facultatives (NOT NULL : valeur obligatoire).
+
+## Les types selon le SGBD
+
+| Donnée | SQLite | MySQL / MariaDB | PostgreSQL |
+|---|---|---|---|
+| entier | INTEGER | INT | INTEGER |
+| décimal exact | NUMERIC | DECIMAL(10,2) | NUMERIC(10,2) |
+| réel | REAL | DOUBLE | DOUBLE PRECISION |
+| texte court | TEXT | VARCHAR(100) | VARCHAR(100) ou TEXT |
+| date | TEXT (''2026-11-10'') | DATE | DATE |
+| booléen | INTEGER (0 / 1) | BOOLEAN (TINYINT) | BOOLEAN |
+
+SQLite est souple : il accepte VARCHAR(100) ou DATE, mais **ne limite pas la longueur** du texte et range les dates comme du texte. MySQL et PostgreSQL appliquent strictement les types.
+
+## Numérotation automatique de la clé primaire
+
+| SGBD | Syntaxe |
+|---|---|
+| SQLite | id INTEGER PRIMARY KEY AUTOINCREMENT |
+| MySQL / MariaDB | id INT AUTO_INCREMENT PRIMARY KEY |
+| PostgreSQL | id SERIAL PRIMARY KEY ou id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY |
+
+## INSERT INTO
+
+~~~sql
+INSERT INTO etudiants (nom, postnom, age, filiere)
+VALUES (''Kito'', ''Manasse'', 23, ''Informatique'');
+~~~
+
+- on liste les colonnes, puis les valeurs **dans le même ordre** ;
+- les textes sont entre **apostrophes** ; une apostrophe dans le texte se double : ''L''''Université'' ;
+- on n''indique pas **id** : il est attribué automatiquement ;
+- plusieurs lignes en une instruction : VALUES (…), (…), (…);
+- **NULL** (sans apostrophes) signifie « valeur inconnue ».
+
+## Supprimer une table
+
+**DROP TABLE etudiants;** supprime la table et toutes ses données (définitivement). **CREATE TABLE IF NOT EXISTS** évite une erreur si la table existe déjà.
+
+Dans l''éditeur, chaque exécution part d''une **base neuve** : votre script doit donc créer ses tables avant de les remplir.', array['CREATE TABLE nom (colonne TYPE contraintes, …);', 'INSERT INTO table (colonnes) VALUES (valeurs), (…);', 'La numérotation automatique s''écrit différemment selon le SGBD.']::text[], '[{"language":"sql","title":"Créer, remplir et afficher","code":"CREATE TABLE etudiants (\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  nom TEXT NOT NULL,\n  postnom TEXT NOT NULL,\n  age INTEGER,\n  filiere TEXT\n);\n\nINSERT INTO etudiants (nom, postnom, age, filiere) VALUES (''Kito'', ''Manasse'', 23, ''Informatique'');\nINSERT INTO etudiants (nom, postnom, age, filiere) VALUES\n  (''Mbuyi'', ''Grace'', 19, ''Droit''),\n  (''L''''Heureux'', ''Paul'', 20, NULL);\n\nSELECT * FROM etudiants;"}]'::jsonb, null, 'publie', 2, now())
+on conflict (course_id, slug) do update set module_id = excluded.module_id, title = excluded.title, level = excluded.level, duration_minutes = excluded.duration_minutes, objectives = excluded.objectives, prerequisites = excluded.prerequisites, content = excluded.content, summary = excluded.summary, examples = excluded.examples, pedagogy = excluded.pedagogy, status = excluded.status, position = excluded.position;
+insert into public.quizzes (course_id, lesson_id, slug, title, is_final, pass_score, status, kind, duration_minutes, level_number) values ((select id from public.courses where slug = 'sql'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'sql') and slug = 'sql-create-insert'), 'sql-create-insert-quiz', 'Vérification — CREATE et INSERT', false, 60, 'publie', 'verification', null, null)
+on conflict (slug) do update set title = excluded.title, is_final = excluded.is_final, pass_score = excluded.pass_score, lesson_id = excluded.lesson_id, kind = excluded.kind, duration_minutes = excluded.duration_minutes, level_number = excluded.level_number;
+delete from public.quiz_questions where quiz_id = (select id from public.quizzes where slug = 'sql-create-insert-quiz');
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'sql-create-insert-quiz'), 'qcm', 'Comment écrire un texte dans une requête SQL ?', null, '["\"Kito\"","''Kito''","Kito","`Kito`"]'::jsonb, 0, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'sql-create-insert-quiz'), 'qcm', 'Quelle syntaxe numérote automatiquement en MySQL ?', null, '["AUTOINCREMENT","AUTO_INCREMENT","SERIAL","IDENTITY(1,1)"]'::jsonb, 1, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'sql-create-insert-quiz'), 'qcm', 'Comment insérer la valeur inconnue ?', null, '["''NULL''","NULL","0","''''"]'::jsonb, 2, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'sql-create-insert-quiz'), 'vrai_faux', 'SQLite refuse un texte plus long que la longueur de VARCHAR(10).', null, '["Vrai","Faux"]'::jsonb, 3, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, 'SQLite ne limite pas la longueur ; MySQL et PostgreSQL, si.' from qq;
+insert into public.lessons (module_id, course_id, slug, title, level, duration_minutes, objectives, prerequisites, content, summary, examples, pedagogy, status, position, validated_at)
+values ((select id from public.modules where course_id = (select id from public.courses where slug = 'sql') and slug = 'sql-fondements'), (select id from public.courses where slug = 'sql'), 'sql-select', 'Lire les données : SELECT et WHERE', 'debutant', 35, array['Choisir les colonnes affichées.', 'Filtrer les lignes avec WHERE.', 'Renommer avec AS et calculer des colonnes.']::text[], array['Créer une table et insérer des données']::text[], '## Choisir les colonnes
+
+~~~sql
+SELECT nom, postnom FROM etudiants;
+~~~
+
+**SELECT *** affiche toutes les colonnes ; en pratique, on nomme les colonnes utiles (plus lisible et plus rapide).
+
+## Filtrer avec WHERE
+
+~~~sql
+SELECT nom, age FROM etudiants WHERE age >= 21;
+SELECT nom FROM etudiants WHERE filiere = ''Droit'';
+~~~
+
+Opérateurs : **=**, **<>** (ou !=), **<**, **>**, **<=**, **>=**.
+
+## Valeurs inconnues : IS NULL
+
+On ne compare **jamais** à NULL avec = : **filiere = NULL** n''est jamais vrai. On écrit **filiere IS NULL** ou **IS NOT NULL**.
+
+## Alias et colonnes calculées
+
+~~~sql
+SELECT nom AS etudiant, age + 1 AS age_annee_prochaine FROM etudiants;
+~~~
+
+La concaténation de textes s''écrit **||** en SQLite et PostgreSQL (nom || '' '' || postnom), et **CONCAT(nom, '' '', postnom)** en MySQL (CONCAT existe aussi en PostgreSQL et dans SQLite récent).
+
+## L''ordre d''écriture
+
+~~~sql
+SELECT colonnes FROM table WHERE condition;
+~~~
+
+Le SGBD lit d''abord **FROM** (quelle table), puis **WHERE** (quelles lignes), puis **SELECT** (quelles colonnes).', array['SELECT colonnes FROM table WHERE condition;', 'IS NULL / IS NOT NULL, jamais = NULL.', 'AS renomme une colonne ; || concatène (SQLite, PostgreSQL).']::text[], '[{"language":"sql","title":"Filtrer et renommer","code":"SELECT nom || '' '' || postnom AS etudiant, age\nFROM etudiants\nWHERE filiere = ''Informatique'';\n\nSELECT nom FROM etudiants WHERE filiere IS NULL;","stdin":"CREATE TABLE etudiants (\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  nom TEXT NOT NULL,\n  postnom TEXT NOT NULL,\n  age INTEGER,\n  filiere TEXT\n);\nINSERT INTO etudiants (nom, postnom, age, filiere) VALUES\n  (''Kito'', ''Manasse'', 23, ''Informatique''),\n  (''Mbuyi'', ''Grace'', 19, ''Droit''),\n  (''Kabila'', ''Mutombo'', 21, ''Informatique''),\n  (''Ilunga'', ''Sarah'', 25, ''Médecine''),\n  (''Tshala'', ''Benie'', 20, ''Droit''),\n  (''Nsimba'', ''Joel'', 22, NULL);"}]'::jsonb, null, 'publie', 3, now())
+on conflict (course_id, slug) do update set module_id = excluded.module_id, title = excluded.title, level = excluded.level, duration_minutes = excluded.duration_minutes, objectives = excluded.objectives, prerequisites = excluded.prerequisites, content = excluded.content, summary = excluded.summary, examples = excluded.examples, pedagogy = excluded.pedagogy, status = excluded.status, position = excluded.position;
+insert into public.quizzes (course_id, lesson_id, slug, title, is_final, pass_score, status, kind, duration_minutes, level_number) values ((select id from public.courses where slug = 'sql'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'sql') and slug = 'sql-select'), 'sql-select-quiz', 'Vérification — SELECT', false, 60, 'publie', 'verification', null, null)
+on conflict (slug) do update set title = excluded.title, is_final = excluded.is_final, pass_score = excluded.pass_score, lesson_id = excluded.lesson_id, kind = excluded.kind, duration_minutes = excluded.duration_minutes, level_number = excluded.level_number;
+delete from public.quiz_questions where quiz_id = (select id from public.quizzes where slug = 'sql-select-quiz');
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'sql-select-quiz'), 'qcm', 'Comment trouver les étudiants sans filière ?', null, '["WHERE filiere = NULL","WHERE filiere IS NULL","WHERE filiere = ''''","WHERE NULL"]'::jsonb, 0, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'sql-select-quiz'), 'qcm', 'Quel mot-clé renomme une colonne du résultat ?', null, '["RENAME","AS","ALIAS","TO"]'::jsonb, 1, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'sql-select-quiz'), 'qcm', 'Quel opérateur signifie « différent de » ?', null, '["<>","=!","><","NOT="]'::jsonb, 2, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[0]'::jsonb, null from qq;
 commit;

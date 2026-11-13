@@ -5,7 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { listCourses } from "@/lib/content/repository";
 
 const FEATURES = [
-  { icon: "📚", title: "Des cours structurés", text: "Sept parcours en quatre niveaux (très débutant à professionnel) : algorithmique, HTML, CSS, Python, C, JavaScript et Java, avec objectifs, exemples, projets et résumés." },
+  { icon: "📚", title: "Des cours structurés", text: "Neuf parcours en quatre niveaux (très débutant à professionnel) : algorithmique, HTML, CSS, Python, C, JavaScript, Java, PHP et SQL, avec objectifs, exemples, projets et résumés." },
   { icon: "⌨️", title: "Un éditeur intégré", text: "Écrivez et exécutez du pseudocode, du Python, du C, du JavaScript ou du Java directement dans le navigateur, même sur téléphone." },
   { icon: "✅", title: "Des exercices corrigés", text: "Des tests automatiques vérifient votre programme et une correction pédagogique vous explique la solution." },
   { icon: "🤖", title: "Un professeur IA", text: "Il explique les notions, analyse vos erreurs et vous guide par des indices progressifs, sans faire le travail à votre place." },

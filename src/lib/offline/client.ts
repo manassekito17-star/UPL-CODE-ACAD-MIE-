@@ -130,6 +130,8 @@ export interface PrepareStep {
 export async function prepareOffline(opts: {
   loadLanguages: () => Promise<void>;
   warmPython?: () => Promise<void>;
+  /** Autres moteurs à télécharger (PHP, SQLite…). */
+  extraEngines?: Array<{ label: string; run: () => Promise<void> }>;
   onStep: (label: string) => void;
 }): Promise<{ ok: number; total: number }> {
   if (!offlineSupported()) throw new Error("Ce navigateur ne permet pas l'utilisation hors ligne.");
@@ -144,6 +146,10 @@ export async function prepareOffline(opts: {
     if (opts.warmPython) {
       opts.onStep("Python (environ 10 Mo)…");
       await opts.warmPython();
+    }
+    for (const engine of opts.extraEngines ?? []) {
+      opts.onStep(engine.label);
+      await engine.run();
     }
   } finally {
     workerFiles = stopTracking();

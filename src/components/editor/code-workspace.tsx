@@ -3,12 +3,13 @@
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import type { LanguageId } from "@/content/types";
-import { runProgram, warmupPython } from "@/lib/execution/browser";
+import { runProgram, warmupEngine } from "@/lib/execution/browser";
 import { LANGUAGE_IDS, LANGUAGES } from "@/lib/execution/languages";
 import { KPlusPage } from "./kplus-page";
-import { STATUS_LABELS, type ExecutionResult, type SourceFile } from "@/lib/execution/types";
+import { STATUS_LABELS, engineName, type ExecutionResult, type SourceFile } from "@/lib/execution/types";
 import { buildPreviewDocument } from "@/lib/execution/web-document";
 import { Button, cn, inputClass } from "../ui";
+import { ResultExtras, sqlConsoleText } from "./result-extras";
 import { WebPreview, type PreviewConsoleLine } from "./web-preview";
 
 const CodeEditor = dynamic(() => import("./code-editor").then((m) => m.CodeEditor), {
@@ -124,7 +125,7 @@ export function CodeWorkspace({
   }, [files, stdin, storageKey]);
 
   useEffect(() => {
-    if (language === "python") warmupPython();
+    warmupEngine(language);
   }, [language]);
 
   const lang = LANGUAGES[language];
@@ -270,7 +271,7 @@ export function CodeWorkspace({
     <div className="flex h-full min-h-0 flex-col gap-3">
       <div>
         <label htmlFor="stdin" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-400">
-          Entrée (une valeur par ligne)
+          {language === "sql" ? "Données de départ (SQL exécuté avant votre script)" : "Entrée (une valeur par ligne)"}
         </label>
         <textarea
           id="stdin"
@@ -290,7 +291,7 @@ export function CodeWorkspace({
               {STATUS_LABELS[result.status]}
               {result.timeMs !== null && ` · ${result.timeMs} ms`}
               {result.memoryKb ? ` · ${Math.round(result.memoryKb / 1024)} Mo` : ""}
-              {` · ${result.engine === "serveur" ? "bac à sable serveur" : result.engine === "interpreteur" ? "interpréteur UPL" : "navigateur"}`}
+              {` · ${engineName(result)}`}
             </span>
           )}
         </div>
@@ -302,10 +303,13 @@ export function CodeWorkspace({
           {!running && !result && !error && <span className="text-gray-500">Cliquez sur « Exécuter » pour lancer votre programme.</span>}
           {error && <span className="text-red-300">{error}</span>}
           {result?.compileOutput && <span className="text-red-300">{result.compileOutput}{"\n"}</span>}
-          {result?.stdout}
+          {result && sqlConsoleText(result)}
           {result?.stderr && <span className="text-red-300">{result.stdout && !result.stdout.endsWith("\n") ? "\n" : ""}{result.stderr}</span>}
           {result?.hint && <span className="mt-2 block text-amber-300">💡 {result.hint}</span>}
         </pre>
+        <div className="mt-2 empty:hidden">
+          <ResultExtras result={result} files={files} />
+        </div>
       </div>
       {result?.kplusPage && (
         <KPlusPage

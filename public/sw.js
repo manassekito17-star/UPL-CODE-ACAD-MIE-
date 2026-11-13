@@ -9,7 +9,14 @@ const STATIC = `upl-static-${VERSION}`;
 const CDN = `upl-cdn-${VERSION}`;
 const KEEP = [PAGES, STATIC, CDN];
 const OFFLINE_PAGES = ["/ide", "/editeur", "/laboratoire"];
-const CDN_PREFIXES = ["https://cdn.jsdelivr.net/npm/monaco-editor@", "https://cdn.jsdelivr.net/npm/pyodide@"];
+const CDN_PREFIXES = [
+  "https://cdn.jsdelivr.net/npm/monaco-editor@",
+  "https://cdn.jsdelivr.net/npm/pyodide@",
+  // PHP 8.3 (php-wasm, PDO SQLite) et SQLite (sql.js) : moteurs WebAssembly, versions figées.
+  "https://cdn.jsdelivr.net/npm/php-wasm@",
+  "https://cdn.jsdelivr.net/npm/php-wasm-sqlite@",
+  "https://cdn.jsdelivr.net/npm/sql.js@",
+];
 
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (e) => {

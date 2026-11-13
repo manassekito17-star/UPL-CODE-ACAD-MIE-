@@ -217,8 +217,8 @@ const LANG_BY_EXT: Record<string, FileLanguage> = {
   css: { monaco: "css", label: "CSS", format: true },
   json: { monaco: "json", label: "JSON", format: true },
   md: { monaco: "markdown", label: "Markdown" },
-  sql: { monaco: "sql", label: "SQL" },
-  php: { monaco: "php", label: "PHP" },
+  sql: { monaco: "sql", label: "SQL (SQLite)", run: "sql" },
+  php: { monaco: "php", label: "PHP", run: "php" },
   txt: { monaco: "plaintext", label: "Texte" },
 };
 
@@ -235,6 +235,13 @@ export function runFiles(p: ProjectSnapshot, activePath: string): { language: Ru
   const lang = languageOf(activePath).run;
   const active = p.files.find((f) => f.path === activePath);
   if (!lang || !active) return null;
+  // PHP : tout le projet est copié (include, require, style.css…), avec ses dossiers ;
+  // le fichier actif est le script principal.
+  if (lang === "php") {
+    return { language: lang, files: [active, ...p.files.filter((f) => f.path !== activePath)].map((f) => ({ name: f.path, content: f.content })) };
+  }
+  // SQL : seul le script actif est exécuté (sur une base neuve).
+  if (lang === "sql") return { language: lang, files: [{ name: basename(active.path), content: active.content }] };
   const dir = dirname(activePath);
   const siblings = p.files.filter((f) => f.path !== activePath && dirname(f.path) === dir && languageOf(f.path).run === lang);
   return { language: lang, files: [active, ...siblings].map((f) => ({ name: basename(f.path), content: f.content })) };

@@ -65,6 +65,8 @@ body {
       return `# Programme K+\n\n`;
     case "php":
       return `<?php\n\n`;
+    case "sql":
+      return `-- Requêtes SQL (exécutées par SQLite dans le navigateur)\n\n`;
     case "markdown":
       return `# ${basename(path).replace(/\.[^.]+$/, "")}\n\n`;
     case "json":

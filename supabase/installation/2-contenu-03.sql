@@ -1,4 +1,4 @@
--- UPL CODE ACADEMY MK — installation, partie 2 (contenu), morceau 3 sur 11.
+-- UPL CODE ACADEMY MK — installation, partie 2 (contenu), morceau 3 sur 14.
 -- À exécuter dans l'ordre, après 1-structure.sql. Peut être relancé sans risque.
 begin;
 with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'algorithmique-examen-niveau-2'), 'qcm', 'Combien de fois s''exécute le corps de POUR i DE 2 A 9 FAIRE ?', null, '["7","8","9","10"]'::jsonb, 0, null) returning id)
