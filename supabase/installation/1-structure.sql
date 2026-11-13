@@ -1664,7 +1664,7 @@ insert into public.languages (id, name, description, monaco_language, file_exten
   ('kplus', 'K+', 'Langage de programmation en français : bases de la programmation et sites web dynamiques (K+ Web).', 'kplus', 'kplus', 71, 8)
 on conflict (id) do nothing;
 
--- ===== 20261113000001_php_sql.sql =====
+-- ===== 20261113000002_php_sql.sql =====
 -- =====================================================================
 -- Parcours PHP et SQL.
 -- Le code PHP et SQL des étudiants n'est JAMAIS exécuté sur le serveur :
