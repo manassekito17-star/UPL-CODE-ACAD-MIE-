@@ -1,4 +1,4 @@
--- UPL CODE ACADEMY MK — installation, partie 2 (contenu), morceau 6 sur 13.
+-- UPL CODE ACADEMY MK — installation, partie 2 (contenu), morceau 6 sur 14.
 -- À exécuter dans l'ordre, après 1-structure.sql. Peut être relancé sans risque.
 begin;
 insert into public.lessons (module_id, course_id, slug, title, level, duration_minutes, objectives, prerequisites, content, summary, examples, pedagogy, status, position, validated_at)
@@ -613,255 +613,213 @@ insert into public.quiz_answer_keys (question_id, correct, explanation) select i
 with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'java-evaluation-finale'), 'qcm', 'Quelle collection garantit l''unicité ?', null, '["ArrayList","HashSet","LinkedList","ArrayDeque"]'::jsonb, 3, null) returning id)
 insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
 
--- ===== Formation complète PHP — du débutant au professionnel =====
+-- ===== K+ — programmer en français =====
 insert into public.courses (slug, language_id, category_id, code, title, tagline, description, level, prerequisites, objectives, duration_hours, status, sort_order, validated_at)
-values ('php', 'php', (select id from public.course_categories where slug = 'web'), 'Parcours H', 'Formation complète PHP — du débutant au professionnel', 'Le langage serveur qui fait tourner une grande partie du web.', 'PHP génère des pages web dynamiques, traite les formulaires, gère les sessions et dialogue avec les bases de données. Cette formation va des premières lignes (echo, variables, conditions) jusqu''à la programmation orientée objet, PDO, les API JSON, la sécurité et l''architecture professionnelle. Chaque exemple est exécuté par le vrai PHP 8.3 dans votre navigateur.', 'debutant', array['Bases de HTML (parcours HTML, niveau 1).', 'Notions d''algorithmique : variables, conditions, boucles (parcours Algorithmique, niveau 2).']::text[], array['Écrire des pages PHP dynamiques et traiter des formulaires en toute sécurité.', 'Structurer un programme avec des fonctions, des tableaux et des classes.', 'Accéder à une base de données avec PDO et des requêtes préparées.', 'Appliquer les règles de sécurité professionnelles (XSS, injection SQL, mots de passe, sessions).']::text[], 60, 'publie', 8, now())
+values ('kplus', 'kplus', (select id from public.course_categories where slug = 'programmation'), 'Parcours F', 'K+ — programmer en français', 'Programmer en français, jusqu''aux sites web dynamiques.', 'K+ est un langage de programmation dont les mots-clés sont en français (si … alors … fin, afficher, demander). Ce parcours commence par les bases de la programmation, puis apprend à créer de vrais sites web dynamiques : boutons, champs de saisie, listes qui se remplissent, minuteries, et publication du site.', 'debutant', array['Aucun : le parcours commence au tout début.']::text[], array['Écrire des programmes K+ : variables, calculs, conditions, boucles et fonctions.', 'Comprendre et corriger les messages d''erreur.', 'Créer des pages web qui réagissent aux actions du visiteur.', 'Publier un site créé avec K+.']::text[], 16, 'publie', 8, now())
 on conflict (slug) do update set language_id = excluded.language_id, category_id = excluded.category_id, code = excluded.code, title = excluded.title, tagline = excluded.tagline, description = excluded.description, level = excluded.level, prerequisites = excluded.prerequisites, objectives = excluded.objectives, duration_hours = excluded.duration_hours, status = excluded.status, sort_order = excluded.sort_order;
-insert into public.modules (course_id, slug, title, description, position, level_number) values ((select id from public.courses where slug = 'php'), 'php-premiers-pas', 'Premiers pas en PHP', null, 1, 1)
+insert into public.modules (course_id, slug, title, description, position, level_number) values ((select id from public.courses where slug = 'kplus'), 'bases', 'Les bases du langage K+', null, 1, 1)
 on conflict (course_id, slug) do update set title = excluded.title, description = excluded.description, position = excluded.position, level_number = excluded.level_number;
 insert into public.lessons (module_id, course_id, slug, title, level, duration_minutes, objectives, prerequisites, content, summary, examples, pedagogy, status, position, validated_at)
-values ((select id from public.modules where course_id = (select id from public.courses where slug = 'php') and slug = 'php-premiers-pas'), (select id from public.courses where slug = 'php'), 'php-introduction', 'Qu''est-ce que PHP ? Le fonctionnement côté serveur', 'debutant', 30, array['Expliquer le rôle d''un langage côté serveur.', 'Écrire un premier script avec echo et print.', 'Mélanger HTML et PHP dans une page.']::text[], '{}'::text[], '## PHP, un langage côté serveur
+values ((select id from public.modules where course_id = (select id from public.courses where slug = 'kplus') and slug = 'bases'), (select id from public.courses where slug = 'kplus'), 'kplus-introduction', 'Découvrir K+', 'debutant', 20, array['Savoir ce qu''est K+ et à quoi il sert.', 'Écrire et exécuter un premier programme avec afficher.', 'Écrire des commentaires.']::text[], '{}'::text[], '## Un langage de programmation en français
 
-**PHP** (PHP: Hypertext Preprocessor) est un langage de programmation créé en 1994 pour fabriquer des **pages web dynamiques**. Il fait fonctionner WordPress, de nombreux sites d''universités, de boutiques et d''administrations.
+**K+** est un langage de programmation dont les mots-clés sont en français. Un programme K+ se lit presque comme une phrase :
 
-Contrairement à JavaScript dans le navigateur, le code PHP s''exécute **sur le serveur** :
-
-1. le navigateur demande une page, par exemple **index.php** ;
-2. le serveur web (Apache, Nginx…) confie le fichier à l''**interpréteur PHP** ;
-3. PHP exécute le code et **produit du HTML** ;
-4. le serveur renvoie ce HTML au navigateur, qui l''affiche.
-
-Le visiteur ne voit **jamais** le code PHP : seulement le résultat. C''est ce qui permet de cacher les mots de passe de la base de données ou les règles de calcul.
-
-## Les balises PHP
-
-Le code PHP se place entre **<?php** et **?>**. Tout ce qui est en dehors est envoyé tel quel au navigateur.
-
-~~~php
-<?php
-echo "Bonjour UPL !";
+~~~kplus
+si age >= 18 alors
+    afficher("Tu es majeur")
+fin
 ~~~
 
-Dans un fichier qui ne contient que du PHP, on **omet** la balise fermante ?> : cela évite d''envoyer par erreur des espaces ou des lignes vides.
+Les fichiers K+ portent l''extension **.kplus**. Sur la plateforme, le vrai moteur K+ tourne dans votre navigateur : vos programmes s''exécutent même sans Internet une fois l''éditeur préparé.
 
-## Afficher avec echo et print
+## Afficher
 
-- **echo** affiche une ou plusieurs valeurs, séparées par des virgules ;
-- **print** affiche une seule valeur (et renvoie 1) ;
-- le caractère **\n** passe à la ligne dans la console ; dans une page HTML, on utilise la balise **<br>** ou des paragraphes.
+**afficher(…)** écrit une ou plusieurs valeurs, séparées par une espace, puis passe à la ligne :
 
-Chaque instruction se termine par un **point-virgule**. L''oublier est l''erreur la plus fréquente : PHP signale alors une **Parse error** avec le numéro de ligne.
-
-## Les commentaires
-
-~~~php
-<?php
-// commentaire sur une ligne
-# autre commentaire sur une ligne
-/* commentaire
-   sur plusieurs lignes */
+~~~kplus
+afficher("Bienvenue dans K+")
+afficher("2 + 3 =", 2 + 3)
 ~~~
 
-## Mélanger HTML et PHP
+## Commentaires
 
-On peut ouvrir et fermer PHP au milieu d''une page. La forme courte **<?= expression ?>** affiche directement une valeur :
+Un commentaire est ignoré par le moteur : il sert à expliquer le programme aux humains.
 
-~~~php
-<h1>Bienvenue</h1>
-<p>Nous sommes le <?= date("d/m/Y") ?>.</p>
-~~~
+- **#** commente jusqu''à la fin de la ligne ;
+- **/* … */** commente plusieurs lignes.
 
-## Exécuter PHP sur UPL CODE ACADEMY MK
+## Une instruction par ligne
 
-Sur la plateforme, votre code est exécuté par le **vrai PHP 8.3**, compilé en WebAssembly, **dans votre navigateur** : rien n''est envoyé au serveur. Si le programme produit du HTML, l''éditeur affiche aussi l''**aperçu de la page**. En entreprise, on installe PHP sur un serveur (ou localement avec XAMPP, WAMP, Laragon ou la commande **php -S localhost:8000**).', array['PHP s''exécute sur le serveur et renvoie du HTML au navigateur.', 'Le code se place entre <?php et ?> ; chaque instruction finit par un point-virgule.', 'echo et print affichent ; <?= ?> affiche une valeur au milieu du HTML.']::text[], '[{"language":"php","title":"Premier programme","code":"<?php\necho \"Bonjour UPL !\\n\";\necho \"PHP version \", PHP_VERSION, \"\\n\";\nprint \"Bienvenue à l''université\\n\";"},{"language":"php","title":"Une page HTML générée par PHP","code":"<?php $universite = \"UPL\"; ?>\n<!DOCTYPE html>\n<html lang=\"fr\">\n<body>\n  <h1>Bienvenue à l''<?= $universite ?></h1>\n  <p>Page générée le <?= date(\"d/m/Y\") ?> à <?= date(\"H:i\") ?>.</p>\n</body>\n</html>"}]'::jsonb, null, 'publie', 1, now())
+En K+, chaque instruction occupe sa propre ligne : il n''y a pas de point-virgule. Les blocs (si, boucles, fonctions) se terminent par le mot-clé **fin**.', array['afficher(…) écrit des valeurs puis passe à la ligne.', '# et /* … */ écrivent des commentaires.', 'Une instruction par ligne ; les blocs se terminent par fin.']::text[], '[{"language":"kplus","title":"Premier programme","code":"# Mon premier programme K+\nafficher(\"Bienvenue dans K+\")\nafficher(\"2 + 3 =\", 2 + 3)\nafficher()          # ligne vide\nafficher(\"À bientôt !\")","explanation":"afficher() sans argument écrit une ligne vide."}]'::jsonb, null, 'publie', 1, now())
 on conflict (course_id, slug) do update set module_id = excluded.module_id, title = excluded.title, level = excluded.level, duration_minutes = excluded.duration_minutes, objectives = excluded.objectives, prerequisites = excluded.prerequisites, content = excluded.content, summary = excluded.summary, examples = excluded.examples, pedagogy = excluded.pedagogy, status = excluded.status, position = excluded.position;
-insert into public.quizzes (course_id, lesson_id, slug, title, is_final, pass_score, status, kind, duration_minutes, level_number) values ((select id from public.courses where slug = 'php'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'php') and slug = 'php-introduction'), 'php-introduction-quiz', 'Vérification — Introduction à PHP', false, 60, 'publie', 'verification', null, null)
+insert into public.quizzes (course_id, lesson_id, slug, title, is_final, pass_score, status, kind, duration_minutes, level_number) values ((select id from public.courses where slug = 'kplus'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'kplus') and slug = 'kplus-introduction'), 'kplus-introduction-quiz', 'Découvrir K+', false, 60, 'publie', 'verification', null, null)
 on conflict (slug) do update set title = excluded.title, is_final = excluded.is_final, pass_score = excluded.pass_score, lesson_id = excluded.lesson_id, kind = excluded.kind, duration_minutes = excluded.duration_minutes, level_number = excluded.level_number;
-delete from public.quiz_questions where quiz_id = (select id from public.quizzes where slug = 'php-introduction-quiz');
-with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-introduction-quiz'), 'qcm', 'Où le code PHP est-il exécuté sur un site classique ?', null, '["Dans le navigateur du visiteur","Sur le serveur web","Dans la base de données","Dans le fichier CSS"]'::jsonb, 0, null) returning id)
+delete from public.quiz_questions where quiz_id = (select id from public.quizzes where slug = 'kplus-introduction-quiz');
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-introduction-quiz'), 'qcm', 'Quelle est l''extension des fichiers K+ ?', null, '[".kp",".kplus",".k",".txt"]'::jsonb, 0, null) returning id)
 insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
-with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-introduction-quiz'), 'vrai_faux', 'Le visiteur d''un site peut lire le code PHP avec « Afficher la source ».', null, '["Vrai","Faux"]'::jsonb, 1, null) returning id)
-insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, 'Il ne reçoit que le HTML produit par PHP.' from qq;
-with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-introduction-quiz'), 'qcm', 'Quelle balise ouvre un bloc PHP ?', null, '["<php>","<?php","<script php>","{php}"]'::jsonb, 2, null) returning id)
-insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
-with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-introduction-quiz'), 'qcm', 'Que produit l''oubli d''un point-virgule ?', null, '["Un avertissement ignoré","Une Parse error avec le numéro de ligne","Rien","Une page blanche sans message"]'::jsonb, 3, null) returning id)
-insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-introduction-quiz'), 'qcm', 'Qu''affiche afficher("A", 1 + 1) ?', null, '["A 2","A1+1","A2","\"A\" 2"]'::jsonb, 1, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[0]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-introduction-quiz'), 'vrai_faux', 'En K+, chaque instruction se termine par un point-virgule.', null, '["Vrai","Faux"]'::jsonb, 2, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, 'Une instruction par ligne, sans point-virgule.' from qq;
 insert into public.lessons (module_id, course_id, slug, title, level, duration_minutes, objectives, prerequisites, content, summary, examples, pedagogy, status, position, validated_at)
-values ((select id from public.modules where course_id = (select id from public.courses where slug = 'php') and slug = 'php-premiers-pas'), (select id from public.courses where slug = 'php'), 'php-variables-types', 'Variables, types et constantes', 'debutant', 35, array['Déclarer et utiliser des variables.', 'Reconnaître les types de PHP.', 'Définir des constantes.', 'Concaténer et insérer des variables dans une chaîne.']::text[], array['Qu''est-ce que PHP ?']::text[], '## Les variables
+values ((select id from public.modules where course_id = (select id from public.courses where slug = 'kplus') and slug = 'bases'), (select id from public.courses where slug = 'kplus'), 'kplus-variables', 'Variables, constantes et types', 'debutant', 30, array['Déclarer une variable et une constante.', 'Connaître les types de K+.', 'Lire une saisie avec demander et la convertir.']::text[], '{}'::text[], '## Déclarer une variable
 
-Une variable est un **nom associé à une valeur**. En PHP, son nom commence toujours par **$** :
+Une variable est une boîte qui porte un nom et contient une valeur. On la **déclare** avec le mot-clé **variable**, puis on peut changer sa valeur :
 
-~~~php
-<?php
-$nom = "Kito";
-$age = 21;
+~~~kplus
+variable age = 20
+age = age + 1
 ~~~
 
-Règles : le nom commence par une lettre ou _, puis lettres, chiffres ou _ ; il est **sensible à la casse** ($age et $Age sont deux variables). Il n''y a pas de déclaration de type : la variable prend le type de la valeur qu''on lui donne (typage **dynamique**).
+Utiliser une variable non déclarée provoque une **Erreur de nom** : K+ refuse de deviner.
+
+## Constantes
+
+Une **constante** ne change jamais : `constante PI = 3.14159`. La modifier provoque une **Erreur de constante**.
 
 ## Les types
 
-| Type | Exemple | Rôle |
-|---|---|---|
-| int | 42, -7 | nombres entiers |
-| float | 3.14, 12.5 | nombres à virgule |
-| string | "UPL", ''Kinshasa'' | texte |
-| bool | true, false | vrai ou faux |
-| null | null | absence de valeur |
-| array | [1, 2, 3] | liste ou tableau associatif |
-
-**var_dump()** affiche le type et la valeur : c''est l''outil de débogage le plus utile. **gettype()** renvoie le nom du type.
-
-## Chaînes : guillemets doubles ou simples
-
-- entre **guillemets doubles**, les variables sont remplacées par leur valeur et **\n** est un retour à la ligne : "Bonjour $nom\n" ;
-- entre **apostrophes**, le texte est pris tel quel : ''Bonjour $nom'' affiche littéralement $nom.
-
-Pour coller une variable à du texte, on l''entoure d''accolades : "{$nom}s".
-
-## La concaténation
-
-L''opérateur **.** (point) colle deux chaînes ; **.=** ajoute à la fin d''une variable :
-
-~~~php
-<?php
-$message = "Bonjour " . $nom;
-$message .= " !";
-~~~
-
-Attention : en PHP, **+** additionne des nombres, il ne concatène pas.
-
-## Les constantes
-
-Une constante ne change jamais. Son nom s''écrit sans $, en majuscules par convention :
-
-~~~php
-<?php
-const TAUX_TVA = 0.16;
-define("UNIVERSITE", "UPL");
-~~~
-
-PHP fournit aussi des constantes prédéfinies : **PHP_VERSION**, **PHP_EOL** (fin de ligne), **PHP_INT_MAX**.
-
-## Conversions
-
-On convertit avec **(int)**, **(float)**, **(string)**, **(bool)** : (int) "25 ans" vaut 25. Les données lues au clavier ou dans un formulaire sont **toujours des chaînes** : il faut les convertir avant de calculer.', array['Une variable commence par $ et prend le type de sa valeur.', 'Guillemets doubles : variables remplacées ; apostrophes : texte brut.', 'Le point concatène ; const et define créent des constantes.', 'Les entrées utilisateur sont des chaînes : on les convertit avant de calculer.']::text[], '[{"language":"php","title":"Types et var_dump","code":"<?php\n$nom = \"Kito\";\n$age = 21;\n$moyenne = 14.5;\n$inscrit = true;\nvar_dump($nom, $age, $moyenne, $inscrit);\necho gettype($moyenne), \"\\n\";"},{"language":"php","title":"Concaténation, interpolation et constantes","code":"<?php\nconst UNIVERSITE = \"UPL\";\n$prenom = \"Grace\";\n$annee = 2;\necho \"Étudiante : \" . $prenom . \"\\n\";\necho \"$prenom est en {$annee}e année à \" . UNIVERSITE . \"\\n\";\necho ''Entre apostrophes : $prenom'', \"\\n\";\n$age = (int) \"19 ans\";\necho \"Dans un an : \", $age + 1, \" ans\\n\";"}]'::jsonb, null, 'publie', 2, now())
-on conflict (course_id, slug) do update set module_id = excluded.module_id, title = excluded.title, level = excluded.level, duration_minutes = excluded.duration_minutes, objectives = excluded.objectives, prerequisites = excluded.prerequisites, content = excluded.content, summary = excluded.summary, examples = excluded.examples, pedagogy = excluded.pedagogy, status = excluded.status, position = excluded.position;
-insert into public.quizzes (course_id, lesson_id, slug, title, is_final, pass_score, status, kind, duration_minutes, level_number) values ((select id from public.courses where slug = 'php'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'php') and slug = 'php-variables-types'), 'php-variables-quiz', 'Vérification — Variables et types', false, 60, 'publie', 'verification', null, null)
-on conflict (slug) do update set title = excluded.title, is_final = excluded.is_final, pass_score = excluded.pass_score, lesson_id = excluded.lesson_id, kind = excluded.kind, duration_minutes = excluded.duration_minutes, level_number = excluded.level_number;
-delete from public.quiz_questions where quiz_id = (select id from public.quizzes where slug = 'php-variables-quiz');
-with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-variables-quiz'), 'qcm', 'Quel nom de variable est valide ?', null, '["$2nom","$nom_etudiant","nom","$nom-etudiant"]'::jsonb, 0, null) returning id)
-insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
-with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-variables-quiz'), 'qcm', 'Qu''affiche echo ''Total : $x''; ?', null, '["Total : suivi de la valeur de $x","Total : $x","Une erreur","Rien"]'::jsonb, 1, null) returning id)
-insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
-with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-variables-quiz'), 'qcm', 'Quel opérateur concatène deux chaînes ?', null, '["+",".","&",","]'::jsonb, 2, null) returning id)
-insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
-with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-variables-quiz'), 'qcm', 'Que vaut (int) "12abc" ?', null, '["0","12","une erreur","12abc"]'::jsonb, 3, null) returning id)
-insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
-insert into public.lessons (module_id, course_id, slug, title, level, duration_minutes, objectives, prerequisites, content, summary, examples, pedagogy, status, position, validated_at)
-values ((select id from public.modules where course_id = (select id from public.courses where slug = 'php') and slug = 'php-premiers-pas'), (select id from public.courses where slug = 'php'), 'php-operateurs', 'Opérateurs et expressions', 'debutant', 30, array['Calculer avec les opérateurs arithmétiques.', 'Comparer avec == et ===.', 'Combiner des conditions avec les opérateurs logiques.']::text[], array['Variables et types']::text[], '## Opérateurs arithmétiques
-
-| Opérateur | Sens | Exemple | Résultat |
-|---|---|---|---|
-| + - * | addition, soustraction, multiplication | 7 * 3 | 21 |
-| / | division (toujours exacte) | 7 / 2 | 3.5 |
-| % | reste de la division entière | 17 % 5 | 2 |
-| ** | puissance | 2 ** 10 | 1024 |
-| intdiv() | quotient entier | intdiv(17, 5) | 3 |
-
-Les priorités sont celles des mathématiques : * / % avant + -. Utilisez des parenthèses en cas de doute.
-
-## Affectation combinée et incrémentation
-
-**$x += 5** équivaut à **$x = $x + 5** (de même -=, *=, /=, .=). **$i++** ajoute 1, **$i--** retire 1.
-
-## Comparaison : == ou === ?
-
-- **==** compare les valeurs après conversion : "5" == 5 est **vrai** ;
-- **===** compare la valeur **et** le type : "5" === 5 est **faux**.
-
-En pratique, préférez **===** et **!==** : ils évitent des surprises. Les autres comparateurs sont < > <= >= et **<=>** (« vaisseau spatial ») qui renvoie -1, 0 ou 1, très utile pour trier.
-
-## Opérateurs logiques
-
-| Opérateur | Vrai si… |
+| Type | Exemples |
 |---|---|
-| && (et) | les deux conditions sont vraies |
-| \|\| (ou) | au moins une condition est vraie |
-| ! (non) | la condition est fausse |
+| entier | 0, 42, -7, 1_000_000 |
+| décimal | 3.14, 2.0 (avec un point, pas une virgule) |
+| texte | "Bonjour" |
+| booléen | vrai, faux |
+| nul | nul (absence de valeur) |
+| liste | [1, 2, 3] |
 
-## L''opérateur ?? (fusion null)
+**type(x)** donne le type d''une valeur.
 
-**$a ?? $b** vaut $a s''il existe et n''est pas null, sinon $b. Il est très utilisé avec les formulaires : **$_GET["page"] ?? "accueil"**.
+## Lire une saisie
 
-## Arrondir et formater
+**demander("question")** lit une ligne tapée par l''utilisateur et la renvoie **sous forme de texte**. Pour calculer, on la convertit avec **entier(…)** ou **decimal(…)** :
 
-**round($x, 2)** arrondit à 2 décimales ; **number_format($x, 2, ",", " ")** affiche 1 234,50 ; **sprintf("%.1f", $x)** formate avec une décimale.', array['/ donne un résultat exact ; % le reste ; intdiv le quotient entier.', '=== compare valeur et type : à préférer à ==.', '&&, || et ! combinent des conditions ; ?? donne une valeur par défaut.']::text[], '[{"language":"php","title":"Calculs et comparaisons","code":"<?php\n$a = 17;\n$b = 5;\necho \"Somme : \", $a + $b, \"\\n\";\necho \"Division : \", $a / $b, \"\\n\";\necho \"Quotient entier : \", intdiv($a, $b), \"\\n\";\necho \"Reste : \", $a % $b, \"\\n\";\necho \"Puissance : \", 2 ** 8, \"\\n\";\nvar_dump(\"5\" == 5, \"5\" === 5);\necho \"Moyenne : \", number_format(13.456, 2, \",\", \" \"), \"\\n\";"}]'::jsonb, null, 'publie', 3, now())
+~~~kplus
+variable age = entier(demander("Votre âge ? "))
+~~~
+
+Sur la plateforme, les réponses se tapent dans la zone **Entrées**, une par ligne.', array['variable crée une variable ; constante une valeur fixe.', 'Types : entier, décimal, texte, booléen, nul, liste.', 'demander renvoie toujours un texte : convertir avec entier ou decimal.']::text[], '[{"language":"kplus","title":"Variables et types","code":"variable nom = \"Awa\"\nvariable age = 20\nconstante PI = 3.14159\nafficher(nom, \"a\", age, \"ans\")\nafficher(type(nom), type(age), type(PI), type(vrai))"},{"language":"kplus","title":"Lire et convertir une saisie","code":"variable nom = demander(\"Votre nom ? \")\nvariable age = entier(demander(\"Votre âge ? \"))\nafficher(\"Bonjour\", nom, \"- l''an prochain vous aurez\", age + 1, \"ans.\")","stdin":"Awa\n20\n","explanation":"demander renvoie un texte : entier(…) le convertit pour pouvoir calculer."}]'::jsonb, null, 'publie', 2, now())
 on conflict (course_id, slug) do update set module_id = excluded.module_id, title = excluded.title, level = excluded.level, duration_minutes = excluded.duration_minutes, objectives = excluded.objectives, prerequisites = excluded.prerequisites, content = excluded.content, summary = excluded.summary, examples = excluded.examples, pedagogy = excluded.pedagogy, status = excluded.status, position = excluded.position;
-insert into public.quizzes (course_id, lesson_id, slug, title, is_final, pass_score, status, kind, duration_minutes, level_number) values ((select id from public.courses where slug = 'php'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'php') and slug = 'php-operateurs'), 'php-operateurs-quiz', 'Vérification — Opérateurs', false, 60, 'publie', 'verification', null, null)
+insert into public.quizzes (course_id, lesson_id, slug, title, is_final, pass_score, status, kind, duration_minutes, level_number) values ((select id from public.courses where slug = 'kplus'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'kplus') and slug = 'kplus-variables'), 'kplus-variables-quiz', 'Variables et types', false, 60, 'publie', 'verification', null, null)
 on conflict (slug) do update set title = excluded.title, is_final = excluded.is_final, pass_score = excluded.pass_score, lesson_id = excluded.lesson_id, kind = excluded.kind, duration_minutes = excluded.duration_minutes, level_number = excluded.level_number;
-delete from public.quiz_questions where quiz_id = (select id from public.quizzes where slug = 'php-operateurs-quiz');
-with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-operateurs-quiz'), 'qcm', 'Que vaut 17 % 5 ?', null, '["3","2","3.4","12"]'::jsonb, 0, null) returning id)
+delete from public.quiz_questions where quiz_id = (select id from public.quizzes where slug = 'kplus-variables-quiz');
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-variables-quiz'), 'qcm', 'Que renvoie demander(…) ?', null, '["un entier","un texte","un décimal","ça dépend de la saisie"]'::jsonb, 0, null) returning id)
 insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
-with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-operateurs-quiz'), 'qcm', 'Que vaut 7 / 2 en PHP ?', null, '["3","3.5","4","une erreur"]'::jsonb, 1, null) returning id)
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-variables-quiz'), 'qcm', 'Comment écrit-on trois et demi en K+ ?', null, '["3,5","3.5","3½","\"3.5\""]'::jsonb, 1, null) returning id)
 insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
-with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-operateurs-quiz'), 'qcm', '"10" === 10 vaut…', null, '["true","false"]'::jsonb, 2, null) returning id)
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-variables-quiz'), 'vrai_faux', 'On peut changer la valeur d''une constante.', null, '["Vrai","Faux"]'::jsonb, 2, null) returning id)
 insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
-with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'php-operateurs-quiz'), 'qcm', 'Que vaut $x ?? "défaut" si $x n''existe pas ?', null, '["null","une erreur","\"défaut\"","false"]'::jsonb, 3, null) returning id)
-insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[2]'::jsonb, null from qq;
 insert into public.lessons (module_id, course_id, slug, title, level, duration_minutes, objectives, prerequisites, content, summary, examples, pedagogy, status, position, validated_at)
-values ((select id from public.modules where course_id = (select id from public.courses where slug = 'php') and slug = 'php-premiers-pas'), (select id from public.courses where slug = 'php'), 'php-conditions-simples', 'Premières conditions et page dynamique', 'debutant', 35, array['Écrire if / else.', 'Utiliser l''opérateur ternaire.', 'Construire une page personnalisée selon des données.']::text[], array['Opérateurs et expressions']::text[], '## if et else
+values ((select id from public.modules where course_id = (select id from public.courses where slug = 'kplus') and slug = 'bases'), (select id from public.courses where slug = 'kplus'), 'kplus-calculs', 'Calculs et textes', 'debutant', 30, array['Utiliser les opérateurs et leurs priorités.', 'Distinguer division, modulo et puissance.', 'Assembler des textes.']::text[], '{}'::text[], '## Les opérateurs
 
-~~~php
-<?php
-$note = 12;
-if ($note >= 10) {
-    echo "Admis";
-} else {
-    echo "Ajourné";
-}
-~~~
+| Opérateur | Rôle | Exemple |
+|---|---|---|
+| + - * | addition, soustraction, multiplication | 2 + 3 * 4 vaut 14 |
+| / | division (résultat décimal) | 7 / 2 vaut 3.5 ; 10 / 2 vaut 5.0 |
+| % | reste de la division | 17 % 5 vaut 2 |
+| ^ | puissance | 2 ^ 10 vaut 1024 |
 
-La condition est entre **parenthèses**, le bloc entre **accolades**. Même pour une seule instruction, gardez les accolades : le code reste lisible et sans piège.
+La multiplication et la division passent avant l''addition ; les parenthèses changent l''ordre : (2 + 3) * 4 vaut 20.
 
-## Conditions composées
+Pour une division entière, on garde la partie entière : **entier(17 / 5)** vaut 3. Diviser par zéro provoque une **Erreur de division par zéro**.
 
-~~~php
-<?php
-if ($age >= 18 && $inscrit) {
-    echo "Accès autorisé";
-}
-~~~
+## Les textes
 
-## L''opérateur ternaire
+Le signe **+** assemble deux textes : "Bon" + "jour" donne "Bonjour". Pour assembler un texte et un nombre, on convertit le nombre avec **texte(…)** : K+ refuse "Âge : " + 20, pour éviter les surprises.
 
-Pour choisir entre deux valeurs en une ligne : **condition ? valeur_si_vrai : valeur_si_faux**.
-
-~~~php
-<?php
-$statut = $note >= 10 ? "Admis" : "Ajourné";
-~~~
-
-## Valeurs considérées comme fausses
-
-Dans une condition, sont fausses : **false**, **0**, **0.0**, **""**, **"0"**, **null** et le tableau vide **[]**. Tout le reste est vrai. Pour éviter les surprises, comparez explicitement : if ($texte !== "").
-
-## Syntaxe alternative dans le HTML
-
-Dans une page, la forme **if (...): … endif;** se lit mieux :
-
-~~~php
-<?php if ($connecte): ?>
-  <p>Bonjour !</p>
-<?php else: ?>
-  <p>Veuillez vous connecter.</p>
-<?php endif; ?>
-~~~
-
-## Projet : page personnalisée
-
-On combine variables, conditions et HTML : la page salue l''étudiant selon l''heure, affiche sa filière et un message adapté à sa moyenne. C''est le principe de toute page dynamique : **les mêmes fichiers produisent un affichage différent selon les données**.', array['if / else choisit entre deux blocs ; les accolades sont recommandées.', 'Le ternaire choisit une valeur en une ligne.', 'La syntaxe if: … endif; rend les pages HTML lisibles.']::text[], '[{"language":"php","title":"Page personnalisée","code":"<?php\n$prenom = \"Grace\";\n$filiere = \"Informatique\";\n$moyenne = 15.5;\n$heure = 9;\n$salutation = $heure < 12 ? \"Bonjour\" : \"Bonsoir\";\n?>\n<h1><?= $salutation ?>, <?= htmlspecialchars($prenom) ?> !</h1>\n<p>Filière : <?= htmlspecialchars($filiere) ?></p>\n<?php if ($moyenne >= 14): ?>\n  <p>Excellent travail : mention Bien.</p>\n<?php elseif ($moyenne >= 10): ?>\n  <p>Vous êtes admise.</p>\n<?php else: ?>\n  <p>Courage pour la session de rattrapage.</p>\n<?php endif; ?>"}]'::jsonb, null, 'publie', 4, now())
+Fonctions utiles : **longueur(t)**, **arrondir(x, n)**, **racine(x)**, **absolu(x)**.', array['/ donne toujours un décimal ; % donne le reste ; ^ la puissance.', '+ assemble deux textes ; texte(…) convertit un nombre.', 'entier(a / b) donne la partie entière.']::text[], '[{"language":"kplus","title":"Opérateurs","code":"afficher(2 + 3 * 4, (2 + 3) * 4)\nafficher(7 / 2, 10 / 2, 17 % 5, 2 ^ 10)\nafficher(entier(17 / 5), arrondir(3.14159, 2))"},{"language":"kplus","title":"Assembler des textes","code":"variable prenom = \"Awa\"\nvariable note = 15\nafficher(\"Élève : \" + prenom)\nafficher(\"Note : \" + texte(note) + \"/20\")\nafficher(\"Le prénom a\", longueur(prenom), \"lettres\")"}]'::jsonb, null, 'publie', 3, now())
 on conflict (course_id, slug) do update set module_id = excluded.module_id, title = excluded.title, level = excluded.level, duration_minutes = excluded.duration_minutes, objectives = excluded.objectives, prerequisites = excluded.prerequisites, content = excluded.content, summary = excluded.summary, examples = excluded.examples, pedagogy = excluded.pedagogy, status = excluded.status, position = excluded.position;
-insert into public.quizzes (course_id, lesson_id, slug, title, is_final, pass_score, status, kind, duration_minutes, level_number) values ((select id from public.courses where slug = 'php'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'php') and slug = 'php-conditions-simples'), 'php-conditions-simples-quiz', 'Vérification — Conditions', false, 60, 'publie', 'verification', null, null)
+insert into public.lessons (module_id, course_id, slug, title, level, duration_minutes, objectives, prerequisites, content, summary, examples, pedagogy, status, position, validated_at)
+values ((select id from public.modules where course_id = (select id from public.courses where slug = 'kplus') and slug = 'bases'), (select id from public.courses where slug = 'kplus'), 'kplus-conditions', 'Conditions', 'debutant', 30, array['Écrire si … alors … sinon … fin.', 'Enchaîner plusieurs cas avec sinon si.', 'Combiner des conditions avec et, ou, non.']::text[], '{}'::text[], '## si … alors … fin
+
+~~~kplus
+si note >= 10 alors
+    afficher("Admis")
+sinon
+    afficher("Ajourné")
+fin
+~~~
+
+Un seul **fin** termine tout le bloc. Pour plusieurs cas, on écrit **sinon si** :
+
+~~~kplus
+si note >= 16 alors
+    afficher("Très bien")
+sinon si note >= 10 alors
+    afficher("Admis")
+sinon
+    afficher("Ajourné")
+fin
+~~~
+
+## Comparer et combiner
+
+Comparaisons : == (égal), != (différent), <, <=, >, >=. Pour comparer, on écrit **==** : un seul = sert à donner une valeur.
+
+Combinaisons : **et**, **ou**, **non** — par exemple `si age >= 18 et age < 65 alors`.
+
+K+ exige une vraie condition (vrai ou faux) : `si 1 alors` est une erreur.', array['si … alors … sinon si … sinon … fin.', '== compare, = donne une valeur.', 'et, ou, non combinent des conditions.']::text[], '[{"language":"kplus","title":"Mention","code":"variable note = entier(demander())\nsi note >= 16 alors\n    afficher(\"Très bien\")\nsinon si note >= 14 alors\n    afficher(\"Bien\")\nsinon si note >= 10 alors\n    afficher(\"Admis\")\nsinon\n    afficher(\"Ajourné\")\nfin","stdin":"15\n"}]'::jsonb, null, 'publie', 4, now())
+on conflict (course_id, slug) do update set module_id = excluded.module_id, title = excluded.title, level = excluded.level, duration_minutes = excluded.duration_minutes, objectives = excluded.objectives, prerequisites = excluded.prerequisites, content = excluded.content, summary = excluded.summary, examples = excluded.examples, pedagogy = excluded.pedagogy, status = excluded.status, position = excluded.position;
+insert into public.quizzes (course_id, lesson_id, slug, title, is_final, pass_score, status, kind, duration_minutes, level_number) values ((select id from public.courses where slug = 'kplus'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'kplus') and slug = 'kplus-conditions'), 'kplus-conditions-quiz', 'Conditions', false, 60, 'publie', 'verification', null, null)
 on conflict (slug) do update set title = excluded.title, is_final = excluded.is_final, pass_score = excluded.pass_score, lesson_id = excluded.lesson_id, kind = excluded.kind, duration_minutes = excluded.duration_minutes, level_number = excluded.level_number;
+delete from public.quiz_questions where quiz_id = (select id from public.quizzes where slug = 'kplus-conditions-quiz');
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-conditions-quiz'), 'qcm', 'Combien de « fin » faut-il pour si … sinon si … sinon ?', null, '["1","2","3","aucun"]'::jsonb, 0, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[0]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-conditions-quiz'), 'qcm', 'Quel opérateur teste l''égalité ?', null, '["=","==","===","egal"]'::jsonb, 1, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'kplus-conditions-quiz'), 'vrai_faux', '« si 1 alors » est accepté par K+.', null, '["Vrai","Faux"]'::jsonb, 2, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, 'La condition doit valoir vrai ou faux.' from qq;
+insert into public.lessons (module_id, course_id, slug, title, level, duration_minutes, objectives, prerequisites, content, summary, examples, pedagogy, status, position, validated_at)
+values ((select id from public.modules where course_id = (select id from public.courses where slug = 'kplus') and slug = 'bases'), (select id from public.courses where slug = 'kplus'), 'kplus-boucles', 'Boucles', 'debutant', 35, array['Répéter avec tant que.', 'Compter avec pour … de … à.', 'Parcourir une liste avec pour chaque.']::text[], '{}'::text[], '## tant que
+
+~~~kplus
+variable i = 1
+tant que i <= 3 faire
+    afficher(i)
+    i = i + 1
+fin
+~~~
+
+## pour (compteur)
+
+`pour i de 1 à 5 faire … fin` : les deux bornes sont incluses. On peut ajouter un **pas** : `pour i de 10 à 0 pas -2 faire`. Attention : le mot-clé **à** prend un accent.
+
+## pour chaque
+
+`pour chaque fruit dans ["pomme", "kiwi"] faire … fin` parcourt une liste (ou les lettres d''un texte).
+
+## arreter et continuer
+
+**arreter** quitte la boucle ; **continuer** passe au tour suivant.', array['tant que répète tant que la condition est vraie.', 'pour i de a à b [pas p] : bornes incluses.', 'pour chaque parcourt une liste ou un texte.']::text[], '[{"language":"kplus","title":"Les trois boucles","code":"pour i de 1 à 3 faire\n    afficher(\"tour\", i)\nfin\npour chaque fruit dans [\"pomme\", \"kiwi\"] faire\n    afficher(fruit)\nfin\nvariable n = 0\ntant que n < 10 faire\n    n = n + 4\nfin\nafficher(\"n =\", n)"}]'::jsonb, null, 'publie', 5, now())
+on conflict (course_id, slug) do update set module_id = excluded.module_id, title = excluded.title, level = excluded.level, duration_minutes = excluded.duration_minutes, objectives = excluded.objectives, prerequisites = excluded.prerequisites, content = excluded.content, summary = excluded.summary, examples = excluded.examples, pedagogy = excluded.pedagogy, status = excluded.status, position = excluded.position;
+insert into public.lessons (module_id, course_id, slug, title, level, duration_minutes, objectives, prerequisites, content, summary, examples, pedagogy, status, position, validated_at)
+values ((select id from public.modules where course_id = (select id from public.courses where slug = 'kplus') and slug = 'bases'), (select id from public.courses where slug = 'kplus'), 'kplus-fonctions-listes', 'Fonctions, listes et erreurs', 'debutant', 40, array['Écrire et appeler une fonction.', 'Manipuler une liste.', 'Gérer une erreur avec essayer … attraper.']::text[], '{}'::text[], '## Fonctions
+
+~~~kplus
+fonction carre(x)
+    retourner x * x
+fin
+afficher(carre(7))
+~~~
+
+Une fonction se déclare **avant** d''être appelée. Sans **retourner**, elle renvoie nul.
+
+## Listes
+
+`variable notes = [12, 15, 9]` ; `notes[0]` est le **premier** élément (on compte à partir de 0) ; **longueur(notes)** ; **ajouter(notes, 18)** ajoute à la fin.
+
+## Gérer les erreurs
+
+~~~kplus
+essayer
+    afficher(10 / 0)
+attraper erreur
+    afficher("Problème :", erreur)
+fin
+~~~
+
+**lever "message"** déclenche sa propre erreur, par exemple quand une donnée est invalide.', array['fonction nom(paramètres) … retourner … fin.', 'Les listes commencent à l''indice 0.', 'essayer … attraper gère une erreur ; lever en déclenche une.']::text[], '[{"language":"kplus","title":"Maximum d''une liste","code":"fonction maximum(liste)\n    variable max = liste[0]\n    pour chaque x dans liste faire\n        si x > max alors\n            max = x\n        fin\n    fin\n    retourner max\nfin\nvariable notes = [12, 15, 9]\najouter(notes, 18)\nafficher(\"Notes :\", notes)\nafficher(\"Maximum :\", maximum(notes))"},{"language":"kplus","title":"Erreur attrapée","code":"essayer\n    afficher(entier(\"douze\"))\nattraper erreur\n    afficher(\"Saisie invalide :\", erreur)\nfin"}]'::jsonb, null, 'publie', 6, now())
+on conflict (course_id, slug) do update set module_id = excluded.module_id, title = excluded.title, level = excluded.level, duration_minutes = excluded.duration_minutes, objectives = excluded.objectives, prerequisites = excluded.prerequisites, content = excluded.content, summary = excluded.summary, examples = excluded.examples, pedagogy = excluded.pedagogy, status = excluded.status, position = excluded.position;
+insert into public.modules (course_id, slug, title, description, position, level_number) values ((select id from public.courses where slug = 'kplus'), 'sites-web', 'Sites web dynamiques avec K+', null, 2, 2)
+on conflict (course_id, slug) do update set title = excluded.title, description = excluded.description, position = excluded.position, level_number = excluded.level_number;
 commit;

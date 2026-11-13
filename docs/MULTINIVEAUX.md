@@ -1,6 +1,6 @@
 # UPL ACADEMY multiniveaux
 
-Le catalogue compte sept parcours indépendants : Algorithmique et pseudocode, HTML, CSS, Python, Langage C, JavaScript et Java. Chaque parcours a **quatre niveaux** : 1 Très débutant, 2 Débutant, 3 Intermédiaire, 4 Professionnel.
+Le catalogue compte huit parcours indépendants : Algorithmique et pseudocode, HTML, CSS, Python, Langage C, JavaScript, Java et K+ (programmation en français, avec la formation « Sites web dynamiques avec K+ » au niveau 2). Chaque parcours a **quatre niveaux** : 1 Très débutant, 2 Débutant, 3 Intermédiaire, 4 Professionnel.
 
 L'architecture est générique, si bien qu'un nouveau parcours (SQL, TypeScript, PHP, React, Next.js, mobile, bases de données, cybersécurité, IA…) n'a besoin d'aucune modification du code. Il suffit de :
 

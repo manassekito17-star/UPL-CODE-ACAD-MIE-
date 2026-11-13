@@ -61,6 +61,8 @@ body {
       const name = identifier(path, "Programme");
       return [`ALGORITHME ${name}`, "VARIABLES", "  x : ENTIER", "DEBUT", "  ", "FIN", ""].join("\n");
     }
+    case "kplus":
+      return `# Programme K+\n\n`;
     case "php":
       return `<?php\n\n`;
     case "sql":

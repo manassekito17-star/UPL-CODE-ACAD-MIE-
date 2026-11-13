@@ -1,6 +1,605 @@
--- UPL CODE ACADEMY MK — installation, partie 2 (contenu), morceau 11 sur 13.
+-- UPL CODE ACADEMY MK — installation, partie 2 (contenu), morceau 11 sur 14.
 -- À exécuter dans l'ordre, après 1-structure.sql. Peut être relancé sans risque.
 begin;
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('algo-initiales', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'types-donnees'), 'pseudocode', 'Initiales', 'Lisez un prénom puis un nom et affichez les initiales en majuscules, chacune suivie d''un point (exemple : « Grâce » et « mutombo » → **G.M.**).', 'debutant', 'ecrire_algorithme', '{}'::text[], '[{"input":"Grâce\nmutombo","output":"G.M."}]'::jsonb, '{}'::text[], '', array['Le premier caractère d''une chaîne s s''obtient par s[1].', 'MAJUSCULE transforme un texte en majuscules ; + concatène des chaînes.']::text[], 10, false, 'publie', 33, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-initiales');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-initiales'), null, 'Grâce
+mutombo', 'G.M.', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-initiales'), null, 'jean
+Kabila', 'J.K.', false, 1, 1, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-initiales'), null, 'élise
+ngoy', 'É.N.', true, 1, 2, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-initiales'), 'ALGORITHME Initiales
+VARIABLES
+  prenom, nom : CHAINE
+DEBUT
+  LIRE(prenom)
+  LIRE(nom)
+  ECRIRE(MAJUSCULE(prenom[1] + "." + nom[1] + "."))
+FIN', 'prenom[1] est un caractère, que l''on concatène avec "." pour former une chaîne, puis MAJUSCULE s''applique à l''ensemble.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('algo-majeur', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'types-donnees'), 'pseudocode', 'Majeur ou mineur ?', 'Lisez l''année de naissance d''une personne. Calculez son âge en 2026 et rangez dans une variable **BOOLEEN** le fait qu''elle soit majeure (18 ans ou plus). Affichez :
+
+~~~text
+Âge : <âge>
+Majeur : <VRAI ou FAUX>
+~~~', 'debutant', 'ecrire_algorithme', '{}'::text[], '[{"input":"2005","output":"Âge : 21\nMajeur : VRAI"}]'::jsonb, '{}'::text[], '', array['majeur ← age >= 18', 'Pas besoin de SI : une comparaison produit déjà un booléen.']::text[], 10, false, 'publie', 34, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-majeur');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-majeur'), null, '2005', 'Âge : 21
+Majeur : VRAI', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-majeur'), null, '2010', 'Âge : 16
+Majeur : FAUX', false, 1, 1, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-majeur'), null, '2008', 'Âge : 18
+Majeur : VRAI', true, 1, 2, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-majeur'), 'ALGORITHME Majorite
+CONSTANTES
+  ANNEE = 2026
+VARIABLES
+  naissance, age : ENTIER
+  majeur : BOOLEEN
+DEBUT
+  LIRE(naissance)
+  age ← ANNEE - naissance
+  majeur ← age >= 18
+  ECRIRE("Âge : ", age)
+  ECRIRE("Majeur : ", majeur)
+FIN', 'Le cas limite 18 ans doit donner VRAI : la comparaison est **>=**.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('algo-chiffres', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'operateurs'), 'pseudocode', 'Somme et inversion des chiffres', 'Lisez un entier n compris entre 100 et 999. Affichez la somme de ses chiffres, puis le nombre obtenu en inversant ses chiffres :
+
+~~~text
+Somme : <somme>
+Inversé : <nombre inversé>
+~~~', 'intermediaire', 'ecrire_algorithme', '{}'::text[], '[{"input":"375","output":"Somme : 15\nInversé : 573"}]'::jsonb, '{}'::text[], '', array['Unités : n MOD 10 ; dizaines : (n DIV 10) MOD 10 ; centaines : n DIV 100.', 'Nombre inversé : u × 100 + d × 10 + c.']::text[], 10, true, 'publie', 35, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-chiffres');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-chiffres'), null, '375', 'Somme : 15
+Inversé : 573', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-chiffres'), null, '100', 'Somme : 1
+Inversé : 1', false, 1, 1, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-chiffres'), null, '999', 'Somme : 27
+Inversé : 999', true, 1, 2, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-chiffres'), null, '120', 'Somme : 3
+Inversé : 21', true, 1, 3, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-chiffres'), 'ALGORITHME Chiffres
+VARIABLES
+  n, c, d, u : ENTIER
+DEBUT
+  LIRE(n)
+  u ← n MOD 10
+  d ← (n DIV 10) MOD 10
+  c ← n DIV 100
+  ECRIRE("Somme : ", c + d + u)
+  ECRIRE("Inversé : ", u * 100 + d * 10 + c)
+FIN', 'DIV et MOD par 10 isolent les chiffres. Pour 100, l''inversé est 001, c''est-à-dire le nombre 1 : un entier n''a pas de zéros en tête.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('algo-divisibilite', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'operateurs'), 'pseudocode', 'Tests de divisibilité', 'Lisez un entier n et affichez, sans structure SI :
+
+~~~text
+Pair : <VRAI/FAUX>
+Multiple de 3 : <VRAI/FAUX>
+Multiple de 6 : <VRAI/FAUX>
+~~~', 'debutant', 'ecrire_algorithme', '{}'::text[], '[{"input":"12","output":"Pair : VRAI\nMultiple de 3 : VRAI\nMultiple de 6 : VRAI"}]'::jsonb, array['Ne pas utiliser SI.']::text[], '', array['n est un multiple de k si n MOD k = 0.', 'Un multiple de 6 est un nombre pair ET multiple de 3 (ou simplement n MOD 6 = 0).']::text[], 10, false, 'publie', 36, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-divisibilite');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-divisibilite'), null, '12', 'Pair : VRAI
+Multiple de 3 : VRAI
+Multiple de 6 : VRAI', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-divisibilite'), null, '9', 'Pair : FAUX
+Multiple de 3 : VRAI
+Multiple de 6 : FAUX', false, 1, 1, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-divisibilite'), null, '0', 'Pair : VRAI
+Multiple de 3 : VRAI
+Multiple de 6 : VRAI', true, 1, 2, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-divisibilite'), null, '-4', 'Pair : VRAI
+Multiple de 3 : FAUX
+Multiple de 6 : FAUX', true, 1, 3, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-divisibilite'), 'ALGORITHME Divisibilite
+VARIABLES
+  n : ENTIER
+DEBUT
+  LIRE(n)
+  ECRIRE("Pair : ", n MOD 2 = 0)
+  ECRIRE("Multiple de 3 : ", n MOD 3 = 0)
+  ECRIRE("Multiple de 6 : ", (n MOD 2 = 0) ET (n MOD 3 = 0))
+FIN', '0 est un multiple de tous les entiers (0 MOD k = 0). Pour −4, le reste de la division par 2 est 0 : on teste « = 0 », ce qui fonctionne quel que soit le signe.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('algo-facture', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'entrees-sorties'), 'pseudocode', 'Facture formatée', 'Lisez le nom d''un article, son prix unitaire (réel) et la quantité (entier). Affichez exactement :
+
+~~~text
+===== FACTURE =====
+Article : <nom>
+Quantité : <quantité> x <prix> FC
+Total : <total> FC
+===================
+~~~', 'debutant', 'ecrire_algorithme', '{}'::text[], '[{"input":"Cahier\n1500\n4","output":"===== FACTURE =====\nArticle : Cahier\nQuantité : 4 x 1500 FC\nTotal : 6000 FC\n==================="}]'::jsonb, '{}'::text[], '', array['Cinq ECRIRE ; respectez les espaces autour de « : » et de « x ».', 'Le total est prix × quantité.']::text[], 10, false, 'publie', 37, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-facture');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-facture'), null, 'Cahier
+1500
+4', '===== FACTURE =====
+Article : Cahier
+Quantité : 4 x 1500 FC
+Total : 6000 FC
+===================', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-facture'), null, 'Stylo bleu
+250.5
+2', '===== FACTURE =====
+Article : Stylo bleu
+Quantité : 2 x 250.5 FC
+Total : 501 FC
+===================', true, 1, 1, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-facture'), 'ALGORITHME Facture
+VARIABLES
+  article : CHAINE
+  prix : REEL
+  quantite : ENTIER
+DEBUT
+  LIRE(article)
+  LIRE(prix)
+  LIRE(quantite)
+  ECRIRE("===== FACTURE =====")
+  ECRIRE("Article : ", article)
+  ECRIRE("Quantité : ", quantite, " x ", prix, " FC")
+  ECRIRE("Total : ", prix * quantite, " FC")
+  ECRIRE("===================")
+FIN', 'L''essentiel est le **format** : la sortie est comparée ligne par ligne. Le nom de l''article peut contenir des espaces.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('algo-fiche-etudiant', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'entrees-sorties'), 'pseudocode', 'Fiche étudiant', 'Lisez un nom, un prénom, une année de naissance et une moyenne (réel). Affichez :
+
+~~~text
+NOM : <nom en majuscules>
+Prénom : <prénom>
+Âge en 2026 : <âge>
+Moyenne : <moyenne>/20
+Admis : <VRAI si moyenne >= 10, sinon FAUX>
+~~~', 'intermediaire', 'ecrire_algorithme', '{}'::text[], '[{"input":"Kalenga\nRuth\n2006\n13.5","output":"NOM : KALENGA\nPrénom : Ruth\nÂge en 2026 : 20\nMoyenne : 13.5/20\nAdmis : VRAI"}]'::jsonb, '{}'::text[], '', array['MAJUSCULE(nom) met le nom en majuscules.', '« /20 » est un texte collé juste après la moyenne.']::text[], 10, false, 'publie', 38, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-fiche-etudiant');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-fiche-etudiant'), null, 'Kalenga
+Ruth
+2006
+13.5', 'NOM : KALENGA
+Prénom : Ruth
+Âge en 2026 : 20
+Moyenne : 13.5/20
+Admis : VRAI', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-fiche-etudiant'), null, 'ilunga
+Josué
+2007
+9.99', 'NOM : ILUNGA
+Prénom : Josué
+Âge en 2026 : 19
+Moyenne : 9.99/20
+Admis : FAUX', true, 1, 1, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-fiche-etudiant'), null, 'Banza
+Marie
+2004
+10', 'NOM : BANZA
+Prénom : Marie
+Âge en 2026 : 22
+Moyenne : 10/20
+Admis : VRAI', true, 1, 2, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-fiche-etudiant'), 'ALGORITHME Fiche
+VARIABLES
+  nom, prenom : CHAINE
+  annee : ENTIER
+  moyenne : REEL
+DEBUT
+  LIRE(nom)
+  LIRE(prenom)
+  LIRE(annee)
+  LIRE(moyenne)
+  ECRIRE("NOM : ", MAJUSCULE(nom))
+  ECRIRE("Prénom : ", prenom)
+  ECRIRE("Âge en 2026 : ", 2026 - annee)
+  ECRIRE("Moyenne : ", moyenne, "/20")
+  ECRIRE("Admis : ", moyenne >= 10)
+FIN', 'Quatre lectures typées, cinq affichages. Le test caché avec la moyenne 10 vérifie la borne : 10 est admis.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('algo-projet-carte', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'introduction-algorithmique'), 'pseudocode', 'Projet : carte de visite numérique', 'Lisez un prénom, une filière puis une année d''études (texte, par exemple « Bac 1 ») et affichez exactement :
+
+~~~text
++----------------------+
+Nom : <prénom>
+Filière : <filière>
+Année : <année>
++----------------------+
+~~~', 'debutant', 'mini_projet', '{}'::text[], '[{"input":"Amani\nInformatique\nBac 1","output":"+----------------------+\nNom : Amani\nFilière : Informatique\nAnnée : Bac 1\n+----------------------+"}]'::jsonb, '{}'::text[], '', array['Trois LIRE puis cinq ECRIRE.', 'Les deux bordures sont identiques : copiez-les exactement.']::text[], 15, false, 'publie', 39, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-projet-carte');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-projet-carte'), null, 'Amani
+Informatique
+Bac 1', '+----------------------+
+Nom : Amani
+Filière : Informatique
+Année : Bac 1
++----------------------+', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-projet-carte'), null, 'Ruth
+Intelligence Artificielle
+Bac 2', '+----------------------+
+Nom : Ruth
+Filière : Intelligence Artificielle
+Année : Bac 2
++----------------------+', true, 1, 1, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-projet-carte'), 'ALGORITHME Carte
+VARIABLES
+  prenom, filiere, annee : CHAINE
+DEBUT
+  LIRE(prenom)
+  LIRE(filiere)
+  LIRE(annee)
+  ECRIRE("+----------------------+")
+  ECRIRE("Nom : ", prenom)
+  ECRIRE("Filière : ", filiere)
+  ECRIRE("Année : ", annee)
+  ECRIRE("+----------------------+")
+FIN', 'L''année est lue comme un texte car elle contient « Bac ». L''algorithme est purement séquentiel.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('algo-projet-bibliotheque', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'logique-raisonnement'), 'pseudocode', 'Projet : contrôle d''accès à la bibliothèque', 'Lisez l''âge (entier), puis si la carte est valide (booléen), puis si la cotisation est payée (booléen). L''accès est autorisé si **la carte est valide ET (la cotisation est payée OU l''âge est inférieur à 18)**. L''accès est gratuit si l''âge est inférieur à 18. Affichez, sans utiliser SI :
+
+~~~text
+Accès : <VRAI/FAUX>
+Gratuit : <VRAI/FAUX>
+~~~', 'intermediaire', 'mini_projet', '{}'::text[], '[{"input":"20\nVRAI\nFAUX","output":"Accès : FAUX\nGratuit : FAUX"}]'::jsonb, array['Ne pas utiliser SI.']::text[], '', array['Traduisez mot à mot : carte ET (cotisation OU age < 18).', 'Les parenthèses sont indispensables : ET est prioritaire sur OU.']::text[], 20, true, 'publie', 40, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-projet-bibliotheque');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-projet-bibliotheque'), null, '20
+VRAI
+FAUX', 'Accès : FAUX
+Gratuit : FAUX', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-projet-bibliotheque'), null, '16
+VRAI
+FAUX', 'Accès : VRAI
+Gratuit : VRAI', false, 1, 1, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-projet-bibliotheque'), null, '25
+VRAI
+VRAI', 'Accès : VRAI
+Gratuit : FAUX', true, 1, 2, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-projet-bibliotheque'), null, '15
+FAUX
+VRAI', 'Accès : FAUX
+Gratuit : VRAI', true, 1, 3, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-projet-bibliotheque'), null, '18
+VRAI
+FAUX', 'Accès : FAUX
+Gratuit : FAUX', true, 1, 4, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-projet-bibliotheque'), 'ALGORITHME Bibliotheque
+VARIABLES
+  age : ENTIER
+  carte, cotisation : BOOLEEN
+DEBUT
+  LIRE(age)
+  LIRE(carte)
+  LIRE(cotisation)
+  ECRIRE("Accès : ", carte ET (cotisation OU age < 18))
+  ECRIRE("Gratuit : ", age < 18)
+FIN', 'Sans parenthèses, « carte ET cotisation OU age < 18 » autoriserait un mineur sans carte valide (cas 15, FAUX, VRAI). Le cas 18 ans vérifie la borne stricte < 18.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('algo-projet-budget', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'analyse-problemes'), 'pseudocode', 'Projet : budget mensuel', 'Lisez (entiers, en FC) : le revenu mensuel, le loyer, le coût du transport **par jour de cours** et le coût d''un repas. Un mois compte **22 jours de cours** avec **un repas par jour**. Affichez :
+
+~~~text
+Transport : <total transport>
+Repas : <total repas>
+Dépenses : <loyer + transport + repas>
+Reste : <revenu - dépenses>
+~~~', 'intermediaire', 'mini_projet', '{}'::text[], '[{"input":"200000\n60000\n2000\n3000","output":"Transport : 44000\nRepas : 66000\nDépenses : 170000\nReste : 30000"}]'::jsonb, '{}'::text[], '', array['Déclarez JOURS = 22 en constante.', 'Calculez chaque total dans sa propre variable avant de les additionner.']::text[], 20, false, 'publie', 41, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-projet-budget');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-projet-budget'), null, '200000
+60000
+2000
+3000', 'Transport : 44000
+Repas : 66000
+Dépenses : 170000
+Reste : 30000', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-projet-budget'), null, '110000
+0
+2500
+2500', 'Transport : 55000
+Repas : 55000
+Dépenses : 110000
+Reste : 0', false, 1, 1, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-projet-budget'), null, '150000
+80000
+1500
+2000', 'Transport : 33000
+Repas : 44000
+Dépenses : 157000
+Reste : -7000', true, 1, 2, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-projet-budget'), 'ALGORITHME Budget
+CONSTANTES
+  JOURS = 22
+VARIABLES
+  revenu, loyer, transportJour, repas, transport, totalRepas, depenses : ENTIER
+DEBUT
+  LIRE(revenu)
+  LIRE(loyer)
+  LIRE(transportJour)
+  LIRE(repas)
+  transport ← transportJour * JOURS
+  totalRepas ← repas * JOURS
+  depenses ← loyer + transport + totalRepas
+  ECRIRE("Transport : ", transport)
+  ECRIRE("Repas : ", totalRepas)
+  ECRIRE("Dépenses : ", depenses)
+  ECRIRE("Reste : ", revenu - depenses)
+FIN', 'La décomposition suit l''analyse : un total par poste, puis la somme, puis le reste. Le test caché montre qu''un reste négatif est possible : un futur chapitre permettra d''afficher un avertissement avec une condition.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('algo-projet-caisse-simple', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'variables-constantes'), 'pseudocode', 'Projet : caisse enregistreuse', 'Lisez les prix de trois articles (réels). Après chaque lecture, ajoutez le prix à une variable **total** et affichez le sous-total :
+
+~~~text
+Sous-total : <après article 1>
+Sous-total : <après article 2>
+Total : <après article 3>
+~~~', 'debutant', 'mini_projet', '{}'::text[], '[{"input":"1500\n250.5\n3000","output":"Sous-total : 1500\nSous-total : 1750.5\nTotal : 4750.5"}]'::jsonb, array['Une seule variable pour le cumul.']::text[], '', array['Initialisez total à 0 avant la première lecture.', 'Lisez le prix dans une variable prix, puis total ← total + prix.']::text[], 15, false, 'publie', 42, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-projet-caisse-simple');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-projet-caisse-simple'), null, '1500
+250.5
+3000', 'Sous-total : 1500
+Sous-total : 1750.5
+Total : 4750.5', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-projet-caisse-simple'), null, '0
+0
+0', 'Sous-total : 0
+Sous-total : 0
+Total : 0', true, 1, 1, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-projet-caisse-simple'), null, '100
+200
+300', 'Sous-total : 100
+Sous-total : 300
+Total : 600', true, 1, 2, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-projet-caisse-simple'), 'ALGORITHME Caisse
+VARIABLES
+  prix, total : REEL
+DEBUT
+  total ← 0
+  LIRE(prix)
+  total ← total + prix
+  ECRIRE("Sous-total : ", total)
+  LIRE(prix)
+  total ← total + prix
+  ECRIRE("Sous-total : ", total)
+  LIRE(prix)
+  total ← total + prix
+  ECRIRE("Total : ", total)
+FIN', 'La même variable prix est réutilisée pour chaque lecture ; total accumule. Ce motif répété sera écrit avec une boucle au niveau 2.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('algo-projet-fiche', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'types-donnees'), 'pseudocode', 'Projet : fiche de résultats', 'Lisez un nom, un prénom, puis deux notes (réels). Affichez :
+
+~~~text
+Étudiant : <NOM EN MAJUSCULES> <initiale du prénom en majuscule>.
+Moyenne : <moyenne des deux notes>
+Admis : <VRAI si moyenne >= 10>
+~~~', 'intermediaire', 'mini_projet', '{}'::text[], '[{"input":"mbuyi\njoël\n12\n9","output":"Étudiant : MBUYI J.\nMoyenne : 10.5\nAdmis : VRAI"}]'::jsonb, '{}'::text[], '', array['MAJUSCULE(nom) et MAJUSCULE(prenom[1]).', 'La moyenne est un REEL.']::text[], 20, false, 'publie', 43, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-projet-fiche');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-projet-fiche'), null, 'mbuyi
+joël
+12
+9', 'Étudiant : MBUYI J.
+Moyenne : 10.5
+Admis : VRAI', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-projet-fiche'), null, 'Kabeya
+esther
+8
+11.5', 'Étudiant : KABEYA E.
+Moyenne : 9.75
+Admis : FAUX', true, 1, 1, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-projet-fiche'), null, 'ilunga
+Anne
+10
+10', 'Étudiant : ILUNGA A.
+Moyenne : 10
+Admis : VRAI', true, 1, 2, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-projet-fiche'), 'ALGORITHME FicheResultats
+VARIABLES
+  nom, prenom : CHAINE
+  n1, n2, moyenne : REEL
+DEBUT
+  LIRE(nom)
+  LIRE(prenom)
+  LIRE(n1)
+  LIRE(n2)
+  moyenne ← (n1 + n2) / 2
+  ECRIRE("Étudiant : ", MAJUSCULE(nom), " ", MAJUSCULE(prenom[1]), ".")
+  ECRIRE("Moyenne : ", moyenne)
+  ECRIRE("Admis : ", moyenne >= 10)
+FIN', 'Chaque donnée a son type : CHAINE pour l''identité, REEL pour les notes, et la décision est un BOOLEEN obtenu par comparaison.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('algo-projet-horloge', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'operateurs'), 'pseudocode', 'Projet : horloge de la semaine', 'Lisez un nombre de minutes écoulées depuis lundi 00 h 00 (entier entre 0 et 10 079). Les jours sont numérotés de 1 (lundi) à 7 (dimanche). Affichez :
+
+~~~text
+Jour <n>, <h> h <m> min
+~~~', 'intermediaire', 'mini_projet', '{}'::text[], '[{"input":"1530","output":"Jour 2, 1 h 30 min"}]'::jsonb, '{}'::text[], '', array['Un jour compte 1 440 minutes.', 'Jour : minutes DIV 1440 + 1 ; heures : (minutes MOD 1440) DIV 60 ; minutes : minutes MOD 60.']::text[], 20, true, 'publie', 44, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-projet-horloge');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-projet-horloge'), null, '1530', 'Jour 2, 1 h 30 min', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-projet-horloge'), null, '0', 'Jour 1, 0 h 0 min', false, 1, 1, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-projet-horloge'), null, '1439', 'Jour 1, 23 h 59 min', true, 1, 2, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-projet-horloge'), null, '1440', 'Jour 2, 0 h 0 min', true, 1, 3, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-projet-horloge'), null, '10079', 'Jour 7, 23 h 59 min', true, 1, 4, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-projet-horloge'), 'ALGORITHME Horloge
+CONSTANTES
+  MIN_JOUR = 1440
+VARIABLES
+  minutes, jour, h, m : ENTIER
+DEBUT
+  LIRE(minutes)
+  jour ← minutes DIV MIN_JOUR + 1
+  h ← (minutes MOD MIN_JOUR) DIV 60
+  m ← minutes MOD 60
+  ECRIRE("Jour ", jour, ", ", h, " h ", m, " min")
+FIN', 'DIV donne le nombre de jours complets écoulés (on ajoute 1 car lundi est le jour 1) ; MOD 1440 donne les minutes du jour courant. Les cas 1 439 et 1 440 vérifient le passage de minuit.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('algo-projet-recu', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'entrees-sorties'), 'pseudocode', 'Projet : reçu de paiement', 'Lisez le nom de l''étudiant, son matricule (texte), le montant total des frais et le montant payé (entiers, en dollars). Affichez exactement :
+
+~~~text
+===== REÇU =====
+Étudiant : <nom>
+Matricule : <matricule>
+Payé : <payé> $ / <total> $
+Reste à payer : <total - payé> $
+================
+~~~', 'intermediaire', 'mini_projet', '{}'::text[], '[{"input":"Kasongo Amani\nUPL-2026-0042\n600\n450","output":"===== REÇU =====\nÉtudiant : Kasongo Amani\nMatricule : UPL-2026-0042\nPayé : 450 $ / 600 $\nReste à payer : 150 $\n================"}]'::jsonb, '{}'::text[], '', array['Le matricule contient des lettres et des tirets : type CHAINE.', 'Respectez les espaces autour de « / » et avant « $ ».']::text[], 20, false, 'publie', 45, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-projet-recu');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-projet-recu'), null, 'Kasongo Amani
+UPL-2026-0042
+600
+450', '===== REÇU =====
+Étudiant : Kasongo Amani
+Matricule : UPL-2026-0042
+Payé : 450 $ / 600 $
+Reste à payer : 150 $
+================', false, 1, 0, null);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-projet-recu'), null, 'Ruth Kalenga
+UPL-2025-0007
+800
+800', '===== REÇU =====
+Étudiant : Ruth Kalenga
+Matricule : UPL-2025-0007
+Payé : 800 $ / 800 $
+Reste à payer : 0 $
+================', true, 1, 1, null);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-projet-recu'), 'ALGORITHME Recu
+VARIABLES
+  nom, matricule : CHAINE
+  total, paye : ENTIER
+DEBUT
+  LIRE(nom)
+  LIRE(matricule)
+  LIRE(total)
+  LIRE(paye)
+  ECRIRE("===== REÇU =====")
+  ECRIRE("Étudiant : ", nom)
+  ECRIRE("Matricule : ", matricule)
+  ECRIRE("Payé : ", paye, " $ / ", total, " $")
+  ECRIRE("Reste à payer : ", total - paye, " $")
+  ECRIRE("================")
+FIN', 'L''ordre des LIRE suit l''ordre des données ; l''affichage reprend exactement le modèle, espaces compris.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('html-premier-paragraphe', (select id from public.courses where slug = 'html'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'html') and slug = 'html-introduction-web'), 'html', 'Un titre et un paragraphe', 'Dans le corps de la page, ajoutez un titre principal **h1** contenant « Bienvenue » et un paragraphe contenant le mot **important** mis en valeur avec **strong**.', 'debutant', 'ecrire_programme', '{}'::text[], '[]'::jsonb, '{}'::text[], '<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>Exercice</title>
+</head>
+<body>
+
+
+</body>
+</html>', array['Le contenu visible se place entre <body> et </body>.', '<p>Texte <strong>important</strong></p>']::text[], 5, false, 'publie', 46, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'html-premier-paragraphe');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'html-premier-paragraphe'), 'Un h1 contient « Bienvenue »', '', '', false, 1, 0, '{"type":"text","selector":"h1","contains":"Bienvenue","message":"Un h1 contient « Bienvenue »"}'::jsonb);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'html-premier-paragraphe'), 'La page contient un paragraphe', '', '', false, 1, 1, '{"type":"element","selector":"p","message":"La page contient un paragraphe"}'::jsonb);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'html-premier-paragraphe'), 'Le mot « important » est dans un strong à l''intérieur d''un paragraphe', '', '', false, 1, 2, '{"type":"text","selector":"p strong","contains":"important","message":"Le mot « important » est dans un strong à l''intérieur d''un paragraphe"}'::jsonb);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'html-premier-paragraphe'), 'Un seul h1', '', '', true, 1, 3, '{"type":"element","selector":"h1","max":1,"message":"Un seul h1"}'::jsonb);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'html-premier-paragraphe'), '<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>Exercice</title>
+</head>
+<body>
+  <h1>Bienvenue</h1>
+  <p>Ce message est <strong>important</strong>.</p>
+</body>
+</html>', 'Le h1 donne le titre principal ; strong est imbriqué dans p et fermé avant lui.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('html-titre-et-texte', (select id from public.courses where slug = 'html'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'html') and slug = 'html-introduction-web'), 'html', 'Présentation personnelle', 'Écrivez une page avec un **h1** « Qui suis-je ? » et **deux paragraphes** : le premier contient votre prénom, le second votre filière, mise en valeur avec **em**.', 'debutant', 'ecrire_programme', '{}'::text[], '[]'::jsonb, '{}'::text[], '<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>Exercice</title>
+</head>
+<body>
+
+
+</body>
+</html>', array['Deux éléments p successifs.', '<p>Filière : <em>Informatique</em></p>']::text[], 5, false, 'publie', 47, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'html-titre-et-texte');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'html-titre-et-texte'), 'Le h1 vaut exactement « Qui suis-je ? »', '', '', false, 1, 0, '{"type":"text","selector":"h1","equals":"Qui suis-je ?","message":"Le h1 vaut exactement « Qui suis-je ? »"}'::jsonb);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'html-titre-et-texte'), 'Au moins deux paragraphes', '', '', false, 1, 1, '{"type":"element","selector":"p","min":2,"message":"Au moins deux paragraphes"}'::jsonb);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'html-titre-et-texte'), 'Un em dans un paragraphe', '', '', false, 1, 2, '{"type":"element","selector":"p em","message":"Un em dans un paragraphe"}'::jsonb);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'html-titre-et-texte'), '<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>Exercice</title>
+</head>
+<body>
+  <h1>Qui suis-je ?</h1>
+  <p>Je m''appelle Amani.</p>
+  <p>Filière : <em>Informatique</em></p>
+</body>
+</html>', 'Chaque bloc de texte est un p ; em exprime l''insistance.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('html-lien-mdn', (select id from public.courses where slug = 'html'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'html') and slug = 'html-introduction-web'), 'html', 'Un lien vers la documentation', 'Ajoutez un paragraphe contenant un lien vers **https://developer.mozilla.org/fr/** dont le texte est « Documentation MDN ».', 'debutant', 'ecrire_programme', '{}'::text[], '[]'::jsonb, '{}'::text[], '<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>Exercice</title>
+</head>
+<body>
+
+
+</body>
+</html>', array['L''élément a et son attribut href.', '<a href="https://developer.mozilla.org/fr/">Documentation MDN</a>']::text[], 5, false, 'publie', 48, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'html-lien-mdn');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'html-lien-mdn'), 'Le lien pointe vers https://developer.mozilla.org/fr/', '', '', false, 1, 0, '{"type":"attribute","selector":"a","name":"href","equals":"https://developer.mozilla.org/fr/","message":"Le lien pointe vers https://developer.mozilla.org/fr/"}'::jsonb);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'html-lien-mdn'), 'Le texte du lien est « Documentation MDN »', '', '', false, 1, 1, '{"type":"text","selector":"a","equals":"Documentation MDN","message":"Le texte du lien est « Documentation MDN »"}'::jsonb);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'html-lien-mdn'), 'Le lien est dans un paragraphe', '', '', true, 1, 2, '{"type":"element","selector":"p a","message":"Le lien est dans un paragraphe"}'::jsonb);
+insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'html-lien-mdn'), '<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>Exercice</title>
+</head>
+<body>
+  <p><a href="https://developer.mozilla.org/fr/">Documentation MDN</a></p>
+</body>
+</html>', 'href porte l''adresse complète (URL absolue) ; le texte du lien décrit la destination.')
+on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
+insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
+values ('html-projet-presentation', (select id from public.courses where slug = 'html'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'html') and slug = 'html-introduction-web'), 'html', 'Projet : ma page de présentation', 'Créez une page avec : un **h1** contenant votre prénom, un paragraphe de présentation avec au moins un mot en **strong**, un paragraphe avec un lien vers **https://www.wikipedia.org**, et un commentaire HTML indiquant l''auteur.', 'debutant', 'mini_projet', '{}'::text[], '[]'::jsonb, '{}'::text[], '<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>Exercice</title>
+</head>
+<body>
+
+
+</body>
+</html>', array['Un commentaire s''écrit <!-- … -->.', 'Vérifiez l''imbrication : le dernier ouvert est le premier fermé.']::text[], 15, false, 'publie', 49, null, null)
+on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
+delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'html-projet-presentation');
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'html-projet-presentation'), 'Un seul h1', '', '', false, 1, 0, '{"type":"element","selector":"h1","min":1,"max":1,"message":"Un seul h1"}'::jsonb);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'html-projet-presentation'), 'Un mot important dans un paragraphe', '', '', false, 1, 1, '{"type":"element","selector":"p strong","message":"Un mot important dans un paragraphe"}'::jsonb);
+insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'html-projet-presentation'), 'Un lien vers wikipedia.org dans un paragraphe', '', '', false, 1, 2, '{"type":"attribute","selector":"p a","name":"href","contains":"wikipedia.org","message":"Un lien vers wikipedia.org dans un paragraphe"}'::jsonb);
 insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'html-projet-presentation'), 'Au moins deux paragraphes', '', '', true, 1, 3, '{"type":"element","selector":"p","min":2,"message":"Au moins deux paragraphes"}'::jsonb);
 insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'html-projet-presentation'), '<!DOCTYPE html>
 <html lang="fr">
@@ -347,295 +946,4 @@ values ('html-ancre-section', (select id from public.courses where slug = 'html'
 </html>', array['href="#horaires" sur le lien, id="horaires" sur le h2.']::text[], 5, false, 'publie', 60, null, null)
 on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
 delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'html-ancre-section');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'html-ancre-section'), 'Le lien pointe vers #horaires', '', '', false, 1, 0, '{"type":"attribute","selector":"a","name":"href","equals":"#horaires","message":"Le lien pointe vers #horaires"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'html-ancre-section'), 'Un h2 « Horaires » avec id="horaires"', '', '', false, 1, 1, '{"type":"text","selector":"h2#horaires","equals":"Horaires","message":"Un h2 « Horaires » avec id=\"horaires\""}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'html-ancre-section'), 'Texte du lien exact', '', '', true, 1, 2, '{"type":"text","selector":"a[href=''#horaires'']","equals":"Voir les horaires","message":"Texte du lien exact"}'::jsonb);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'html-ancre-section'), '<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="utf-8">
-  <title>Exercice</title>
-</head>
-<body>
-  <p><a href="#horaires">Voir les horaires</a></p>
-  <h2 id="horaires">Horaires</h2>
-  <p>De 8 h à 16 h.</p>
-</body>
-</html>', 'Le dièse dans href désigne l''identifiant d''un élément de la page.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('html-projet-club', (select id from public.courses where slug = 'html'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'html') and slug = 'html-liens-images'), 'html', 'Projet : page du club informatique', 'Créez la page de présentation du club informatique : document complet en français avec titre d''onglet, un **nav** d''au moins deux liens, un **h1**, un paragraphe de présentation, une liste **ul** d''activités (au moins 3), une **image avec alt non vide**, et un lien **mailto:** pour écrire au club.', 'intermediaire', 'mini_projet', '{}'::text[], '[]'::jsonb, '{}'::text[], '', array['Commencez par le squelette, puis ajoutez les éléments un à un en surveillant l''aperçu.', 'Le lien de contact commence par mailto:.']::text[], 25, true, 'publie', 61, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'html-projet-club');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'html-projet-club'), 'Document en français', '', '', false, 1, 0, '{"type":"attribute","selector":"html","name":"lang","equals":"fr","message":"Document en français"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'html-projet-club'), 'Un titre d''onglet', '', '', false, 1, 1, '{"type":"element","selector":"head title","message":"Un titre d''onglet"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'html-projet-club'), 'Un menu d''au moins deux liens', '', '', false, 1, 2, '{"type":"element","selector":"nav a","min":2,"message":"Un menu d''au moins deux liens"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'html-projet-club'), 'Un seul h1', '', '', false, 1, 3, '{"type":"element","selector":"h1","min":1,"max":1,"message":"Un seul h1"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'html-projet-club'), 'Au moins trois activités', '', '', false, 1, 4, '{"type":"element","selector":"ul > li","min":3,"message":"Au moins trois activités"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'html-projet-club'), 'Une image avec un texte alternatif non vide', '', '', true, 1, 5, '{"type":"attribute","selector":"img[alt]:not([alt=''''])","name":"alt","message":"Une image avec un texte alternatif non vide"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'html-projet-club'), 'Un lien mailto: de contact', '', '', true, 1, 6, '{"type":"attribute","selector":"a[href^=''mailto:'']","name":"href","contains":"@","message":"Un lien mailto: de contact"}'::jsonb);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'html-projet-club'), '<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="utf-8">
-  <title>Club informatique — UPL</title>
-</head>
-<body>
-  <nav>
-    <a href="index.html">Accueil</a>
-    <a href="#activites">Activités</a>
-  </nav>
-  <h1>Club informatique de l''UPL</h1>
-  <p>Le club réunit les étudiants passionnés de programmation.</p>
-  <img src="https://upload.wikimedia.org/wikipedia/commons/6/61/HTML5_logo_and_wordmark.svg" alt="Logo HTML5, langage étudié au club" width="100" height="100">
-  <h2 id="activites">Activités</h2>
-  <ul>
-    <li>Ateliers de code</li>
-    <li>Concours d''algorithmique</li>
-    <li>Conférences</li>
-  </ul>
-  <p><a href="mailto:club@exemple.cd">Écrire au club</a></p>
-</body>
-</html>', 'La page réunit toutes les notions du niveau : structure, titres, listes, liens et images accessibles.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('css-titre-couleur', (select id from public.courses where slug = 'css'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'css') and slug = 'css-introduction-selecteurs'), 'css', 'Colorer le titre', 'Dans **style.css**, donnez au **h1** la couleur **navy** et centrez-le (**text-align: center**).', 'debutant', 'ecrire_programme', '{}'::text[], '[]'::jsonb, '{}'::text[], '', array['Sélecteur de type : h1 { … }', 'Deux déclarations, chacune terminée par un point-virgule.']::text[], 5, false, 'publie', 62, '[{"name":"index.html","content":"<!DOCTYPE html>\n<html lang=\"fr\">\n<head>\n  <meta charset=\"utf-8\">\n  <title>Exercice CSS</title>\n  <link rel=\"stylesheet\" href=\"style.css\">\n</head>\n<body>\n  <h1>Annonces</h1>\n  <nav>\n    <a href=\"#\">Accueil</a>\n    <a href=\"#\">Cours</a>\n  </nav>\n  <p>Réunion vendredi.</p>\n  <p class=\"alerte\">Inscription obligatoire.</p>\n</body>\n</html>"},{"name":"style.css","content":"/* Écrivez vos règles ici */\n"}]'::jsonb, 'style.css')
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'css-titre-couleur');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'css-titre-couleur'), 'h1 { color: navy }', '', '', false, 1, 0, '{"type":"css","selector":"h1","property":"color","equals":"navy","message":"h1 { color: navy }"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'css-titre-couleur'), 'h1 { text-align: center }', '', '', false, 1, 1, '{"type":"css","selector":"h1","property":"text-align","equals":"center","message":"h1 { text-align: center }"}'::jsonb);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'css-titre-couleur'), 'h1 {
-  color: navy;
-  text-align: center;
-}', 'Une règle, un sélecteur de type, deux déclarations.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('css-classe-alerte', (select id from public.courses where slug = 'css'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'css') and slug = 'css-introduction-selecteurs'), 'css', 'Une classe d''alerte', 'Les éléments de classe **alerte** doivent être rouges (**color: red**) et en gras (**font-weight: bold**).', 'debutant', 'ecrire_programme', '{}'::text[], '[]'::jsonb, '{}'::text[], '', array['Le sélecteur de classe commence par un point : .alerte']::text[], 5, false, 'publie', 63, '[{"name":"index.html","content":"<!DOCTYPE html>\n<html lang=\"fr\">\n<head>\n  <meta charset=\"utf-8\">\n  <title>Exercice CSS</title>\n  <link rel=\"stylesheet\" href=\"style.css\">\n</head>\n<body>\n  <h1>Annonces</h1>\n  <nav>\n    <a href=\"#\">Accueil</a>\n    <a href=\"#\">Cours</a>\n  </nav>\n  <p>Réunion vendredi.</p>\n  <p class=\"alerte\">Inscription obligatoire.</p>\n</body>\n</html>"},{"name":"style.css","content":"/* Écrivez vos règles ici */\n"}]'::jsonb, 'style.css')
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'css-classe-alerte');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'css-classe-alerte'), '.alerte { color: red }', '', '', false, 1, 0, '{"type":"css","selector":".alerte","property":"color","oneOf":["red","#ff0000","#f00"],"message":".alerte { color: red }"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'css-classe-alerte'), '.alerte { font-weight: bold }', '', '', false, 1, 1, '{"type":"css","selector":".alerte","property":"font-weight","oneOf":["bold","700"],"message":".alerte { font-weight: bold }"}'::jsonb);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'css-classe-alerte'), '.alerte {
-  color: red;
-  font-weight: bold;
-}', 'Sans le point, « alerte » chercherait un élément HTML nommé alerte.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('css-menu-liens', (select id from public.courses where slug = 'css'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'css') and slug = 'css-introduction-selecteurs'), 'css', 'Les liens du menu', 'Seuls les liens **situés dans nav** doivent être verts (**color: green**). Utilisez un sélecteur **descendant**. Donnez aussi à tout le **body** la police **Arial, sans-serif**.', 'debutant', 'ecrire_programme', '{}'::text[], '[]'::jsonb, '{}'::text[], '', array['nav a { … }', 'body { font-family: Arial, sans-serif; }']::text[], 10, false, 'publie', 64, '[{"name":"index.html","content":"<!DOCTYPE html>\n<html lang=\"fr\">\n<head>\n  <meta charset=\"utf-8\">\n  <title>Exercice CSS</title>\n  <link rel=\"stylesheet\" href=\"style.css\">\n</head>\n<body>\n  <h1>Annonces</h1>\n  <nav>\n    <a href=\"#\">Accueil</a>\n    <a href=\"#\">Cours</a>\n  </nav>\n  <p>Réunion vendredi.</p>\n  <p class=\"alerte\">Inscription obligatoire.</p>\n</body>\n</html>"},{"name":"style.css","content":"/* Écrivez vos règles ici */\n"}]'::jsonb, 'style.css')
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'css-menu-liens');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'css-menu-liens'), 'nav a { color: green }', '', '', false, 1, 0, '{"type":"css","selector":"nav a","property":"color","oneOf":["green","#008000"],"message":"nav a { color: green }"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'css-menu-liens'), 'body { font-family: Arial, sans-serif }', '', '', false, 1, 1, '{"type":"css","selector":"body","property":"font-family","equals":"arial,sans-serif","message":"body { font-family: Arial, sans-serif }"}'::jsonb);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'css-menu-liens'), 'body {
-  font-family: Arial, sans-serif;
-}
-
-nav a {
-  color: green;
-}', 'L''espace dans « nav a » signifie « a situé dans nav ». La police définie sur body est héritée.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('css-projet-annonce', (select id from public.courses where slug = 'css'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'css') and slug = 'css-introduction-selecteurs'), 'css', 'Projet : habiller la page d''annonces', 'Habillez la page : police **Arial, sans-serif** sur body ; h1 de couleur **#1d5fe0** ; liens du nav **sans soulignement** (text-decoration: none) ; classe **alerte** en **red**.', 'debutant', 'mini_projet', '{}'::text[], '[]'::jsonb, '{}'::text[], '', array['Quatre règles : body, h1, nav a, .alerte.']::text[], 15, false, 'publie', 65, '[{"name":"index.html","content":"<!DOCTYPE html>\n<html lang=\"fr\">\n<head>\n  <meta charset=\"utf-8\">\n  <title>Exercice CSS</title>\n  <link rel=\"stylesheet\" href=\"style.css\">\n</head>\n<body>\n  <h1>Annonces</h1>\n  <nav>\n    <a href=\"#\">Accueil</a>\n    <a href=\"#\">Cours</a>\n  </nav>\n  <p>Réunion vendredi.</p>\n  <p class=\"alerte\">Inscription obligatoire.</p>\n</body>\n</html>"},{"name":"style.css","content":"/* Écrivez vos règles ici */\n"}]'::jsonb, 'style.css')
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'css-projet-annonce');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'css-projet-annonce'), 'Police du body', '', '', false, 1, 0, '{"type":"css","selector":"body","property":"font-family","equals":"arial,sans-serif","message":"Police du body"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'css-projet-annonce'), 'Couleur du h1', '', '', false, 1, 1, '{"type":"css","selector":"h1","property":"color","equals":"#1d5fe0","message":"Couleur du h1"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'css-projet-annonce'), 'Liens du menu sans soulignement', '', '', false, 1, 2, '{"type":"css","selector":"nav a","property":"text-decoration","equals":"none","message":"Liens du menu sans soulignement"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'css-projet-annonce'), 'Alerte en rouge', '', '', true, 1, 3, '{"type":"css","selector":".alerte","property":"color","oneOf":["red","#ff0000","#f00"],"message":"Alerte en rouge"}'::jsonb);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'css-projet-annonce'), 'body { font-family: Arial, sans-serif; }
-h1 { color: #1d5fe0; }
-nav a { text-decoration: none; }
-.alerte { color: red; }', 'Chaque règle cible précisément un groupe d''éléments : type, descendant ou classe.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('css-typographie-body', (select id from public.courses where slug = 'css'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'css') and slug = 'css-couleurs-textes'), 'css', 'Typographie de base', 'Sur **body** : police **Georgia, serif**, taille **1.125rem**, hauteur de ligne **1.6**.', 'debutant', 'ecrire_programme', '{}'::text[], '[]'::jsonb, '{}'::text[], '', array['font-family, font-size, line-height.']::text[], 5, false, 'publie', 66, '[{"name":"index.html","content":"<!DOCTYPE html>\n<html lang=\"fr\">\n<head>\n  <meta charset=\"utf-8\">\n  <title>Exercice CSS</title>\n  <link rel=\"stylesheet\" href=\"style.css\">\n</head>\n<body>\n  <h1>Rentrée académique</h1>\n  <p class=\"chapeau\">Les cours reprennent lundi.</p>\n  <p>Consultez votre emploi du temps. <a href=\"#\">Calendrier</a></p>\n</body>\n</html>"},{"name":"style.css","content":"/* Écrivez vos règles ici */\n"}]'::jsonb, 'style.css')
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'css-typographie-body');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'css-typographie-body'), 'Police Georgia, serif', '', '', false, 1, 0, '{"type":"css","selector":"body","property":"font-family","equals":"georgia,serif","message":"Police Georgia, serif"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'css-typographie-body'), 'Taille 1.125rem', '', '', false, 1, 1, '{"type":"css","selector":"body","property":"font-size","equals":"1.125rem","message":"Taille 1.125rem"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'css-typographie-body'), 'Hauteur de ligne 1.6', '', '', false, 1, 2, '{"type":"css","selector":"body","property":"line-height","equals":"1.6","message":"Hauteur de ligne 1.6"}'::jsonb);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'css-typographie-body'), 'body {
-  font-family: Georgia, serif;
-  font-size: 1.125rem;
-  line-height: 1.6;
-}', 'La famille générique serif termine la liste ; rem suit le réglage de l''utilisateur.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('css-bandeau-couleurs', (select id from public.courses where slug = 'css'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'css') and slug = 'css-couleurs-textes'), 'css', 'Un titre en bandeau', 'Le **h1** doit avoir un fond **#0a1a3a**, un texte **white**, être en **majuscules** (text-transform) et centré.', 'debutant', 'ecrire_programme', '{}'::text[], '[]'::jsonb, '{}'::text[], '', array['background-color, color, text-transform, text-align.']::text[], 10, false, 'publie', 67, '[{"name":"index.html","content":"<!DOCTYPE html>\n<html lang=\"fr\">\n<head>\n  <meta charset=\"utf-8\">\n  <title>Exercice CSS</title>\n  <link rel=\"stylesheet\" href=\"style.css\">\n</head>\n<body>\n  <h1>Rentrée académique</h1>\n  <p class=\"chapeau\">Les cours reprennent lundi.</p>\n  <p>Consultez votre emploi du temps. <a href=\"#\">Calendrier</a></p>\n</body>\n</html>"},{"name":"style.css","content":"/* Écrivez vos règles ici */\n"}]'::jsonb, 'style.css')
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'css-bandeau-couleurs');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'css-bandeau-couleurs'), 'Fond #0a1a3a', '', '', false, 1, 0, '{"type":"css","selector":"h1","property":"background-color","equals":"#0a1a3a","message":"Fond #0a1a3a"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'css-bandeau-couleurs'), 'Texte blanc', '', '', false, 1, 1, '{"type":"css","selector":"h1","property":"color","oneOf":["white","#fff","#ffffff"],"message":"Texte blanc"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'css-bandeau-couleurs'), 'Majuscules', '', '', false, 1, 2, '{"type":"css","selector":"h1","property":"text-transform","equals":"uppercase","message":"Majuscules"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'css-bandeau-couleurs'), 'Centré', '', '', true, 1, 3, '{"type":"css","selector":"h1","property":"text-align","equals":"center","message":"Centré"}'::jsonb);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'css-bandeau-couleurs'), 'h1 {
-  background-color: #0a1a3a;
-  color: white;
-  text-transform: uppercase;
-  text-align: center;
-}', 'Blanc sur bleu nuit offre un contraste très élevé.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('css-liens-etats', (select id from public.courses where slug = 'css'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'css') and slug = 'css-couleurs-textes'), 'css', 'États d''un lien', 'Les liens sont **#1d5fe0** et **sans soulignement** ; au **survol** (:hover) ils sont **soulignés** ; au **focus** (:focus) ils ont un contour **2px solid orange**.', 'intermediaire', 'ecrire_programme', '{}'::text[], '[]'::jsonb, '{}'::text[], '', array['Trois règles : a, a:hover, a:focus.', 'outline: 2px solid orange;']::text[], 10, false, 'publie', 68, '[{"name":"index.html","content":"<!DOCTYPE html>\n<html lang=\"fr\">\n<head>\n  <meta charset=\"utf-8\">\n  <title>Exercice CSS</title>\n  <link rel=\"stylesheet\" href=\"style.css\">\n</head>\n<body>\n  <h1>Rentrée académique</h1>\n  <p class=\"chapeau\">Les cours reprennent lundi.</p>\n  <p>Consultez votre emploi du temps. <a href=\"#\">Calendrier</a></p>\n</body>\n</html>"},{"name":"style.css","content":"/* Écrivez vos règles ici */\n"}]'::jsonb, 'style.css')
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'css-liens-etats');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'css-liens-etats'), 'Couleur des liens', '', '', false, 1, 0, '{"type":"css","selector":"a","property":"color","equals":"#1d5fe0","message":"Couleur des liens"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'css-liens-etats'), 'Liens sans soulignement', '', '', false, 1, 1, '{"type":"css","selector":"a","property":"text-decoration","equals":"none","message":"Liens sans soulignement"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'css-liens-etats'), 'Soulignés au survol', '', '', false, 1, 2, '{"type":"css","selector":"a:hover","property":"text-decoration","equals":"underline","message":"Soulignés au survol"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'css-liens-etats'), 'Contour visible au focus', '', '', false, 1, 3, '{"type":"css","selector":"a:focus","property":"outline","equals":"2px solid orange","message":"Contour visible au focus"}'::jsonb);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'css-liens-etats'), 'a {
-  color: #1d5fe0;
-  text-decoration: none;
-}
-
-a:hover {
-  text-decoration: underline;
-}
-
-a:focus {
-  outline: 2px solid orange;
-}', 'Le contour au focus garantit la navigation au clavier : ne le supprimez jamais sans le remplacer.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('css-projet-article', (select id from public.courses where slug = 'css'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'css') and slug = 'css-couleurs-textes'), 'css', 'Projet : mise en forme d''un article', 'Mettez en forme l''article : body en **Arial, sans-serif**, couleur **#1f2937**, hauteur de ligne **1.5** ; h1 en **2rem** et **#1d5fe0** ; classe **chapeau** en **italic** ; liens soulignés au **:hover**.', 'intermediaire', 'mini_projet', '{}'::text[], '[]'::jsonb, '{}'::text[], '', array['Quatre règles : body, h1, .chapeau, a:hover.']::text[], 15, false, 'publie', 69, '[{"name":"index.html","content":"<!DOCTYPE html>\n<html lang=\"fr\">\n<head>\n  <meta charset=\"utf-8\">\n  <title>Exercice CSS</title>\n  <link rel=\"stylesheet\" href=\"style.css\">\n</head>\n<body>\n  <h1>Rentrée académique</h1>\n  <p class=\"chapeau\">Les cours reprennent lundi.</p>\n  <p>Consultez votre emploi du temps. <a href=\"#\">Calendrier</a></p>\n</body>\n</html>"},{"name":"style.css","content":"/* Écrivez vos règles ici */\n"}]'::jsonb, 'style.css')
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'css-projet-article');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'css-projet-article'), 'Police du body', '', '', false, 1, 0, '{"type":"css","selector":"body","property":"font-family","equals":"arial,sans-serif","message":"Police du body"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'css-projet-article'), 'Couleur du texte', '', '', false, 1, 1, '{"type":"css","selector":"body","property":"color","equals":"#1f2937","message":"Couleur du texte"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'css-projet-article'), 'Hauteur de ligne', '', '', false, 1, 2, '{"type":"css","selector":"body","property":"line-height","equals":"1.5","message":"Hauteur de ligne"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'css-projet-article'), 'Taille du h1', '', '', false, 1, 3, '{"type":"css","selector":"h1","property":"font-size","equals":"2rem","message":"Taille du h1"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'css-projet-article'), 'Chapeau en italique', '', '', true, 1, 4, '{"type":"css","selector":".chapeau","property":"font-style","equals":"italic","message":"Chapeau en italique"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'css-projet-article'), 'Liens soulignés au survol', '', '', true, 1, 5, '{"type":"css","selector":"a:hover","property":"text-decoration","equals":"underline","message":"Liens soulignés au survol"}'::jsonb);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'css-projet-article'), 'body {
-  font-family: Arial, sans-serif;
-  color: #1f2937;
-  line-height: 1.5;
-}
-
-h1 {
-  font-size: 2rem;
-  color: #1d5fe0;
-}
-
-.chapeau {
-  font-style: italic;
-}
-
-a:hover {
-  text-decoration: underline;
-}', 'La typographie de base sur body est héritée ; les règles suivantes ne précisent que ce qui change.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('css-carte-boite', (select id from public.courses where slug = 'css'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'css') and slug = 'css-modele-boite'), 'css', 'Une carte aérée', 'La classe **carte** reçoit un padding de **16px**, une bordure **1px solid #dfe5ee** et des coins arrondis de **8px**.', 'debutant', 'ecrire_programme', '{}'::text[], '[]'::jsonb, '{}'::text[], '', array['padding, border, border-radius.']::text[], 5, false, 'publie', 70, '[{"name":"index.html","content":"<!DOCTYPE html>\n<html lang=\"fr\">\n<head>\n  <meta charset=\"utf-8\">\n  <title>Exercice CSS</title>\n  <link rel=\"stylesheet\" href=\"style.css\">\n</head>\n<body>\n  <div class=\"carte\">\n    <h2>Amani Kasongo</h2>\n    <p>Filière : Informatique</p>\n  </div>\n  <ul class=\"liste\">\n    <li>Python</li>\n    <li>HTML</li>\n  </ul>\n</body>\n</html>"},{"name":"style.css","content":"/* Écrivez vos règles ici */\n"}]'::jsonb, 'style.css')
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'css-carte-boite');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'css-carte-boite'), 'padding: 16px', '', '', false, 1, 0, '{"type":"css","selector":".carte","property":"padding","equals":"16px","message":"padding: 16px"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'css-carte-boite'), 'border: 1px solid #dfe5ee', '', '', false, 1, 1, '{"type":"css","selector":".carte","property":"border","equals":"1px solid #dfe5ee","message":"border: 1px solid #dfe5ee"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'css-carte-boite'), 'border-radius: 8px', '', '', false, 1, 2, '{"type":"css","selector":".carte","property":"border-radius","equals":"8px","message":"border-radius: 8px"}'::jsonb);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'css-carte-boite'), '.carte {
-  padding: 16px;
-  border: 1px solid #dfe5ee;
-  border-radius: 8px;
-}', 'Le padding éloigne le texte de la bordure ; border-radius arrondit les coins.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('css-conteneur-centre', (select id from public.courses where slug = 'css'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'css') and slug = 'css-modele-boite'), 'css', 'Centrer la carte', 'Appliquez **box-sizing: border-box** à tous les éléments (sélecteur **\***), puis centrez la classe **carte** : largeur maximale **360px**, marges **0 auto**.', 'intermediaire', 'ecrire_programme', '{}'::text[], '[]'::jsonb, '{}'::text[], '', array['* { box-sizing: border-box; }', '.carte { max-width: 360px; margin: 0 auto; }']::text[], 10, false, 'publie', 71, '[{"name":"index.html","content":"<!DOCTYPE html>\n<html lang=\"fr\">\n<head>\n  <meta charset=\"utf-8\">\n  <title>Exercice CSS</title>\n  <link rel=\"stylesheet\" href=\"style.css\">\n</head>\n<body>\n  <div class=\"carte\">\n    <h2>Amani Kasongo</h2>\n    <p>Filière : Informatique</p>\n  </div>\n  <ul class=\"liste\">\n    <li>Python</li>\n    <li>HTML</li>\n  </ul>\n</body>\n</html>"},{"name":"style.css","content":"/* Écrivez vos règles ici */\n"}]'::jsonb, 'style.css')
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'css-conteneur-centre');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'css-conteneur-centre'), '* { box-sizing: border-box }', '', '', false, 1, 0, '{"type":"css","selector":"*","property":"box-sizing","equals":"border-box","message":"* { box-sizing: border-box }"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'css-conteneur-centre'), 'max-width: 360px', '', '', false, 1, 1, '{"type":"css","selector":".carte","property":"max-width","equals":"360px","message":"max-width: 360px"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'css-conteneur-centre'), 'margin: 0 auto', '', '', false, 1, 2, '{"type":"css","selector":".carte","property":"margin","equals":"0 auto","message":"margin: 0 auto"}'::jsonb);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'css-conteneur-centre'), '* {
-  box-sizing: border-box;
-}
-
-.carte {
-  max-width: 360px;
-  margin: 0 auto;
-}', 'Les marges latérales automatiques se partagent l''espace restant : le bloc est centré.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('css-espacements-liste', (select id from public.courses where slug = 'css'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'css') and slug = 'css-modele-boite'), 'css', 'Espacer une liste', 'Les éléments **li** de la liste de classe **liste** (sélecteur **.liste li**) ont une marge basse de **8px** (margin-bottom) et un padding de **8px 12px** ; la liste elle-même (**.liste**) a un fond **#eef2f7**.', 'intermediaire', 'ecrire_programme', '{}'::text[], '[]'::jsonb, '{}'::text[], '', array['.liste li { … } et .liste { … }']::text[], 10, false, 'publie', 72, '[{"name":"index.html","content":"<!DOCTYPE html>\n<html lang=\"fr\">\n<head>\n  <meta charset=\"utf-8\">\n  <title>Exercice CSS</title>\n  <link rel=\"stylesheet\" href=\"style.css\">\n</head>\n<body>\n  <div class=\"carte\">\n    <h2>Amani Kasongo</h2>\n    <p>Filière : Informatique</p>\n  </div>\n  <ul class=\"liste\">\n    <li>Python</li>\n    <li>HTML</li>\n  </ul>\n</body>\n</html>"},{"name":"style.css","content":"/* Écrivez vos règles ici */\n"}]'::jsonb, 'style.css')
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'css-espacements-liste');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'css-espacements-liste'), '.liste li { margin-bottom: 8px }', '', '', false, 1, 0, '{"type":"css","selector":".liste li","property":"margin-bottom","equals":"8px","message":".liste li { margin-bottom: 8px }"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'css-espacements-liste'), '.liste li { padding: 8px 12px }', '', '', false, 1, 1, '{"type":"css","selector":".liste li","property":"padding","equals":"8px 12px","message":".liste li { padding: 8px 12px }"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'css-espacements-liste'), '.liste { background-color: #eef2f7 }', '', '', false, 1, 2, '{"type":"css","selector":".liste","property":"background-color","equals":"#eef2f7","message":".liste { background-color: #eef2f7 }"}'::jsonb);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'css-espacements-liste'), '.liste {
-  background-color: #eef2f7;
-}
-
-.liste li {
-  margin-bottom: 8px;
-  padding: 8px 12px;
-}', '« .liste li » cible les li situés dans un élément de classe liste. padding avec deux valeurs : vertical puis horizontal.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('css-projet-profil', (select id from public.courses where slug = 'css'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'css') and slug = 'css-modele-boite'), 'css', 'Projet : carte de profil étudiant', 'Mettez en forme la carte de profil : **box-sizing: border-box** pour tous ; **.carte** avec max-width **400px**, margin **24px auto**, padding **20px**, fond **white**, bordure arrondie de **12px** ; body avec un fond **#eef2f7** ; titre **.carte h2** de couleur **#1d5fe0**.', 'intermediaire', 'mini_projet', '{}'::text[], '[]'::jsonb, '{}'::text[], '', array['Quatre règles : *, body, .carte, .carte h2.']::text[], 25, true, 'publie', 73, '[{"name":"index.html","content":"<!DOCTYPE html>\n<html lang=\"fr\">\n<head>\n  <meta charset=\"utf-8\">\n  <title>Exercice CSS</title>\n  <link rel=\"stylesheet\" href=\"style.css\">\n</head>\n<body>\n  <div class=\"carte\">\n    <h2>Amani Kasongo</h2>\n    <p>Filière : Informatique</p>\n  </div>\n  <ul class=\"liste\">\n    <li>Python</li>\n    <li>HTML</li>\n  </ul>\n</body>\n</html>"},{"name":"style.css","content":"/* Écrivez vos règles ici */\n"}]'::jsonb, 'style.css')
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'css-projet-profil');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'css-projet-profil'), 'box-sizing global', '', '', false, 1, 0, '{"type":"css","selector":"*","property":"box-sizing","equals":"border-box","message":"box-sizing global"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'css-projet-profil'), 'Largeur maximale', '', '', false, 1, 1, '{"type":"css","selector":".carte","property":"max-width","equals":"400px","message":"Largeur maximale"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'css-projet-profil'), 'Carte centrée', '', '', false, 1, 2, '{"type":"css","selector":".carte","property":"margin","equals":"24px auto","message":"Carte centrée"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'css-projet-profil'), 'Padding', '', '', false, 1, 3, '{"type":"css","selector":".carte","property":"padding","equals":"20px","message":"Padding"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'css-projet-profil'), 'Coins arrondis', '', '', true, 1, 4, '{"type":"css","selector":".carte","property":"border-radius","equals":"12px","message":"Coins arrondis"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'css-projet-profil'), 'Fond de page', '', '', true, 1, 5, '{"type":"css","selector":"body","property":"background-color","equals":"#eef2f7","message":"Fond de page"}'::jsonb);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'css-projet-profil'), 'Couleur du titre', '', '', true, 1, 6, '{"type":"css","selector":".carte h2","property":"color","equals":"#1d5fe0","message":"Couleur du titre"}'::jsonb);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'css-projet-profil'), '* {
-  box-sizing: border-box;
-}
-
-body {
-  background-color: #eef2f7;
-}
-
-.carte {
-  max-width: 400px;
-  margin: 24px auto;
-  padding: 20px;
-  background-color: white;
-  border-radius: 12px;
-}
-
-.carte h2 {
-  color: #1d5fe0;
-}', 'Le projet combine sélecteurs, couleurs et modèle de boîte : c''est le socle de toute mise en page.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('py-bonjour', (select id from public.courses where slug = 'python'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'python') and slug = 'syntaxe-fondamentale'), 'python', 'Bonjour en Python', 'Lisez un prénom et affichez :
-
-~~~text
-Bonjour <prénom>, bienvenue en Python !
-~~~', 'debutant', 'ecrire_programme', '{}'::text[], '[{"input":"Amani","output":"Bonjour Amani, bienvenue en Python !"}]'::jsonb, '{}'::text[], 'prenom = input()
-# Affichez le message', array['Utilisez print avec une f-string.', 'print(f"Bonjour {prenom}, …")']::text[], 5, false, 'publie', 74, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'py-bonjour');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-bonjour'), null, 'Amani', 'Bonjour Amani, bienvenue en Python !', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-bonjour'), null, 'Grâce', 'Bonjour Grâce, bienvenue en Python !', true, 1, 1, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'py-bonjour'), 'prenom = input()
-print(f"Bonjour {prenom}, bienvenue en Python !")', 'Une f-string insère la valeur de la variable entre accolades. Attention à la virgule et à l''espace avant le point d''exclamation.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('py-somme', (select id from public.courses where slug = 'python'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'python') and slug = 'variables-types'), 'python', 'Somme et produit', 'Lisez deux entiers (un par ligne) et affichez leur somme puis leur produit :
-
-~~~text
-Somme : <a + b>
-Produit : <a * b>
-~~~', 'debutant', 'ecrire_programme', '{}'::text[], '[{"input":"4\n5","output":"Somme : 9\nProduit : 20"}]'::jsonb, '{}'::text[], '', array['input() renvoie une chaîne : convertissez avec int().', 'Sans conversion, "4" + "5" donne "45" !']::text[], 5, false, 'publie', 75, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'py-somme');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-somme'), null, '4
-5', 'Somme : 9
-Produit : 20', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-somme'), null, '-3
-7', 'Somme : 4
-Produit : -21', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'py-somme'), null, '0
-123', 'Somme : 123
-Produit : 0', true, 1, 2, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'py-somme'), 'a = int(input())
-b = int(input())
-print("Somme :", a + b)
-print("Produit :", a * b)', 'L''erreur classique est d''oublier **int()** : les chaînes seraient concaténées au lieu d''être additionnées. print sépare ses arguments par un espace.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
 commit;

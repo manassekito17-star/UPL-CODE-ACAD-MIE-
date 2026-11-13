@@ -1,10 +1,10 @@
 import { expect, test } from "@playwright/test";
 
-test("l'accueil présente l'académie et les sept parcours", async ({ page }) => {
+test("l'accueil présente l'académie et les huit parcours", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Apprendre à programmer");
   await page.goto("/formations");
-  for (const title of ["Algorithmique et pseudocode", "HTML", "CSS", "Python", "Langage C", "JavaScript", "Java"]) {
+  for (const title of ["Algorithmique et pseudocode", "HTML", "CSS", "Python", "Langage C", "JavaScript", "Java", "K+ — programmer en français"]) {
     await expect(page.getByRole("heading", { name: title, exact: true })).toBeVisible();
   }
 });

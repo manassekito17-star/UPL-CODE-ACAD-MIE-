@@ -7,13 +7,15 @@ import { LANGUAGES } from "@/lib/execution/languages";
 import { checkPseudocode } from "@/lib/pseudocode";
 import { emmetCSS, emmetHTML } from "emmet-monaco-es";
 import { letPageScrollOverEditor } from "./page-scroll";
+import { registerKPlus } from "./kplus-language";
 import { registerPseudocode } from "./pseudocode-language";
 
 export type MonacoEditor = Parameters<OnMount>[0];
 
-/** Langage pseudocode et thèmes de la plateforme (partagés par l'éditeur, le laboratoire et UPL IDE). */
+/** Langages pseudocode et K+, et thèmes de la plateforme (partagés par l'éditeur, le laboratoire et UPL IDE). */
 export function configureMonaco(monaco: Monaco) {
   registerPseudocode(monaco);
+  registerKPlus(monaco);
   // Abréviations Emmet (comme Sublime Text) : « div » puis Tab ou toucher la suggestion → <div></div>,
   // « ul>li*3 », « .carte », « a[href] »… ; propriétés CSS abrégées (« m10 » → margin: 10px;).
   const flags = monaco as unknown as { __uplEmmet?: boolean };

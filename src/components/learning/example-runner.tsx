@@ -5,6 +5,7 @@ import { useState } from "react";
 import type { CodeExample } from "@/content/types";
 import { runProgram } from "@/lib/execution/browser";
 import { buildPreviewDocument } from "@/lib/execution/web-document";
+import { KPlusPage } from "../editor/kplus-page";
 import { ResultExtras, sqlConsoleText } from "../editor/result-extras";
 import { WebPreview } from "../editor/web-preview";
 import { LANGUAGES } from "@/lib/execution/languages";
@@ -69,6 +70,13 @@ export function ExampleRunner({ example, editorHref }: { example: CodeExample; e
           {result?.hint && <span className="mt-2 block text-amber-300">💡 {result.hint}</span>}
           {result?.engineLabel && <span className="mt-2 block text-[11px] text-gray-500">Exécuté par {result.engineLabel} dans votre navigateur.</span>}
         </pre>
+      )}
+      {result?.kplusPage && (
+        <KPlusPage
+          commands={result.kplusPage}
+          onOutput={(t) => setResult((r) => (r ? { ...r, stdout: r.stdout + t } : r))}
+          className="border-t border-white/10"
+        />
       )}
       {result && (result.tables || result.engineLabel?.startsWith("PHP")) && (
         <div className="border-t border-white/10 bg-black/40 p-4 empty:hidden">

@@ -14,6 +14,7 @@ const BADGES: Record<string, { label: string; color: string }> = {
   c: { label: "C", color: "#8fa8c8" },
   java: { label: "J", color: "#cc3e44" },
   pseudocode: { label: "≡", color: "#22c3d6" },
+  kplus: { label: "K+", color: "#6d8ff0" },
   json: { label: "{}", color: "#cbcb41" },
   markdown: { label: "M↓", color: "#519aba" },
   sql: { label: "db", color: "#d4a72c" },

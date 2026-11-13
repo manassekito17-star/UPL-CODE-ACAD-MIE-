@@ -1,6 +1,479 @@
--- UPL CODE ACADEMY MK — installation, partie 2 (contenu), morceau 9 sur 13.
+-- UPL CODE ACADEMY MK — installation, partie 2 (contenu), morceau 9 sur 14.
 -- À exécuter dans l'ordre, après 1-structure.sql. Peut être relancé sans risque.
 begin;
+insert into public.lessons (module_id, course_id, slug, title, level, duration_minutes, objectives, prerequisites, content, summary, examples, pedagogy, status, position, validated_at)
+values ((select id from public.modules where course_id = (select id from public.courses where slug = 'sql') and slug = 'sql-fondements'), (select id from public.courses where slug = 'sql'), 'sql-update-delete', 'Modifier et supprimer : UPDATE et DELETE', 'debutant', 30, array['Modifier des lignes avec UPDATE.', 'Supprimer des lignes avec DELETE.', 'Éviter les modifications accidentelles de toute la table.']::text[], array['Lire les données : SELECT et WHERE']::text[], '## UPDATE
+
+~~~sql
+UPDATE etudiants SET filiere = ''Informatique'', age = 20 WHERE id = 2;
+~~~
+
+## DELETE
+
+~~~sql
+DELETE FROM etudiants WHERE id = 6;
+~~~
+
+## Le piège du WHERE oublié
+
+**UPDATE etudiants SET age = 0;** modifie **toutes** les lignes. **DELETE FROM etudiants;** vide **toute** la table. Il n''y a pas de bouton « annuler » (sauf dans une transaction, niveau 3). Méthode professionnelle :
+
+1. écrire d''abord le **SELECT** avec le même WHERE et vérifier les lignes visées ;
+2. remplacer SELECT par UPDATE ou DELETE ;
+3. sur une base réelle, travailler dans une **transaction** et avoir une **sauvegarde**.
+
+## Calculer à partir de la valeur actuelle
+
+~~~sql
+UPDATE produits SET stock = stock - 1 WHERE id = 3;
+~~~
+
+## Combien de lignes ?
+
+Le laboratoire affiche le nombre de lignes modifiées ou supprimées : s''il vaut 0, votre WHERE ne correspond à aucune ligne ; s''il est bien plus grand que prévu, le WHERE est trop large.', array['UPDATE table SET col = valeur WHERE condition;', 'DELETE FROM table WHERE condition;', 'Toujours tester le WHERE avec un SELECT d''abord.']::text[], '[{"language":"sql","title":"Modifier puis supprimer","code":"UPDATE etudiants SET filiere = ''Informatique'' WHERE nom = ''Nsimba'';\nUPDATE etudiants SET age = age + 1 WHERE filiere = ''Droit'';\nDELETE FROM etudiants WHERE age > 24;\nSELECT nom, age, filiere FROM etudiants;","stdin":"CREATE TABLE etudiants (\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  nom TEXT NOT NULL,\n  postnom TEXT NOT NULL,\n  age INTEGER,\n  filiere TEXT\n);\nINSERT INTO etudiants (nom, postnom, age, filiere) VALUES\n  (''Kito'', ''Manasse'', 23, ''Informatique''),\n  (''Mbuyi'', ''Grace'', 19, ''Droit''),\n  (''Kabila'', ''Mutombo'', 21, ''Informatique''),\n  (''Ilunga'', ''Sarah'', 25, ''Médecine''),\n  (''Tshala'', ''Benie'', 20, ''Droit''),\n  (''Nsimba'', ''Joel'', 22, NULL);"}]'::jsonb, null, 'publie', 4, now())
+on conflict (course_id, slug) do update set module_id = excluded.module_id, title = excluded.title, level = excluded.level, duration_minutes = excluded.duration_minutes, objectives = excluded.objectives, prerequisites = excluded.prerequisites, content = excluded.content, summary = excluded.summary, examples = excluded.examples, pedagogy = excluded.pedagogy, status = excluded.status, position = excluded.position;
+insert into public.quizzes (course_id, lesson_id, slug, title, is_final, pass_score, status, kind, duration_minutes, level_number) values ((select id from public.courses where slug = 'sql'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'sql') and slug = 'sql-update-delete'), 'sql-update-delete-quiz', 'Vérification — UPDATE et DELETE', false, 60, 'publie', 'verification', null, null)
+on conflict (slug) do update set title = excluded.title, is_final = excluded.is_final, pass_score = excluded.pass_score, lesson_id = excluded.lesson_id, kind = excluded.kind, duration_minutes = excluded.duration_minutes, level_number = excluded.level_number;
+delete from public.quiz_questions where quiz_id = (select id from public.quizzes where slug = 'sql-update-delete-quiz');
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'sql-update-delete-quiz'), 'qcm', 'Que fait DELETE FROM etudiants; ?', null, '["Supprime la table","Supprime toutes les lignes","Ne fait rien","Demande confirmation"]'::jsonb, 0, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'sql-update-delete-quiz'), 'qcm', 'Comment augmenter tous les prix de 10 % ?', null, '["UPDATE produits SET prix = prix * 1.1;","UPDATE produits prix + 10%;","SET prix = 110%;","ALTER produits prix * 1.1;"]'::jsonb, 1, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[0]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'sql-update-delete-quiz'), 'vrai_faux', 'Il est prudent de tester le WHERE avec un SELECT avant un DELETE.', null, '["Vrai","Faux"]'::jsonb, 2, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[0]'::jsonb, null from qq;
+insert into public.modules (course_id, slug, title, description, position, level_number) values ((select id from public.courses where slug = 'sql'), 'sql-requetes', 'Requêtes, agrégats et contraintes', null, 2, 2)
+on conflict (course_id, slug) do update set title = excluded.title, description = excluded.description, position = excluded.position, level_number = excluded.level_number;
+insert into public.lessons (module_id, course_id, slug, title, level, duration_minutes, objectives, prerequisites, content, summary, examples, pedagogy, status, position, validated_at)
+values ((select id from public.modules where course_id = (select id from public.courses where slug = 'sql') and slug = 'sql-requetes'), (select id from public.courses where slug = 'sql'), 'sql-filtres-tris', 'Filtres avancés, tri et limitation', 'debutant', 40, array['Combiner des conditions avec AND, OR, NOT.', 'Utiliser BETWEEN, IN, LIKE et DISTINCT.', 'Trier avec ORDER BY et limiter avec LIMIT.']::text[], array['Niveau 1']::text[], '## AND, OR, NOT
+
+~~~sql
+SELECT nom FROM etudiants WHERE filiere = ''Droit'' AND age < 20;
+SELECT nom FROM etudiants WHERE filiere = ''Droit'' OR filiere = ''Médecine'';
+~~~
+
+**AND** est prioritaire sur **OR** : mettez des parenthèses dès que vous mélangez les deux.
+
+## BETWEEN et IN
+
+~~~sql
+SELECT nom FROM etudiants WHERE age BETWEEN 20 AND 22;          -- bornes incluses
+SELECT nom FROM etudiants WHERE filiere IN (''Droit'', ''Médecine'');
+~~~
+
+## LIKE : rechercher un motif
+
+**%** remplace n''importe quelle suite de caractères, **_** un seul caractère :
+
+~~~sql
+SELECT nom FROM etudiants WHERE nom LIKE ''K%'';     -- commence par K
+SELECT nom FROM etudiants WHERE postnom LIKE ''%a''; -- se termine par a
+~~~
+
+En SQLite et MySQL, LIKE ignore la casse des lettres simples ; en PostgreSQL il la respecte (on utilise **ILIKE** pour l''ignorer).
+
+## DISTINCT
+
+**SELECT DISTINCT filiere FROM etudiants;** supprime les doublons du résultat.
+
+## ORDER BY
+
+~~~sql
+SELECT nom, age FROM etudiants ORDER BY age DESC, nom ASC;
+~~~
+
+**ASC** (croissant, par défaut) ou **DESC** (décroissant) ; plusieurs critères possibles. Sans ORDER BY, **l''ordre des lignes n''est pas garanti**.
+
+## LIMIT
+
+**LIMIT 3** garde les 3 premières lignes ; **LIMIT 3 OFFSET 6** saute 6 lignes puis en prend 3 (pagination). SQL Server utilise TOP et la norme FETCH FIRST 3 ROWS ONLY (accepté par PostgreSQL).', array['AND avant OR : utilisez des parenthèses.', 'BETWEEN (bornes incluses), IN (liste), LIKE (% et _).', 'ORDER BY … ASC/DESC ; LIMIT n OFFSET m ; DISTINCT.']::text[], '[{"language":"sql","title":"Les trois plus jeunes, hors Droit","code":"SELECT nom, age, filiere\nFROM etudiants\nWHERE filiere IS NOT NULL AND NOT filiere = ''Droit''\nORDER BY age\nLIMIT 3;\n\nSELECT DISTINCT filiere FROM etudiants WHERE filiere IS NOT NULL ORDER BY filiere;","stdin":"CREATE TABLE etudiants (\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  nom TEXT NOT NULL,\n  postnom TEXT NOT NULL,\n  age INTEGER,\n  filiere TEXT\n);\nINSERT INTO etudiants (nom, postnom, age, filiere) VALUES\n  (''Kito'', ''Manasse'', 23, ''Informatique''),\n  (''Mbuyi'', ''Grace'', 19, ''Droit''),\n  (''Kabila'', ''Mutombo'', 21, ''Informatique''),\n  (''Ilunga'', ''Sarah'', 25, ''Médecine''),\n  (''Tshala'', ''Benie'', 20, ''Droit''),\n  (''Nsimba'', ''Joel'', 22, NULL);"}]'::jsonb, null, 'publie', 1, now())
+on conflict (course_id, slug) do update set module_id = excluded.module_id, title = excluded.title, level = excluded.level, duration_minutes = excluded.duration_minutes, objectives = excluded.objectives, prerequisites = excluded.prerequisites, content = excluded.content, summary = excluded.summary, examples = excluded.examples, pedagogy = excluded.pedagogy, status = excluded.status, position = excluded.position;
+insert into public.quizzes (course_id, lesson_id, slug, title, is_final, pass_score, status, kind, duration_minutes, level_number) values ((select id from public.courses where slug = 'sql'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'sql') and slug = 'sql-filtres-tris'), 'sql-filtres-quiz', 'Vérification — Filtres et tris', false, 60, 'publie', 'verification', null, null)
+on conflict (slug) do update set title = excluded.title, is_final = excluded.is_final, pass_score = excluded.pass_score, lesson_id = excluded.lesson_id, kind = excluded.kind, duration_minutes = excluded.duration_minutes, level_number = excluded.level_number;
+delete from public.quiz_questions where quiz_id = (select id from public.quizzes where slug = 'sql-filtres-quiz');
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'sql-filtres-quiz'), 'qcm', 'WHERE age BETWEEN 18 AND 20 inclut-il 20 ?', null, '["Oui","Non"]'::jsonb, 0, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[0]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'sql-filtres-quiz'), 'qcm', 'Quel motif trouve les noms commençant par M ?', null, '["LIKE ''M_''","LIKE ''M%''","LIKE ''%M''","= ''M*''"]'::jsonb, 1, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'sql-filtres-quiz'), 'qcm', 'Comment trier du plus grand au plus petit ?', null, '["ORDER BY x ASC","ORDER BY x DESC","SORT x DOWN","ORDER x REVERSE"]'::jsonb, 2, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'sql-filtres-quiz'), 'qcm', 'Que fait DISTINCT ?', null, '["Trie","Supprime les doublons du résultat","Compte","Filtre les NULL"]'::jsonb, 3, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+insert into public.lessons (module_id, course_id, slug, title, level, duration_minutes, objectives, prerequisites, content, summary, examples, pedagogy, status, position, validated_at)
+values ((select id from public.modules where course_id = (select id from public.courses where slug = 'sql') and slug = 'sql-requetes'), (select id from public.courses where slug = 'sql'), 'sql-agregats', 'Fonctions d''agrégation, GROUP BY et HAVING', 'debutant', 45, array['Calculer avec COUNT, SUM, AVG, MIN, MAX.', 'Regrouper avec GROUP BY.', 'Filtrer les groupes avec HAVING.']::text[], array['Filtres avancés, tri et limitation']::text[], '## Les fonctions d''agrégation
+
+Elles résument plusieurs lignes en une valeur :
+
+| Fonction | Résultat |
+|---|---|
+| COUNT(*) | nombre de lignes |
+| COUNT(colonne) | nombre de valeurs non NULL |
+| SUM(colonne) | somme |
+| AVG(colonne) | moyenne |
+| MIN / MAX | plus petite / plus grande valeur |
+
+~~~sql
+SELECT COUNT(*) AS nombre, AVG(age) AS age_moyen FROM etudiants;
+~~~
+
+**ROUND(AVG(age), 1)** arrondit à une décimale.
+
+## GROUP BY
+
+Pour calculer **par catégorie** :
+
+~~~sql
+SELECT filiere, COUNT(*) AS effectif
+FROM etudiants
+GROUP BY filiere;
+~~~
+
+Règle : chaque colonne du SELECT est soit dans le **GROUP BY**, soit à l''intérieur d''une **fonction d''agrégation**. (MySQL est parfois permissif ; PostgreSQL et la norme refusent.)
+
+## HAVING
+
+**WHERE** filtre les **lignes avant** le regroupement ; **HAVING** filtre les **groupes après** :
+
+~~~sql
+SELECT filiere, COUNT(*) AS effectif
+FROM etudiants
+WHERE age >= 20
+GROUP BY filiere
+HAVING COUNT(*) >= 2;
+~~~
+
+## Ordre d''exécution complet
+
+**FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY → LIMIT.** C''est pourquoi un alias défini dans SELECT ne peut pas être utilisé dans WHERE (mais il peut l''être dans ORDER BY).', array['COUNT, SUM, AVG, MIN, MAX résument des lignes.', 'GROUP BY calcule par groupe.', 'WHERE filtre les lignes, HAVING filtre les groupes.']::text[], '[{"language":"sql","title":"Statistiques par catégorie","code":"SELECT categorie,\n       COUNT(*) AS nb_produits,\n       ROUND(AVG(prix), 2) AS prix_moyen,\n       SUM(stock) AS stock_total\nFROM produits\nGROUP BY categorie\nHAVING COUNT(*) >= 2\nORDER BY nb_produits DESC;","stdin":"PRAGMA foreign_keys = ON;\nCREATE TABLE produits (id INTEGER PRIMARY KEY AUTOINCREMENT, nom TEXT NOT NULL, categorie TEXT NOT NULL, prix REAL NOT NULL CHECK (prix > 0), stock INTEGER NOT NULL DEFAULT 0);\nCREATE TABLE clients (id INTEGER PRIMARY KEY AUTOINCREMENT, nom TEXT NOT NULL, ville TEXT NOT NULL);\nCREATE TABLE commandes (id INTEGER PRIMARY KEY AUTOINCREMENT, client_id INTEGER NOT NULL REFERENCES clients (id), date_commande TEXT NOT NULL);\nCREATE TABLE lignes_commande (commande_id INTEGER NOT NULL REFERENCES commandes (id), produit_id INTEGER NOT NULL REFERENCES produits (id), quantite INTEGER NOT NULL CHECK (quantite > 0), PRIMARY KEY (commande_id, produit_id));\nINSERT INTO produits (nom, categorie, prix, stock) VALUES\n  (''Cahier'', ''Papeterie'', 1.5, 200), (''Stylo'', ''Papeterie'', 0.5, 500), (''Calculatrice'', ''Électronique'', 25, 15),\n  (''Clé USB'', ''Électronique'', 8, 40), (''Sac à dos'', ''Bagagerie'', 30, 0), (''Règle'', ''Papeterie'', 1, 120);\nINSERT INTO clients (nom, ville) VALUES (''Kito'', ''Kinshasa''), (''Mbuyi'', ''Lubumbashi''), (''Ilunga'', ''Kinshasa''), (''Tshala'', ''Goma'');\nINSERT INTO commandes (client_id, date_commande) VALUES (1, ''2026-10-02''), (2, ''2026-10-05''), (1, ''2026-10-20''), (3, ''2026-11-01'');\nINSERT INTO lignes_commande (commande_id, produit_id, quantite) VALUES\n  (1, 1, 10), (1, 2, 5), (2, 3, 1), (3, 4, 2), (3, 1, 4), (4, 5, 1), (4, 6, 3);"}]'::jsonb, null, 'publie', 2, now())
+on conflict (course_id, slug) do update set module_id = excluded.module_id, title = excluded.title, level = excluded.level, duration_minutes = excluded.duration_minutes, objectives = excluded.objectives, prerequisites = excluded.prerequisites, content = excluded.content, summary = excluded.summary, examples = excluded.examples, pedagogy = excluded.pedagogy, status = excluded.status, position = excluded.position;
+insert into public.quizzes (course_id, lesson_id, slug, title, is_final, pass_score, status, kind, duration_minutes, level_number) values ((select id from public.courses where slug = 'sql'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'sql') and slug = 'sql-agregats'), 'sql-agregats-quiz', 'Vérification — Agrégats', false, 60, 'publie', 'verification', null, null)
+on conflict (slug) do update set title = excluded.title, is_final = excluded.is_final, pass_score = excluded.pass_score, lesson_id = excluded.lesson_id, kind = excluded.kind, duration_minutes = excluded.duration_minutes, level_number = excluded.level_number;
+delete from public.quiz_questions where quiz_id = (select id from public.quizzes where slug = 'sql-agregats-quiz');
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'sql-agregats-quiz'), 'qcm', 'COUNT(filiere) compte…', null, '["toutes les lignes","les lignes où filiere n''est pas NULL","les filières distinctes","les NULL"]'::jsonb, 0, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'sql-agregats-quiz'), 'qcm', 'Où filtrer « les filières de plus de 10 étudiants » ?', null, '["WHERE COUNT(*) > 10","HAVING COUNT(*) > 10","GROUP BY > 10","ORDER BY 10"]'::jsonb, 1, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'sql-agregats-quiz'), 'qcm', 'Quelle clause s''exécute en premier ?', null, '["SELECT","WHERE","FROM","ORDER BY"]'::jsonb, 2, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[2]'::jsonb, null from qq;
+insert into public.lessons (module_id, course_id, slug, title, level, duration_minutes, objectives, prerequisites, content, summary, examples, pedagogy, status, position, validated_at)
+values ((select id from public.modules where course_id = (select id from public.courses where slug = 'sql') and slug = 'sql-requetes'), (select id from public.courses where slug = 'sql'), 'sql-contraintes', 'Contraintes et modification de la structure', 'debutant', 35, array['Garantir la qualité des données avec les contraintes.', 'Modifier une table avec ALTER TABLE.', 'Comprendre les erreurs de contrainte.']::text[], array['Fonctions d''agrégation']::text[], '## Pourquoi des contraintes ?
+
+Une application peut avoir des bogues ; la base est la **dernière ligne de défense**. Les contraintes refusent les données incohérentes, quel que soit le programme qui les envoie.
+
+| Contrainte | Garantit que… |
+|---|---|
+| PRIMARY KEY | la valeur identifie la ligne (unique, non nulle) |
+| NOT NULL | la valeur est toujours renseignée |
+| UNIQUE | deux lignes n''ont jamais la même valeur (e-mail, matricule) |
+| CHECK (condition) | la condition est vraie (age >= 15, prix > 0) |
+| DEFAULT valeur | une valeur est mise si on n''en fournit pas |
+| FOREIGN KEY … REFERENCES | la valeur existe dans la table référencée |
+
+~~~sql
+CREATE TABLE utilisateurs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  email TEXT NOT NULL UNIQUE,
+  role TEXT NOT NULL DEFAULT ''etudiant'' CHECK (role IN (''etudiant'', ''enseignant'', ''administrateur'')),
+  cree_le TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+~~~
+
+## Quand une contrainte refuse
+
+L''instruction échoue avec un message (UNIQUE constraint failed, NOT NULL constraint failed, CHECK constraint failed…). Le laboratoire l''explique en français et indique la ligne.
+
+## Clés étrangères dans SQLite
+
+Pour des raisons historiques, SQLite ne vérifie les clés étrangères que si **PRAGMA foreign_keys = ON;** est exécuté (c''est le cas dans le laboratoire). MySQL (moteur InnoDB) et PostgreSQL les vérifient toujours.
+
+## ALTER TABLE
+
+~~~sql
+ALTER TABLE etudiants ADD COLUMN email TEXT;
+ALTER TABLE etudiants RENAME COLUMN postnom TO post_nom;
+~~~
+
+SQLite ne permet qu''une partie des modifications (ajouter, renommer, supprimer une colonne). MySQL et PostgreSQL permettent aussi de changer le type (ALTER COLUMN / MODIFY) ou d''ajouter une contrainte à une table existante.', array['Les contraintes protègent la base contre les données incohérentes.', 'PRIMARY KEY, NOT NULL, UNIQUE, CHECK, DEFAULT, FOREIGN KEY.', 'ALTER TABLE modifie la structure (possibilités variables selon le SGBD).']::text[], '[{"language":"sql","title":"Les contraintes en action","code":"CREATE TABLE utilisateurs (\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  email TEXT NOT NULL UNIQUE,\n  role TEXT NOT NULL DEFAULT ''etudiant'' CHECK (role IN (''etudiant'', ''enseignant'', ''administrateur''))\n);\nINSERT INTO utilisateurs (email) VALUES (''kito@upl.cd'');\nINSERT INTO utilisateurs (email, role) VALUES (''prof@upl.cd'', ''enseignant'');\nALTER TABLE utilisateurs ADD COLUMN telephone TEXT;\nSELECT * FROM utilisateurs;\n-- Essayez : INSERT INTO utilisateurs (email) VALUES (''kito@upl.cd'');"}]'::jsonb, null, 'publie', 3, now())
+on conflict (course_id, slug) do update set module_id = excluded.module_id, title = excluded.title, level = excluded.level, duration_minutes = excluded.duration_minutes, objectives = excluded.objectives, prerequisites = excluded.prerequisites, content = excluded.content, summary = excluded.summary, examples = excluded.examples, pedagogy = excluded.pedagogy, status = excluded.status, position = excluded.position;
+insert into public.quizzes (course_id, lesson_id, slug, title, is_final, pass_score, status, kind, duration_minutes, level_number) values ((select id from public.courses where slug = 'sql'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'sql') and slug = 'sql-contraintes'), 'sql-contraintes-quiz', 'Vérification — Contraintes', false, 60, 'publie', 'verification', null, null)
+on conflict (slug) do update set title = excluded.title, is_final = excluded.is_final, pass_score = excluded.pass_score, lesson_id = excluded.lesson_id, kind = excluded.kind, duration_minutes = excluded.duration_minutes, level_number = excluded.level_number;
+delete from public.quiz_questions where quiz_id = (select id from public.quizzes where slug = 'sql-contraintes-quiz');
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'sql-contraintes-quiz'), 'qcm', 'Quelle contrainte empêche deux comptes avec le même e-mail ?', null, '["NOT NULL","UNIQUE","CHECK","DEFAULT"]'::jsonb, 0, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'sql-contraintes-quiz'), 'qcm', 'Quelle contrainte impose un prix positif ?', null, '["CHECK (prix > 0)","UNIQUE (prix)","DEFAULT 0","NOT NULL"]'::jsonb, 1, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[0]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'sql-contraintes-quiz'), 'vrai_faux', 'SQLite vérifie toujours les clés étrangères, même sans PRAGMA.', null, '["Vrai","Faux"]'::jsonb, 2, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+insert into public.modules (course_id, slug, title, description, position, level_number) values ((select id from public.courses where slug = 'sql'), 'sql-relations', 'Relations, jointures et intégrité', null, 3, 3)
+on conflict (course_id, slug) do update set title = excluded.title, description = excluded.description, position = excluded.position, level_number = excluded.level_number;
+insert into public.lessons (module_id, course_id, slug, title, level, duration_minutes, objectives, prerequisites, content, summary, examples, pedagogy, status, position, validated_at)
+values ((select id from public.modules where course_id = (select id from public.courses where slug = 'sql') and slug = 'sql-relations'), (select id from public.courses where slug = 'sql'), 'sql-jointures', 'Relations entre tables et jointures', 'intermediaire', 50, array['Reconnaître les relations 1-1, 1-n et n-n.', 'Combiner des tables avec INNER JOIN et LEFT JOIN.', 'Utiliser une table d''association.']::text[], array['Contraintes (niveau 2)']::text[], '## Les trois types de relations
+
+| Relation | Exemple | Mise en œuvre |
+|---|---|---|
+| 1-1 | un étudiant ↔ une carte d''étudiant | clé étrangère UNIQUE dans l''une des tables |
+| 1-n | une filière → plusieurs étudiants | clé étrangère du côté « plusieurs » (etudiants.filiere_id) |
+| n-n | des étudiants ↔ des cours | **table d''association** (inscriptions) avec deux clés étrangères |
+
+La base **universite** du laboratoire : **filieres**, **etudiants** (filiere_id), **cours**, **inscriptions** (etudiant_id, cours_id, note).
+
+## INNER JOIN
+
+Garde les lignes qui ont une **correspondance** dans les deux tables :
+
+~~~sql
+SELECT e.nom, f.nom AS filiere
+FROM etudiants e
+INNER JOIN filieres f ON f.id = e.filiere_id;
+~~~
+
+**e** et **f** sont des **alias de table** ; la condition **ON** dit comment les lignes se correspondent (presque toujours : clé étrangère = clé primaire).
+
+## LEFT JOIN
+
+Garde **toutes** les lignes de la table de gauche, même sans correspondance (les colonnes de droite valent alors NULL) : indispensable pour « les étudiants **sans** filière » ou « les cours **sans** inscrit ».
+
+~~~sql
+SELECT e.nom, f.nom AS filiere
+FROM etudiants e
+LEFT JOIN filieres f ON f.id = e.filiere_id;
+~~~
+
+RIGHT JOIN et FULL OUTER JOIN existent dans PostgreSQL et SQLite (depuis la version 3.39) ; MySQL n''a pas FULL OUTER JOIN.
+
+## Jointure sur trois tables (n-n)
+
+~~~sql
+SELECT e.nom, c.intitule, i.note
+FROM inscriptions i
+JOIN etudiants e ON e.id = i.etudiant_id
+JOIN cours c ON c.id = i.cours_id;
+~~~
+
+## Jointure et agrégats
+
+On combine librement : **moyenne par étudiant**, **nombre d''inscrits par cours**, **chiffre d''affaires par client**… avec GROUP BY après les JOIN.', array['1-n : clé étrangère côté « plusieurs » ; n-n : table d''association.', 'INNER JOIN : seulement les correspondances ; LEFT JOIN : toute la table de gauche.', 'Alias de table (e, f) et condition ON clé étrangère = clé primaire.']::text[], '[{"language":"sql","title":"Relevé de notes (jointure n-n)","code":"SELECT e.nom, c.intitule, i.note\nFROM inscriptions i\nJOIN etudiants e ON e.id = i.etudiant_id\nJOIN cours c ON c.id = i.cours_id\nORDER BY e.nom, c.intitule;\n\n-- Moyenne par étudiant, y compris ceux qui n''ont aucune note\nSELECT e.nom, ROUND(AVG(i.note), 2) AS moyenne, COUNT(i.cours_id) AS nb_cours\nFROM etudiants e\nLEFT JOIN inscriptions i ON i.etudiant_id = e.id\nGROUP BY e.id, e.nom\nORDER BY e.nom;","stdin":"PRAGMA foreign_keys = ON;\nCREATE TABLE filieres (\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  nom TEXT NOT NULL UNIQUE\n);\nCREATE TABLE etudiants (\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  nom TEXT NOT NULL,\n  postnom TEXT NOT NULL,\n  age INTEGER CHECK (age >= 15),\n  filiere_id INTEGER REFERENCES filieres (id)\n);\nCREATE TABLE cours (\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  intitule TEXT NOT NULL,\n  credits INTEGER NOT NULL DEFAULT 3\n);\nCREATE TABLE inscriptions (\n  etudiant_id INTEGER NOT NULL REFERENCES etudiants (id),\n  cours_id INTEGER NOT NULL REFERENCES cours (id),\n  note REAL CHECK (note BETWEEN 0 AND 20),\n  PRIMARY KEY (etudiant_id, cours_id)\n);\nINSERT INTO filieres (nom) VALUES (''Informatique''), (''Droit''), (''Médecine'');\nINSERT INTO etudiants (nom, postnom, age, filiere_id) VALUES\n  (''Kito'', ''Manasse'', 23, 1),\n  (''Mbuyi'', ''Grace'', 19, 2),\n  (''Kabila'', ''Mutombo'', 21, 1),\n  (''Ilunga'', ''Sarah'', 25, 3),\n  (''Nsimba'', ''Joel'', 22, NULL);\nINSERT INTO cours (intitule, credits) VALUES (''Algorithmique'', 5), (''Bases de données'', 4), (''Droit civil'', 3), (''Anatomie'', 6);\nINSERT INTO inscriptions (etudiant_id, cours_id, note) VALUES\n  (1, 1, 15), (1, 2, 17), (2, 3, 12), (3, 1, 9), (3, 2, 11), (4, 4, 14);"}]'::jsonb, null, 'publie', 1, now())
+on conflict (course_id, slug) do update set module_id = excluded.module_id, title = excluded.title, level = excluded.level, duration_minutes = excluded.duration_minutes, objectives = excluded.objectives, prerequisites = excluded.prerequisites, content = excluded.content, summary = excluded.summary, examples = excluded.examples, pedagogy = excluded.pedagogy, status = excluded.status, position = excluded.position;
+insert into public.quizzes (course_id, lesson_id, slug, title, is_final, pass_score, status, kind, duration_minutes, level_number) values ((select id from public.courses where slug = 'sql'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'sql') and slug = 'sql-jointures'), 'sql-jointures-quiz', 'Vérification — Jointures', false, 60, 'publie', 'verification', null, null)
+on conflict (slug) do update set title = excluded.title, is_final = excluded.is_final, pass_score = excluded.pass_score, lesson_id = excluded.lesson_id, kind = excluded.kind, duration_minutes = excluded.duration_minutes, level_number = excluded.level_number;
+delete from public.quiz_questions where quiz_id = (select id from public.quizzes where slug = 'sql-jointures-quiz');
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'sql-jointures-quiz'), 'qcm', 'Comment représenter « des étudiants suivent des cours » (n-n) ?', null, '["Une colonne cours dans etudiants","Une table d''association","Une vue","Un index"]'::jsonb, 0, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'sql-jointures-quiz'), 'qcm', 'Quelle jointure garde les étudiants sans filière ?', null, '["INNER JOIN","LEFT JOIN depuis etudiants","CROSS JOIN","Aucune"]'::jsonb, 1, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'sql-jointures-quiz'), 'qcm', 'Dans une relation 1-n, où place-t-on la clé étrangère ?', null, '["Côté « 1 »","Côté « plusieurs »","Dans les deux tables","Nulle part"]'::jsonb, 2, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+insert into public.lessons (module_id, course_id, slug, title, level, duration_minutes, objectives, prerequisites, content, summary, examples, pedagogy, status, position, validated_at)
+values ((select id from public.modules where course_id = (select id from public.courses where slug = 'sql') and slug = 'sql-relations'), (select id from public.courses where slug = 'sql'), 'sql-sous-requetes-vues', 'Sous-requêtes et vues', 'intermediaire', 40, array['Écrire des sous-requêtes dans WHERE et dans SELECT.', 'Utiliser IN, EXISTS et les sous-requêtes scalaires.', 'Créer et interroger une vue.']::text[], array['Relations et jointures']::text[], '## Une requête dans une requête
+
+Une **sous-requête** est un SELECT entre parenthèses utilisé par une autre requête.
+
+~~~sql
+-- Étudiants plus âgés que la moyenne
+SELECT nom, age FROM etudiants
+WHERE age > (SELECT AVG(age) FROM etudiants);
+~~~
+
+## Sous-requête avec IN
+
+~~~sql
+SELECT nom FROM etudiants
+WHERE id IN (SELECT etudiant_id FROM inscriptions WHERE note >= 15);
+~~~
+
+## EXISTS et NOT EXISTS
+
+**EXISTS** est vrai si la sous-requête renvoie au moins une ligne. Elle peut faire référence à la requête principale (sous-requête **corrélée**) :
+
+~~~sql
+SELECT c.intitule FROM cours c
+WHERE NOT EXISTS (SELECT 1 FROM inscriptions i WHERE i.cours_id = c.id);
+~~~
+
+Attention : **NOT IN** avec une sous-requête qui contient un NULL ne renvoie rien ; **NOT EXISTS** est plus sûr.
+
+## Sous-requête dans SELECT ou FROM
+
+~~~sql
+SELECT nom, (SELECT COUNT(*) FROM inscriptions i WHERE i.etudiant_id = e.id) AS nb_cours
+FROM etudiants e;
+~~~
+
+Une sous-requête dans FROM est une **table dérivée** (elle doit avoir un alias). La clause **WITH** (expression de table commune, CTE) donne un nom à une sous-requête et rend les requêtes longues lisibles ; elle existe dans SQLite, PostgreSQL et MySQL 8.
+
+## Les vues
+
+Une **vue** est une requête enregistrée sous un nom, que l''on interroge comme une table :
+
+~~~sql
+CREATE VIEW releve AS
+SELECT e.nom, c.intitule, i.note FROM inscriptions i
+JOIN etudiants e ON e.id = i.etudiant_id
+JOIN cours c ON c.id = i.cours_id;
+
+SELECT * FROM releve WHERE note < 10;
+~~~
+
+Avantages : simplifier les requêtes fréquentes, **masquer** des colonnes sensibles (on donne accès à la vue, pas à la table).', array['Une sous-requête est un SELECT entre parenthèses.', 'IN, EXISTS / NOT EXISTS, sous-requête scalaire, table dérivée, WITH.', 'Une vue est une requête nommée, interrogée comme une table.']::text[], '[{"language":"sql","title":"Sous-requêtes, WITH et vue","code":"SELECT nom, age FROM etudiants WHERE age > (SELECT AVG(age) FROM etudiants);\n\nSELECT c.intitule FROM cours c\nWHERE NOT EXISTS (SELECT 1 FROM inscriptions i WHERE i.cours_id = c.id);\n\nWITH moyennes AS (\n  SELECT etudiant_id, AVG(note) AS moyenne FROM inscriptions GROUP BY etudiant_id\n)\nSELECT e.nom, ROUND(m.moyenne, 2) AS moyenne\nFROM moyennes m JOIN etudiants e ON e.id = m.etudiant_id\nWHERE m.moyenne >= 12;\n\nCREATE VIEW releve AS\nSELECT e.nom, c.intitule, i.note FROM inscriptions i\nJOIN etudiants e ON e.id = i.etudiant_id JOIN cours c ON c.id = i.cours_id;\nSELECT * FROM releve WHERE note < 12 ORDER BY note;","stdin":"PRAGMA foreign_keys = ON;\nCREATE TABLE filieres (\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  nom TEXT NOT NULL UNIQUE\n);\nCREATE TABLE etudiants (\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  nom TEXT NOT NULL,\n  postnom TEXT NOT NULL,\n  age INTEGER CHECK (age >= 15),\n  filiere_id INTEGER REFERENCES filieres (id)\n);\nCREATE TABLE cours (\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  intitule TEXT NOT NULL,\n  credits INTEGER NOT NULL DEFAULT 3\n);\nCREATE TABLE inscriptions (\n  etudiant_id INTEGER NOT NULL REFERENCES etudiants (id),\n  cours_id INTEGER NOT NULL REFERENCES cours (id),\n  note REAL CHECK (note BETWEEN 0 AND 20),\n  PRIMARY KEY (etudiant_id, cours_id)\n);\nINSERT INTO filieres (nom) VALUES (''Informatique''), (''Droit''), (''Médecine'');\nINSERT INTO etudiants (nom, postnom, age, filiere_id) VALUES\n  (''Kito'', ''Manasse'', 23, 1),\n  (''Mbuyi'', ''Grace'', 19, 2),\n  (''Kabila'', ''Mutombo'', 21, 1),\n  (''Ilunga'', ''Sarah'', 25, 3),\n  (''Nsimba'', ''Joel'', 22, NULL);\nINSERT INTO cours (intitule, credits) VALUES (''Algorithmique'', 5), (''Bases de données'', 4), (''Droit civil'', 3), (''Anatomie'', 6);\nINSERT INTO inscriptions (etudiant_id, cours_id, note) VALUES\n  (1, 1, 15), (1, 2, 17), (2, 3, 12), (3, 1, 9), (3, 2, 11), (4, 4, 14);"}]'::jsonb, null, 'publie', 2, now())
+on conflict (course_id, slug) do update set module_id = excluded.module_id, title = excluded.title, level = excluded.level, duration_minutes = excluded.duration_minutes, objectives = excluded.objectives, prerequisites = excluded.prerequisites, content = excluded.content, summary = excluded.summary, examples = excluded.examples, pedagogy = excluded.pedagogy, status = excluded.status, position = excluded.position;
+insert into public.quizzes (course_id, lesson_id, slug, title, is_final, pass_score, status, kind, duration_minutes, level_number) values ((select id from public.courses where slug = 'sql'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'sql') and slug = 'sql-sous-requetes-vues'), 'sql-sous-requetes-quiz', 'Vérification — Sous-requêtes et vues', false, 60, 'publie', 'verification', null, null)
+on conflict (slug) do update set title = excluded.title, is_final = excluded.is_final, pass_score = excluded.pass_score, lesson_id = excluded.lesson_id, kind = excluded.kind, duration_minutes = excluded.duration_minutes, level_number = excluded.level_number;
+delete from public.quiz_questions where quiz_id = (select id from public.quizzes where slug = 'sql-sous-requetes-quiz');
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'sql-sous-requetes-quiz'), 'qcm', 'Que renvoie EXISTS (sous-requête) ?', null, '["Le nombre de lignes","Vrai si au moins une ligne","La première ligne","NULL"]'::jsonb, 0, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'sql-sous-requetes-quiz'), 'qcm', 'Une vue stocke…', null, '["une copie des données","une requête nommée","un index","une sauvegarde"]'::jsonb, 1, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'sql-sous-requetes-quiz'), 'vrai_faux', 'NOT IN se comporte mal si la sous-requête renvoie un NULL.', null, '["Vrai","Faux"]'::jsonb, 2, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[0]'::jsonb, null from qq;
+insert into public.lessons (module_id, course_id, slug, title, level, duration_minutes, objectives, prerequisites, content, summary, examples, pedagogy, status, position, validated_at)
+values ((select id from public.modules where course_id = (select id from public.courses where slug = 'sql') and slug = 'sql-relations'), (select id from public.courses where slug = 'sql'), 'sql-index-transactions', 'Index et transactions', 'intermediaire', 40, array['Accélérer les recherches avec des index.', 'Lire un plan d''exécution.', 'Garantir le « tout ou rien » avec les transactions (ACID).']::text[], array['Sous-requêtes et vues']::text[], '## Les index
+
+Sans index, pour trouver **WHERE email = ''x''**, le SGBD lit **toute** la table. Un **index** est une structure triée (un arbre B) qui permet d''aller directement aux bonnes lignes, comme l''index d''un livre.
+
+~~~sql
+CREATE INDEX idx_etudiants_nom ON etudiants (nom);
+CREATE UNIQUE INDEX idx_utilisateurs_email ON utilisateurs (email);
+~~~
+
+- la clé primaire et les colonnes UNIQUE sont indexées automatiquement ;
+- on indexe les colonnes souvent utilisées dans **WHERE**, **JOIN** et **ORDER BY** (les clés étrangères en particulier) ;
+- un index **ralentit les écritures** et occupe de la place : on n''indexe pas tout.
+
+## Voir le plan d''exécution
+
+**EXPLAIN QUERY PLAN SELECT …** (SQLite) ou **EXPLAIN** (MySQL, PostgreSQL ; **EXPLAIN ANALYZE** mesure réellement) montre si le SGBD parcourt toute la table (SCAN) ou utilise un index (SEARCH … USING INDEX).
+
+## Les transactions
+
+Une **transaction** regroupe plusieurs instructions qui doivent réussir **ensemble** :
+
+~~~sql
+BEGIN;
+UPDATE comptes SET solde = solde - 100 WHERE id = 1;
+UPDATE comptes SET solde = solde + 100 WHERE id = 2;
+COMMIT;   -- valide les deux
+-- ou ROLLBACK; pour tout annuler
+~~~
+
+Si une erreur survient au milieu, **ROLLBACK** remet la base dans l''état d''avant. MySQL et PostgreSQL écrivent **START TRANSACTION** ou **BEGIN**.
+
+## Les propriétés ACID
+
+| Propriété | Signification |
+|---|---|
+| Atomicité | tout ou rien |
+| Cohérence | la base passe d''un état valide à un état valide (contraintes respectées) |
+| Isolation | les transactions simultanées ne se gênent pas |
+| Durabilité | une fois validées (COMMIT), les données survivent à une panne |', array['Un index accélère WHERE, JOIN et ORDER BY mais ralentit les écritures.', 'EXPLAIN montre si un index est utilisé.', 'BEGIN … COMMIT / ROLLBACK : tout ou rien (ACID).']::text[], '[{"language":"sql","title":"Index et plan d''exécution","code":"EXPLAIN QUERY PLAN SELECT * FROM etudiants WHERE nom = ''Kito'';\nCREATE INDEX idx_etudiants_nom ON etudiants (nom);\nEXPLAIN QUERY PLAN SELECT * FROM etudiants WHERE nom = ''Kito'';","stdin":"CREATE TABLE etudiants (\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  nom TEXT NOT NULL,\n  postnom TEXT NOT NULL,\n  age INTEGER,\n  filiere TEXT\n);\nINSERT INTO etudiants (nom, postnom, age, filiere) VALUES\n  (''Kito'', ''Manasse'', 23, ''Informatique''),\n  (''Mbuyi'', ''Grace'', 19, ''Droit''),\n  (''Kabila'', ''Mutombo'', 21, ''Informatique''),\n  (''Ilunga'', ''Sarah'', 25, ''Médecine''),\n  (''Tshala'', ''Benie'', 20, ''Droit''),\n  (''Nsimba'', ''Joel'', 22, NULL);"},{"language":"sql","title":"Transaction annulée puis validée","code":"CREATE TABLE comptes (id INTEGER PRIMARY KEY, titulaire TEXT, solde INTEGER CHECK (solde >= 0));\nINSERT INTO comptes VALUES (1, ''Kito'', 100), (2, ''Mbuyi'', 50);\n\nBEGIN;\nUPDATE comptes SET solde = solde + 30 WHERE id = 2;\nUPDATE comptes SET solde = solde - 30 WHERE id = 1;\nCOMMIT;\n\nBEGIN;\nDELETE FROM comptes;\nROLLBACK;\n\nSELECT * FROM comptes;"}]'::jsonb, null, 'publie', 3, now())
+on conflict (course_id, slug) do update set module_id = excluded.module_id, title = excluded.title, level = excluded.level, duration_minutes = excluded.duration_minutes, objectives = excluded.objectives, prerequisites = excluded.prerequisites, content = excluded.content, summary = excluded.summary, examples = excluded.examples, pedagogy = excluded.pedagogy, status = excluded.status, position = excluded.position;
+insert into public.quizzes (course_id, lesson_id, slug, title, is_final, pass_score, status, kind, duration_minutes, level_number) values ((select id from public.courses where slug = 'sql'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'sql') and slug = 'sql-index-transactions'), 'sql-index-quiz', 'Vérification — Index et transactions', false, 60, 'publie', 'verification', null, null)
+on conflict (slug) do update set title = excluded.title, is_final = excluded.is_final, pass_score = excluded.pass_score, lesson_id = excluded.lesson_id, kind = excluded.kind, duration_minutes = excluded.duration_minutes, level_number = excluded.level_number;
+delete from public.quiz_questions where quiz_id = (select id from public.quizzes where slug = 'sql-index-quiz');
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'sql-index-quiz'), 'qcm', 'Quelle colonne indexer en priorité ?', null, '["Une colonne jamais lue","Une clé étrangère utilisée dans les jointures","Toutes les colonnes","Une colonne de commentaire"]'::jsonb, 0, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'sql-index-quiz'), 'qcm', 'Que fait ROLLBACK ?', null, '["Valide","Annule la transaction en cours","Supprime la table","Sauvegarde"]'::jsonb, 1, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'sql-index-quiz'), 'qcm', 'Le « A » de ACID signifie…', null, '["Accès","Atomicité","Agrégat","Authentification"]'::jsonb, 2, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+insert into public.lessons (module_id, course_id, slug, title, level, duration_minutes, objectives, prerequisites, content, summary, examples, pedagogy, status, position, validated_at)
+values ((select id from public.modules where course_id = (select id from public.courses where slug = 'sql') and slug = 'sql-relations'), (select id from public.courses where slug = 'sql'), 'sql-normalisation', 'Normalisation : 1NF, 2NF, 3NF', 'intermediaire', 40, array['Repérer les redondances et les anomalies.', 'Appliquer les trois premières formes normales.', 'Découper une table mal conçue.']::text[], array['Relations et jointures']::text[], '## Le problème : la redondance
+
+Une table unique « inscriptions » contenant **nom_etudiant, telephone_etudiant, filiere, intitule_cours, credits, note** répète le téléphone à chaque cours suivi. Conséquences (**anomalies**) :
+
+- **modification** : changer le téléphone oblige à modifier plusieurs lignes (et on en oublie) ;
+- **insertion** : impossible d''enregistrer un cours tant que personne n''y est inscrit ;
+- **suppression** : supprimer la dernière inscription d''un cours efface les informations du cours.
+
+## Dépendance fonctionnelle
+
+A → B (« A détermine B ») : connaissant A, on connaît B. Exemple : **matricule → nom**, **(matricule, code_cours) → note**.
+
+## Première forme normale (1NF)
+
+Chaque colonne contient une **valeur atomique** (pas de liste « 12, 15, 9 » dans une case) et il n''y a pas de groupes de colonnes répétés (note1, note2, note3).
+
+## Deuxième forme normale (2NF)
+
+1NF, et chaque colonne non clé dépend de **toute** la clé primaire (pas d''une partie). Dans inscriptions (matricule, code_cours, nom, note), **nom** ne dépend que de matricule : il part dans la table etudiants.
+
+## Troisième forme normale (3NF)
+
+2NF, et aucune colonne non clé ne dépend d''une **autre colonne non clé**. Dans etudiants (matricule, nom, code_filiere, nom_filiere), **nom_filiere** dépend de code_filiere : il part dans la table filieres.
+
+## Résultat
+
+~~~text
+etudiants(id, nom, telephone, filiere_id → filieres.id)
+filieres(id, nom)
+cours(id, intitule, credits)
+inscriptions(etudiant_id → etudiants.id, cours_id → cours.id, note)
+~~~
+
+Chaque information est stockée **une seule fois** ; les jointures la reconstituent. En pratique, on peut **dénormaliser** volontairement (copier une valeur) pour des raisons de performance, en connaissant le prix à payer.', array['Redondance ⇒ anomalies de modification, d''insertion et de suppression.', '1NF : valeurs atomiques ; 2NF : dépend de toute la clé ; 3NF : pas de dépendance entre colonnes non clés.', 'On découpe en tables reliées par des clés étrangères.']::text[], '[{"language":"sql","title":"Une table non normalisée et ses anomalies","code":"CREATE TABLE inscriptions_brutes (etudiant TEXT, telephone TEXT, cours TEXT, credits INTEGER, note REAL);\nINSERT INTO inscriptions_brutes VALUES\n  (''Kito'', ''0810000001'', ''Algorithmique'', 5, 15),\n  (''Kito'', ''0810000001'', ''Bases de données'', 4, 17),\n  (''Mbuyi'', ''0990000002'', ''Algorithmique'', 5, 12);\n\n-- Anomalie de modification : le téléphone est répété\nUPDATE inscriptions_brutes SET telephone = ''0820000009'' WHERE etudiant = ''Kito'' AND cours = ''Algorithmique'';\nSELECT DISTINCT etudiant, telephone FROM inscriptions_brutes;"}]'::jsonb, null, 'publie', 4, now())
+on conflict (course_id, slug) do update set module_id = excluded.module_id, title = excluded.title, level = excluded.level, duration_minutes = excluded.duration_minutes, objectives = excluded.objectives, prerequisites = excluded.prerequisites, content = excluded.content, summary = excluded.summary, examples = excluded.examples, pedagogy = excluded.pedagogy, status = excluded.status, position = excluded.position;
+insert into public.quizzes (course_id, lesson_id, slug, title, is_final, pass_score, status, kind, duration_minutes, level_number) values ((select id from public.courses where slug = 'sql'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'sql') and slug = 'sql-normalisation'), 'sql-normalisation-quiz', 'Vérification — Normalisation', false, 60, 'publie', 'verification', null, null)
+on conflict (slug) do update set title = excluded.title, is_final = excluded.is_final, pass_score = excluded.pass_score, lesson_id = excluded.lesson_id, kind = excluded.kind, duration_minutes = excluded.duration_minutes, level_number = excluded.level_number;
+delete from public.quiz_questions where quiz_id = (select id from public.quizzes where slug = 'sql-normalisation-quiz');
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'sql-normalisation-quiz'), 'qcm', 'Une colonne notes = ''12, 15, 9'' viole…', null, '["la 1NF","la 2NF","la 3NF","aucune"]'::jsonb, 0, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[0]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'sql-normalisation-quiz'), 'qcm', 'nom_filiere dépend de code_filiere (non clé) : quelle forme est violée ?', null, '["1NF","2NF","3NF"]'::jsonb, 1, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[2]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'sql-normalisation-quiz'), 'qcm', 'Quel est le but principal de la normalisation ?', null, '["Accélérer toutes les requêtes","Éviter la redondance et les anomalies","Chiffrer les données","Réduire le nombre de tables"]'::jsonb, 2, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+insert into public.modules (course_id, slug, title, description, position, level_number) values ((select id from public.courses where slug = 'sql'), 'sql-professionnel', 'Conception et administration professionnelles', null, 4, 4)
+on conflict (course_id, slug) do update set title = excluded.title, description = excluded.description, position = excluded.position, level_number = excluded.level_number;
+insert into public.lessons (module_id, course_id, slug, title, level, duration_minutes, objectives, prerequisites, content, summary, examples, pedagogy, status, position, validated_at)
+values ((select id from public.modules where course_id = (select id from public.courses where slug = 'sql') and slug = 'sql-professionnel'), (select id from public.courses where slug = 'sql'), 'sql-conception-merise', 'Conception avec MERISE et diagrammes entité-association', 'avance', 50, array['Construire un MCD à partir d''un cahier des charges.', 'Lire les cardinalités.', 'Traduire un MCD en modèle logique puis en tables.']::text[], array['Normalisation']::text[], '## La démarche MERISE
+
+**MERISE** est une méthode française de conception, très enseignée en Afrique francophone. Elle sépare trois niveaux :
+
+1. **MCD** (modèle conceptuel des données) : les **entités**, leurs **propriétés** et les **associations**, sans se soucier de la technique ;
+2. **MLD** (modèle logique) : les **tables**, clés primaires et étrangères ;
+3. **MPD** (modèle physique) : le script SQL pour un SGBD précis (types, index).
+
+Les méthodes anglo-saxonnes utilisent le **diagramme entité-association** (ER) ou UML : les idées sont les mêmes.
+
+## Entités et associations
+
+- **Entité** : un objet du domaine (ÉTUDIANT, COURS, FILIÈRE) avec un **identifiant** (souligné) ;
+- **Association** : un lien entre entités, nommé par un verbe (ÉTUDIANT **suit** COURS) ; elle peut porter des propriétés (la **note** appartient à « suit »).
+
+## Cardinalités
+
+Pour chaque entité dans une association : (minimum, maximum) d''occurrences.
+
+~~~text
+FILIÈRE (0,n) ── appartenir ── (1,1) ÉTUDIANT
+ÉTUDIANT (0,n) ── suivre [note] ── (0,n) COURS
+~~~
+
+Lecture : un étudiant appartient à **exactement une** filière (1,1) ; une filière a **0 à n** étudiants ; un étudiant suit 0 à n cours, et un cours est suivi par 0 à n étudiants.
+
+## Règles de passage au modèle logique
+
+| Cas | Traduction |
+|---|---|
+| entité | table ; l''identifiant devient la clé primaire |
+| association (1,1)–(x,n) | clé étrangère dans la table du côté (1,1) |
+| association (x,n)–(x,n) | nouvelle table avec les deux clés étrangères (clé primaire composée) et les propriétés de l''association |
+| association (0,1)–(1,1) | clé étrangère UNIQUE |
+
+## Méthode professionnelle
+
+1. lire le cahier des charges et souligner les **noms** (entités, propriétés) et les **verbes** (associations) ;
+2. dessiner le MCD et valider les cardinalités avec le client (« un médicament peut-il avoir plusieurs fournisseurs ? ») ;
+3. traduire en MLD, vérifier la **3NF** ;
+4. écrire le script (MPD) avec contraintes et index ;
+5. tester avec des données réalistes et les requêtes attendues.
+
+Le laboratoire affiche la **structure** de votre base (onglet Structure) : tables, colonnes, clés primaires 🔑 et clés étrangères →.', array['MCD (entités, associations, cardinalités) → MLD (tables, clés) → MPD (script SQL).', 'Association (1,1)–(x,n) : clé étrangère ; (x,n)–(x,n) : table d''association.', 'Valider les cardinalités avec le client, puis vérifier la 3NF.']::text[], '[{"language":"sql","title":"Du MCD pharmacie au script SQL","code":"PRAGMA foreign_keys = ON;\n-- FOURNISSEUR (1,n) ── fournir ── (1,n) MÉDICAMENT ; CLIENT (0,n) ── acheter [quantité, date] ── (0,n) MÉDICAMENT\nCREATE TABLE fournisseurs (id INTEGER PRIMARY KEY AUTOINCREMENT, nom TEXT NOT NULL UNIQUE);\nCREATE TABLE medicaments (id INTEGER PRIMARY KEY AUTOINCREMENT, nom TEXT NOT NULL, prix REAL NOT NULL CHECK (prix > 0), stock INTEGER NOT NULL DEFAULT 0);\nCREATE TABLE fournir (fournisseur_id INTEGER REFERENCES fournisseurs (id), medicament_id INTEGER REFERENCES medicaments (id), PRIMARY KEY (fournisseur_id, medicament_id));\nCREATE TABLE clients (id INTEGER PRIMARY KEY AUTOINCREMENT, nom TEXT NOT NULL);\nCREATE TABLE ventes (id INTEGER PRIMARY KEY AUTOINCREMENT, client_id INTEGER REFERENCES clients (id), medicament_id INTEGER NOT NULL REFERENCES medicaments (id), quantite INTEGER NOT NULL CHECK (quantite > 0), date_vente TEXT NOT NULL DEFAULT CURRENT_DATE);\nCREATE INDEX idx_ventes_medicament ON ventes (medicament_id);\n\nINSERT INTO fournisseurs (nom) VALUES (''PharmaKin''), (''MedCongo'');\nINSERT INTO medicaments (nom, prix, stock) VALUES (''Paracétamol'', 2.5, 100), (''Amoxicilline'', 6, 40);\nINSERT INTO fournir VALUES (1, 1), (2, 1), (2, 2);\nINSERT INTO clients (nom) VALUES (''Kito'');\nINSERT INTO ventes (client_id, medicament_id, quantite) VALUES (1, 1, 2), (1, 2, 1);\n\nSELECT m.nom, COUNT(f.fournisseur_id) AS nb_fournisseurs\nFROM medicaments m LEFT JOIN fournir f ON f.medicament_id = m.id\nGROUP BY m.id, m.nom;"}]'::jsonb, null, 'publie', 1, now())
+on conflict (course_id, slug) do update set module_id = excluded.module_id, title = excluded.title, level = excluded.level, duration_minutes = excluded.duration_minutes, objectives = excluded.objectives, prerequisites = excluded.prerequisites, content = excluded.content, summary = excluded.summary, examples = excluded.examples, pedagogy = excluded.pedagogy, status = excluded.status, position = excluded.position;
+insert into public.quizzes (course_id, lesson_id, slug, title, is_final, pass_score, status, kind, duration_minutes, level_number) values ((select id from public.courses where slug = 'sql'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'sql') and slug = 'sql-conception-merise'), 'sql-merise-quiz', 'Vérification — MERISE', false, 60, 'publie', 'verification', null, null)
+on conflict (slug) do update set title = excluded.title, is_final = excluded.is_final, pass_score = excluded.pass_score, lesson_id = excluded.lesson_id, kind = excluded.kind, duration_minutes = excluded.duration_minutes, level_number = excluded.level_number;
+delete from public.quiz_questions where quiz_id = (select id from public.quizzes where slug = 'sql-merise-quiz');
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'sql-merise-quiz'), 'qcm', 'Que représente un MCD ?', null, '["Le script SQL","Les entités, associations et cardinalités","Les index","Les utilisateurs"]'::jsonb, 0, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
+with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'sql-merise-quiz'), 'qcm', 'Une association (0,n)–(0,n) devient…', null, '["une clé étrangère","une table d''association","une vue","un index"]'::jsonb, 1, null) returning id)
+insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
 with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'sql-merise-quiz'), 'qcm', 'Cardinalité (1,1) côté ÉTUDIANT pour « appartenir à une filière » signifie…', null, '["0 ou 1 filière","exactement une filière","plusieurs filières","aucune"]'::jsonb, 2, null) returning id)
 insert into public.quiz_answer_keys (question_id, correct, explanation) select id, '[1]'::jsonb, null from qq;
 insert into public.lessons (module_id, course_id, slug, title, level, duration_minutes, objectives, prerequisites, content, summary, examples, pedagogy, status, position, validated_at)
@@ -260,571 +733,4 @@ insert into public.exercise_test_cases (exercise_id, description, input, expecte
 5', 'Somme : 0', false, 1, 1, null);
 insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-somme-deux-nombres'), null, '1000
 2345', 'Somme : 3345', true, 1, 2, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-somme-deux-nombres'), 'ALGORITHME Somme
-VARIABLES
-  a, b : ENTIER
-DEBUT
-  LIRE(a)
-  LIRE(b)
-  ECRIRE("Somme : ", a + b)
-FIN', 'On lit les deux valeurs, puis on affiche l''expression a + b directement dans ECRIRE. Attention à l''espace après les deux-points dans « Somme : ».')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-moyenne-trois-notes', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'entrees-sorties'), 'pseudocode', 'Moyenne de trois notes', 'Lisez trois notes (réels) et affichez leur moyenne :
-
-~~~text
-Moyenne : <valeur>
-~~~', 'debutant', 'ecrire_algorithme', '{}'::text[], '[{"input":"12\n15\n9","output":"Moyenne : 12"}]'::jsonb, '{}'::text[], '', array['Les notes peuvent être décimales : quel type choisir ?', 'Attention aux priorités : a + b + c / 3 ne divise que c !']::text[], 10, false, 'publie', 4, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-moyenne-trois-notes');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-moyenne-trois-notes'), null, '12
-15
-9', 'Moyenne : 12', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-moyenne-trois-notes'), null, '10
-11
-12.5', 'Moyenne : 11.1666666667', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-moyenne-trois-notes'), null, '0
-0
-20', 'Moyenne : 6.66666666667', true, 1, 2, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-moyenne-trois-notes'), 'ALGORITHME Moyenne
-VARIABLES
-  a, b, c, moy : REEL
-DEBUT
-  LIRE(a)
-  LIRE(b)
-  LIRE(c)
-  moy ← (a + b + c) / 3
-  ECRIRE("Moyenne : ", moy)
-FIN', 'Les parenthèses sont indispensables : **(a + b + c) / 3**. Sans elles, seule c serait divisée par 3. Les variables sont de type REEL car une moyenne peut être décimale.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-conversion-temps', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'operateurs'), 'pseudocode', 'Conversion de secondes', 'Lisez une durée en secondes (entier positif) et affichez-la en heures, minutes et secondes :
-
-~~~text
-<h> h <m> min <s> s
-~~~', 'debutant', 'ecrire_algorithme', '{}'::text[], '[{"input":"3725","output":"1 h 2 min 5 s"}]'::jsonb, '{}'::text[], '', array['Une heure vaut 3600 secondes.', 'DIV donne le quotient, MOD le reste.', 'h ← total DIV 3600, puis travaillez sur le reste total MOD 3600.']::text[], 10, false, 'publie', 5, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-conversion-temps');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-conversion-temps'), null, '3725', '1 h 2 min 5 s', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-conversion-temps'), null, '59', '0 h 0 min 59 s', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-conversion-temps'), null, '86399', '23 h 59 min 59 s', true, 1, 2, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-conversion-temps'), 'ALGORITHME ConversionTemps
-VARIABLES
-  total, h, m, s : ENTIER
-DEBUT
-  LIRE(total)
-  h ← total DIV 3600
-  m ← (total MOD 3600) DIV 60
-  s ← total MOD 60
-  ECRIRE(h, " h ", m, " min ", s, " s")
-FIN', '- **h** : nombre d''heures complètes = total DIV 3600.
-- **m** : dans le reste (total MOD 3600), nombre de minutes complètes = DIV 60.
-- **s** : secondes restantes = total MOD 60.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-pair-impair', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'structures-conditionnelles'), 'pseudocode', 'Pair ou impair', 'Lisez un entier et affichez **pair** ou **impair**.', 'debutant', 'ecrire_algorithme', '{}'::text[], '[{"input":"4","output":"pair"},{"input":"7","output":"impair"}]'::jsonb, '{}'::text[], '', array['Un nombre est pair si le reste de sa division par 2 vaut 0.', 'Utilisez MOD dans la condition d''un SI.']::text[], 5, false, 'publie', 6, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-pair-impair');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-pair-impair'), null, '4', 'pair', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-pair-impair'), null, '7', 'impair', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-pair-impair'), null, '0', 'pair', true, 1, 2, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-pair-impair'), null, '-3', 'impair', true, 1, 3, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-pair-impair'), 'ALGORITHME PairImpair
-VARIABLES
-  n : ENTIER
-DEBUT
-  LIRE(n)
-  SI n MOD 2 = 0 ALORS
-    ECRIRE("pair")
-  SINON
-    ECRIRE("impair")
-  FINSI
-FIN', 'On teste le reste de la division par 2. Remarque : pour un nombre négatif impair, n MOD 2 vaut -1, d''où l''intérêt de tester « = 0 » plutôt que « = 1 ».')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-mention', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'structures-conditionnelles'), 'pseudocode', 'Mention au diplôme', 'Lisez une note sur 20 et affichez :
-
-- **Note invalide** si la note n''est pas entre 0 et 20 ;
-- **Excellent** si note ≥ 18 ;
-- **Très bien** si note ≥ 16 ;
-- **Bien** si note ≥ 14 ;
-- **Assez bien** si note ≥ 12 ;
-- **Passable** si note ≥ 10 ;
-- **Ajourné** sinon.', 'debutant', 'ecrire_algorithme', '{}'::text[], '[{"input":"15","output":"Bien"}]'::jsonb, '{}'::text[], '', array['Commencez par traiter le cas invalide.', 'Testez les mentions de la plus haute à la plus basse avec SINON SI.']::text[], 10, false, 'publie', 7, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-mention');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-mention'), null, '15', 'Bien', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-mention'), null, '9.5', 'Ajourné', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-mention'), null, '18', 'Excellent', false, 1, 2, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-mention'), null, '21', 'Note invalide', true, 1, 3, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-mention'), null, '12', 'Assez bien', true, 1, 4, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-mention'), null, '10', 'Passable', true, 1, 5, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-mention'), 'ALGORITHME Mention
-VARIABLES
-  note : REEL
-DEBUT
-  LIRE(note)
-  SI note < 0 OU note > 20 ALORS
-    ECRIRE("Note invalide")
-  SINON SI note >= 18 ALORS
-    ECRIRE("Excellent")
-  SINON SI note >= 16 ALORS
-    ECRIRE("Très bien")
-  SINON SI note >= 14 ALORS
-    ECRIRE("Bien")
-  SINON SI note >= 12 ALORS
-    ECRIRE("Assez bien")
-  SINON SI note >= 10 ALORS
-    ECRIRE("Passable")
-  SINON
-    ECRIRE("Ajourné")
-  FINSI
-FIN', 'Les tests sont effectués **dans l''ordre**. En partant de la mention la plus haute, chaque SINON SI n''a besoin que d''une seule comparaison : si l''on arrive à « note >= 14 », on sait déjà que note < 16.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-annee-bissextile', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'conditions-imbriquees'), 'pseudocode', 'Année bissextile', 'Une année est **bissextile** si elle est divisible par 4 mais pas par 100, **ou** si elle est divisible par 400.
-
-Lisez une année et affichez **bissextile** ou **non bissextile**.', 'intermediaire', 'probleme', '{}'::text[], '[{"input":"2024","output":"bissextile"},{"input":"1900","output":"non bissextile"}]'::jsonb, '{}'::text[], '', array['« divisible par 4 » se teste avec annee MOD 4 = 0.', 'La condition complète combine ET, OU et NON… ou des SI imbriqués.', '(annee MOD 4 = 0 ET annee MOD 100 <> 0) OU annee MOD 400 = 0']::text[], 10, false, 'publie', 8, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-annee-bissextile');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-annee-bissextile'), null, '2024', 'bissextile', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-annee-bissextile'), null, '1900', 'non bissextile', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-annee-bissextile'), null, '2000', 'bissextile', false, 1, 2, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-annee-bissextile'), null, '2023', 'non bissextile', true, 1, 3, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-annee-bissextile'), null, '2400', 'bissextile', true, 1, 4, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-annee-bissextile'), 'ALGORITHME Bissextile
-VARIABLES
-  annee : ENTIER
-DEBUT
-  LIRE(annee)
-  SI (annee MOD 4 = 0 ET annee MOD 100 <> 0) OU annee MOD 400 = 0 ALORS
-    ECRIRE("bissextile")
-  SINON
-    ECRIRE("non bissextile")
-  FINSI
-FIN', 'La règle se traduit directement en une condition combinée. Vérifiez les trois cas pièges : 2024 (divisible par 4), 1900 (divisible par 100 mais pas 400) et 2000 (divisible par 400).')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-table-multiplication', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'boucles'), 'pseudocode', 'Table de multiplication', 'Lisez un entier n et affichez sa table de multiplication de 1 à 10, au format :
-
-~~~text
-n x 1 = …
-…
-n x 10 = …
-~~~', 'debutant', 'ecrire_algorithme', '{}'::text[], '[{"input":"3","output":"3 x 1 = 3\n3 x 2 = 6\n…\n3 x 10 = 30"}]'::jsonb, '{}'::text[], '', array['Le nombre de lignes est connu : 10. Quelle boucle choisir ?', 'ECRIRE(n, " x ", i, " = ", n * i)']::text[], 10, false, 'publie', 9, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-table-multiplication');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-table-multiplication'), null, '3', '3 x 1 = 3
-3 x 2 = 6
-3 x 3 = 9
-3 x 4 = 12
-3 x 5 = 15
-3 x 6 = 18
-3 x 7 = 21
-3 x 8 = 24
-3 x 9 = 27
-3 x 10 = 30', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-table-multiplication'), null, '12', '12 x 1 = 12
-12 x 2 = 24
-12 x 3 = 36
-12 x 4 = 48
-12 x 5 = 60
-12 x 6 = 72
-12 x 7 = 84
-12 x 8 = 96
-12 x 9 = 108
-12 x 10 = 120', true, 1, 1, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-table-multiplication'), 'ALGORITHME Table
-VARIABLES
-  n, i : ENTIER
-DEBUT
-  LIRE(n)
-  POUR i DE 1 A 10 FAIRE
-    ECRIRE(n, " x ", i, " = ", n * i)
-  FINPOUR
-FIN', 'Le nombre de répétitions étant connu à l''avance, la boucle **POUR** est la plus adaptée. Le compteur i sert à la fois de multiplicateur et d''affichage.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-somme-n-premiers', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'boucles'), 'pseudocode', 'Somme des n premiers entiers', 'Lisez un entier n ≥ 0 et affichez la somme 1 + 2 + … + n (0 si n = 0).', 'debutant', 'ecrire_algorithme', '{}'::text[], '[{"input":"10","output":"55"}]'::jsonb, '{}'::text[], '', array['Utilisez un accumulateur initialisé à 0.', 'Une boucle POUR de 1 à n ajoute i à la somme.']::text[], 10, false, 'publie', 10, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-somme-n-premiers');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-somme-n-premiers'), null, '10', '55', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-somme-n-premiers'), null, '0', '0', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-somme-n-premiers'), null, '100', '5050', true, 1, 2, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-somme-n-premiers'), 'ALGORITHME SommeN
-VARIABLES
-  n, i, s : ENTIER
-DEBUT
-  LIRE(n)
-  s ← 0
-  POUR i DE 1 A n FAIRE
-    s ← s + i
-  FINPOUR
-  ECRIRE(s)
-FIN', 'L''accumulateur s est initialisé à 0 avant la boucle. Si n = 0, la boucle POUR de 1 à 0 ne s''exécute pas et s reste à 0. Pour aller plus loin : la formule n × (n + 1) / 2 donne le résultat sans boucle.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-compter-positifs', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'compteurs-accumulateurs'), 'pseudocode', 'Compter les nombres positifs', 'Lisez des entiers jusqu''à la valeur sentinelle **0** (non comptée). Affichez :
-
-~~~text
-Positifs : <nombre de valeurs strictement positives>
-Négatifs : <nombre de valeurs strictement négatives>
-~~~', 'intermediaire', 'ecrire_algorithme', '{}'::text[], '[{"input":"5\n-2\n8\n-1\n3\n0","output":"Positifs : 3\nNégatifs : 2"}]'::jsonb, '{}'::text[], '', array['Le nombre de valeurs n''est pas connu : utilisez TANT QUE.', 'Lisez une première valeur avant la boucle, puis relisez à la fin du corps de boucle.']::text[], 10, false, 'publie', 11, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-compter-positifs');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-compter-positifs'), null, '5
--2
-8
--1
-3
-0', 'Positifs : 3
-Négatifs : 2', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-compter-positifs'), null, '0', 'Positifs : 0
-Négatifs : 0', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-compter-positifs'), null, '-4
--4
--4
-0', 'Positifs : 0
-Négatifs : 3', true, 1, 2, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-compter-positifs'), 'ALGORITHME CompterSignes
-VARIABLES
-  x, pos, neg : ENTIER
-DEBUT
-  pos ← 0
-  neg ← 0
-  LIRE(x)
-  TANT QUE x <> 0 FAIRE
-    SI x > 0 ALORS
-      pos ← pos + 1
-    SINON
-      neg ← neg + 1
-    FINSI
-    LIRE(x)
-  FINTANTQUE
-  ECRIRE("Positifs : ", pos)
-  ECRIRE("Négatifs : ", neg)
-FIN', 'C''est le schéma classique de la **valeur sentinelle** : une lecture avant la boucle, une lecture à la fin de chaque tour. Ainsi la valeur 0 n''est jamais comptée.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-factorielle', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'compteurs-accumulateurs'), 'pseudocode', 'Factorielle', 'Lisez un entier n (0 ≤ n ≤ 15) et affichez n! = 1 × 2 × … × n (avec 0! = 1).', 'debutant', 'ecrire_algorithme', '{}'::text[], '[{"input":"5","output":"120"}]'::jsonb, '{}'::text[], '', array['C''est un accumulateur de produit : à quelle valeur l''initialiser ?', 'Un produit s''initialise à 1, pas à 0.']::text[], 10, false, 'publie', 12, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-factorielle');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-factorielle'), null, '5', '120', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-factorielle'), null, '0', '1', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-factorielle'), null, '10', '3628800', true, 1, 2, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-factorielle'), 'ALGORITHME Factorielle
-VARIABLES
-  n, i, f : ENTIER
-DEBUT
-  LIRE(n)
-  f ← 1
-  POUR i DE 2 A n FAIRE
-    f ← f * i
-  FINPOUR
-  ECRIRE(f)
-FIN', 'L''accumulateur de produit est initialisé à **1** (élément neutre de la multiplication). Initialisé à 0, le résultat serait toujours 0.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-inverser-tableau', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'tableaux'), 'pseudocode', 'Afficher un tableau à l''envers', 'Lisez un entier n (1 ≤ n ≤ 100), puis n entiers que vous rangez dans un tableau. Affichez-les dans l''ordre inverse, **un par ligne**.', 'intermediaire', 'ecrire_algorithme', '{}'::text[], '[{"input":"3\n10\n20\n30","output":"30\n20\n10"}]'::jsonb, '{}'::text[], '', array['Déclarez un tableau de 100 cases.', 'Une boucle POUR avec PAS -1 parcourt de n à 1.']::text[], 10, false, 'publie', 13, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-inverser-tableau');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-inverser-tableau'), null, '3
-10
-20
-30', '30
-20
-10', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-inverser-tableau'), null, '1
-42', '42', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-inverser-tableau'), null, '5
-1
-2
-3
-4
-5', '5
-4
-3
-2
-1', true, 1, 2, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-inverser-tableau'), 'ALGORITHME Inverser
-VARIABLES
-  T : TABLEAU[1..100] DE ENTIER
-  n, i : ENTIER
-DEBUT
-  LIRE(n)
-  POUR i DE 1 A n FAIRE
-    LIRE(T[i])
-  FINPOUR
-  POUR i DE n A 1 PAS -1 FAIRE
-    ECRIRE(T[i])
-  FINPOUR
-FIN', 'Le tableau est déclaré avec la taille maximale (100) ; seules les n premières cases sont utilisées. La seconde boucle utilise un **pas négatif**.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-maximum-tableau', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'tableaux'), 'pseudocode', 'Maximum et sa position', 'Lisez n (1 ≤ n ≤ 100) puis n entiers. Affichez la plus grande valeur et la position de sa **première** apparition :
-
-~~~text
-Maximum : <valeur> en position <indice>
-~~~', 'intermediaire', 'ecrire_algorithme', '{}'::text[], '[{"input":"5\n4\n9\n2\n9\n1","output":"Maximum : 9 en position 2"}]'::jsonb, '{}'::text[], '', array['Initialisez le maximum avec la première case.', 'Gardez aussi en mémoire l''indice du maximum.', 'Comparez avec > (strictement) pour conserver la première position.']::text[], 10, false, 'publie', 14, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-maximum-tableau');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-maximum-tableau'), null, '5
-4
-9
-2
-9
-1', 'Maximum : 9 en position 2', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-maximum-tableau'), null, '1
--7', 'Maximum : -7 en position 1', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-maximum-tableau'), null, '4
--5
--2
--9
--2', 'Maximum : -2 en position 2', true, 1, 2, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-maximum-tableau'), 'ALGORITHME MaxTableau
-VARIABLES
-  T : TABLEAU[1..100] DE ENTIER
-  n, i, iMax : ENTIER
-DEBUT
-  LIRE(n)
-  POUR i DE 1 A n FAIRE
-    LIRE(T[i])
-  FINPOUR
-  iMax ← 1
-  POUR i DE 2 A n FAIRE
-    SI T[i] > T[iMax] ALORS
-      iMax ← i
-    FINSI
-  FINPOUR
-  ECRIRE("Maximum : ", T[iMax], " en position ", iMax)
-FIN', 'Il suffit de mémoriser l''**indice** du maximum : la valeur s''obtient par T[iMax]. Initialiser le maximum à 0 serait une erreur si toutes les valeurs sont négatives.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-compter-voyelles', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'chaines-caracteres'), 'pseudocode', 'Compter les voyelles', 'Lisez une phrase et affichez le nombre de voyelles qu''elle contient (a, e, i, o, u, y, en majuscules ou minuscules, sans accents).', 'intermediaire', 'ecrire_algorithme', '{}'::text[], '[{"input":"Bonjour UPL","output":"4"}]'::jsonb, '{}'::text[], '', array['Parcourez la chaîne avec POUR i DE 1 A LONGUEUR(phrase).', 'MINUSCULE(phrase) évite de tester les majuscules.', 'Une condition avec plusieurs OU teste chaque voyelle.']::text[], 10, false, 'publie', 15, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-compter-voyelles');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-compter-voyelles'), null, 'Bonjour UPL', '4', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-compter-voyelles'), null, 'rythme', '2', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-compter-voyelles'), null, 'AEIOUY aeiouy', '12', true, 1, 2, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-compter-voyelles'), null, 'xyz', '1', true, 1, 3, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-compter-voyelles'), 'ALGORITHME Voyelles
-VARIABLES
-  phrase : CHAINE
-  c : CARACTERE
-  i, nb : ENTIER
-DEBUT
-  LIRE(phrase)
-  phrase ← MINUSCULE(phrase)
-  nb ← 0
-  POUR i DE 1 A LONGUEUR(phrase) FAIRE
-    c ← phrase[i]
-    SI c = "a" OU c = "e" OU c = "i" OU c = "o" OU c = "u" OU c = "y" ALORS
-      nb ← nb + 1
-    FINSI
-  FINPOUR
-  ECRIRE(nb)
-FIN', 'On convertit d''abord la phrase en minuscules pour n''avoir que six cas à tester. Le compteur nb est augmenté à chaque voyelle rencontrée.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-fonction-puissance', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'fonctions-procedures'), 'pseudocode', 'Fonction puissance', 'Écrivez une **fonction** puissance(x : ENTIER, n : ENTIER) : ENTIER qui calcule x^n **avec une boucle** (sans utiliser ^). Le programme principal lit x puis n (n ≥ 0) et affiche le résultat.', 'intermediaire', 'ecrire_algorithme', '{}'::text[], '[{"input":"2\n10","output":"1024"}]'::jsonb, array['Ne pas utiliser l''opérateur ^ ni la fonction PUISSANCE.']::text[], 'ALGORITHME Puissance
-
-FONCTION puissance(x : ENTIER, n : ENTIER) : ENTIER
-VARIABLES
-  i, r : ENTIER
-DEBUT
-  // À compléter
-FIN
-
-VARIABLES
-  a, b : ENTIER
-DEBUT
-  LIRE(a)
-  LIRE(b)
-  ECRIRE(puissance(a, b))
-FIN', array['x^n = x × x × … × x (n fois).', 'Initialisez r à 1, multipliez-le n fois par x, puis RETOURNER r.']::text[], 10, false, 'publie', 16, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-fonction-puissance');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-fonction-puissance'), null, '2
-10', '1024', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-fonction-puissance'), null, '5
-0', '1', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-fonction-puissance'), null, '-3
-3', '-27', true, 1, 2, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-fonction-puissance'), 'ALGORITHME Puissance
-
-FONCTION puissance(x : ENTIER, n : ENTIER) : ENTIER
-VARIABLES
-  i, r : ENTIER
-DEBUT
-  r ← 1
-  POUR i DE 1 A n FAIRE
-    r ← r * x
-  FINPOUR
-  RETOURNER r
-FIN
-
-VARIABLES
-  a, b : ENTIER
-DEBUT
-  LIRE(a)
-  LIRE(b)
-  ECRIRE(puissance(a, b))
-FIN', 'La fonction utilise un accumulateur de produit r initialisé à 1. Pour n = 0, la boucle ne s''exécute pas et la fonction retourne 1, ce qui est correct (x^0 = 1).')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-somme-chiffres-recursive', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'recursivite'), 'pseudocode', 'Somme des chiffres (récursive)', 'Écrivez une fonction **récursive** sommeChiffres(n : ENTIER) : ENTIER qui retourne la somme des chiffres d''un entier n ≥ 0. Le programme lit n et affiche le résultat.', 'avance', 'ecrire_algorithme', '{}'::text[], '[{"input":"4096","output":"19"}]'::jsonb, array['La fonction doit être récursive (pas de boucle).']::text[], '', array['Le dernier chiffre de n est n MOD 10 ; le reste du nombre est n DIV 10.', 'Cas de base : si n < 10, la somme des chiffres est n lui-même.', 'Cas récursif : (n MOD 10) + sommeChiffres(n DIV 10).']::text[], 10, true, 'publie', 17, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-somme-chiffres-recursive');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-somme-chiffres-recursive'), null, '4096', '19', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-somme-chiffres-recursive'), null, '7', '7', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-somme-chiffres-recursive'), null, '0', '0', true, 1, 2, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-somme-chiffres-recursive'), null, '999999', '54', true, 1, 3, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-somme-chiffres-recursive'), 'ALGORITHME SommeChiffres
-
-FONCTION sommeChiffres(n : ENTIER) : ENTIER
-DEBUT
-  SI n < 10 ALORS
-    RETOURNER n
-  FINSI
-  RETOURNER (n MOD 10) + sommeChiffres(n DIV 10)
-FIN
-
-VARIABLES
-  n : ENTIER
-DEBUT
-  LIRE(n)
-  ECRIRE(sommeChiffres(n))
-FIN', '- **Cas de base** : un nombre à un seul chiffre.
-- **Cas récursif** : on isole le dernier chiffre (MOD 10) et on rappelle la fonction sur le nombre privé de ce chiffre (DIV 10), qui est plus petit : on se rapproche du cas de base.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-recherche-sequentielle', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'recherche-tri'), 'pseudocode', 'Recherche séquentielle', 'Lisez n (1 ≤ n ≤ 100), puis n entiers, puis une valeur x. Affichez la position de la **première** occurrence de x, ou **absent** si x n''est pas dans le tableau.', 'intermediaire', 'ecrire_algorithme', '{}'::text[], '[{"input":"4\n7\n3\n9\n3\n3","output":"2"}]'::jsonb, '{}'::text[], '', array['Parcourez le tableau tant que vous n''avez pas trouvé et que vous n''êtes pas à la fin.', 'Une boucle TANT QUE avec deux conditions combinées par ET convient bien.']::text[], 10, false, 'publie', 18, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-recherche-sequentielle');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-recherche-sequentielle'), null, '4
-7
-3
-9
-3
-3', '2', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-recherche-sequentielle'), null, '3
-1
-2
-3
-5', 'absent', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-recherche-sequentielle'), null, '1
-8
-8', '1', true, 1, 2, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-recherche-sequentielle'), 'ALGORITHME Recherche
-VARIABLES
-  T : TABLEAU[1..100] DE ENTIER
-  n, i, x : ENTIER
-DEBUT
-  LIRE(n)
-  POUR i DE 1 A n FAIRE
-    LIRE(T[i])
-  FINPOUR
-  LIRE(x)
-  i ← 1
-  TANT QUE i <= n ET T[i] <> x FAIRE
-    i ← i + 1
-  FINTANTQUE
-  SI i <= n ALORS
-    ECRIRE(i)
-  SINON
-    ECRIRE("absent")
-  FINSI
-FIN', 'La condition **i <= n ET T[i] <> x** est évaluée de gauche à droite : si i dépasse n, la seconde partie n''est pas évaluée, ce qui évite un accès hors limites. À la sortie, i <= n signifie que x a été trouvé.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-tri-bulles', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'recherche-tri'), 'pseudocode', 'Tri à bulles', 'Lisez n (1 ≤ n ≤ 100) puis n entiers. Triez-les par ordre croissant avec le **tri à bulles** et affichez-les sur une seule ligne, séparés par un espace.', 'avance', 'ecrire_algorithme', '{}'::text[], '[{"input":"5\n5\n1\n4\n2\n8","output":"1 2 4 5 8"}]'::jsonb, '{}'::text[], '', array['Comparez chaque paire de voisins T[j] et T[j + 1] ; échangez-les s''ils sont mal ordonnés.', 'Après le passage numéro i, les i plus grands éléments sont à leur place.', 'Construisez la ligne de sortie avec une chaîne : ligne ← ligne + CHAINE(T[i]).']::text[], 10, true, 'publie', 19, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-tri-bulles');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-tri-bulles'), null, '5
-5
-1
-4
-2
-8', '1 2 4 5 8', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-tri-bulles'), null, '1
-3', '3', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-tri-bulles'), null, '6
-3
-3
--1
-0
-10
--5', '-5 -1 0 3 3 10', true, 1, 2, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-tri-bulles'), 'ALGORITHME TriBulles
-VARIABLES
-  T : TABLEAU[1..100] DE ENTIER
-  n, i, j, tmp : ENTIER
-  ligne : CHAINE
-DEBUT
-  LIRE(n)
-  POUR i DE 1 A n FAIRE
-    LIRE(T[i])
-  FINPOUR
-  POUR i DE 1 A n - 1 FAIRE
-    POUR j DE 1 A n - i FAIRE
-      SI T[j] > T[j + 1] ALORS
-        tmp ← T[j]
-        T[j] ← T[j + 1]
-        T[j + 1] ← tmp
-      FINSI
-    FINPOUR
-  FINPOUR
-  ligne ← CHAINE(T[1])
-  POUR i DE 2 A n FAIRE
-    ligne ← ligne + " " + CHAINE(T[i])
-  FINPOUR
-  ECRIRE(ligne)
-FIN', 'La boucle interne s''arrête à n - i car les i derniers éléments sont déjà triés. Pour l''affichage, on commence la ligne par le premier élément afin d''éviter un espace en trop.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
-insert into public.exercises (slug, course_id, lesson_id, language_id, title, statement, difficulty, type, objectives, examples, constraints, starter_code, hints, points, is_evaluated, status, position, starter_files, active_file)
-values ('algo-nombres-premiers', (select id from public.courses where slug = 'algorithmique'), (select id from public.lessons where course_id = (select id from public.courses where slug = 'algorithmique') and slug = 'resolution-problemes'), 'pseudocode', 'Nombres premiers', 'Lisez un entier n ≥ 2 et affichez tous les nombres premiers inférieurs ou égaux à n, séparés par un espace, sur une seule ligne.
-
-Un nombre est premier s''il a exactement deux diviseurs : 1 et lui-même.', 'avance', 'probleme', '{}'::text[], '[{"input":"20","output":"2 3 5 7 11 13 17 19"}]'::jsonb, '{}'::text[], '', array['Écrivez d''abord une fonction estPremier(k : ENTIER) : BOOLEEN.', 'Il suffit de tester les diviseurs d de 2 tant que d * d <= k.', 'Construisez la ligne de résultat avec une chaîne.']::text[], 10, false, 'publie', 20, null, null)
-on conflict (slug) do update set starter_files = excluded.starter_files, active_file = excluded.active_file, course_id = excluded.course_id, lesson_id = excluded.lesson_id, language_id = excluded.language_id, title = excluded.title, statement = excluded.statement, difficulty = excluded.difficulty, type = excluded.type, objectives = excluded.objectives, examples = excluded.examples, constraints = excluded.constraints, starter_code = excluded.starter_code, hints = excluded.hints, points = excluded.points, is_evaluated = excluded.is_evaluated, status = excluded.status, position = excluded.position;
-delete from public.exercise_test_cases where exercise_id = (select id from public.exercises where slug = 'algo-nombres-premiers');
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-nombres-premiers'), null, '20', '2 3 5 7 11 13 17 19', false, 1, 0, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-nombres-premiers'), null, '2', '2', false, 1, 1, null);
-insert into public.exercise_test_cases (exercise_id, description, input, expected_output, is_hidden, weight, position, "check") values ((select id from public.exercises where slug = 'algo-nombres-premiers'), null, '50', '2 3 5 7 11 13 17 19 23 29 31 37 41 43 47', true, 1, 2, null);
-insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'algo-nombres-premiers'), 'ALGORITHME Premiers
-
-FONCTION estPremier(k : ENTIER) : BOOLEEN
-VARIABLES
-  d : ENTIER
-DEBUT
-  SI k < 2 ALORS
-    RETOURNER FAUX
-  FINSI
-  d ← 2
-  TANT QUE d * d <= k FAIRE
-    SI k MOD d = 0 ALORS
-      RETOURNER FAUX
-    FINSI
-    d ← d + 1
-  FINTANTQUE
-  RETOURNER VRAI
-FIN
-
-VARIABLES
-  n, k : ENTIER
-  ligne : CHAINE
-DEBUT
-  LIRE(n)
-  ligne ← ""
-  POUR k DE 2 A n FAIRE
-    SI estPremier(k) ALORS
-      SI ligne = "" ALORS
-        ligne ← CHAINE(k)
-      SINON
-        ligne ← ligne + " " + CHAINE(k)
-      FINSI
-    FINSI
-  FINPOUR
-  ECRIRE(ligne)
-FIN', 'La décomposition en une fonction **estPremier** rend le programme lisible. Tester les diviseurs jusqu''à la racine carrée (d × d <= k) suffit : si k = a × b avec a <= b, alors a <= √k.')
-on conflict (exercise_id) do update set solution_code = excluded.solution_code, correction = excluded.correction, updated_at = now();
 commit;

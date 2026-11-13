@@ -12,6 +12,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { firstDifference, outputsMatch } from "@/lib/execution/compare";
 import { withNodePrelude } from "@/lib/execution/prelude";
+import { kplusRunnerSource } from "@/lib/kplus/runner";
 import { runSqlWorker } from "@/lib/execution/sql-worker-harness";
 import { runPseudocode } from "@/lib/pseudocode";
 import { staticCourses, staticExercises } from "./index";
@@ -30,6 +31,8 @@ const TOOLS: Record<LanguageId, boolean> = {
   // HTML / CSS : vérifiés par le correcteur web (voir web-grader.test.ts).
   html: false,
   css: false,
+  // K+ : son moteur (Python) est joint au programme, comme sur le serveur d'exécution.
+  kplus: has("python3"),
   // PHP : vérifié avec l'interpréteur PHP local (le navigateur utilise PHP 8.3 en WebAssembly).
   php: has("php"),
   // SQL : vérifié avec le vrai worker du navigateur (sql.js, dépendance de développement).
@@ -51,7 +54,11 @@ async function runLocal(language: LanguageId, code: string, stdin: string): Prom
   try {
     let cmd: string;
     let args: string[];
-    if (language === "python") {
+    if (language === "kplus") {
+      writeFileSync(join(dir, "main.py"), kplusRunnerSource(code));
+      cmd = "python3";
+      args = ["main.py"];
+    } else if (language === "python") {
       writeFileSync(join(dir, "main.py"), code);
       cmd = "python3";
       args = ["main.py"];
@@ -85,8 +92,8 @@ async function runLocal(language: LanguageId, code: string, stdin: string): Prom
 }
 
 describe("structure du contenu", () => {
-  it("contient les sept parcours", () => {
-    expect(staticCourses.map((c) => c.language).sort()).toEqual(["c", "css", "html", "java", "javascript", "php", "pseudocode", "python", "sql"]);
+  it("contient les dix parcours", () => {
+    expect(staticCourses.map((c) => c.language).sort()).toEqual(["c", "css", "html", "java", "javascript", "kplus", "php", "pseudocode", "python", "sql"]);
   });
 
   it("a des identifiants uniques et des références valides", () => {

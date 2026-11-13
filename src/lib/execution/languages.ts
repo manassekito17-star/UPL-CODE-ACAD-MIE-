@@ -193,6 +193,22 @@ LANGUAGES.html = {
   ],
 };
 
+LANGUAGES.kplus = {
+  id: "kplus",
+  exerciseTemplate: `# Écrivez votre programme K+ ici
+`,
+  label: "K+ (programmation en français)",
+  shortLabel: "K+",
+  monaco: "kplus",
+  extension: "kplus",
+  mainFile: "main.kplus",
+  browserFallback: true,
+  multiFile: false,
+  template: `variable nom = demander("Quel est votre nom ? ")
+afficher("Bonjour", nom, "!")
+`,
+};
+
 LANGUAGES.css = {
   ...LANGUAGES.html,
   id: "css",

@@ -5,17 +5,20 @@ import { projetsPartie1, projetsPartie1Exercises } from "./courses/formation/pro
 import { html } from "./courses/html";
 import { java } from "./courses/java";
 import { javascript } from "./courses/javascript";
+import { kplus } from "./courses/kplus";
 import { php } from "./courses/php";
 import { python } from "./courses/python";
 import { sql } from "./courses/sql";
 import { algorithmiqueExercises } from "./exercises/algorithmique";
 import { cExercises, javaExercises, javascriptExercises } from "./exercises/autres";
 import { formationPartie1Exercises } from "./exercises/formation-partie1";
+import { kplusExercises } from "./exercises/kplus";
 import { phpExercises } from "./exercises/php";
 import { pythonExercises } from "./exercises/python";
 import { cssExercises, htmlExercises, webProjects } from "./exercises/web";
 import { webMarkdown } from "./helpers";
 import { withLevels } from "./levels/build";
+import { kplusLevels, kplusPlacement } from "./levels/kplus";
 import {
   algorithmiqueLevels,
   algorithmiquePlacement,
@@ -51,7 +54,7 @@ function attachProjects(course: Course): Course {
 
 const finalize = (c: Course): Course => (c.finalQuiz ? { ...c, finalQuiz: { ...c.finalQuiz, isFinal: true } } : c);
 
-/** Contenu de référence versionné (source du seed Supabase) : neuf parcours, quatre niveaux chacun. */
+/** Contenu de référence versionné (source du seed Supabase) : dix parcours, quatre niveaux chacun. */
 export const staticCourses: Course[] = [
   withLevels(algorithmique, algorithmiqueLevels, algorithmiquePlacement),
   withLevels(webMarkdown(html), htmlLevels, htmlPlacement),
@@ -60,6 +63,7 @@ export const staticCourses: Course[] = [
   withLevels(langageC, cLevels, cPlacement),
   withLevels(javascript, javascriptLevels, javascriptPlacement),
   withLevels(java, javaLevels, javaPlacement),
+  withLevels(kplus, kplusLevels, kplusPlacement),
   withLevels(php, phpLevels, phpPlacement),
   withLevels(sql, sqlLevels, sqlPlacement),
 ]
@@ -76,5 +80,6 @@ export const staticExercises: Exercise[] = [
   ...cExercises,
   ...javascriptExercises,
   ...javaExercises,
+  ...kplusExercises,
   ...phpExercises,
 ];

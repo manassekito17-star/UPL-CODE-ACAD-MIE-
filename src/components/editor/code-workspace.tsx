@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 import type { LanguageId } from "@/content/types";
 import { runProgram, warmupEngine } from "@/lib/execution/browser";
 import { LANGUAGE_IDS, LANGUAGES } from "@/lib/execution/languages";
+import { KPlusPage } from "./kplus-page";
 import { STATUS_LABELS, engineName, type ExecutionResult, type SourceFile } from "@/lib/execution/types";
 import { buildPreviewDocument } from "@/lib/execution/web-document";
 import { Button, cn, inputClass } from "../ui";
@@ -310,6 +311,13 @@ export function CodeWorkspace({
           <ResultExtras result={result} files={files} />
         </div>
       </div>
+      {result?.kplusPage && (
+        <KPlusPage
+          commands={result.kplusPage}
+          onOutput={(t) => setResult((r) => (r ? { ...r, stdout: r.stdout + t } : r))}
+          className="overflow-hidden rounded-md border border-white/10"
+        />
+      )}
       {belowConsole}
       <div>
         <button className="text-xs text-gray-400 underline hover:text-white" onClick={() => setShowHistory((s) => !s)}>

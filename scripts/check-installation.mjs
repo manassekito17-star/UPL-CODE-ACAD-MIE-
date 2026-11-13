@@ -30,7 +30,7 @@ for (const f of parts) await run(f);
 await run(parts[Math.floor(parts.length / 2)]); // relance sans risque
 const r = (await db.query("select (select count(*) from public.courses)::int c, (select count(*) from public.lessons)::int l, (select count(*) from public.exercises)::int e, (select count(*) from public.course_levels)::int n")).rows[0];
 console.log("contenu", r);
-if (r.c !== 9 || r.e < 100 || r.n !== 36) {
+if (r.c !== 10 || r.e < 100 || r.n !== 40) {
   console.error("Contenu incomplet");
   process.exit(1);
 }

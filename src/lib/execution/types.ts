@@ -39,6 +39,15 @@ export interface ExecutionResult {
   schema?: SqlTableInfo[];
   /** SQL : journal ordonné des instructions (message, ou numéro de tableau de résultats). */
   log?: Array<{ table?: number; message?: string }>;
+  /** Programme K+ Web (« utiliser web ») : commandes qui construisent sa page. */
+  kplusPage?: KPlusCommand[];
+}
+
+/** Commande produite par le moteur K+ pour construire une page (voir kplus/web.py). */
+export interface KPlusCommand {
+  op: string;
+  id?: string;
+  [champ: string]: unknown;
 }
 
 export interface SqlResultSet {

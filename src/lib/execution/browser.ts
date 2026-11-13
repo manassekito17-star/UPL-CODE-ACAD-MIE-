@@ -1,6 +1,7 @@
 "use client";
 
 import type { LanguageId } from "@/content/types";
+import { runKPlus, runKPlusTest } from "@/lib/kplus";
 import type { ExecutionResult, SourceFile } from "./types";
 
 const TIMEOUT_MS: Record<string, number> = { pseudocode: 8000, javascript: 5000, python: 10000, php: 10000, sql: 8000 };
@@ -57,6 +58,9 @@ export function runInBrowser(
   stdin: string,
   onStatus?: (message: string) => void,
 ): Promise<ExecutionResult> {
+  // K+ : son moteur gère son propre worker ; ici, exécution « test »
+  // (sortie, ou description de la page pour un programme web).
+  if (language === "kplus") return runKPlusTest(files, stdin, onStatus);
   return new Promise((resolve) => {
     const worker = createWorker(language);
     const persistent = isPersistent(language);
@@ -163,6 +167,11 @@ export async function runProgram(
   if (language === "pseudocode") {
     // L'interpréteur de la plateforme tourne directement dans le navigateur : réponse instantanée.
     return { result: await runInBrowser("pseudocode", files, stdin) };
+  }
+  if (language === "kplus") {
+    // Le moteur K+ tourne dans le navigateur (même hors ligne) ; un programme
+    // web renvoie aussi sa page, affichée et utilisable.
+    return { result: await runKPlus(files, stdin, opts.onStatus) };
   }
   if (language === "php" || language === "sql") {
     // PHP et SQL ne sont jamais exécutés sur le serveur de la plateforme :

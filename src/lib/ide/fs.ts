@@ -187,12 +187,15 @@ export const countInside = (p: ProjectSnapshot, path: string) => p.files.filter(
 
 // ---------------- Langages ----------------
 
+/** Langages exécutables dans UPL IDE (ceux de la plateforme, K+ compris). */
+export type RunLanguage = LanguageId;
+
 export interface FileLanguage {
   /** Identifiant Monaco (coloration, autocomplétion). */
   monaco: string;
   label: string;
   /** Langage exécutable par la plateforme, s'il existe. */
-  run?: LanguageId;
+  run?: RunLanguage;
   /** Fichier affichable dans l'aperçu web. */
   preview?: boolean;
   /** Formatage intégré de l'éditeur disponible. */
@@ -201,6 +204,7 @@ export interface FileLanguage {
 
 const LANG_BY_EXT: Record<string, FileLanguage> = {
   algo: { monaco: "pseudocode", label: "Pseudocode", run: "pseudocode" },
+  kplus: { monaco: "kplus", label: "K+", run: "kplus" },
   py: { monaco: "python", label: "Python", run: "python" },
   js: { monaco: "javascript", label: "JavaScript", run: "javascript", format: true },
   mjs: { monaco: "javascript", label: "JavaScript", run: "javascript", format: true },
@@ -227,7 +231,7 @@ export function languageOf(path: string): FileLanguage {
  * principal), puis les fichiers du même langage situés dans le même dossier
  * (modules Python, classes Java…), désignés par leur nom simple.
  */
-export function runFiles(p: ProjectSnapshot, activePath: string): { language: LanguageId; files: { name: string; content: string }[] } | null {
+export function runFiles(p: ProjectSnapshot, activePath: string): { language: RunLanguage; files: { name: string; content: string }[] } | null {
   const lang = languageOf(activePath).run;
   const active = p.files.find((f) => f.path === activePath);
   if (!lang || !active) return null;
@@ -326,6 +330,7 @@ const SYMBOL_RULES: Record<string, Array<[RegExp, CodeSymbol["kind"]]>> = {
     [/^\s*FONCTION\s+([A-Za-z_À-ÿ][\wÀ-ÿ]*)/i, "fonction"],
     [/^\s*PROCEDURE\s+([A-Za-z_À-ÿ][\wÀ-ÿ]*)/i, "procédure"],
   ],
+  kplus: [[/^\s*fonction\s+([\p{L}_][\p{L}\p{N}_]*)/u, "fonction"]],
   markdown: [[/^#{1,3}\s+(.+)$/, "titre"]],
   css: [[/^([^\s@{][^{]*?)\s*\{/, "sélecteur"]],
 };

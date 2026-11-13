@@ -48,7 +48,7 @@ Voir [AUDIT.md](AUDIT.md) et [ARCHITECTURE.md](ARCHITECTURE.md). Vulnérabilité
 
 ## Module supplémentaire — UPL ACADEMY multiniveaux 🔵
 
-Livré et vérifié (unitaires, PGlite, E2E contre Supabase local) : sept parcours en quatre niveaux, positionnement, examens de niveau, passage de niveau côté serveur, bulletin et certificats internes, parcours HTML (niveau 1) et CSS (niveau 1) complets avec correction structurelle, aperçu web isolé dans UPL IDE, liaison cours ↔ IDE, projets pratiques, professeur IA spécialisé, administration des niveaux et ressources. Détail et reste à faire : [MULTINIVEAUX.md](MULTINIVEAUX.md).
+Livré et vérifié (unitaires, PGlite, E2E contre Supabase local) : huit parcours en quatre niveaux (dont K+), positionnement, examens de niveau, passage de niveau côté serveur, bulletin et certificats internes, parcours HTML (niveau 1) et CSS (niveau 1) complets avec correction structurelle, aperçu web isolé dans UPL IDE, liaison cours ↔ IDE, projets pratiques, professeur IA spécialisé, administration des niveaux et ressources. Détail et reste à faire : [MULTINIVEAUX.md](MULTINIVEAUX.md).
 
 ## Phase 2 — Laboratoire d'algorithmique 🟢
 
