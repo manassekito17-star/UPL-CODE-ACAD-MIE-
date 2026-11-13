@@ -11,7 +11,7 @@ export const metadata = { title: "Utilisateurs" };
 
 type Row = { id: string; full_name: string | null; status: string; suspended_until?: string | null; avatar_url: string | null; created_at: string; last_seen_at: string | null };
 
-const METHOD = (p: string) => (p === "google" ? "Google" : p === "email" ? "E-mail" : p);
+const METHOD = (p: string) => (p === "google" ? "Google" : p === "email" ? "E-mail" : p === "anonymous" ? "Accès rapide (non vérifié)" : p);
 
 export default async function UsersPage({ searchParams }: PageProps<"/admin/utilisateurs">) {
   const me = await requireAdmin();
@@ -31,7 +31,7 @@ export default async function UsersPage({ searchParams }: PageProps<"/admin/util
     const { data } = await createAdminClient().auth.admin.listUsers({ perPage: 1000 });
     for (const u of data?.users ?? []) {
       emails.set(u.id, u.email ?? "");
-      providers.set(u.id, loginMethods(u));
+      providers.set(u.id, u.is_anonymous && !loginMethods(u).length ? ["anonymous"] : loginMethods(u));
     }
   }
   const term = q.replace(/[%_,()]/g, "").toLowerCase();

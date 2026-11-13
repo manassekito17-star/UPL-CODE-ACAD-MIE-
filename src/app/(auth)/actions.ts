@@ -8,6 +8,8 @@ import { safeRedirectPath } from "@/lib/security/safe-redirect";
 import { isSupabaseConfigured, publicEnv } from "@/lib/env";
 import { clientIp } from "@/lib/rate-limit";
 import { ACCOUNT_RULE, IP_RULES, attemptKey, hitAttempt, resetAttempts, waitMessage } from "@/lib/security/attempts";
+import { decodeAvatar, saveAvatar } from "@/lib/avatar";
+import { fullNameOf, quickProfileSchema } from "@/lib/quick-access";
 import { getSettings } from "@/lib/settings";
 import { createClient } from "@/lib/supabase/server";
 
@@ -175,4 +177,45 @@ export async function updatePassword(_prev: AuthState, form: FormData): Promise<
   if (error) return { error: "Impossible de modifier le mot de passe." };
   await audit(user.id, "compte.mot_de_passe_modifie", { type: "utilisateur", id: user.id });
   redirect("/tableau-de-bord?motdepasse=modifie");
+}
+
+/**
+ * Accès rapide sans mot de passe : crée un utilisateur Supabase anonyme (identifiant
+ * interne unique, session sécurisée par cookies httpOnly, renouvelée automatiquement)
+ * avec le profil déclaré. Le rôle est toujours « etudiant » (fixé par la base).
+ * Le profil pourra ensuite être lié à Google ou à une adresse e-mail.
+ */
+export async function quickAccess(_prev: AuthState, form: FormData): Promise<AuthState> {
+  if (!isSupabaseConfigured()) return { error: "L'accès rapide n'est pas disponible en mode démonstration." };
+  const parsed = quickProfileSchema.safeParse(Object.fromEntries(form));
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  const photo = decodeAvatar(form.get("avatar_data"));
+  if (photo === "invalide") return { error: "Photo invalide : choisissez une image JPEG ou PNG." };
+  if (!photo) return { error: "Ajoutez votre photo : elle est obligatoire." };
+  const tooMany = await limited("acces-rapide");
+  if (tooMany) return { error: tooMany };
+  const settings = await getSettings();
+  if (!settings.registration.open) return { error: "Les inscriptions sont actuellement fermées." };
+  if (settings.registration.allowed_email_domains.length) {
+    return { error: "Cette plateforme est réservée à certaines adresses e-mail : utilisez « Continuer avec Google » ou votre adresse e-mail." };
+  }
+  const supabase = await createClient();
+  const p = parsed.data;
+  const { data, error } = await supabase.auth.signInAnonymously({
+    options: { data: { first_name: p.first_name, last_name: p.last_name, position: p.position, sex: p.sex, faculty: p.faculty, full_name: fullNameOf(p) } },
+  });
+  if (error || !data.user) {
+    if (/anonymous.*disabled|disabled/i.test(error?.message ?? "")) {
+      return { error: "L'accès rapide n'est pas encore activé sur cette installation. Utilisez « Continuer avec Google »." };
+    }
+    if (/rate|limit/i.test(error?.message ?? "")) return { error: "Trop d'accès rapides depuis ce réseau. Réessayez plus tard ou utilisez Google." };
+    return { error: "Accès impossible pour le moment. Réessayez dans un instant." };
+  }
+  // Photo obligatoire : si elle ne peut pas être enregistrée, l'accès est annulé (session fermée).
+  if (!(await saveAvatar(supabase, data.user.id, photo))) {
+    await supabase.auth.signOut();
+    return { error: "Votre photo n'a pas pu être enregistrée. Réessayez dans un instant." };
+  }
+  await audit(data.user.id, "compte.acces_rapide", { type: "utilisateur", id: data.user.id }, {}, clientIp(await headers()));
+  redirect(safeNext(form.get("suite")));
 }

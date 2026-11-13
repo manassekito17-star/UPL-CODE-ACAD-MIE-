@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { cache } from "react";
 import { effectiveStatus } from "./admin/suspension";
 import { isSupabaseConfigured } from "./env";
+import { QUICK_ACCESS_IDLE_DAYS } from "./quick-access";
 import { createClient } from "./supabase/server";
 
 export type AppRole = "etudiant" | "enseignant" | "administrateur";
@@ -21,6 +22,8 @@ export interface CurrentUser {
   permissions: TeacherPermission[];
   isAdmin: boolean;
   isTeacher: boolean;
+  /** Accès rapide sans mot de passe (utilisateur anonyme de Supabase, non vérifié). */
+  isAnonymous: boolean;
 }
 
 /** Utilisateur connecté (vérifié auprès de Supabase Auth), ou null. Mis en cache par requête. */
@@ -40,6 +43,11 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   // Base pas encore mise à jour (colonne suspended_until absente) : lecture sans la fin de suspension.
   if (profileRes.error?.code === "42703") {
     profile = (await supabase.from("profiles").select("full_name, status, avatar_url, last_seen_at").eq("id", user.id).maybeSingle()).data;
+  }
+  // Accès rapide resté inutilisé trop longtemps : la session est fermée (durée raisonnable).
+  if (user.is_anonymous && profile?.last_seen_at && Date.now() - new Date(profile.last_seen_at).getTime() > QUICK_ACCESS_IDLE_DAYS * 86_400_000) {
+    await supabase.auth.signOut();
+    return null;
   }
   const roleList = (roles ?? []).map((r) => r.role as AppRole);
   const permissions = new Set<TeacherPermission>();
@@ -64,6 +72,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     permissions: [...permissions],
     isAdmin,
     isTeacher: roleList.includes("enseignant"),
+    isAnonymous: Boolean(user.is_anonymous),
   };
 });
 

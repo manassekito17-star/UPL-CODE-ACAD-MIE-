@@ -37,11 +37,11 @@ export function GoogleButton({ suite }: { suite?: string }) {
   );
 }
 
-export function OrSeparator() {
+export function OrSeparator({ label = "ou avec votre adresse e-mail" }: { label?: string }) {
   return (
     <div className="my-5 flex items-center gap-3 text-xs text-gris-500">
       <span className="h-px flex-1 bg-gris-200" />
-      ou avec votre adresse e-mail
+      {label}
       <span className="h-px flex-1 bg-gris-200" />
     </div>
   );

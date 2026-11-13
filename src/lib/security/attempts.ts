@@ -22,6 +22,7 @@ export const IP_RULES: Record<string, AttemptRule> = {
   connexion: { max: 20, windowSeconds: 600, blockSeconds: 900 },
   google: { max: 30, windowSeconds: 600, blockSeconds: 600 },
   inscription: { max: 10, windowSeconds: 3600, blockSeconds: 3600 },
+  "acces-rapide": { max: 10, windowSeconds: 3600, blockSeconds: 3600 },
   reinitialisation: { max: 6, windowSeconds: 900, blockSeconds: 900 },
   renvoi: { max: 6, windowSeconds: 900, blockSeconds: 900 },
   mfa: { max: 10, windowSeconds: 600, blockSeconds: 900 },
