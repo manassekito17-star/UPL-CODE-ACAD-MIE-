@@ -22,7 +22,7 @@ export function QuickAccessForm({ suite = "" }: { suite?: string }) {
           <input id="qa-prenom" name="first_name" required minLength={2} maxLength={60} autoComplete="given-name" className={inputClass} />
         </Field>
       </div>
-      <PhotoField />
+      <PhotoField label="Photo (obligatoire)" />
       <fieldset>
         <legend className="mb-1 text-sm font-medium text-nuit-900">Poste</legend>
         <div className="flex flex-wrap gap-2">

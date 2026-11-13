@@ -191,6 +191,7 @@ export async function quickAccess(_prev: AuthState, form: FormData): Promise<Aut
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   const photo = decodeAvatar(form.get("avatar_data"));
   if (photo === "invalide") return { error: "Photo invalide : choisissez une image JPEG ou PNG." };
+  if (!photo) return { error: "Ajoutez votre photo : elle est obligatoire." };
   const tooMany = await limited("acces-rapide");
   if (tooMany) return { error: tooMany };
   const settings = await getSettings();
@@ -210,8 +211,11 @@ export async function quickAccess(_prev: AuthState, form: FormData): Promise<Aut
     if (/rate|limit/i.test(error?.message ?? "")) return { error: "Trop d'accès rapides depuis ce réseau. Réessayez plus tard ou utilisez Google." };
     return { error: "Accès impossible pour le moment. Réessayez dans un instant." };
   }
-  // Photo facultative : un échec d'envoi n'empêche pas l'accès (avatar par défaut, modifiable dans « Mon profil »).
-  if (photo) await saveAvatar(supabase, data.user.id, photo);
+  // Photo obligatoire : si elle ne peut pas être enregistrée, l'accès est annulé (session fermée).
+  if (!(await saveAvatar(supabase, data.user.id, photo))) {
+    await supabase.auth.signOut();
+    return { error: "Votre photo n'a pas pu être enregistrée. Réessayez dans un instant." };
+  }
   await audit(data.user.id, "compte.acces_rapide", { type: "utilisateur", id: data.user.id }, {}, clientIp(await headers()));
   redirect(safeNext(form.get("suite")));
 }

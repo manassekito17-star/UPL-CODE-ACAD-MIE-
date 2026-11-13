@@ -97,4 +97,9 @@ test("accès rapide : champs obligatoires et rôle non modifiable par le formula
   await form.evaluate((f) => f.setAttribute("novalidate", ""));
   await form.getByRole("button", { name: "ACCÉDER À LA PLATEFORME" }).click();
   await expect(form.getByText("Nom : au moins 2 caractères.")).toBeVisible();
+  // Photo obligatoire : sans photo, l'accès est refusé.
+  await form.getByLabel("Nom", { exact: true }).fill("Kito");
+  await form.getByRole("button", { name: "ACCÉDER À LA PLATEFORME" }).click();
+  await expect(form.getByText("Ajoutez votre photo : elle est obligatoire.")).toBeVisible();
+  await expect(page).toHaveURL(/connexion/);
 });
