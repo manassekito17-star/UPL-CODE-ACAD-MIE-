@@ -19,7 +19,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/connexion"
       <p className="mb-6 mt-1 text-sm text-gris-700">Heureux de vous revoir sur {BRAND.name} ! Reprenez votre apprentissage.</p>
       {typeof sp.suite === "string" && sp.suite && !sp.erreur && (
         <p className="mb-4 rounded-md bg-electrique-100 px-3 py-2 text-sm text-nuit-900" role="status" data-testid="connexion-requise">
-          Pour accéder à la plateforme : continuez avec Google, ou remplissez l&apos;accès rapide ci-dessous (sans mot de passe).
+          Pour accéder à la plateforme : continuez avec Google (votre compte Gmail), ou remplissez l&apos;accès rapide ci-dessous (sans mot de passe).
         </p>
       )}
       {sp.erreur === "lien" && <p className="mb-4 text-sm text-erreur">Le lien est invalide ou a expiré.</p>}
@@ -41,7 +41,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/connexion"
         <QuickAccessForm suite={suite} />
       </section>
       <section aria-labelledby="option-email" className="mt-8 rounded-lg border border-gris-200 p-4">
-        <h2 id="option-email" className="mb-3 text-sm font-semibold text-nuit-900">Vous avez un compte avec adresse e-mail et mot de passe ?</h2>
+        <h2 id="option-email" className="mb-3 text-sm font-semibold text-nuit-900">Vous avez déjà un compte avec e-mail et mot de passe ?</h2>
         <div>
           <AuthForm action={signIn} submitLabel="Se connecter">
             <input type="hidden" name="suite" value={suite} />

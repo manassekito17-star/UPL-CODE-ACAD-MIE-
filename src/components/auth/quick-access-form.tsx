@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { startTransition, useActionState, useState } from "react";
 import { quickAccess, type AuthState } from "@/app/(auth)/actions";
 import { FILIERES, POSITIONS, QUICK_ACCESS_IDLE_DAYS, SEXES } from "@/lib/quick-access";
 import { Button, Field, inputClass, Notice } from "../ui";
@@ -11,7 +11,16 @@ export function QuickAccessForm({ suite = "" }: { suite?: string }) {
   const [state, action, pending] = useActionState<AuthState, FormData>(quickAccess, {});
   const [faculty, setFaculty] = useState("");
   return (
-    <form action={action} className="space-y-4" data-testid="acces-rapide">
+    <form
+      className="space-y-4"
+      data-testid="acces-rapide"
+      // Envoi sans réinitialisation du formulaire : en cas d'erreur, les champs saisis restent remplis.
+      onSubmit={(e) => {
+        e.preventDefault();
+        const data = new FormData(e.currentTarget);
+        startTransition(() => action(data));
+      }}
+    >
       {state.error && <Notice tone="erreur">{state.error}</Notice>}
       <input type="hidden" name="suite" value={suite} />
       <div className="grid gap-4 sm:grid-cols-2">

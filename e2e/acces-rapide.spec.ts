@@ -13,7 +13,8 @@ const APPAREILS = {
 
 /** Options du contexte pour l'appareil (sans le type de navigateur : Chromium émule l'appareil). */
 function opts(appareil: keyof typeof APPAREILS) {
-  const o: Record<string, unknown> = { ...APPAREILS[appareil] };
+  // Session vide : le projet de test ouvre sinon les contextes avec le compte étudiant de test.
+  const o: Record<string, unknown> = { ...APPAREILS[appareil], storageState: { cookies: [], origins: [] } };
   delete o.defaultBrowserType;
   return o;
 }
