@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { Button, Field, inputClass, Notice } from "@/components/ui";
+import { PhotoField } from "@/components/auth/photo-field";
 import { FILIERES, POSITIONS, SEXES } from "@/lib/quick-access";
 import { addEmail, updateProfile } from "./actions";
 
@@ -18,7 +19,7 @@ export interface ProfileData {
   weekly_goal_minutes: number;
 }
 
-export function ProfileForm({ profile }: { profile: ProfileData }) {
+export function ProfileForm({ profile, avatarUrl }: { profile: ProfileData; avatarUrl?: string | null }) {
   const [state, action, pending] = useActionState(updateProfile, {});
   const known = (FILIERES as readonly string[]).includes(profile.faculty ?? "");
   const [faculty, setFaculty] = useState(profile.faculty ?? "");
@@ -27,6 +28,7 @@ export function ProfileForm({ profile }: { profile: ProfileData }) {
       {state.error && <Notice tone="erreur">{state.error}</Notice>}
       {state.success && <Notice tone="succes">{state.success}</Notice>}
       <input type="hidden" name="full_name" value={profile.full_name} />
+      <PhotoField initialUrl={avatarUrl} label="Photo de profil" />
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Nom" htmlFor="last_name"><input id="last_name" name="last_name" defaultValue={profile.last_name ?? ""} maxLength={60} className={inputClass} /></Field>
         <Field label="Prénom" htmlFor="first_name"><input id="first_name" name="first_name" defaultValue={profile.first_name ?? ""} maxLength={60} className={inputClass} /></Field>

@@ -54,7 +54,7 @@ export default async function ProfilePage({ searchParams }: PageProps<"/profil">
               <div><dt className="text-gris-500">Profil créé le</dt><dd className="font-semibold text-nuit-900">{p?.created_at ? new Date(p.created_at).toLocaleDateString("fr-FR") : "—"}</dd></div>
             </dl>
           </Card>
-          {p && <Card className="p-6"><h2 className="mb-4 text-lg font-bold text-nuit-900">Modifier mes informations</h2><ProfileForm profile={p} /></Card>}
+          {p && <Card className="p-6"><h2 className="mb-4 text-lg font-bold text-nuit-900">Modifier mes informations</h2><ProfileForm profile={p} avatarUrl={user.avatarUrl} /></Card>}
         </div>
         <aside className="space-y-3 text-sm">
           <Card className="p-5" data-testid="methode-connexion">

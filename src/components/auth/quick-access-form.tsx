@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { quickAccess, type AuthState } from "@/app/(auth)/actions";
 import { FILIERES, POSITIONS, QUICK_ACCESS_IDLE_DAYS, SEXES } from "@/lib/quick-access";
 import { Button, Field, inputClass, Notice } from "../ui";
+import { PhotoField } from "./photo-field";
 
 /** Option B : accès rapide avec un profil (sans mot de passe). */
 export function QuickAccessForm({ suite = "" }: { suite?: string }) {
@@ -21,6 +22,7 @@ export function QuickAccessForm({ suite = "" }: { suite?: string }) {
           <input id="qa-prenom" name="first_name" required minLength={2} maxLength={60} autoComplete="given-name" className={inputClass} />
         </Field>
       </div>
+      <PhotoField />
       <fieldset>
         <legend className="mb-1 text-sm font-medium text-nuit-900">Poste</legend>
         <div className="flex flex-wrap gap-2">

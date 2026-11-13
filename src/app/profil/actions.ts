@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { audit } from "@/lib/audit";
+import { decodeAvatar, saveAvatar } from "@/lib/avatar";
 import { requireUser } from "@/lib/auth";
 import { publicEnv } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
@@ -38,7 +39,10 @@ export async function updateProfile(_prev: { error?: string; success?: string },
   const composed = `${d.first_name ?? ""} ${d.last_name ?? ""}`.trim();
   const fullName = composed || d.full_name || "";
   if (fullName.length < 2) return { error: "Indiquez votre nom et votre prénom." };
+  const photo = decodeAvatar(form.get("avatar_data"));
+  if (photo === "invalide") return { error: "Photo invalide : choisissez une image JPEG ou PNG." };
   const supabase = await createClient();
+  if (photo && !(await saveAvatar(supabase, user.id, photo))) return { error: "La photo n'a pas pu être enregistrée. Réessayez." };
   // RLS : la mise à jour n'est possible que sur son propre profil (identifiant interne non modifiable) ;
   // le statut et l'offre sont protégés par un déclencheur ; les rôles sont dans une autre table.
   const { error } = await supabase

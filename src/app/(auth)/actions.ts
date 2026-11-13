@@ -8,6 +8,7 @@ import { safeRedirectPath } from "@/lib/security/safe-redirect";
 import { isSupabaseConfigured, publicEnv } from "@/lib/env";
 import { clientIp } from "@/lib/rate-limit";
 import { ACCOUNT_RULE, IP_RULES, attemptKey, hitAttempt, resetAttempts, waitMessage } from "@/lib/security/attempts";
+import { decodeAvatar, saveAvatar } from "@/lib/avatar";
 import { fullNameOf, quickProfileSchema } from "@/lib/quick-access";
 import { getSettings } from "@/lib/settings";
 import { createClient } from "@/lib/supabase/server";
@@ -188,6 +189,8 @@ export async function quickAccess(_prev: AuthState, form: FormData): Promise<Aut
   if (!isSupabaseConfigured()) return { error: "L'accès rapide n'est pas disponible en mode démonstration." };
   const parsed = quickProfileSchema.safeParse(Object.fromEntries(form));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
+  const photo = decodeAvatar(form.get("avatar_data"));
+  if (photo === "invalide") return { error: "Photo invalide : choisissez une image JPEG ou PNG." };
   const tooMany = await limited("acces-rapide");
   if (tooMany) return { error: tooMany };
   const settings = await getSettings();
@@ -207,6 +210,8 @@ export async function quickAccess(_prev: AuthState, form: FormData): Promise<Aut
     if (/rate|limit/i.test(error?.message ?? "")) return { error: "Trop d'accès rapides depuis ce réseau. Réessayez plus tard ou utilisez Google." };
     return { error: "Accès impossible pour le moment. Réessayez dans un instant." };
   }
+  // Photo facultative : un échec d'envoi n'empêche pas l'accès (avatar par défaut, modifiable dans « Mon profil »).
+  if (photo) await saveAvatar(supabase, data.user.id, photo);
   await audit(data.user.id, "compte.acces_rapide", { type: "utilisateur", id: data.user.id }, {}, clientIp(await headers()));
   redirect(safeNext(form.get("suite")));
 }

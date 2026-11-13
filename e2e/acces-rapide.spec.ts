@@ -3,6 +3,8 @@ import { isDemoMode } from "./helpers";
 
 // Accès rapide sans mot de passe (connexion anonyme de Supabase Auth), testé sur
 // ordinateur, iPhone et Android (émulation des appareils par Playwright).
+const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+
 const APPAREILS = {
   ordinateur: { viewport: { width: 1366, height: 900 } },
   iPhone: devices["iPhone 13"],
@@ -23,6 +25,9 @@ async function quickAccess(browser: Browser, appareil: keyof typeof APPAREILS, p
   const form = page.getByTestId("acces-rapide");
   await form.getByLabel("Nom", { exact: true }).fill("Kabila");
   await form.getByLabel("Prénom").fill(prenom);
+  // Photo : image PNG 1×1, réduite et convertie en JPEG par le navigateur avant l'envoi.
+  await form.getByTestId("choisir-photo").setInputFiles({ name: "photo.png", mimeType: "image/png", buffer: PNG });
+  await expect(form.getByTestId("apercu-photo")).toHaveAttribute("src", /^data:image\/jpeg/);
   await form.getByLabel("Enseignant").check();
   await form.getByLabel("Féminin").check();
   await form.getByLabel("Filière").selectOption("autre");
@@ -41,6 +46,7 @@ for (const appareil of Object.keys(APPAREILS) as Array<keyof typeof APPAREILS>) 
     await page.goto("/profil");
     const carte = page.getByTestId("carte-profil");
     for (const t of ["Kabila", `Grace${appareil}`, "Enseignant", "Féminin", "Agronomie", new Date().toLocaleDateString("fr-FR")]) await expect(carte).toContainText(t);
+    await expect(carte.locator("img")).toHaveAttribute("src", /\/storage\/v1\/object\/public\/avatars\//);
     await expect(page.getByTestId("methode-connexion")).toContainText("Accès rapide");
     await expect(page.getByTestId("methode-connexion")).toContainText("n'est pas vérifié");
 
