@@ -197,7 +197,8 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
   }, []);
 
   // Application installable et utilisable sans Internet (service worker, invitation d'installation, connexion).
-  const [offlineOpen, setOfflineOpen] = useState(false);
+  // « ?installer=1 » (page Télécharger l'application) : la fenêtre d'installation s'ouvre directement.
+  const [offlineOpen, setOfflineOpen] = useState(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).has("installer"));
   const [installEvent, setInstallEvent] = useState<InstallPromptEvent | null>(null);
   const [online, setOnline] = useState(true);
   useEffect(() => {

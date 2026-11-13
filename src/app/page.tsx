@@ -40,6 +40,9 @@ export default async function HomePage() {
               <ButtonLink href="/editeur" size="lg" variant="clair">
                 Ouvrir l&apos;éditeur
               </ButtonLink>
+              <ButtonLink href="/telecharger" size="lg" variant="sombre">
+                📲 Télécharger l&apos;application
+              </ButtonLink>
             </div>
             <dl className="mt-10 grid max-w-md grid-cols-3 gap-4 text-center">
               <div><dt className="text-xs text-gray-400">Parcours</dt><dd className="text-2xl font-bold">{courses.length}</dd></div>
