@@ -14,6 +14,8 @@ export interface ShapeData extends Record<string, unknown> {
   active?: boolean;
   error?: boolean;
   breakpoint?: boolean;
+  /** Thème « couleurs vives » (formes colorées selon leur rôle). */
+  vivid?: boolean;
 }
 
 export interface PlusData extends Record<string, unknown> {
@@ -25,7 +27,7 @@ export interface PlusData extends Record<string, unknown> {
   onDropKind?: (loc: FlowLoc, kind: FlowKind) => void;
 }
 
-const FILL: Record<Shape, string> = {
+const CLASSIC: Record<Shape, string> = {
   terminal: "#cffafe",
   process: "#ffffff",
   io: "#e3edff",
@@ -36,9 +38,22 @@ const FILL: Record<Shape, string> = {
   junction: "#10264f",
 };
 
+/** Couleurs vives : chaque rôle a sa couleur (début/fin, calcul, entrée/sortie, décision, boucle…). */
+const VIVID: Record<Shape, { fill: string; stroke: string; text: string; tag: string }> = {
+  terminal: { fill: "#7c3aed", stroke: "#5b21b6", text: "#ffffff", tag: "#ede9fe" },
+  process: { fill: "#fde047", stroke: "#a16207", text: "#422006", tag: "#854d0e" },
+  io: { fill: "#4ade80", stroke: "#15803d", text: "#052e16", tag: "#14532d" },
+  decision: { fill: "#fb7185", stroke: "#be123c", text: "#ffffff", tag: "#ffe4e6" },
+  loop: { fill: "#fb923c", stroke: "#c2410c", text: "#ffffff", tag: "#ffedd5" },
+  call: { fill: "#60a5fa", stroke: "#1d4ed8", text: "#ffffff", tag: "#dbeafe" },
+  comment: { fill: "#fef9c3", stroke: "#a16207", text: "#713f12", tag: "#a16207" },
+  junction: { fill: "#334155", stroke: "#334155", text: "#ffffff", tag: "#ffffff" },
+};
+
 /** Forme d'un bloc : symboles normalisés des organigrammes (dessin original). */
-function ShapeSvg({ shape, w, h, stroke, width }: { shape: Shape; w: number; h: number; stroke: string; width: number }) {
-  const common = { fill: FILL[shape], stroke, strokeWidth: width };
+function ShapeSvg({ shape, w, h, stroke, width, vivid }: { shape: Shape; w: number; h: number; stroke: string; width: number; vivid?: boolean }) {
+  const fill = vivid ? VIVID[shape].fill : CLASSIC[shape];
+  const common = { fill, stroke, strokeWidth: width };
   const k = 14;
   switch (shape) {
     case "terminal":
@@ -60,7 +75,7 @@ function ShapeSvg({ shape, w, h, stroke, width }: { shape: Shape; w: number; h: 
     case "comment":
       return <path d={`M1 1 H${w - 14} L${w - 1} 14 V${h - 1} H1 Z`} {...common} strokeDasharray="5 3" />;
     case "junction":
-      return <circle cx={w / 2} cy={h / 2} r={w / 2 - 1} fill={FILL.junction} />;
+      return <circle cx={w / 2} cy={h / 2} r={w / 2 - 1} fill={fill} />;
     default:
       return <rect x={1} y={1} width={w - 2} height={h - 2} rx={4} {...common} />;
   }
@@ -70,17 +85,22 @@ const hidden = { opacity: 0, width: 6, height: 6, minWidth: 0, minHeight: 0, bor
 
 export function ShapeNode({ data, selected }: NodeProps) {
   const d = data as ShapeData;
-  const stroke = d.error ? "#dc2626" : d.active ? "#f28c28" : selected ? "#1d5fe0" : "#10264f";
+  const palette = d.vivid ? VIVID[d.shape] : null;
+  const stroke = d.error ? "#dc2626" : d.active ? (d.vivid ? "#0f172a" : "#f28c28") : selected ? "#1d5fe0" : palette?.stroke ?? "#10264f";
   const sw = d.active || selected || d.error ? 3 : 1.5;
   return (
-    <div style={{ width: d.w, height: d.h }} className="relative" data-testid={d.flowId ? `bloc-${d.flowId}` : `noeud-${d.shape}`} data-actif={d.active ? "oui" : undefined}>
+    <div style={{ width: d.w, height: d.h, filter: d.active ? "drop-shadow(0 0 6px #f28c28)" : undefined }} className="relative" data-testid={d.flowId ? `bloc-${d.flowId}` : `noeud-${d.shape}`} data-actif={d.active ? "oui" : undefined}>
       <svg width={d.w} height={d.h} className="absolute inset-0 overflow-visible" aria-hidden>
-        <ShapeSvg shape={d.shape} w={d.w} h={d.h} stroke={stroke} width={sw} />
+        <ShapeSvg shape={d.shape} w={d.w} h={d.h} stroke={stroke} width={sw} vivid={d.vivid} />
       </svg>
       {d.shape !== "junction" && (
         <div className="absolute inset-0 flex flex-col items-center justify-center px-5 text-center leading-tight">
-          {d.tag && <span className="text-[9px] font-bold uppercase tracking-wider text-[#1d5fe0]">{d.tag}</span>}
-          <span className={`max-w-full truncate font-mono text-[12px] ${d.shape === "comment" ? "italic text-gris-700" : "text-[#0a1a3a]"}`} title={d.label}>
+          {d.tag && (
+            <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: palette?.tag ?? "#1d5fe0" }}>
+              {d.tag}
+            </span>
+          )}
+          <span className={`max-w-full truncate font-mono text-[12px] ${d.shape === "comment" ? "italic" : ""} ${d.vivid ? "font-semibold" : ""}`} style={{ color: palette?.text ?? (d.shape === "comment" ? "#374151" : "#0a1a3a") }} title={d.label}>
             {d.label || " "}
           </span>
         </div>

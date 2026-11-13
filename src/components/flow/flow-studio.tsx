@@ -29,6 +29,7 @@ import {
 } from "@/lib/flow/model";
 import { FLOW_TEMPLATES } from "@/lib/flow/templates";
 import type { TraceResult, TraceStep } from "@/lib/pseudocode/interpreter";
+import { CodeEditor, type MonacoEditor } from "../editor/code-editor";
 import { cn } from "../ui";
 import { PlusEdge, ShapeNode, type PlusData, type ShapeData } from "./flow-canvas-parts";
 
@@ -46,6 +47,19 @@ const PALETTE: Array<{ kind: FlowKind; icon: string; hint: string }> = [
   { kind: "repeat", icon: "↻", hint: "RÉPÉTER … JUSQU'À" },
   { kind: "call", icon: "▥", hint: "Appeler une procédure" },
   { kind: "comment", icon: "✎", hint: "Note explicative" },
+];
+
+/** Boutons d'insertion du pseudocode (le curseur est placé dans l'instruction). */
+const SNIPPETS: Array<{ label: string; text: string }> = [
+  { label: "Déclarer", text: "x : ENTIER" },
+  { label: "Écrire", text: 'ECRIRE("")' },
+  { label: "Lire", text: "LIRE(x)" },
+  { label: "←", text: "x ← 0" },
+  { label: "Si", text: "SI x > 0 ALORS\n  \nFINSI" },
+  { label: "Si / Sinon", text: "SI x > 0 ALORS\n  \nSINON\n  \nFINSI" },
+  { label: "Pour", text: "POUR i DE 1 A 10 FAIRE\n  \nFINPOUR" },
+  { label: "Tant que", text: "TANT QUE x > 0 FAIRE\n  \nFINTANTQUE" },
+  { label: "Répéter", text: "REPETER\n  \nJUSQU'A x > 0" },
 ];
 
 /** Formes des autres diagrammes : prévues (phase 6), affichées comme telles. */
@@ -102,6 +116,11 @@ function undeclared(p: FlowProgram): string[] {
   return [...used];
 }
 
+/** Programme sans identifiants de blocs : comparaison du contenu seulement. */
+function toComparable(p: FlowProgram): unknown {
+  return JSON.parse(JSON.stringify(p, (k, v) => (k === "id" ? undefined : v)));
+}
+
 function runTrace(code: string, stdin: string): Promise<TraceResult & { timeMs: number }> {
   return new Promise((resolve) => {
     const worker = new Worker(new URL("../../workers/trace.worker.ts", import.meta.url), { type: "module" });
@@ -154,6 +173,24 @@ function Studio() {
   const [importResult, setImportResult] = useState<{ program: FlowProgram; warnings: string[] } | { error: string } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
+  const editorRef = useRef<MonacoEditor | null>(null);
+  // Pseudocode en cours de frappe : synchronisé vers l'organigramme dès qu'il est valide.
+  const [draft, setDraft] = useState<string | null>(null);
+  const [draftError, setDraftError] = useState<{ message: string; line: number } | null>(null);
+  const [draftWarnings, setDraftWarnings] = useState<string[]>([]);
+  const draftErrorRef = useRef(false);
+  useEffect(() => {
+    draftErrorRef.current = Boolean(draftError);
+  }, [draftError]);
+  const [vivid, setVivid] = useState(true);
+  useEffect(() => {
+    try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (localStorage.getItem("upl:flow:theme") === "classique") setVivid(false);
+    } catch {
+      /* ignoré */
+    }
+  }, []);
 
   // ---------------- Projets enregistrés sur l'appareil (sauvegarde automatique)
   useEffect(() => {
@@ -284,6 +321,24 @@ function Studio() {
   const step: TraceStep | undefined = trace?.trace[idx];
   const activeNode = step ? generated.nodeAtLine[step.line] : undefined;
   const lastIdx = (trace?.trace.length ?? 1) - 1;
+  // Console en bulles : sorties (vert) et valeurs lues (bleu), dans l'ordre réel de l'exécution.
+  const transcript = useMemo(() => {
+    const out: Array<{ kind: "out" | "in"; text: string }> = [];
+    if (!trace) return out;
+    const steps = trace.trace;
+    for (let k = 1; k <= Math.min(idx, steps.length - 1); k++) {
+      const prev = steps[k - 1];
+      if (prev.kind === "read") {
+        const n = findNode(program, generated.nodeAtLine[prev.line] ?? "");
+        const name = n && n.kind === "input" ? n.target.trim().toLowerCase() : "";
+        const v = steps[k].variables.find((x) => x.name.toLowerCase() === name);
+        if (v) out.push({ kind: "in", text: v.value });
+      }
+      const delta = steps[k].output.slice(prev.output.length);
+      for (const line of delta.split("\n").filter((l, i, arr) => l || i < arr.length - 1)) if (line) out.push({ kind: "out", text: line });
+    }
+    return out;
+  }, [trace, idx, program, generated]);
   const missingInput = trace && idx >= lastIdx ? missingInputRe.exec(trace.error?.message ?? "")?.[1] : undefined;
 
   const start = async (opts: { play: boolean; keepIdx?: number; stdin?: string }) => {
@@ -329,6 +384,37 @@ function Studio() {
     void start({ play: true, keepIdx: idx, stdin });
   };
 
+  // Pseudocode modifié à la main → organigramme (aperçu instantané si le code est valide).
+  useEffect(() => {
+    if (draft === null) return;
+    const t = setTimeout(() => {
+      try {
+        const r = fromPseudocode(draft);
+        setDraftError(null);
+        setDraftWarnings(r.warnings);
+        if (JSON.stringify(toComparable({ ...r.program, name: program.name })) !== JSON.stringify(toComparable(program))) {
+          commit({ ...r.program, name: program.name }, "Modification du pseudocode", "pseudocode");
+        }
+      } catch (e) {
+        const err = e as { message: string; line?: number };
+        setDraftError({ message: err.message, line: err.line ?? 0 });
+      }
+    }, 500);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft]);
+
+  const insertSnippet = (text: string) => {
+    const ed = editorRef.current;
+    if (!ed) return;
+    const sel = ed.getSelection();
+    if (!sel) return;
+    const pos = sel.getStartPosition();
+    const indent = (ed.getModel()?.getLineContent(pos.lineNumber).match(/^\s*/)?.[0] ?? "");
+    ed.executeEdits("upl-flow", [{ range: sel, text: text.replace(/\n/g, `\n${indent}`), forceMoveMarkers: true }]);
+    ed.focus();
+  };
+
   // ---------------- Canevas
   const layout = useMemo(() => layoutProgram(program), [program]);
   const errorNode = !check.ok ? check.nodeId : trace?.error ? generated.nodeAtLine[trace.error.line] : undefined;
@@ -353,9 +439,10 @@ function Studio() {
           active: Boolean(n.flowId && n.flowId === activeNode && mode === "debogage"),
           error: Boolean(n.flowId && n.flowId === errorNode),
           breakpoint: Boolean(n.flowId && breakpoints.has(n.flowId)),
+          vivid,
         } satisfies ShapeData,
       })),
-    [layout, selected, activeNode, errorNode, breakpoints, mode],
+    [layout, selected, activeNode, errorNode, breakpoints, mode, vivid],
   );
   const edges: Edge[] = useMemo(
     () =>
@@ -539,22 +626,40 @@ function Studio() {
     </div>
   );
 
+  const editing = mode !== "debogage";
   const codeView = (
-    <div className="h-full overflow-auto bg-[#1e1f22] font-mono text-[12.5px] leading-6" data-testid="pseudocode">
-      {generated.code
-        .trimEnd()
-        .split("\n")
-        .map((line, i) => {
-          const n = i + 1;
-          const isActive = step?.line === n && mode === "debogage";
-          const isError = (!check.ok && check.line === n) || (trace?.error?.line === n && idx >= lastIdx);
-          return (
-            <div key={i} ref={isActive ? (el) => el?.scrollIntoView({ block: "nearest" }) : undefined} className={cn("flex", isActive && "bg-[#f28c28]/25", isError && "bg-red-600/30")}>
-              <span className="w-9 shrink-0 select-none pr-2 text-right text-gray-500">{n}</span>
-              <span className="whitespace-pre text-gray-100">{line}</span>
-            </div>
-          );
-        })}
+    <div className="flex h-full min-h-0 flex-col bg-[#2b2b2b]" data-testid="pseudocode">
+      {editing && (
+        <div className="flex shrink-0 gap-1 overflow-x-auto border-b border-white/10 px-1 py-1" role="toolbar" aria-label="Insérer une instruction">
+          {SNIPPETS.map((sn) => (
+            <button key={sn.label} type="button" className="whitespace-nowrap rounded bg-white/10 px-2 py-0.5 text-[11px] text-gray-100 hover:bg-[#f28c28] hover:text-black" onClick={() => insertSnippet(sn.text)}>
+              {sn.label}
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="min-h-0 flex-1">
+        <CodeEditor
+          language="pseudocode"
+          value={draft ?? generated.code}
+          onChange={(v) => setDraft(v)}
+          readOnly={!editing}
+          theme="upl-algo"
+          fontSize={13}
+          pageScroll={false}
+          highlightLine={mode === "debogage" ? (step?.line ?? null) : null}
+          markers={draftError ? [{ line: draftError.line || 1, message: draftError.message }] : !check.ok && draft === null ? [{ line: check.line || 1, message: check.message }] : []}
+          onEditor={(ed) => {
+            editorRef.current = ed;
+            ed.onDidBlurEditorText(() => setDraft((d) => (d !== null && !draftErrorRef.current ? null : d)));
+          }}
+        />
+      </div>
+      {(draftError || draftWarnings.length > 0) && editing && (
+        <div className="max-h-16 shrink-0 overflow-auto border-t border-white/10 px-2 py-1 text-[11px]" data-testid="synchro-pseudocode">
+          {draftError ? <p className="text-red-300">Ligne {draftError.line} : {draftError.message} — l&apos;organigramme sera mis à jour dès que le code sera valide.</p> : draftWarnings.map((w) => <p key={w} className="text-amber-200">⚠ {w}</p>)}
+        </div>
+      )}
     </div>
   );
 
@@ -570,13 +675,17 @@ function Studio() {
       {bottomTab === "console" && (
         <div className="grid min-h-0 flex-1 gap-2 md:grid-cols-[1fr_14rem]">
           <div className="flex min-h-0 flex-col gap-1">
-            <pre className="min-h-16 flex-1 overflow-auto whitespace-pre-wrap rounded bg-black/40 p-2 font-mono text-[13px] text-gray-100" aria-live="polite" data-testid="sortie-flow">
-              {running && <span className="text-[#f28c28]">Exécution…{"\n"}</span>}
-              {!trace && !running && <span className="text-gray-500">▶ Exécuter lance le vrai interpréteur UPL ; ⏭ avance bloc par bloc.</span>}
-              {step?.output}
-              {trace?.error && idx >= lastIdx && !missingInput && <span className="text-red-300">{`\n${trace.error.message}`}</span>}
-              {trace && idx >= lastIdx && !trace.error && <span className="text-emerald-300">{`\n✓ Fin de l'algorithme (${trace.trace.length} étapes)`}</span>}
-            </pre>
+            <div className="min-h-16 flex-1 space-y-1 overflow-auto rounded bg-black/40 p-2 font-mono text-[13px] text-gray-100" aria-live="polite" data-testid="sortie-flow">
+              {running && <p className="text-[#f28c28]">Exécution…</p>}
+              {!trace && !running && <p className="text-gray-500">▶ Exécuter lance le vrai interpréteur UPL ; ⏭ avance bloc par bloc.</p>}
+              {transcript.map((t, i) => (
+                <p key={i} className={cn("w-fit max-w-[90%] whitespace-pre-wrap rounded-lg px-2 py-0.5", t.kind === "out" ? "bg-emerald-600/25 text-emerald-100" : "ml-auto bg-sky-600/30 text-sky-100")} data-type={t.kind === "out" ? "sortie" : "entree"}>
+                  {t.kind === "in" ? `↳ ${t.text}` : t.text}
+                </p>
+              ))}
+              {trace?.error && idx >= lastIdx && !missingInput && <p className="text-red-300">{trace.error.message}</p>}
+              {trace && idx >= lastIdx && !trace.error && <p className="text-emerald-300">✓ Fin de l&apos;algorithme ({trace.trace.length} étapes)</p>}
+            </div>
             {missingInput && (
               <form
                 className="flex items-center gap-2 rounded border border-[#f28c28]/60 bg-black/40 px-2 py-1.5"
@@ -669,7 +778,9 @@ function Studio() {
       >
         <Background gap={20} color="#dfe3ea" />
         <Controls showInteractive={false} />
-        <MiniMap pannable zoomable className="max-md:!hidden" nodeColor={(n) => ((n.data as ShapeData).shape === "decision" ? "#fde68a" : "#c7d2fe")} />
+        {mode !== "pseudocode" && (
+          <MiniMap pannable zoomable className="max-md:!hidden" style={{ width: 140, height: 100 }} nodeColor={(n) => ((n.data as ShapeData).shape === "decision" ? "#fb7185" : (n.data as ShapeData).shape === "io" ? "#4ade80" : "#fde047")} />
+        )}
       </ReactFlow>
       {armed && (
         <p className="pointer-events-none absolute left-1/2 top-2 -translate-x-1/2 rounded-full bg-[#f28c28] px-3 py-1 text-xs font-semibold text-black shadow">
@@ -745,6 +856,23 @@ function Studio() {
           <button type="button" className={toolbarBtn} onClick={paste} disabled={!clipboard.length} aria-label="Coller">Coller</button>
           <button type="button" className={toolbarBtn} onClick={deleteSelected} disabled={!selected.length} aria-label="Supprimer la sélection">Suppr.</button>
           <button type="button" className={toolbarBtn} onClick={() => void rf.fitView({ padding: 0.15, duration: 200 })} aria-label="Ajuster à l'écran">⤢</button>
+          <button
+            type="button"
+            className={toolbarBtn}
+            aria-pressed={vivid}
+            aria-label="Couleurs vives"
+            title="Formes colorées selon leur rôle / couleurs classiques"
+            onClick={() => {
+              setVivid(!vivid);
+              try {
+                localStorage.setItem("upl:flow:theme", vivid ? "classique" : "vives");
+              } catch {
+                /* ignoré */
+              }
+            }}
+          >
+            🎨
+          </button>
         </div>
         <div className="ml-auto">{debugBar}</div>
       </header>
@@ -831,7 +959,14 @@ function Studio() {
 
         <main className={cn("relative min-h-0", mobileTab !== "canevas" && "max-md:hidden")}>
           <div className="grid h-full min-h-0 grid-rows-[minmax(0,1fr)_auto]">
-            {mode === "pseudocode" ? <div className="min-h-0 max-md:hidden">{codeView}</div> : canvas}
+            {mode === "pseudocode" ? (
+              <div className="grid min-h-0 md:grid-cols-2">
+                <div className="min-h-0 border-r border-white/10 max-md:hidden">{codeView}</div>
+                {canvas}
+              </div>
+            ) : (
+              canvas
+            )}
             {/* Bibliothèque en ligne sur téléphone */}
             <div className="flex gap-1 overflow-x-auto border-t border-white/10 bg-[#2b2d30] p-1 md:hidden" aria-label="Formes">
               {PALETTE.map((p) => (
@@ -849,8 +984,8 @@ function Studio() {
         </aside>
 
         {/* Panneau bas (ordinateur) / onglets (téléphone) */}
-        <section className={cn("min-h-0 border-t border-white/10 md:col-span-3 md:grid md:h-56 md:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]", mobileTab === "code" || mobileTab === "console" ? "max-md:flex max-md:flex-col" : "max-md:hidden")}>
-          <div className={cn("min-h-0 border-r border-white/10", mobileTab !== "code" && "max-md:hidden", "max-md:flex-1")}>{codeView}</div>
+        <section className={cn("min-h-0 border-t border-white/10 md:col-span-3 md:grid md:h-56", mode === "pseudocode" ? "md:grid-cols-1" : "md:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]", mobileTab === "code" || mobileTab === "console" ? "max-md:flex max-md:flex-col" : "max-md:hidden")}>
+          <div className={cn("min-h-0 border-r border-white/10", mobileTab !== "code" && "max-md:hidden", "max-md:flex-1", mode === "pseudocode" && "md:hidden")}>{mode === "pseudocode" ? null : codeView}</div>
           <div className={cn("min-h-0", mobileTab !== "console" && "max-md:hidden", "max-md:flex-1")}>{consoleView}</div>
         </section>
       </div>
