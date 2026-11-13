@@ -25,7 +25,7 @@ const APPS = [
   {
     id: "algo",
     name: "UPL Algo",
-    icon: "/icons/editeur-apple-touch-icon.png",
+    icon: "/icons/editeur-v2-apple-touch-icon.png",
     text: "L'éditeur d'algorithmes plein écran : pseudocode, console, clavier de symboles, utilisable sans Internet.",
     open: "/editeur?langage=pseudocode",
   },

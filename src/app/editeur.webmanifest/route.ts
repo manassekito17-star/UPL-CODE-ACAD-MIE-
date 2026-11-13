@@ -26,9 +26,9 @@ export function GET() {
       { src: "/icons/editeur-capture-ordinateur.webp", sizes: "1280x800", type: "image/webp", form_factor: "wide", label: "UPL Algo sur ordinateur" },
     ],
     icons: [
-      { src: "/icons/editeur-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
-      { src: "/icons/editeur-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
-      { src: "/icons/editeur-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+      { src: "/icons/editeur-v2-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+      { src: "/icons/editeur-v2-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+      { src: "/icons/editeur-v2-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
   };
   return new Response(JSON.stringify(manifest), { headers: { "Content-Type": "application/manifest+json; charset=utf-8" } });
