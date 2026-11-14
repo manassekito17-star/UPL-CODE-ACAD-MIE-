@@ -8,12 +8,17 @@ import { rateLimit } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 import { projectCreateSchema } from "@/lib/validation";
 
-/** Projets de l'étudiant connecté (RLS : uniquement les siens). */
-export async function GET() {
+/** Modèle réservé aux projets de l'interface classique (LARP) : séparés des projets de UPL IDE. */
+const LARP = "larp";
+
+/** Projets de l'étudiant connecté (RLS : uniquement les siens). ?type=larp : projets de l'interface classique. */
+export async function GET(request: Request) {
   const user = await getCurrentUser();
   if (!user) return jsonError(401, "Connexion requise.");
+  const larp = new URL(request.url).searchParams.get("type") === LARP;
   const supabase = await createClient();
-  const { data, error } = await supabase.from("projects").select("id, name, template, revision, updated_at").order("updated_at", { ascending: false }).limit(MAX_PROJECTS);
+  const base = supabase.from("projects").select("id, name, template, revision, updated_at");
+  const { data, error } = await (larp ? base.eq("template", LARP) : base.neq("template", LARP)).order("updated_at", { ascending: false }).limit(MAX_PROJECTS);
   if (error) return serverError(error);
   return NextResponse.json({ projects: data });
 }
@@ -37,10 +42,10 @@ export async function POST(request: Request) {
   if ((count ?? 0) >= MAX_PROJECTS) return jsonError(400, `Limite de ${MAX_PROJECTS} projets atteinte : supprimez-en un.`);
   const { data, error } = await supabase
     .from("projects")
-    .insert({ user_id: user.id, name: body.data.name, template: body.data.snapshot ? "import" : body.data.template, files: snap.project.files, folders: snap.project.folders })
+    .insert({ user_id: user.id, name: body.data.name, template: body.data.snapshot ? (body.data.template === LARP ? LARP : "import") : body.data.template, files: snap.project.files, folders: snap.project.folders })
     .select("id, name, template, revision, files, folders, updated_at")
     .single();
   if (error) return serverError(error);
-  await addVersion(supabase, user.id, data.id, data.revision, snap.project, body.data.snapshot ? "Importation" : "Création", true);
+  await addVersion(supabase, user.id, data.id, data.revision, snap.project, body.data.snapshot ? (body.data.template === LARP ? "Création (interface classique)" : "Importation") : "Création", true);
   return NextResponse.json({ project: data });
 }

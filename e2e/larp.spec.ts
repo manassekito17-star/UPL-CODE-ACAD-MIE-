@@ -1,4 +1,5 @@
 import { devices, expect, test, type Page } from "@playwright/test";
+import { isDemoMode } from "./helpers";
 
 /** Interface classique : chaque test part de l'exemple fourni (projet courant effacé). */
 async function openClassic(page: Page) {
@@ -119,4 +120,44 @@ test("Interface classique sur iPhone (portrait) : la fenêtre remplit la hauteur
   await ecran.evaluate((el) => (el.scrollLeft = el.scrollWidth));
   await expect.poll(() => ecran.evaluate((el) => el.scrollLeft)).toBeGreaterThan(0);
   await context.close();
+});
+
+test("Interface classique : projet enregistré dans le compte, retrouvé depuis un autre appareil", async ({ page, browser }) => {
+  test.skip(await isDemoMode(page), "Supabase non configuré");
+  await openClassic(page);
+  const name = `Compte${Date.now()}`;
+  await page.getByTestId("menu-Fichier").click();
+  await page.getByTestId("menu-Fichier/Sauvegarder sous...").click();
+  await page.getByTestId("champ-nom").fill(name);
+  await page.getByTestId("nom-ok").click();
+  await expect(page.getByTestId("etat-compte")).toHaveText("☁ Dans votre compte", { timeout: 20_000 });
+  await expect(page.getByTestId("messages")).toContainText("enregistré dans votre compte");
+
+  // Modification : enregistrée automatiquement dans le compte.
+  await page.getByTestId("zone-code").fill('DÉBUT\n  ÉCRIRE "Depuis le compte"\nFIN\n');
+  await expect(page.getByTestId("etat-compte")).toHaveText("☁ Modifié…");
+  await expect(page.getByTestId("etat-compte")).toHaveText("☁ Dans votre compte", { timeout: 20_000 });
+
+  // Autre appareil (même compte, rien sur l'appareil) : le projet s'ouvre depuis le compte.
+  const other = await browser.newContext();
+  const p2 = await other.newPage();
+  await openClassic(p2);
+  await p2.getByTestId("menu-Fichier").click();
+  await p2.getByTestId("menu-Fichier/Ouvrir...").click();
+  await p2.getByTestId("projet-compte").filter({ hasText: name }).click();
+  await p2.getByTestId("ouvrir-ok").click();
+  await expect(p2.getByTestId("zone-code")).toHaveValue(/Depuis le compte/);
+  await expect(p2.getByTestId("etat-compte")).toHaveText("☁ Dans votre compte");
+  await p2.keyboard.press("F7");
+  await expect(p2.getByTestId("console-texte")).toContainText("Depuis le compte");
+
+  // Nettoyage : suppression du projet du compte.
+  await p2.getByTestId("console-texte").click();
+  await p2.getByTestId("menu-Fichier").click();
+  await p2.getByTestId("menu-Fichier/Ouvrir...").click();
+  await p2.getByTestId("projet-compte").filter({ hasText: name }).click();
+  p2.once("dialog", (d) => d.accept());
+  await p2.getByRole("button", { name: "Supprimer" }).click();
+  await expect(p2.getByTestId("projet-compte").filter({ hasText: name })).toHaveCount(0);
+  await other.close();
 });
