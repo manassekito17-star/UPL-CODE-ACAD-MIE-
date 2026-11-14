@@ -13,6 +13,9 @@ export default async function AnnouncementsPage() {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold text-nuit-900">Annonces</h1>
+      <p className="text-sm text-gris-700">
+        La dernière annonce publiée s&apos;affiche en fenêtre « Message de l&apos;administration » à l&apos;ouverture de la plateforme, une fois pour chaque utilisateur. Sans annonce publiée, le message de bienvenue par défaut est affiché.
+      </p>
       <Card className="p-5">
         <form action={saveAnnouncement} className="space-y-3">
           <Field label="Titre" htmlFor="title"><input id="title" name="title" required className={inputClass} /></Field>

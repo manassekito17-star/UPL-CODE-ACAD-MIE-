@@ -150,3 +150,16 @@ test("après l'envoi d'un e-mail, un bouton ouvre la boîte de réception du fou
   await expect(link).toHaveAttribute("href", "https://mail.google.com/mail/u/0/#inbox");
   await expect(link).toHaveAttribute("target", "_blank");
 });
+
+test("message de l'administration à l'ouverture : titre, signature, fermeture mémorisée", async ({ page }) => {
+  test.skip(await isDemoMode(page), "Supabase non configuré");
+  await page.goto("/tableau-de-bord?annonce");
+  const m = page.getByTestId("annonce-accueil");
+  await expect(m).toBeVisible();
+  await expect(m).toContainText("Message de l'administration");
+  await expect(m).toContainText("UPL CODE ACADEMY MK");
+  await page.getByTestId("annonce-fermer").click();
+  await expect(m).toHaveCount(0);
+  const seen = await page.evaluate(() => Object.keys(localStorage).some((k) => k.startsWith("upl:annonce:vue:")));
+  expect(seen).toBe(true);
+});

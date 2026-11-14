@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
+import { AnnouncementPopup } from "@/components/annonces/announcement-popup";
 import { RegisterServiceWorker } from "@/components/pwa/register-sw";
 import { BRAND } from "@/lib/brand";
 import "./globals.css";
@@ -43,6 +44,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
         </main>
         <SiteFooter />
+        <AnnouncementPopup />
       </body>
     </html>
   );
