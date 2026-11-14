@@ -843,6 +843,9 @@ function Studio() {
         <Link href="/" className="rounded px-2 py-1 text-sm font-bold text-white hover:bg-white/10" aria-label="Retour à l'accueil">
           ← <span className="text-[#f28c28]">UPL</span> Flow Studio
         </Link>
+        <Link href="/flow/classique" className="rounded border border-[#f28c28]/60 px-2 py-1 text-xs font-semibold text-[#f8b46a] hover:bg-white/10" data-testid="lien-classique" title="Interface à la même disposition que LARP">
+          Interface classique (LARP)
+        </Link>
         <input
           value={current.name}
           onChange={(e) => setCurrent((c) => ({ ...c, name: e.target.value, program: { ...c.program, name: e.target.value } }))}
