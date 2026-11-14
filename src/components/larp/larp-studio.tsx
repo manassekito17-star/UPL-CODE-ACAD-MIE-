@@ -104,14 +104,20 @@ export function LarpStudio() {
   const [userZoom, setUserZoom] = useState(1);
   const [hidePortrait, setHidePortrait] = useState(false);
   useEffect(() => {
-    const on = () => setView({ w: window.innerWidth, h: window.innerHeight });
+    // Le clavier du téléphone réduit la hauteur visible : on ne rétrécit pas la fenêtre pour autant
+    // (seul un changement de largeur, donc d'orientation, recalcule la taille).
+    const on = () => setView((v) => (v.w !== window.innerWidth || window.innerHeight > v.h ? { w: window.innerWidth, h: window.innerHeight } : v));
     on();
     window.addEventListener("resize", on);
     return () => window.removeEventListener("resize", on);
   }, []);
-  const fit = Math.min(view.w / DW, (view.h - 2) / DH);
-  const scale = fit * userZoom;
   const portrait = view.h > view.w && view.w < 700;
+  // PC / paysage : toute la fenêtre visible. Téléphone en portrait : la fenêtre remplit toute la
+  // hauteur de l'écran et on balaie de gauche à droite pour voir les autres parties.
+  const fit = portrait ? (view.h - 2) / DH : Math.min(view.w / DW, (view.h - 2) / DH);
+  const scale = fit * userZoom;
+  /** « − » peut réduire jusqu'à voir toute la largeur de la fenêtre. */
+  const minZoom = Math.min(1, view.w / DW / fit);
 
   // ------------------------------------------------------------ Projet
   const [project, setProject] = useState<LarpProject>(() => (typeof window === "undefined" ? exampleProject() : loadCurrent()));
@@ -900,7 +906,7 @@ export function LarpStudio() {
   const statusText = status === "input" ? "En exécution... (saisie attendue)" : status === "running" ? "En exécution..." : status === "paused" ? "En pause…" : "Terminé";
 
   return (
-    <div className="fixed inset-0 z-40 overflow-auto" style={{ background: "#3a6ea5" }} onClick={() => setMenu(null)}>
+    <div className="fixed inset-0 z-40 overflow-auto overscroll-none" style={{ background: "#3a6ea5" }} data-testid="larp-ecran" onClick={() => setMenu(null)}>
       {/* Cadre mis à l'échelle : même disposition que sur le PC du professeur. */}
       <div style={{ width: Math.max(DW * scale, view.w), height: Math.max(DH * scale, view.h), position: "relative" }}>
         <div
@@ -1334,9 +1340,9 @@ export function LarpStudio() {
       </div>
 
       {/* Outils d'affichage (hors de la fenêtre) : zoom et conseil d'orientation sur téléphone. */}
-      {fit < 0.8 && (
-        <div className="fixed bottom-1 right-1 z-50 flex gap-1 rounded-full bg-black/45 p-0.5 text-white opacity-80 shadow" onClick={(e) => e.stopPropagation()}>
-          <button type="button" aria-label="Réduire" className="h-7 w-7 rounded-full bg-white/15 text-base" onClick={() => setUserZoom((z) => Math.max(1, +(z - 0.5).toFixed(1)))}>
+      {(fit < 0.8 || portrait) && (
+        <div className="fixed bottom-10 right-1 z-50 flex gap-1 rounded-full bg-black/45 p-0.5 text-white opacity-80 shadow" onClick={(e) => e.stopPropagation()}>
+          <button type="button" aria-label="Réduire" className="h-7 w-7 rounded-full bg-white/15 text-base" onClick={() => setUserZoom((z) => Math.max(minZoom, +(z - 0.5).toFixed(1)))}>
             −
           </button>
           <button type="button" className="h-7 rounded-full bg-white/15 px-2 text-[11px]" onClick={() => setUserZoom(1)}>
@@ -1350,7 +1356,7 @@ export function LarpStudio() {
       {portrait && !hidePortrait && (
         <div className="fixed inset-x-2 top-2 z-50 flex items-start gap-2 rounded-lg bg-[#10264f] p-3 text-sm text-white shadow-lg" data-testid="conseil-paysage">
           <span className="text-xl leading-none">↻</span>
-          <p className="flex-1">Tournez votre téléphone (mode paysage) : la fenêtre s&apos;affiche alors comme sur l&apos;ordinateur du professeur, et vous cliquez aux mêmes endroits. Les boutons − / + en bas à droite agrandissent si besoin.</p>
+          <p className="flex-1">La fenêtre remplit l&apos;écran : balayez vers la gauche ou la droite pour voir les autres parties (navigateur, éditeur, boutons). Tournez le téléphone (paysage) pour tout voir d&apos;un coup. Les boutons − / + en bas à droite changent la taille.</p>
           <button type="button" className="rounded bg-white/15 px-2 py-1 text-xs" onClick={() => setHidePortrait(true)}>
             OK
           </button>

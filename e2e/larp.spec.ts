@@ -102,3 +102,21 @@ for (const [name, device] of [["iPhone", devices["iPhone 13 landscape"]], ["Andr
     await context.close();
   });
 }
+
+test("Interface classique sur iPhone (portrait) : la fenêtre remplit la hauteur, balayage horizontal", async ({ browser }) => {
+  const opts: Record<string, unknown> = { ...devices["iPhone 13"] };
+  delete opts.defaultBrowserType;
+  const context = await browser.newContext(opts);
+  const page = await context.newPage();
+  await openClassic(page);
+  const vp = page.viewportSize()!;
+  const box = (await page.getByTestId("larp-fenetre").boundingBox())!;
+  expect(box.height).toBeGreaterThan(vp.height * 0.95);
+  expect(box.width).toBeGreaterThan(vp.width);
+  const ecran = page.getByTestId("larp-ecran");
+  const canScroll = await ecran.evaluate((el) => el.scrollWidth > el.clientWidth);
+  expect(canScroll).toBe(true);
+  await ecran.evaluate((el) => (el.scrollLeft = el.scrollWidth));
+  await expect.poll(() => ecran.evaluate((el) => el.scrollLeft)).toBeGreaterThan(0);
+  await context.close();
+});
