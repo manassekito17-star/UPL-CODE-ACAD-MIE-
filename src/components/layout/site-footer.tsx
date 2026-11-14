@@ -20,6 +20,7 @@ export function SiteFooter() {
             <li><Link href="/exercices" className="hover:text-cyan-accent">Exercices</Link></li>
             <li><Link href="/editeur" className="hover:text-cyan-accent">Éditeur de code</Link></li>
             <li><Link href="/flow" className="hover:text-cyan-accent">UPL Flow Studio (organigrammes)</Link></li>
+            <li><Link href="/flow/classique" className="hover:text-cyan-accent">Interface classique (compatible LARP)</Link></li>
             <li><Link href="/professeur-ia" className="hover:text-cyan-accent">Professeur IA</Link></li>
             <li><Link href="/telecharger" className="hover:text-cyan-accent">Télécharger l&apos;application</Link></li>
           </ul>
