@@ -112,3 +112,9 @@ export const projectPatchSchema = z.object({
   name: z.string().trim().min(1).max(120).optional(),
   duplicate: z.boolean().optional(),
 });
+
+/** Avis sur la plateforme : note de 1 à 5 étoiles, commentaire facultatif. */
+export const ratingSchema = z.object({
+  stars: z.number().int().min(1).max(5),
+  comment: z.string().trim().max(1000).default(""),
+});

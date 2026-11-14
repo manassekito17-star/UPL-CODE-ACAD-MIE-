@@ -184,3 +184,9 @@ L'accès rapide utilise les **connexions anonymes de Supabase Auth** : chaque pr
 3. Même page : activer **« Allow manual linking »** (bouton « Lier mon profil à Google » de la page Mon profil).
 
 Limites, affichées aux utilisateurs : le profil n'est pas vérifié (nom et prénom ne prouvent pas l'identité) ; il est gardé sur l'appareil (session fermée après 30 jours sans visite ou à la déconnexion) ; pour le retrouver sur un autre appareil, il faut le lier à Google ou à une adresse e-mail. Le poste « Enseignant » déclaré ne donne aucun droit : les rôles restent attribués par un administrateur. Limite : 10 accès rapides par heure et par adresse IP (plus la limite propre à Supabase).
+
+## Message d'accueil et avis des utilisateurs (5 étoiles)
+
+À l'ouverture de la plateforme, chaque utilisateur connecté voit une fois la fenêtre « Message de l'administration » : la dernière annonce publiée (**Administration → Annonces**) ou, à défaut, le message de bienvenue. La note sur 5 étoiles (avec commentaire facultatif, un avis par utilisateur, modifiable) n'est proposée qu'aux comptes créés depuis au moins 7 jours : sous le message pour les comptes plus anciens, ou dans une fenêtre « Votre avis compte » quand un nouveau compte atteint 7 jours d'utilisation. Les avis se lisent dans **Administration → Avis des utilisateurs** (administrateurs uniquement).
+
+À activer une fois : **Supabase → SQL Editor** : exécuter `supabase/migrations/20261115000001_avis.sql` (relançable sans risque). Tant que ce script n'est pas exécuté, le message s'affiche normalement et l'envoi d'un avis indique « Les avis ne sont pas encore activés ».

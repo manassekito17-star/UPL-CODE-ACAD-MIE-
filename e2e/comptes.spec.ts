@@ -150,3 +150,48 @@ test("après l'envoi d'un e-mail, un bouton ouvre la boîte de réception du fou
   await expect(link).toHaveAttribute("href", "https://mail.google.com/mail/u/0/#inbox");
   await expect(link).toHaveAttribute("target", "_blank");
 });
+
+test("message de l'administration à l'ouverture : titre, signature, fermeture mémorisée", async ({ page }) => {
+  test.skip(await isDemoMode(page), "Supabase non configuré");
+  await page.goto("/tableau-de-bord?annonce");
+  const m = page.getByTestId("annonce-accueil");
+  await expect(m).toBeVisible();
+  await expect(m).toContainText("Message de l'administration");
+  await expect(m).toContainText("UPL CODE ACADEMY MK");
+  await page.getByTestId("annonce-fermer").click();
+  await expect(m).toHaveCount(0);
+  const seen = await page.evaluate(() => Object.keys(localStorage).some((k) => k.startsWith("upl:annonce:vue:")));
+  expect(seen).toBe(true);
+});
+
+test("avis sur 5 étoiles depuis le message d'accueil, visibles dans Administration » Avis", async ({ page }) => {
+  test.skip(await isDemoMode(page), "Supabase non configuré");
+  const email = await signUpStudent(page, "Noteur Avis");
+  // Compte créé aujourd'hui : la note n'est pas encore proposée (après 7 jours d'utilisation).
+  await page.goto("/tableau-de-bord?annonce");
+  await expect(page.getByTestId("annonce-accueil")).toBeVisible();
+  await expect(page.getByTestId("avis")).toHaveCount(0);
+  // ?annonce=avis : affichage forcé de la note pour le test.
+  await page.goto("/tableau-de-bord?annonce=avis");
+  await expect(page.getByTestId("annonce-accueil")).toBeVisible();
+  const remarque = `Très utile ${Date.now()}`;
+  await page.getByTestId("etoile-4").click();
+  await page.getByLabel("Un commentaire ou une suggestion ? (facultatif)").fill(remarque);
+  await page.getByTestId("avis-envoyer").click();
+  await expect(page.getByTestId("avis-merci")).toBeVisible();
+
+  // Un étudiant ne peut pas ouvrir la rubrique des avis.
+  await page.goto("/admin/avis");
+  await expect(page.getByTestId("avis-liste")).toHaveCount(0);
+
+  // L'administrateur voit la note et le commentaire.
+  await promoteToAdmin(email!);
+  await page.goto("/admin/avis");
+  await expect(page.getByTestId("avis-liste")).toContainText(remarque);
+  await expect(page.getByTestId("avis-liste")).toContainText("Noteur Avis");
+  await expect(page.getByTestId("avis-moyenne")).toContainText("avis");
+
+  // Modification de son avis (un seul par utilisateur).
+  await page.goto("/tableau-de-bord?annonce=avis");
+  await expect(page.getByTestId("avis")).toContainText("modifiable");
+});
