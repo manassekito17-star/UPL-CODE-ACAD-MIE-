@@ -34,3 +34,34 @@ export function oldEnoughToRate(createdAt: string | null | undefined, now = Date
   if (!createdAt) return false;
   return now - new Date(createdAt).getTime() >= RATING_DELAY_DAYS * 86_400_000;
 }
+
+/** Avis important : statut de la plateforme (initiative indépendante, non officielle). */
+export const IMPORTANT_NOTICE = {
+  id: "avis-important-v1",
+  eyebrow: "Avis important",
+  title: "Information à l'attention de nos utilisateurs",
+  paragraphs: [
+    "UPL CODE ACADEMY MK est une initiative indépendante créée par un média étudiant de l'Université Protestante de Lubumbashi.",
+    "Cette plateforme n'est pas une plateforme officielle de l'Université Protestante de Lubumbashi (UPL). Elle n'est ni reconnue, ni administrée, ni officiellement affiliée à l'université.",
+    "Son contenu, ses services et ses activités relèvent de l'initiative de ses créateurs et ne représentent pas nécessairement les positions ou les communications officielles de l'UPL.",
+  ],
+} as const;
+
+/** Une seule fenêtre d'information par visite (session du navigateur). */
+export const SESSION_POPUP_KEY = "upl:fenetre:visite";
+
+export type PopupStep = "annonce" | "avis" | "important";
+
+/**
+ * Fenêtre à afficher à cette visite : une étape par ouverture de la plateforme, dans l'ordre
+ * 1) message de bienvenue, 2) demande d'avis (comptes de 7 jours ou plus), 3) avis important.
+ * Les visiteurs non connectés ne voient que l'avis important.
+ */
+export function nextPopup(s: { loggedIn: boolean; welcomeSeen: boolean; canRate: boolean; ratingAsked: boolean; importantSeen: boolean; shownThisVisit: boolean }): PopupStep | null {
+  if (s.shownThisVisit) return null;
+  if (!s.loggedIn) return s.importantSeen ? null : "important";
+  if (!s.welcomeSeen) return "annonce";
+  if (s.canRate && !s.ratingAsked) return "avis";
+  if (!s.importantSeen) return "important";
+  return null;
+}

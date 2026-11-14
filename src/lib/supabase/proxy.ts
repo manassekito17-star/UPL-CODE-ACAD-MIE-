@@ -18,6 +18,7 @@ const PUBLIC_PATHS = new Set([
   "/confidentialite",
   "/conditions",
   "/telecharger",
+  "/avis-important",
   "/compte-suspendu",
   "/acces-refuse",
   "/robots.txt",

@@ -187,6 +187,8 @@ Limites, affichées aux utilisateurs : le profil n'est pas vérifié (nom et pr�
 
 ## Message d'accueil et avis des utilisateurs (5 étoiles)
 
+Une seule fenêtre par visite, dans cet ordre (chacune une fois par appareil) : 1) message de bienvenue, 2) demande d'avis sur 5 étoiles (comptes d'au moins 7 jours), 3) « Avis important » (plateforme indépendante, non officielle de l'UPL). Les visiteurs non connectés ne voient que l'avis important, également publié sur la page `/avis-important` (menu ☰ et pied de page) et en tête de la politique de confidentialité.
+
 À l'ouverture de la plateforme, chaque utilisateur connecté voit une fois la fenêtre « Message de l'administration » : la dernière annonce publiée (**Administration → Annonces**) ou, à défaut, le message de bienvenue. La note sur 5 étoiles (avec commentaire facultatif, un avis par utilisateur, modifiable) n'est proposée qu'aux comptes créés depuis au moins 7 jours : sous le message pour les comptes plus anciens, ou dans une fenêtre « Votre avis compte » quand un nouveau compte atteint 7 jours d'utilisation. Les avis se lisent dans **Administration → Avis des utilisateurs** (administrateurs uniquement).
 
 À activer une fois : **Supabase → SQL Editor** : exécuter `supabase/migrations/20261115000001_avis.sql` (relançable sans risque). Tant que ce script n'est pas exécuté, le message s'affiche normalement et l'envoi d'un avis indique « Les avis ne sont pas encore activés ».

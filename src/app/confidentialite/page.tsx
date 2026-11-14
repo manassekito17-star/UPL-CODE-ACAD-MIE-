@@ -3,13 +3,14 @@ import Link from "next/link";
 import { Container, PageHeader } from "@/components/ui";
 import { BRAND } from "@/lib/brand";
 import { publicEnv } from "@/lib/env";
+import { IMPORTANT_NOTICE } from "@/lib/announcement";
 
 export const metadata: Metadata = {
   title: "Politique de confidentialité",
   description: `Données personnelles traitées par ${BRAND.name}, finalités, services utilisés et droits des utilisateurs.`,
 };
 
-const UPDATED = "8 novembre 2026";
+const UPDATED = "15 novembre 2026";
 
 export default function PrivacyPage() {
   const contact = publicEnv.contactEmail;
@@ -17,6 +18,13 @@ export default function PrivacyPage() {
     <>
       <PageHeader eyebrow="Informations légales" title="Politique de confidentialité" subtitle={`Dernière mise à jour : ${UPDATED}`} />
       <Container className="prose-upl max-w-3xl space-y-6 py-10 text-gris-700">
+        <section className="rounded-xl border-l-4 border-[#f28c28] bg-amber-50 p-5" data-testid="confidentialite-avis-important">
+          <h2>{IMPORTANT_NOTICE.eyebrow} — {IMPORTANT_NOTICE.title}</h2>
+          {IMPORTANT_NOTICE.paragraphs.map((p) => (
+            <p key={p}>{p}</p>
+          ))}
+        </section>
+
         <section>
           <h2>1. Qui sommes-nous ?</h2>
           <p>
