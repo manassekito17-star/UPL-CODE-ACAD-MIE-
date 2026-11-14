@@ -12,9 +12,9 @@ import { AnnouncementModal } from "./announcement-modal";
  * (et qui n'ont pas encore donné leur avis).
  */
 export async function AnnouncementPopup() {
-  if (!isSupabaseConfigured()) return null;
-  const user = await getCurrentUser();
-  if (!user) return null;
+  const user = isSupabaseConfigured() ? await getCurrentUser() : null;
+  // Visiteur non connecté : uniquement l'avis important (statut de la plateforme).
+  if (!user) return <AnnouncementModal announcement={WELCOME_ANNOUNCEMENT} firstName="" loggedIn={false} ratingEligible={false} alreadyRated />;
   let a: PopupAnnouncement = WELCOME_ANNOUNCEMENT;
   let ratingEligible = false;
   let alreadyRated = false;
@@ -33,5 +33,5 @@ export async function AnnouncementPopup() {
   } catch {
     /* annonce indisponible : message de bienvenue */
   }
-  return <AnnouncementModal announcement={a} firstName={user.fullName?.split(" ")[0] ?? ""} ratingEligible={ratingEligible} alreadyRated={alreadyRated} />;
+  return <AnnouncementModal announcement={a} firstName={user.fullName?.split(" ")[0] ?? ""} loggedIn ratingEligible={ratingEligible} alreadyRated={alreadyRated} />;
 }

@@ -4,6 +4,9 @@ import { isSupabaseConfigured } from "@/lib/env";
 import { buttonClass, Container } from "../ui";
 import { Logo } from "./logo";
 
+/** Liens présents seulement dans le menu ☰ (la barre des très grands écrans resterait trop chargée). */
+const MENU_ONLY_LINKS = [{ href: "/avis-important", label: "⚠ Avis important" }];
+
 const PUBLIC_LINKS = [
   { href: "/formation", label: "Formation" },
   { href: "/formations", label: "Parcours" },
@@ -70,7 +73,7 @@ export async function SiteHeader() {
             </svg>
           </summary>
           <div className="absolute right-0 mt-2 w-64 rounded-xl border border-gris-200 bg-white p-2 shadow-lg">
-            {links.map((l) => (
+            {[...links, ...MENU_ONLY_LINKS].map((l) => (
               <Link key={l.href} href={l.href} className="block rounded-md px-3 py-2.5 text-sm font-medium text-nuit-800 hover:bg-gris-100">
                 {l.label}
               </Link>

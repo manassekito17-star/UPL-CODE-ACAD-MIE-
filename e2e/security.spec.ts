@@ -87,3 +87,19 @@ test("navigateur normal : aucun avertissement", async ({ page }) => {
   await expect(page.locator('input[type="email"]').first()).toBeVisible();
   await expect(page.getByTestId("navigateur-integre")).toHaveCount(0);
 });
+
+test("avis important : page publique, politique de confidentialité et fenêtre pour les visiteurs", async ({ browser }) => {
+  const ctx = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+  const page = await ctx.newPage();
+  await page.goto("/avis-important");
+  await expect(page.getByTestId("avis-important")).toContainText("n'est pas une plateforme officielle de l'Université Protestante de Lubumbashi");
+  await page.goto("/confidentialite");
+  await expect(page.getByTestId("confidentialite-avis-important")).toContainText("initiative indépendante");
+  await page.goto("/?annonce=important");
+  const m = page.getByTestId("annonce-accueil");
+  await expect(m).toHaveAttribute("data-etape", "important");
+  await expect(m).toContainText("Information à l'attention de nos utilisateurs");
+  await page.getByTestId("annonce-fermer").click();
+  await expect(m).toHaveCount(0);
+  await ctx.close();
+});
