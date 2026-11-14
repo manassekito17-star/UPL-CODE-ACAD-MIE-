@@ -28,6 +28,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     { href: "/admin/exercices", label: "Exercices et tests", icon: "exercices", group: "Contenus", show: canTeach(user, "contenus") },
     { href: "/admin/corrections", label: "Corrections", icon: "corrections", group: "Contenus", show: canTeach(user, "corrections") },
     { href: "/admin/annonces", label: "Annonces", icon: "annonces", group: "Contenus", show: canTeach(user, "contenus") },
+    { href: "/admin/avis", label: "Avis des utilisateurs", icon: "avis", group: "Pilotage", show: user.isAdmin },
     { href: "/admin/journaux", label: "Journal d'audit", icon: "journal", group: "Système", show: user.isAdmin },
     { href: "/admin/consommation", label: "Consommation et coûts", icon: "consommation", group: "Système", show: user.isAdmin },
     { href: "/admin/securite", label: "Sécurité du compte", icon: "securite", group: "Système", show: user.isAdmin },

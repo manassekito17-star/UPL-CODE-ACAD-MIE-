@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { seenKey, type PopupAnnouncement } from "@/lib/announcement";
+import { RatingBox } from "./rating-box";
 
 /** Fenêtre « Message de l'administration », fermée une fois pour toutes sur cet appareil. */
 export function AnnouncementModal({ announcement: a, firstName }: { announcement: PopupAnnouncement; firstName: string }) {
@@ -78,6 +79,7 @@ export function AnnouncementModal({ announcement: a, firstName }: { announcement
               </p>
             ))}
           <p className="border-t border-gris-200 pt-3 text-sm font-semibold text-nuit-900">{a.signature}</p>
+          <RatingBox />
         </div>
         <div className="flex justify-end gap-2 border-t border-gris-200 bg-gris-50 px-6 py-3">
           <button
