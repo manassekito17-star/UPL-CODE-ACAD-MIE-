@@ -37,6 +37,7 @@ import {
   type LarpProject,
 } from "@/lib/larp/project";
 import { BUILTIN_NAMES } from "@/lib/larp/builtins";
+import { deleteCloud, listCloud, loadCloud, saveCloud, type CloudEntry } from "@/lib/larp/cloud";
 import { DRAG_TYPE, FlowGlyph, LarpChart } from "./chart";
 import { LarpEditor, type EditorHandle } from "./editor";
 import { Icons } from "./icons";
@@ -122,7 +123,15 @@ export function LarpStudio() {
   // ------------------------------------------------------------ Projet
   const [project, setProject] = useState<LarpProject>(() => (typeof window === "undefined" ? exampleProject() : loadCurrent()));
   const [currentId, setCurrentId] = useState<string>(() => project.docs.find((d) => d.main)!.id);
-  const [dirty, setDirty] = useState(false);
+  const [dirty, setDirtyState] = useState(false);
+  /** Compteur de modifications : une sauvegarde ne marque « enregistré » que si rien n'a changé pendant l'envoi. */
+  const edits = useRef(0);
+  const setDirty = useCallback((v: boolean) => {
+    if (v) edits.current++;
+    setDirtyState(v);
+  }, []);
+  /** État de l'enregistrement dans le compte. */
+  const [sync, setSync] = useState<"local" | "saving" | "saved" | "error">(() => (project.cloud ? "saved" : "local"));
   const doc = project.docs.find((d) => d.id === currentId) ?? project.docs.find((d) => d.main)!;
   const mainDoc = project.docs.find((d) => d.main)!;
 
@@ -140,7 +149,7 @@ export function LarpStudio() {
   const updateDoc = useCallback((id: string, patch: Partial<LarpDoc>) => {
     setProject((p) => ({ ...p, docs: p.docs.map((d) => (d.id === id ? { ...d, ...patch } : d)) }));
     setDirty(true);
-  }, []);
+  }, [setDirty]);
 
   // ------------------------------------------------------------ Interface
   const [menu, setMenuState] = useState<string | null>(null);
@@ -568,16 +577,46 @@ export function LarpStudio() {
     setSelectedNode(null);
     flowUndo.current = [];
     setDirty(false);
-    setMessages([{ text: `Projet « ${p.name} » ouvert.`, kind: "info" }]);
+    setSync(p.cloud ? "saved" : "local");
+    setMessages([{ text: `Projet « ${p.name} » ouvert${p.cloud ? " depuis votre compte" : ""}.`, kind: "info" }]);
   };
-  const save = (name = project.name) => {
-    const p = { ...project, name };
+  /** Envoie le projet dans le compte (création ou nouvelle révision). */
+  const cloudSave = async (p: LarpProject, opts: { force?: boolean; quiet?: boolean } = {}) => {
+    const mark = edits.current;
+    setSync("saving");
+    const r = await saveCloud(p, p.cloud ?? null, opts.force);
+    if (r.ok) {
+      setProject((cur) => (cur.docs === p.docs || cur.name === p.name ? { ...cur, cloud: r.info } : cur));
+      if (edits.current === mark) setDirtyState(false);
+      setSync("saved");
+      if (!opts.quiet) addMsg({ text: `Projet « ${p.name} » enregistré dans votre compte (retrouvez-le sur tous vos appareils).`, kind: "info" });
+      return;
+    }
+    setSync("error");
+    if (r.conflict) {
+      setDialog({
+        t: "confirm",
+        text: "Ce projet a été modifié sur un autre appareil. Remplacer cette version par celle de cet appareil ?",
+        yes: () => void cloudSave(p, { force: true }),
+      });
+      return;
+    }
+    addMsg({ text: `${r.message} (copie gardée sur cet appareil)`, kind: "warn" });
+  };
+  const save = (name = project.name, asNew = false) => {
+    const p: LarpProject = { ...project, name, cloud: asNew || name !== project.name ? undefined : project.cloud };
     setProject(p);
-    if (saveProject(p)) {
-      setDirty(false);
-      addMsg({ text: `Projet sauvegardé sous « ${name} » (dans ce navigateur).`, kind: "info" });
-    } else addMsg({ text: "Sauvegarde impossible : stockage du navigateur indisponible.", kind: "err" });
+    if (!saveProject(p)) addMsg({ text: "Copie locale impossible : stockage du navigateur indisponible.", kind: "warn" });
+    void cloudSave(p);
   };
+  // Enregistrement automatique dans le compte (projets déjà enregistrés une première fois).
+  const cloudSaveRef = useRef(cloudSave);
+  cloudSaveRef.current = cloudSave;
+  useEffect(() => {
+    if (!dirty || !project.cloud || sync === "saving") return;
+    const t = setTimeout(() => void cloudSaveRef.current(project, { quiet: true }), 4000);
+    return () => clearTimeout(t);
+  }, [project, dirty, sync]);
   const validName = (name: string, exceptId?: string): string | null => {
     if (!NAME_RE.test(name)) return "Nom invalide : lettres, chiffres et _ uniquement, en commençant par une lettre.";
     if (KEYWORDS.has(norm(name)) || BUILTIN_NAMES.has(norm(name))) return `« ${name} » est un mot réservé.`;
@@ -1105,6 +1144,9 @@ export function LarpStudio() {
             <div className="flex h-[20px] shrink-0 items-center gap-[2px] border-t border-[#aca899] px-[2px]" data-testid="statut">
               <span className="w-[60px] border border-[#aca899] px-1 text-center shadow-[inset_1px_1px_#fff]">{doc.kind === "organigramme" ? (selectedNode ? `#${String(docSource(doc).lineOfNode.get(selectedNode) ?? 0).padStart(4, "0")}` : "—") : `${cursor.line}:${cursor.col}`}</span>
               <span className="w-[44px] border border-[#aca899] px-1 text-center">{doc.kind === "organigramme" ? `${Math.round(chartZoom * 100)}%` : "Ins"}</span>
+              <span className="w-[150px] truncate border border-[#aca899] px-1" data-testid="etat-compte" title="Enregistrement dans votre compte">
+                {sync === "saving" ? "☁ Enregistrement…" : sync === "saved" ? (dirty ? "☁ Modifié…" : "☁ Dans votre compte") : sync === "error" ? "⚠ Non enregistré" : "Sur cet appareil"}
+              </span>
               <span className="min-w-0 flex-1 truncate border border-[#aca899] px-1">{hint || `Document : ${doc.name} (${docKindLabel})${isRunning ? " — exécution en cours" : ""}`}</span>
             </div>
           </div>
@@ -1301,7 +1343,12 @@ export function LarpStudio() {
                 onNewModule={(k, name) => addDoc(newModule(k, name))}
                 onNewBuffer={(name) => addDoc(newBuffer(name))}
                 onOpen={openProject}
-                onSave={(name) => save(name)}
+                onOpenCloud={async (id) => {
+                  const r = await loadCloud(id);
+                  if (r.ok) openProject({ ...r.project, cloud: r.info });
+                  else addMsg({ text: r.message, kind: "err" });
+                }}
+                onSave={(name) => save(name, true)}
                 onRename={(id, name) => updateDoc(id, { name })}
                 onUpdateNode={(id, patch) => {
                   if (!doc.flow) return;
@@ -1386,6 +1433,7 @@ interface DialogProps {
   onNewModule: (k: "pseudo" | "organigramme", name: string) => void;
   onNewBuffer: (name: string) => void;
   onOpen: (p: LarpProject) => void;
+  onOpenCloud: (id: string) => Promise<void>;
   onSave: (name: string) => void;
   onRename: (id: string, name: string) => void;
   onUpdateNode: (id: string, patch: Record<string, string>) => void;
@@ -1578,10 +1626,32 @@ function NewDialog({ close, style, validName, onNewProject, onNewModule, onNewBu
   );
 }
 
-function OpenDialog({ close, style, onOpen }: DialogProps & { style: React.CSSProperties }) {
+function OpenDialog({ close, style, onOpen, onOpenCloud }: DialogProps & { style: React.CSSProperties }) {
   const [list, setList] = useState(() => savedProjects());
+  const [cloud, setCloud] = useState<CloudEntry[] | null>(null);
+  const [cloudMsg, setCloudMsg] = useState("Chargement de vos projets…");
   const [sel, setSel] = useState<string | null>(null);
   const names = Object.keys(list);
+  const refresh = () =>
+    listCloud().then((r) => {
+      if (r.ok) {
+        setCloud(r.list);
+        setCloudMsg(r.list.length ? "" : "Aucun projet dans votre compte pour l'instant : utilisez Fichier » Sauvegarder.");
+      } else {
+        setCloud([]);
+        setCloudMsg(r.message);
+      }
+    });
+  useEffect(() => {
+    void refresh();
+  }, []);
+  const openSel = async () => {
+    if (!sel) return;
+    if (sel === "__exemple") onOpen(exampleProject());
+    else if (sel.startsWith("c:")) await onOpenCloud(sel.slice(2));
+    else onOpen(list[sel.slice(2)]);
+    close();
+  };
   const importFile = () => {
     const inp = document.createElement("input");
     inp.type = "file";
@@ -1593,7 +1663,7 @@ function OpenDialog({ close, style, onOpen }: DialogProps & { style: React.CSSPr
       try {
         const p = JSON.parse(txt) as LarpProject;
         if (p.docs?.some((d) => d.main)) {
-          onOpen(p);
+          onOpen({ name: p.name ?? "Importé", docs: p.docs });
           return close();
         }
       } catch {
@@ -1606,36 +1676,54 @@ function OpenDialog({ close, style, onOpen }: DialogProps & { style: React.CSSPr
     };
     inp.click();
   };
+  const item = (key: string, label: string, sub?: string) => (
+    <button
+      type="button"
+      key={key}
+      onClick={() => setSel(key)}
+      onDoubleClick={() => {
+        setSel(key);
+        void (async () => {
+          if (key === "__exemple") onOpen(exampleProject());
+          else if (key.startsWith("c:")) await onOpenCloud(key.slice(2));
+          else onOpen(list[key.slice(2)]);
+          close();
+        })();
+      }}
+      className={`flex w-full justify-between gap-2 px-1 text-left ${sel === key ? "bg-[#316ac5] text-white" : ""}`}
+      data-testid={key.startsWith("c:") ? "projet-compte" : undefined}
+    >
+      <span className="truncate">{label}</span>
+      {sub && <span className="shrink-0 opacity-70">{sub}</span>}
+    </button>
+  );
   return (
     <Win title="Ouvrir" onClose={close} style={style} testId="dialogue-ouvrir">
       <div className="flex gap-2 p-2">
-        <div className="h-[200px] flex-1 overflow-auto border border-[#7f9db9] bg-white">
-          <button type="button" onClick={() => setSel("__exemple")} onDoubleClick={() => (onOpen(exampleProject()), close())} className={`block w-full px-1 text-left ${sel === "__exemple" ? "bg-[#316ac5] text-white" : ""}`}>
-            Exemple (factorielle)
-          </button>
-          {names.map((n) => (
-            <button type="button" key={n} onClick={() => setSel(n)} onDoubleClick={() => (onOpen(list[n]), close())} className={`block w-full px-1 text-left ${sel === n ? "bg-[#316ac5] text-white" : ""}`}>
-              {n}
-            </button>
-          ))}
+        <div className="h-[230px] flex-1 overflow-auto border border-[#7f9db9] bg-white">
+          <p className="bg-[#f1efe2] px-1 font-bold">☁ Mon compte</p>
+          {cloud?.map((c) => item(`c:${c.id}`, c.name, new Date(c.updated_at).toLocaleDateString("fr-FR")))}
+          {cloudMsg && <p className="px-1 text-[#666]">{cloudMsg}</p>}
+          <p className="mt-1 bg-[#f1efe2] px-1 font-bold">Sur cet appareil</p>
+          {item("__exemple", "Exemple (factorielle)")}
+          {names.map((n) => item(`l:${n}`, n))}
         </div>
         <div className="flex flex-col gap-2">
-          <XpButton
-            disabled={!sel}
-            onClick={() => {
-              if (!sel) return;
-              onOpen(sel === "__exemple" ? exampleProject() : list[sel]);
-              close();
-            }}
-          >
+          <XpButton disabled={!sel} onClick={() => void openSel()} testId="ouvrir-ok">
             Ouvrir
           </XpButton>
           <XpButton
             disabled={!sel || sel === "__exemple"}
-            onClick={() => {
+            onClick={async () => {
               if (!sel) return;
-              deleteSaved(sel);
-              setList(savedProjects());
+              if (sel.startsWith("c:")) {
+                if (!window.confirm("Supprimer définitivement ce projet de votre compte ?")) return;
+                await deleteCloud(sel.slice(2));
+                await refresh();
+              } else {
+                deleteSaved(sel.slice(2));
+                setList(savedProjects());
+              }
               setSel(null);
             }}
           >
@@ -1645,7 +1733,7 @@ function OpenDialog({ close, style, onOpen }: DialogProps & { style: React.CSSPr
           <XpButton onClick={close}>Annuler</XpButton>
         </div>
       </div>
-      <p className="px-2 pb-2 text-[#555]">Projets sauvegardés dans ce navigateur. « Fichier… » ouvre un fichier texte de pseudo-code.</p>
+      <p className="px-2 pb-2 text-[#555]">Les projets de votre compte se retrouvent sur tous vos appareils. « Fichier… » ouvre un fichier texte de pseudo-code.</p>
     </Win>
   );
 }

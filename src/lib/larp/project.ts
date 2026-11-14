@@ -6,6 +6,7 @@
  * le surlignage pas-à-pas et la localisation des erreurs).
  */
 import { newId, type FlowKind, type FlowNode, type FlowProgram } from "../flow/model";
+import type { CloudInfo } from "./cloud";
 import type { SourceBuffer, SourceModule } from "./interpreter";
 
 export type DocKind = "pseudo" | "organigramme" | "tampon";
@@ -28,6 +29,8 @@ export interface LarpDoc {
 export interface LarpProject {
   name: string;
   docs: LarpDoc[];
+  /** Projet enregistré dans le compte (identifiant et révision côté serveur). */
+  cloud?: CloudInfo;
 }
 
 export const MAIN_NAME = "PRINCIPAL";
