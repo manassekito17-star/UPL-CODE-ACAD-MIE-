@@ -11,6 +11,7 @@ const PUBLIC_LINKS = [
   { href: "/editeur", label: "Éditeur" },
   { href: "/ide", label: "UPL IDE" },
   { href: "/laboratoire", label: "Laboratoire" },
+  { href: "/flow", label: "Flow Studio" },
   { href: "/professeur-ia", label: "Professeur IA" },
   { href: "/telecharger", label: "📲 Télécharger" },
 ];
@@ -24,9 +25,9 @@ export async function SiteHeader() {
     <header className="sticky top-0 z-40 border-b border-gris-200 bg-white/90 backdrop-blur">
       <Container className="flex h-16 items-center justify-between gap-4">
         <Logo />
-        <nav className="hidden items-center gap-1 lg:flex" aria-label="Navigation principale">
+        <nav className="hidden items-center gap-0.5 xl:flex" aria-label="Navigation principale">
           {links.map((l) => (
-            <Link key={l.href} href={l.href} className="rounded-md px-3 py-2 text-sm font-medium text-gris-700 hover:bg-gris-100 hover:text-nuit-900">
+            <Link key={l.href} href={l.href} className="whitespace-nowrap rounded-md px-2.5 py-2 text-sm font-medium text-gris-700 hover:bg-gris-100 hover:text-nuit-900">
               {l.label}
             </Link>
           ))}
@@ -36,7 +37,7 @@ export async function SiteHeader() {
             </Link>
           )}
         </nav>
-        <div className="hidden items-center gap-2 lg:flex">
+        <div className="hidden items-center gap-2 xl:flex">
           {user ? (
             <>
               <Link href="/profil" className="max-w-40 truncate text-sm font-medium text-nuit-800 hover:text-electrique-600">
@@ -61,7 +62,7 @@ export async function SiteHeader() {
         </div>
 
         {/* Menu mobile sans JavaScript */}
-        <details className="group relative lg:hidden">
+        <details className="group relative xl:hidden">
           <summary className="flex h-10 w-10 cursor-pointer list-none items-center justify-center rounded-lg border border-gris-200 [&::-webkit-details-marker]:hidden" aria-label="Ouvrir le menu">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
               <path d="M4 6h16M4 12h16M4 18h16" />
