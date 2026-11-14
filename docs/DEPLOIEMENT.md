@@ -187,6 +187,6 @@ Limites, affichées aux utilisateurs : le profil n'est pas vérifié (nom et pr�
 
 ## Message d'accueil et avis des utilisateurs (5 étoiles)
 
-À l'ouverture de la plateforme, chaque utilisateur connecté voit une fois la fenêtre « Message de l'administration » : la dernière annonce publiée (**Administration → Annonces**) ou, à défaut, le message de bienvenue. Sous le message, il peut noter la plateforme sur 5 étoiles et laisser un commentaire (un avis par utilisateur, modifiable). Les avis se lisent dans **Administration → Avis des utilisateurs** (administrateurs uniquement).
+À l'ouverture de la plateforme, chaque utilisateur connecté voit une fois la fenêtre « Message de l'administration » : la dernière annonce publiée (**Administration → Annonces**) ou, à défaut, le message de bienvenue. La note sur 5 étoiles (avec commentaire facultatif, un avis par utilisateur, modifiable) n'est proposée qu'aux comptes créés depuis au moins 7 jours : sous le message pour les comptes plus anciens, ou dans une fenêtre « Votre avis compte » quand un nouveau compte atteint 7 jours d'utilisation. Les avis se lisent dans **Administration → Avis des utilisateurs** (administrateurs uniquement).
 
 À activer une fois : **Supabase → SQL Editor** : exécuter `supabase/migrations/20261115000001_avis.sql` (relançable sans risque). Tant que ce script n'est pas exécuté, le message s'affiche normalement et l'envoi d'un avis indique « Les avis ne sont pas encore activés ».

@@ -167,7 +167,12 @@ test("message de l'administration à l'ouverture : titre, signature, fermeture m
 test("avis sur 5 étoiles depuis le message d'accueil, visibles dans Administration » Avis", async ({ page }) => {
   test.skip(await isDemoMode(page), "Supabase non configuré");
   const email = await signUpStudent(page, "Noteur Avis");
+  // Compte créé aujourd'hui : la note n'est pas encore proposée (après 7 jours d'utilisation).
   await page.goto("/tableau-de-bord?annonce");
+  await expect(page.getByTestId("annonce-accueil")).toBeVisible();
+  await expect(page.getByTestId("avis")).toHaveCount(0);
+  // ?annonce=avis : affichage forcé de la note pour le test.
+  await page.goto("/tableau-de-bord?annonce=avis");
   await expect(page.getByTestId("annonce-accueil")).toBeVisible();
   const remarque = `Très utile ${Date.now()}`;
   await page.getByTestId("etoile-4").click();
@@ -187,6 +192,6 @@ test("avis sur 5 étoiles depuis le message d'accueil, visibles dans Administrat
   await expect(page.getByTestId("avis-moyenne")).toContainText("avis");
 
   // Modification de son avis (un seul par utilisateur).
-  await page.goto("/tableau-de-bord?annonce");
+  await page.goto("/tableau-de-bord?annonce=avis");
   await expect(page.getByTestId("avis")).toContainText("modifiable");
 });

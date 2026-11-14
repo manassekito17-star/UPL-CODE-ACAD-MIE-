@@ -22,3 +22,15 @@ export const WELCOME_ANNOUNCEMENT: PopupAnnouncement = {
 
 /** Clé locale : l'annonce n'est montrée qu'une fois par appareil. */
 export const seenKey = (id: string) => `upl:annonce:vue:${id}`;
+
+/** La note sur 5 étoiles n'est proposée qu'après 7 jours d'utilisation du compte. */
+export const RATING_DELAY_DAYS = 7;
+
+/** Clé locale : la demande d'avis (après 7 jours) n'est proposée qu'une fois par appareil. */
+export const RATING_ASKED_KEY = "upl:avis:demande";
+
+/** Le compte a-t-il été créé depuis au moins RATING_DELAY_DAYS jours ? */
+export function oldEnoughToRate(createdAt: string | null | undefined, now = Date.now()): boolean {
+  if (!createdAt) return false;
+  return now - new Date(createdAt).getTime() >= RATING_DELAY_DAYS * 86_400_000;
+}
