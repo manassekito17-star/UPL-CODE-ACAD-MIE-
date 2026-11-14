@@ -104,3 +104,16 @@ test("accès rapide : champs obligatoires et rôle non modifiable par le formula
   await expect(form.getByText("Ajoutez votre photo : elle est obligatoire.")).toBeVisible();
   await expect(page).toHaveURL(/connexion/);
 });
+
+test("« Créer un compte » propose aussi l'accès rapide avec un profil (Option B)", async ({ browser }) => {
+  const ctx = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+  const page = await ctx.newPage();
+  await page.goto("/inscription");
+  await expect(page.getByRole("heading", { name: "Option A — Continuer avec Google" })).toBeVisible();
+  const b = page.getByTestId("inscription-acces-rapide");
+  await expect(b.getByRole("heading", { name: "Option B — Accès rapide avec un profil" })).toBeVisible();
+  await expect(b.getByTestId("acces-rapide")).toBeVisible();
+  await expect(b.getByRole("button", { name: "ACCÉDER À LA PLATEFORME" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Option C/ })).toBeVisible();
+  await ctx.close();
+});
