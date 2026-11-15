@@ -202,3 +202,85 @@ FIN`, "abc");
     expect(r.stdout).toBe("0.3\n2.5\n");
   });
 });
+
+describe("nombres au hasard : ALEATOIRE / ALÉATOIRE / ALEA / HASARD", () => {
+  it("ALEATOIRE(1, 10) donne un entier entre 1 et 10 inclus (avec ou sans accent)", () => {
+    const r = run(`
+ALGORITHME Hasard
+VARIABLES
+  i, n, hors, vus1, vus10 : ENTIER
+DEBUT
+  hors ← 0
+  vus1 ← 0
+  vus10 ← 0
+  POUR i DE 1 A 500 FAIRE
+    n ← ALÉATOIRE(1, 10)
+    SI n < 1 OU n > 10 OU n <> ENT(n) ALORS
+      hors ← hors + 1
+    FINSI
+    SI n = 1 ALORS
+      vus1 ← 1
+    FINSI
+    SI n = 10 ALORS
+      vus10 ← 1
+    FINSI
+    n ← Aleatoire(1, 10)
+    n ← HASARD(1, 10)
+  FINPOUR
+  ECRIRE(hors, " ", vus1, " ", vus10)
+FIN`);
+    expect(r.error).toBeNull();
+    expect(r.stdout).toBe("0 1 1\n");
+  });
+
+  it("ALEATOIRE() donne un réel dans [0, 1[ et ALEATOIRE(n) un entier de 0 à n − 1", () => {
+    const r = run(`
+ALGORITHME Hasard2
+VARIABLES
+  i, k, ok : ENTIER
+  x : REEL
+DEBUT
+  ok ← 1
+  POUR i DE 1 A 200 FAIRE
+    x ← ALEATOIRE()
+    k ← ALEATOIRE(6)
+    SI x < 0 OU x >= 1 OU k < 0 OU k > 5 ALORS
+      ok ← 0
+    FINSI
+  FINPOUR
+  ECRIRE(ok)
+FIN`);
+    expect(r.error).toBeNull();
+    expect(r.stdout).toBe("1\n");
+  });
+
+  it("jeu « devinez le nombre » : REPETER … ALEATOIRE(1, 10) … JUSQU'A", () => {
+    const r = run(
+      `
+ALGORITHME Devinette
+VARIABLES
+  nombreSecret, proposition : ENTIER
+DEBUT
+  nombreSecret ← ALEATOIRE(1, 10)
+  REPETER
+    LIRE(proposition)
+  JUSQU'A proposition = nombreSecret OU proposition = 0
+  ECRIRE("fin")
+FIN`,
+      "0",
+    );
+    expect(r.error).toBeNull();
+    expect(r.stdout).toContain("fin");
+  });
+
+  it("nombre d'arguments incorrect : message clair", () => {
+    const r = run(`
+ALGORITHME E
+VARIABLES
+  n : ENTIER
+DEBUT
+  n ← ALEATOIRE(1, 2, 3)
+FIN`);
+    expect(r.error?.message).toMatch(/0, 1 ou 2 arguments/);
+  });
+});

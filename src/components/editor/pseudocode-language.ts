@@ -11,7 +11,7 @@ const KEYWORDS = [
   "DÉBUT", "À", "RÉPÉTER", "JUSQUÀ", "ÉCRIRE", "PROCÉDURE", "FINPROCÉDURE",
 ];
 const TYPES = ["ENTIER", "REEL", "CHAINE", "CARACTERE", "BOOLEEN", "RÉEL", "CHAÎNE", "CARACTÈRE", "BOOLÉEN"];
-const BUILTINS = ["LONGUEUR", "TAILLE", "RACINE", "ABS", "ENT", "ARRONDI", "PUISSANCE", "MIN", "MAX", "ALEA", "MAJUSCULE", "MINUSCULE", "SOUSCHAINE", "EXTRAIRE", "CONCAT", "CHAINE", "ENTIER", "REEL", "ORD", "CHR"];
+const BUILTINS = ["LONGUEUR", "TAILLE", "RACINE", "ABS", "ENT", "ARRONDI", "PUISSANCE", "MIN", "MAX", "ALEA", "ALEATOIRE", "HASARD", "MAJUSCULE", "MINUSCULE", "SOUSCHAINE", "EXTRAIRE", "CONCAT", "CHAINE", "ENTIER", "REEL", "ORD", "CHR"];
 
 const SNIPPETS: Array<{ label: string; insert: string; doc: string }> = [
   { label: "ALGORITHME", insert: "ALGORITHME ${1:Nom}\nVARIABLES\n  ${2:x} : ${3:ENTIER}\nDEBUT\n  $0\nFIN", doc: "Structure complète d'un algorithme" },

@@ -822,6 +822,30 @@ const len: Builtin = {
   },
 };
 
+/**
+ * Nombre au hasard (ALEA, ALEATOIRE, HASARD, RANDOM) :
+ * ()     → réel entre 0 (inclus) et 1 (exclu) ;
+ * (n)    → entier entre 0 et n − 1 ;
+ * (a, b) → entier entre a et b, bornes comprises.
+ */
+const random: Builtin = {
+  fn: (args, line) => {
+    if (args.length === 0) return Math.random();
+    if (args.length === 1) {
+      const n = Math.trunc(needNum(args[0], "ALEATOIRE", line));
+      if (n < 1) throw new PseudoError("execution", "ALEATOIRE(n) attend un nombre n ≥ 1.", line);
+      return Math.floor(Math.random() * n);
+    }
+    if (args.length === 2) {
+      let lo = Math.ceil(needNum(args[0], "ALEATOIRE", line));
+      let hi = Math.floor(needNum(args[1], "ALEATOIRE", line));
+      if (lo > hi) [lo, hi] = [hi, lo];
+      return lo + Math.floor(Math.random() * (hi - lo + 1));
+    }
+    throw new PseudoError("execution", "ALEATOIRE attend 0, 1 ou 2 arguments : ALEATOIRE(), ALEATOIRE(n) ou ALEATOIRE(min, max).", line);
+  },
+};
+
 const BUILTINS: Record<string, Builtin> = {
   longueur: len,
   taille: len,
@@ -840,14 +864,10 @@ const BUILTINS: Record<string, Builtin> = {
   puissance: { arity: 2, fn: ([a, b], line) => Math.pow(needNum(a, "PUISSANCE", line), needNum(b, "PUISSANCE", line)) },
   min: { arity: 2, fn: ([a, b], line) => Math.min(needNum(a, "MIN", line), needNum(b, "MIN", line)) },
   max: { arity: 2, fn: ([a, b], line) => Math.max(needNum(a, "MAX", line), needNum(b, "MAX", line)) },
-  alea: {
-    arity: 2,
-    fn: ([a, b], line) => {
-      const lo = needNum(a, "ALEA", line);
-      const hi = needNum(b, "ALEA", line);
-      return lo + Math.floor(Math.random() * (hi - lo + 1));
-    },
-  },
+  alea: random,
+  aleatoire: random,
+  hasard: random,
+  random: random,
   majuscule: { arity: 1, fn: ([v], line) => needStr(v, "MAJUSCULE", line).toUpperCase() },
   minuscule: { arity: 1, fn: ([v], line) => needStr(v, "MINUSCULE", line).toLowerCase() },
   souschaine: {

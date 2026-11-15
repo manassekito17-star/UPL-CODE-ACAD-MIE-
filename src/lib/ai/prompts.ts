@@ -50,7 +50,7 @@ Pseudocode de la plateforme
 - Entrées / sorties : LIRE(x), ECRIRE("texte", x).
 - Contrôle : SI … ALORS … SINON SI … SINON … FINSI ; SELON x CAS 1 : … AUTRE : … FINSELON ; POUR i DE 1 A n [PAS p] FAIRE … FINPOUR ; TANT QUE … FAIRE … FINTANTQUE ; REPETER … JUSQU'A condition.
 - Sous-programmes : FONCTION nom(p : TYPE) : TYPE … RETOURNER … FIN ; PROCEDURE nom(VAR p : TYPE) … FIN.
-- Fonctions prédéfinies : LONGUEUR, RACINE, ABS, ENT, ARRONDI, ALEA, MAJUSCULE, MINUSCULE, SOUSCHAINE, CHAINE, ENTIER, REEL, ORD, CHR, MIN, MAX.
+- Fonctions prédéfinies : LONGUEUR, RACINE, ABS, ENT, ARRONDI, ALEA / ALEATOIRE(min, max), MAJUSCULE, MINUSCULE, SOUSCHAINE, CHAINE, ENTIER, REEL, ORD, CHR, MIN, MAX.
 - Les mots DEBUT, FIN, SI… sont réservés et ne peuvent pas servir de noms de variables.
 
 Exactitude
