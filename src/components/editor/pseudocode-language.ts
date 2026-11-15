@@ -1,5 +1,7 @@
 import type { Monaco } from "@monaco-editor/react";
 import type { editor, Position } from "monaco-editor";
+import { BUILTIN_NAMES } from "@/lib/pseudocode";
+import { FUNCTION_DOCS } from "@/lib/pseudocode/functions";
 
 const KEYWORDS = [
   "ALGORITHME", "PROGRAMME", "CONSTANTES", "CONSTANTE", "VARIABLES", "VARIABLE", "VAR", "DEBUT", "FIN",
@@ -11,7 +13,8 @@ const KEYWORDS = [
   "DÉBUT", "À", "RÉPÉTER", "JUSQUÀ", "ÉCRIRE", "PROCÉDURE", "FINPROCÉDURE",
 ];
 const TYPES = ["ENTIER", "REEL", "CHAINE", "CARACTERE", "BOOLEEN", "RÉEL", "CHAÎNE", "CARACTÈRE", "BOOLÉEN"];
-const BUILTINS = ["LONGUEUR", "TAILLE", "RACINE", "ABS", "ENT", "ARRONDI", "PUISSANCE", "MIN", "MAX", "ALEA", "MAJUSCULE", "MINUSCULE", "SOUSCHAINE", "EXTRAIRE", "CONCAT", "CHAINE", "ENTIER", "REEL", "ORD", "CHR"];
+// Toutes les fonctions prédéfinies de l'interpréteur (coloration) et leur documentation (autocomplétion).
+const BUILTINS = [...new Set([...BUILTIN_NAMES, ...BUILTIN_NAMES.filter((n) => n.includes("_")).map((n) => n.replace(/_/g, ""))])];
 
 const SNIPPETS: Array<{ label: string; insert: string; doc: string }> = [
   { label: "ALGORITHME", insert: "ALGORITHME ${1:Nom}\nVARIABLES\n  ${2:x} : ${3:ENTIER}\nDEBUT\n  $0\nFIN", doc: "Structure complète d'un algorithme" },
@@ -83,7 +86,15 @@ export function registerPseudocode(monaco: Monaco) {
           })),
           ...KEYWORDS.map((k) => ({ label: k, kind: K.Keyword, insertText: k, range })),
           ...TYPES.map((t) => ({ label: t, kind: K.TypeParameter, insertText: t, range })),
-          ...BUILTINS.map((b) => ({ label: `${b}()`, kind: K.Function, insertText: `${b}($0)`, insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet, range })),
+          ...FUNCTION_DOCS.map((f) => ({
+            label: `${f.name}()`,
+            kind: K.Function,
+            detail: f.signature,
+            documentation: `${f.description}${f.aliases?.length ? `\nAutres noms : ${f.aliases.join(", ")}` : ""}`,
+            insertText: `${f.name}($0)`,
+            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+            range,
+          })),
         ],
       };
     },
