@@ -661,6 +661,7 @@ class Interpreter {
       case "bool":
         return e.value;
       case "var": {
+        if (e.name in CONSTANTS && !this.frame.vars.has(e.name) && !this.globals.vars.has(e.name)) return CONSTANTS[e.name];
         const v = this.lookup(e.name, e.display, e.line).get();
         if (v === undefined) {
           throw new PseudoError(
@@ -812,6 +813,34 @@ const needStr = (v: Value, name: string, line: number): string => {
   if (typeof v !== "string") throw new PseudoError("execution", `${name} attend une chaîne de caractères.`, line);
   return v;
 };
+const needInt = (v: Value, name: string, line: number): number => {
+  const n = needNum(v, name, line);
+  if (!Number.isInteger(n)) throw new PseudoError("execution", `${name} attend un nombre entier.`, line);
+  return n;
+};
+const arity = (args: Value[], name: string, line: number, ...allowed: number[]) => {
+  if (!allowed.includes(args.length)) {
+    const list = allowed.length === 1 ? String(allowed[0]) : `${allowed.slice(0, -1).join(", ")} ou ${allowed[allowed.length - 1]}`;
+    throw new PseudoError("execution", `${name} attend ${list} argument(s).`, line);
+  }
+};
+const finite = (x: number, name: string, line: number) => {
+  if (!Number.isFinite(x)) throw new PseudoError("execution", `${name} : résultat impossible à calculer (valeur hors du domaine).`, line);
+  return x;
+};
+
+/** Nombres d'une liste d'arguments ou d'un tableau (SOMME(t), MAX(a, b, c)…). */
+function numbers(args: Value[], name: string, line: number): number[] {
+  const out: number[] = [];
+  for (const a of args) {
+    if (a && typeof a === "object") for (const x of a.data) out.push(needNum(x, name, line));
+    else out.push(needNum(a, name, line));
+  }
+  if (!out.length) throw new PseudoError("execution", `${name} attend au moins une valeur.`, line);
+  return out;
+}
+
+const math1 = (name: string, f: (x: number) => number): Builtin => ({ arity: 1, fn: ([v], line) => finite(f(needNum(v, name, line)), name, line) });
 
 const len: Builtin = {
   arity: 1,
@@ -846,44 +875,250 @@ const random: Builtin = {
   },
 };
 
-const BUILTINS: Record<string, Builtin> = {
-  longueur: len,
-  taille: len,
-  racine: {
-    arity: 1,
-    fn: ([v], line) => {
-      const n = needNum(v, "RACINE", line);
-      if (n < 0) throw new PseudoError("execution", "RACINE d'un nombre négatif impossible.", line);
-      return Math.sqrt(n);
-    },
+const gcd = (a: number, b: number): number => {
+  a = Math.abs(a);
+  b = Math.abs(b);
+  while (b) [a, b] = [b, a % b];
+  return a;
+};
+const isPrime = (n: number) => {
+  if (n < 2) return false;
+  for (let d = 2; d * d <= n; d++) if (n % d === 0) return false;
+  return true;
+};
+const pad = (n: number) => String(n).padStart(2, "0");
+
+const sqrt: Builtin = {
+  arity: 1,
+  fn: ([v], line) => {
+    const n = needNum(v, "RACINE", line);
+    if (n < 0) throw new PseudoError("execution", "RACINE d'un nombre négatif impossible.", line);
+    return Math.sqrt(n);
   },
-  abs: { arity: 1, fn: ([v], line) => Math.abs(needNum(v, "ABS", line)) },
-  ent: { arity: 1, fn: ([v], line) => Math.floor(needNum(v, "ENT", line)) },
-  partie_entiere: { arity: 1, fn: ([v], line) => Math.floor(needNum(v, "PARTIE_ENTIERE", line)) },
-  arrondi: { arity: 1, fn: ([v], line) => Math.round(needNum(v, "ARRONDI", line)) },
-  puissance: { arity: 2, fn: ([a, b], line) => Math.pow(needNum(a, "PUISSANCE", line), needNum(b, "PUISSANCE", line)) },
-  min: { arity: 2, fn: ([a, b], line) => Math.min(needNum(a, "MIN", line), needNum(b, "MIN", line)) },
-  max: { arity: 2, fn: ([a, b], line) => Math.max(needNum(a, "MAX", line), needNum(b, "MAX", line)) },
-  alea: random,
-  aleatoire: random,
-  hasard: random,
-  random: random,
-  majuscule: { arity: 1, fn: ([v], line) => needStr(v, "MAJUSCULE", line).toUpperCase() },
-  minuscule: { arity: 1, fn: ([v], line) => needStr(v, "MINUSCULE", line).toLowerCase() },
-  souschaine: {
-    arity: 3,
-    fn: ([s, d, n], line) => {
-      const str = needStr(s, "SOUSCHAINE", line);
-      const start = needNum(d, "SOUSCHAINE", line);
-      return str.substr(start - 1, needNum(n, "SOUSCHAINE", line));
-    },
+};
+const abs = math1("ABS", Math.abs);
+const floor = math1("ENT", Math.floor);
+const ceil = math1("PLAFOND", Math.ceil);
+const trunc = math1("TRONQUER", Math.trunc);
+const round: Builtin = {
+  fn: (args, line) => {
+    arity(args, "ARRONDI", line, 1, 2);
+    const x = needNum(args[0], "ARRONDI", line);
+    if (args.length === 1) return Math.sign(x) * Math.round(Math.abs(x));
+    const d = needInt(args[1], "ARRONDI", line);
+    const f = Math.pow(10, d);
+    return (Math.sign(x) * Math.round(Math.abs(x) * f)) / f;
   },
-  extraire: {
-    arity: 3,
-    fn: ([s, d, n], line) => needStr(s, "EXTRAIRE", line).substr(needNum(d, "EXTRAIRE", line) - 1, needNum(n, "EXTRAIRE", line)),
+};
+const pow: Builtin = { arity: 2, fn: ([a, b], line) => finite(Math.pow(needNum(a, "PUISSANCE", line), needNum(b, "PUISSANCE", line)), "PUISSANCE", line) };
+const ln: Builtin = {
+  arity: 1,
+  fn: ([v], line) => {
+    const x = needNum(v, "LN", line);
+    if (x <= 0) throw new PseudoError("execution", "LN (logarithme) d'un nombre négatif ou nul impossible.", line);
+    return Math.log(x);
   },
-  concat: { arity: 2, fn: ([a, b]) => formatValue(a) + formatValue(b) },
-  chaine: { arity: 1, fn: ([v]) => formatValue(v) },
+};
+const log10: Builtin = {
+  arity: 1,
+  fn: ([v], line) => {
+    const x = needNum(v, "LOG10", line);
+    if (x <= 0) throw new PseudoError("execution", "LOG10 d'un nombre négatif ou nul impossible.", line);
+    return Math.log10(x);
+  },
+};
+const asin = math1("ARCSIN", Math.asin);
+const acos = math1("ARCCOS", Math.acos);
+const atan = math1("ARCTAN", Math.atan);
+const min: Builtin = { fn: (args, line) => Math.min(...numbers(args, "MIN", line)) };
+const max: Builtin = { fn: (args, line) => Math.max(...numbers(args, "MAX", line)) };
+const sum: Builtin = { fn: (args, line) => numbers(args, "SOMME", line).reduce((s, x) => s + x, 0) };
+const mean: Builtin = {
+  fn: (args, line) => {
+    const xs = numbers(args, "MOYENNE", line);
+    return xs.reduce((s, x) => s + x, 0) / xs.length;
+  },
+};
+const rest: Builtin = {
+  arity: 2,
+  fn: ([a, b], line) => {
+    const y = needNum(b, "RESTE", line);
+    if (y === 0) throw new PseudoError("execution", "RESTE : division par zéro.", line);
+    return needNum(a, "RESTE", line) % y;
+  },
+};
+const quotient: Builtin = {
+  arity: 2,
+  fn: ([a, b], line) => {
+    const y = needNum(b, "QUOTIENT", line);
+    if (y === 0) throw new PseudoError("execution", "QUOTIENT : division par zéro.", line);
+    return Math.trunc(needNum(a, "QUOTIENT", line) / y);
+  },
+};
+const pgcd: Builtin = { arity: 2, fn: ([a, b], line) => gcd(needInt(a, "PGCD", line), needInt(b, "PGCD", line)) };
+const ppcm: Builtin = {
+  arity: 2,
+  fn: ([a, b], line) => {
+    const x = needInt(a, "PPCM", line);
+    const y = needInt(b, "PPCM", line);
+    return x === 0 || y === 0 ? 0 : Math.abs(x * y) / gcd(x, y);
+  },
+};
+const fact: Builtin = {
+  arity: 1,
+  fn: ([v], line) => {
+    const n = needInt(v, "FACTORIELLE", line);
+    if (n < 0) throw new PseudoError("execution", "FACTORIELLE d'un nombre négatif impossible.", line);
+    if (n > 170) throw new PseudoError("execution", "FACTORIELLE : nombre trop grand (170 au maximum).", line);
+    let r = 1;
+    for (let i = 2; i <= n; i++) r *= i;
+    return r;
+  },
+};
+const even: Builtin = { arity: 1, fn: ([v], line) => needInt(v, "EST_PAIR", line) % 2 === 0 };
+const odd: Builtin = { arity: 1, fn: ([v], line) => Math.abs(needInt(v, "EST_IMPAIR", line) % 2) === 1 };
+const prime: Builtin = { arity: 1, fn: ([v], line) => isPrime(needInt(v, "EST_PREMIER", line)) };
+const pi: Builtin = { arity: 0, fn: () => Math.PI };
+
+// Chaînes
+const upper: Builtin = { arity: 1, fn: ([v], line) => needStr(v, "MAJUSCULE", line).toUpperCase() };
+const lower: Builtin = { arity: 1, fn: ([v], line) => needStr(v, "MINUSCULE", line).toLowerCase() };
+const substr: Builtin = {
+  arity: 3,
+  fn: ([s, d, n], line) => {
+    const str = needStr(s, "SOUSCHAINE", line);
+    const start = needNum(d, "SOUSCHAINE", line);
+    return str.substr(Math.max(0, start - 1), Math.max(0, needNum(n, "SOUSCHAINE", line)));
+  },
+};
+const left: Builtin = { arity: 2, fn: ([s, n], line) => needStr(s, "GAUCHE", line).slice(0, Math.max(0, needNum(n, "GAUCHE", line))) };
+const right: Builtin = {
+  arity: 2,
+  fn: ([s, n], line) => {
+    const str = needStr(s, "DROITE", line);
+    const k = Math.max(0, needNum(n, "DROITE", line));
+    return k === 0 ? "" : str.slice(-k);
+  },
+};
+/** POSITION(sous_chaine, chaine) : position (à partir de 1) de la première occurrence, 0 si absente. */
+const position: Builtin = { arity: 2, fn: ([sub, s], line) => needStr(s, "POSITION", line).indexOf(needStr(sub, "POSITION", line)) + 1 };
+/** TROUVE(chaine, sous_chaine) : même résultat, arguments dans l'autre ordre. */
+const find: Builtin = { arity: 2, fn: ([s, sub], line) => needStr(s, "TROUVE", line).indexOf(needStr(sub, "TROUVE", line)) + 1 };
+const contains: Builtin = { arity: 2, fn: ([s, sub], line) => needStr(s, "CONTIENT", line).includes(needStr(sub, "CONTIENT", line)) };
+const startsWith: Builtin = { arity: 2, fn: ([s, p], line) => needStr(s, "COMMENCE_PAR", line).startsWith(needStr(p, "COMMENCE_PAR", line)) };
+const endsWith: Builtin = { arity: 2, fn: ([s, p], line) => needStr(s, "FINIT_PAR", line).endsWith(needStr(p, "FINIT_PAR", line)) };
+const replace: Builtin = { arity: 3, fn: ([s, a, b], line) => needStr(s, "REMPLACER", line).split(needStr(a, "REMPLACER", line)).join(needStr(b, "REMPLACER", line)) };
+const reverse: Builtin = {
+  arity: 1,
+  fn: ([v], line) => {
+    if (typeof v === "string") return [...v].reverse().join("");
+    if (v && typeof v === "object") return { ...v, data: [...v.data].reverse() };
+    throw new PseudoError("execution", "INVERSER attend une chaîne ou un tableau.", line);
+  },
+};
+const trim: Builtin = { arity: 1, fn: ([v], line) => needStr(v, "SUPPRIMER_ESPACES", line).trim() };
+const repeat: Builtin = {
+  arity: 2,
+  fn: ([s, n], line) => {
+    const k = needInt(n, "DUPLIQUER", line);
+    if (k < 0 || k > 10000) throw new PseudoError("execution", "DUPLIQUER : nombre de répétitions entre 0 et 10000.", line);
+    return needStr(s, "DUPLIQUER", line).repeat(k);
+  },
+};
+const concat: Builtin = { fn: (args) => args.map((a) => formatValue(a)).join("") };
+const toStr: Builtin = { arity: 1, fn: ([v]) => formatValue(v) };
+const toNumber: Builtin = {
+  arity: 1,
+  fn: ([v], line) => {
+    if (typeof v === "number") return v;
+    const n = Number(String(v).trim().replace(",", "."));
+    if (typeof v !== "string" || String(v).trim() === "" || Number.isNaN(n)) throw new PseudoError("execution", `Conversion impossible en nombre : « ${formatValue(v)} ».`, line);
+    return n;
+  },
+};
+const isNumeric: Builtin = {
+  arity: 1,
+  fn: ([v]) => typeof v === "number" || (typeof v === "string" && v.trim() !== "" && !Number.isNaN(Number(v.trim().replace(",", ".")))),
+};
+const ord: Builtin = { arity: 1, fn: ([v], line) => needStr(v, "ORD", line).charCodeAt(0) };
+const chr: Builtin = { arity: 1, fn: ([v], line) => String.fromCharCode(needNum(v, "CHR", line)) };
+const capitalize: Builtin = {
+  arity: 1,
+  fn: ([v], line) => {
+    const s = needStr(v, "CAPITALISER", line);
+    return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+  },
+};
+
+// Date et heure (horloge de l'appareil)
+const now = () => new Date();
+const dateFn: Builtin = { arity: 0, fn: () => { const d = now(); return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`; } };
+const timeFn: Builtin = {
+  fn: (args, line) => {
+    arity(args, "HEURE", line, 0);
+    const d = now();
+    return d.getHours();
+  },
+};
+
+/** Clés : nom normalisé (minuscules, sans accents). Les variantes avec « _ » sont aussi acceptées sans « _ ». */
+const BASE_BUILTINS: Record<string, Builtin> = {
+  // Nombres
+  racine: sqrt, rac: sqrt, sqrt,
+  abs, absolu: abs, valeur_absolue: abs,
+  ent: floor, partie_entiere: floor, plancher: floor, floor,
+  plafond: ceil, ceil,
+  tronquer: trunc, tronque: trunc, trunc,
+  arrondi: round, arrondir: round, round,
+  puissance: pow, puiss: pow, pow,
+  carre: { arity: 1, fn: ([v], line) => needNum(v, "CARRE", line) ** 2 },
+  cube: { arity: 1, fn: ([v], line) => needNum(v, "CUBE", line) ** 3 },
+  exp: math1("EXP", Math.exp),
+  ln, log: ln, loge: ln,
+  log10,
+  log2: { arity: 1, fn: ([v], line) => { const x = needNum(v, "LOG2", line); if (x <= 0) throw new PseudoError("execution", "LOG2 d'un nombre négatif ou nul impossible.", line); return Math.log2(x); } },
+  sin: math1("SIN", Math.sin), sinus: math1("SINUS", Math.sin),
+  cos: math1("COS", Math.cos), cosinus: math1("COSINUS", Math.cos),
+  tan: math1("TAN", Math.tan), tangente: math1("TANGENTE", Math.tan),
+  arcsin: asin, asin,
+  arccos: acos, acos,
+  arctan: atan, atan, arctangente: atan,
+  degres: math1("DEGRES", (x) => (x * 180) / Math.PI),
+  radians: math1("RADIANS", (x) => (x * Math.PI) / 180),
+  pi,
+  signe: math1("SIGNE", (x) => Math.sign(x)),
+  min, minimum: min,
+  max, maximum: max,
+  somme: sum,
+  moyenne: mean,
+  reste: rest, modulo: rest,
+  quotient,
+  pgcd, ppcm,
+  factorielle: fact, fact,
+  est_pair: even, pair: even,
+  est_impair: odd, impair: odd,
+  est_premier: prime, premier: prime,
+  alea: random, aleatoire: random, hasard: random, random,
+  // Chaînes
+  longueur: len, taille: len, nb_caracteres: len,
+  majuscule: upper, majuscules: upper,
+  minuscule: lower, minuscules: lower,
+  capitaliser: capitalize,
+  souschaine: substr, sous_chaine: substr, extraire: substr, milieu: substr,
+  gauche: left, droite: right,
+  position: position, pos: position,
+  trouve: find, chercher: find, rechercher: find,
+  contient: contains,
+  commence_par: startsWith,
+  finit_par: endsWith, termine_par: endsWith,
+  remplacer: replace,
+  inverser: reverse,
+  supprimer_espaces: trim, enlever_espaces: trim, trim,
+  dupliquer: repeat,
+  concat, concatener: concat,
+  chaine: toStr, enchaine: toStr, texte: toStr,
+  nombre: toNumber, val: toNumber, valeur: toNumber,
+  est_numerique: isNumeric, estnum: isNumeric,
   entier: {
     arity: 1,
     fn: ([v], line) => {
@@ -900,12 +1135,26 @@ const BUILTINS: Record<string, Builtin> = {
       return n;
     },
   },
-  ord: { arity: 1, fn: ([v], line) => needStr(v, "ORD", line).charCodeAt(0) },
-  chr: { arity: 1, fn: ([v], line) => String.fromCharCode(needNum(v, "CHR", line)) },
+  ord, code: ord, asc: ord,
+  chr, car: chr,
+  // Date et heure
+  date: dateFn, aujourdhui: dateFn,
+  annee: { arity: 0, fn: () => now().getFullYear() },
+  mois: { arity: 0, fn: () => now().getMonth() + 1 },
+  jour: { arity: 0, fn: () => now().getDate() },
+  heure: timeFn,
+  minute: { arity: 0, fn: () => now().getMinutes() },
+  seconde: { arity: 0, fn: () => now().getSeconds() },
 };
 
+const BUILTINS: Record<string, Builtin> = { ...BASE_BUILTINS };
+for (const [k, v] of Object.entries(BASE_BUILTINS)) if (k.includes("_")) BUILTINS[k.replace(/_/g, "")] ??= v;
+
+/** Constantes utilisables sans parenthèses quand aucune variable ne porte ce nom. */
+const CONSTANTS: Record<string, number> = { pi: Math.PI };
+
 /** Liste des fonctions prédéfinies (pour la documentation et l'éditeur). */
-export const BUILTIN_NAMES = Object.keys(BUILTINS).map((n) => n.toUpperCase());
+export const BUILTIN_NAMES = Object.keys(BASE_BUILTINS).map((n) => n.toUpperCase());
 
 export function runPseudocode(source: string, stdin = "", limits: Partial<RunLimits> = {}): RunResult {
   let interp: Interpreter | null = null;
