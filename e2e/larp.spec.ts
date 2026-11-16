@@ -98,6 +98,26 @@ test("Interface classique : organigramme construit au toucher, exécuté, tradui
   await expect(page.getByTestId("dialogue-pseudo")).toContainText('ÉCRIRE "Double = ", n * 2');
 });
 
+test("Interface classique : tous les modèles d'organigramme de LARP (REQUÊTE, SÉLECTIONNER, tampons…)", async ({ page }) => {
+  await openClassic(page);
+  await page.getByTestId("menu-Projet").click();
+  await page.getByTestId("menu-Projet/Nouveau").click();
+  await page.getByTestId("menu-Projet/Nouveau/Organigramme…").click();
+  for (const id of ["assign", "input", "output", "call", "comment", "if", "while", "repeat", "for", "requete", "lire-de", "ecrire-dans", "selectionner", "ouvrir", "fermer", "separateur", "detruire", "compresser"])
+    await expect(page.getByTestId(`forme-${id}`)).toBeVisible();
+  await page.getByTestId("forme-requete").click();
+  await page.getByTestId("inserer").last().click();
+  await page.getByTestId("contenu-ok").click();
+  await page.getByTestId("forme-selectionner").click();
+  await page.getByTestId("inserer").last().click();
+  await page.getByTestId("contenu-ok").click();
+  await expect(page.getByTestId("organigramme")).toContainText("REQUÊTE");
+  await page.keyboard.press("F7");
+  await page.getByTestId("console-saisie").fill("3");
+  await page.getByTestId("console-saisie").press("Enter");
+  await expect(page.getByTestId("console-texte")).toContainText("deux ou trois");
+});
+
 for (const [name, device] of [["iPhone", devices["iPhone 13 landscape"]], ["Android", devices["Pixel 7 landscape"]]] as const) {
   test(`Interface classique sur ${name} (paysage) : même fenêtre, exécution au toucher`, async ({ browser }) => {
     const opts: Record<string, unknown> = { ...device };

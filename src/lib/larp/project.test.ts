@@ -32,3 +32,27 @@ describe("projet classique : organigramme ↔ pseudo-code", () => {
     expect(runProject(modules, ["5"]).output).toBe("Entrez un entier : 5\nLa factorielle de  5  est  120\n");
   });
 });
+
+describe("modèles d'organigramme (tous ceux de LARP sur PC)", () => {
+  it("chaque modèle crée un bloc qui se traduit en pseudo-code valide", async () => {
+    const { FLOW_TEMPLATES } = await import("./project");
+    const { compileProject } = await import("./interpreter");
+    expect(FLOW_TEMPLATES.map((t) => t.id)).toEqual(
+      expect.arrayContaining(["assign", "input", "output", "call", "comment", "if", "while", "repeat", "for", "requete", "lire-de", "ecrire-dans", "selectionner", "ouvrir", "fermer", "separateur", "detruire", "compresser"]),
+    );
+    for (const t of FLOW_TEMPLATES) {
+      const doc: LarpDoc = { id: "m", kind: "organigramme", name: "PRINCIPAL", main: true, flow: { name: "P", vars: [], body: [t.make()] } };
+      const aux: LarpDoc = { id: "a", kind: "pseudo", name: "Module", code: "ENTRER\nRETOURNER\n" };
+      const { modules } = projectSources({ name: "t", docs: [doc, aux] });
+      const r = compileProject(modules);
+      expect(r.ok, `${t.id} : ${docSource(doc).code} ${r.ok ? "" : r.error.message}`).toBe(true);
+    }
+  });
+
+  it("SÉLECTIONNER et REQUÊTE s'exécutent depuis l'organigramme", async () => {
+    const { flowTemplate } = await import("./project");
+    const doc: LarpDoc = { id: "m", kind: "organigramme", name: "PRINCIPAL", main: true, flow: { name: "P", vars: [], body: [flowTemplate("requete")!.make(), flowTemplate("selectionner")!.make()] } };
+    const { modules } = projectSources({ name: "t", docs: [doc] });
+    expect(runProject(modules, ["2"]).output).toBe("Entrez une valeur : 2\ndeux ou trois\n");
+  });
+});

@@ -78,14 +78,14 @@ interface Props {
   flow: FlowProgram;
   zoom: number;
   selected: string | null;
-  armed: FlowKind | null;
+  armed: string | null;
   editable: boolean;
   activeNode?: string;
   errorNode?: string;
   breakpoints: Set<string>;
   onSelect: (id: string | null) => void;
   onEdit: (id: string) => void;
-  onInsert: (loc: FlowLoc, kind?: FlowKind) => void;
+  onInsert: (loc: FlowLoc, templateId?: string) => void;
 }
 
 export function LarpChart({ doc, flow, zoom, selected, armed, editable, activeNode, errorNode, breakpoints, onSelect, onEdit, onInsert }: Props) {
@@ -255,7 +255,7 @@ export function LarpChart({ doc, flow, zoom, selected, armed, editable, activeNo
                 }}
                 onDrop={(ev) => {
                   ev.preventDefault();
-                  const k = ev.dataTransfer.getData(DRAG_TYPE) as FlowKind;
+                  const k = ev.dataTransfer.getData(DRAG_TYPE);
                   if (k) onInsert(loc, k);
                 }}
               >
@@ -269,10 +269,16 @@ export function LarpChart({ doc, flow, zoom, selected, armed, editable, activeNo
 }
 
 /** Petite vignette d'une forme pour le panneau de modèles (organigramme). */
-export function FlowGlyph({ kind }: { kind: FlowKind }) {
+export function FlowGlyph({ kind, mark }: { kind: FlowKind; mark?: string }) {
   const st = { fill: "#fff", stroke: "#222", strokeWidth: 1 };
   const arrowIn = <path d="M20 0v5" stroke="#222" />;
-  const body = (() => {
+  // Modèle prérempli (REQUÊTE, OUVRIR…) : forme du bloc avec une courte étiquette.
+  const marked = mark
+    ? kind === "assign"
+      ? <g><rect x={6} y={5} width={28} height={12} {...st} /><text x={20} y={14} fontSize={6.5} textAnchor="middle" fontFamily="Tahoma">{mark}</text></g>
+      : <g><polygon points="12,5 33,5 28,17 7,17" {...st} /><text x={20} y={14} fontSize={6.5} textAnchor="middle" fontFamily="Tahoma">{mark}</text></g>
+    : null;
+  const body = marked ?? (() => {
     switch (kind) {
       case "assign":
         return <rect x={10} y={5} width={20} height={11} {...st} />;
