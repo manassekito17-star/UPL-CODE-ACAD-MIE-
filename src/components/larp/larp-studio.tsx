@@ -15,7 +15,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { cloneWithNewIds, findNode, insertNodes, locationOf, removeNodes, type FlowKind, type FlowLoc, type FlowNode, type FlowProgram } from "@/lib/flow/model";
+import { cloneWithNewIds, findNode, insertNodes, locationOf, removeNodes, type FlowLoc, type FlowNode, type FlowProgram } from "@/lib/flow/model";
 import { compileProject, Machine, NAME_RE, type RunEvent } from "@/lib/larp/interpreter";
 import { KEYWORDS, LarpError, norm } from "@/lib/larp/lexer";
 import {
@@ -23,7 +23,7 @@ import {
   docSource,
   exampleProject,
   FLOW_TEMPLATES,
-  larpNode,
+  flowTemplate,
   newBuffer,
   newModule,
   newProject,
@@ -198,7 +198,7 @@ export function LarpStudio() {
   const [editorBg, setEditorBg] = useState("#b9d3b1");
   const [chartZoom, setChartZoom] = useState(1);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
-  const [armed, setArmed] = useState<FlowKind | null>(null);
+  const [armed, setArmed] = useState<string | null>(null);
   const [findText, setFindText] = useState("");
   const editor = useRef<EditorHandle>(null);
   const flowUndo = useRef<Array<{ id: string; flow: FlowProgram }>>([]);
@@ -483,13 +483,13 @@ export function LarpStudio() {
     if (record) flowUndo.current.push({ id: doc.id, flow: doc.flow });
     updateDoc(doc.id, { flow });
   };
-  const insertAt = (loc: FlowLoc, kind?: FlowKind) => {
-    const k = kind ?? armed;
-    if (!k || !doc.flow) {
+  const insertAt = (loc: FlowLoc, templateId?: string) => {
+    const tpl = flowTemplate(templateId ?? armed ?? "");
+    if (!tpl || !doc.flow) {
       setHint("Choisissez d'abord une instruction dans le panneau Modèles, puis touchez un « + ».");
       return;
     }
-    const n = larpNode(k);
+    const n = tpl.make();
     setFlow(insertNodes(doc.flow, loc, [n]));
     setArmed(null);
     setSelectedNode(n.id);
@@ -1095,17 +1095,20 @@ export function LarpStudio() {
                         {FLOW_TEMPLATES.map((t) => (
                           <button
                             type="button"
-                            key={t.kind}
+                            key={t.id}
                             draggable
-                            onDragStart={(e) => e.dataTransfer.setData(DRAG_TYPE, t.kind)}
-                            onClick={() => setArmed(armed === t.kind ? null : t.kind)}
+                            onDragStart={(e) => e.dataTransfer.setData(DRAG_TYPE, t.id)}
+                            onClick={() => {
+                              setArmed(armed === t.id ? null : t.id);
+                              setHint(`${t.label} : touchez maintenant un « + » de l'organigramme.`);
+                            }}
                             onMouseEnter={() => setHint(`${t.label} : touchez-la puis touchez un « + » de l'organigramme (ou glissez-la sur un « + »).`)}
                             title={t.label}
                             aria-label={t.label}
-                            data-testid={`forme-${t.kind}`}
-                            className={`grid h-[38px] place-items-center rounded-[2px] border ${armed === t.kind ? "border-[#b45309] bg-[#fde68a]" : "border-transparent hover:border-[#aca899] hover:bg-[#f7f6f1]"}`}
+                            data-testid={`forme-${t.id}`}
+                            className={`grid h-[38px] place-items-center rounded-[2px] border ${armed === t.id ? "border-[#b45309] bg-[#fde68a]" : "border-transparent hover:border-[#aca899] hover:bg-[#f7f6f1]"}`}
                           >
-                            <FlowGlyph kind={t.kind} />
+                            <FlowGlyph kind={t.kind} mark={t.mark} form={t.form} />
                           </button>
                         ))}
                         <p className="col-span-3 px-1 pt-1 text-[10px] leading-tight text-[#555]">{armed ? "Touchez maintenant un « + » de l'organigramme." : "Touchez une forme, puis un « + »."}</p>

@@ -7,7 +7,7 @@
  * Dessin SVG autonome (fonctionne dans l'interface mise à l'échelle).
  */
 import { useMemo, type ReactNode } from "react";
-import { allNodes, findNode, type FlowKind, type FlowLoc, type FlowNode, type FlowProgram } from "@/lib/flow/model";
+import { allNodes, findNode, type AssignForm, type FlowKind, type FlowLoc, type FlowNode, type FlowProgram } from "@/lib/flow/model";
 import { layoutProgram, type LayoutEdge, type LayoutNode } from "@/lib/flow/layout";
 import { processText, type LarpDoc } from "@/lib/larp/project";
 
@@ -44,7 +44,15 @@ export function nodeLabel(doc: LarpDoc, n: FlowNode | undefined, id: string): { 
   }
 }
 
-function shapePath(shape: LayoutNode["shape"], w: number, h: number, props: { fill: string; stroke: string; sw: number }): ReactNode {
+type Figure = LayoutNode["shape"] | "document" | "multi";
+
+/** Figure d'un bloc : celle de la mise en page, ou celle du modèle LARP (REQUÊTE, tampon, sélection). */
+function figureOf(shape: LayoutNode["shape"], n: FlowNode | undefined): Figure {
+  if (n?.kind !== "assign" || !n.form) return shape;
+  return n.form === "requete" ? "io" : n.form === "tampon" ? "document" : "multi";
+}
+
+function shapePath(shape: Figure, w: number, h: number, props: { fill: string; stroke: string; sw: number }): ReactNode {
   const c = { fill: props.fill, stroke: props.stroke, strokeWidth: props.sw };
   const k = 12;
   switch (shape) {
@@ -66,6 +74,19 @@ function shapePath(shape: LayoutNode["shape"], w: number, h: number, props: { fi
       );
     case "comment":
       return <rect x={1} y={1} width={w - 2} height={h - 2} {...c} fill="none" strokeDasharray="4 3" />;
+    case "document": {
+      // Tampon (fichier) : rectangle à bord inférieur ondulé.
+      const b = h - 6;
+      return <path d={`M1 1H${w - 1}V${b}C${w * 0.75} ${b - 8} ${w * 0.6} ${h + 4} ${w / 2} ${b}S${w * 0.2} ${b - 8} 1 ${b}Z`} {...c} />;
+    }
+    case "multi":
+      // Sélection : losange avec plusieurs sorties (un cas par valeur).
+      return (
+        <g>
+          <polygon points={`${w / 2},1 ${w - 1},${h / 2} ${w / 2},${h - 1} 1,${h / 2}`} {...c} />
+          <path d={`M${w * 0.3} ${h * 0.8}v6M${w * 0.7} ${h * 0.8}v6`} stroke={props.stroke} strokeWidth={props.sw} />
+        </g>
+      );
     case "junction":
       return <circle cx={w / 2} cy={h / 2} r={4} fill="#555" />;
     default:
@@ -78,14 +99,14 @@ interface Props {
   flow: FlowProgram;
   zoom: number;
   selected: string | null;
-  armed: FlowKind | null;
+  armed: string | null;
   editable: boolean;
   activeNode?: string;
   errorNode?: string;
   breakpoints: Set<string>;
   onSelect: (id: string | null) => void;
   onEdit: (id: string) => void;
-  onInsert: (loc: FlowLoc, kind?: FlowKind) => void;
+  onInsert: (loc: FlowLoc, templateId?: string) => void;
 }
 
 export function LarpChart({ doc, flow, zoom, selected, armed, editable, activeNode, errorNode, breakpoints, onSelect, onEdit, onInsert }: Props) {
@@ -195,7 +216,7 @@ export function LarpChart({ doc, flow, zoom, selected, armed, editable, activeNo
               const stroke = errorNode === id ? "#dc2626" : isSel ? "#1d4ed8" : "#222";
               return (
                 <g key={n.id} transform={`translate(${n.x},${n.y})`}>
-                  {shapePath(n.shape, n.w, n.h, { fill, stroke, sw: isSel || errorNode === id ? 2.4 : 1.2 })}
+                  {shapePath(figureOf(n.shape, n.flowId ? findNode(flow, n.flowId) : undefined), n.w, n.h, { fill, stroke, sw: isSel || errorNode === id ? 2.4 : 1.2 })}
                 </g>
               );
             })}
@@ -255,7 +276,7 @@ export function LarpChart({ doc, flow, zoom, selected, armed, editable, activeNo
                 }}
                 onDrop={(ev) => {
                   ev.preventDefault();
-                  const k = ev.dataTransfer.getData(DRAG_TYPE) as FlowKind;
+                  const k = ev.dataTransfer.getData(DRAG_TYPE);
                   if (k) onInsert(loc, k);
                 }}
               >
@@ -269,10 +290,23 @@ export function LarpChart({ doc, flow, zoom, selected, armed, editable, activeNo
 }
 
 /** Petite vignette d'une forme pour le panneau de modèles (organigramme). */
-export function FlowGlyph({ kind }: { kind: FlowKind }) {
+export function FlowGlyph({ kind, mark, form }: { kind: FlowKind; mark?: string; form?: AssignForm }) {
   const st = { fill: "#fff", stroke: "#222", strokeWidth: 1 };
   const arrowIn = <path d="M20 0v5" stroke="#222" />;
-  const body = (() => {
+  // Modèle prérempli (REQUÊTE, OUVRIR…) : forme du bloc avec une courte étiquette.
+  const label = (y = 14) => <text x={20} y={y} fontSize={6.5} textAnchor="middle" fontFamily="Tahoma">{mark}</text>;
+  const marked = form === "tampon"
+    ? <g><path d="M7 5H33V15C28 12 25 20 20 15S12 12 7 15Z" {...st} />{label(12)}</g>
+    : form === "selection"
+    ? <g><polygon points="20,4 32,11 20,18 8,11" {...st} /><path d="M14 15v5M26 15v5M20 18v2" stroke="#222" />{label(13)}</g>
+    : form === "requete"
+    ? <g><polygon points="12,5 33,5 28,17 7,17" {...st} />{label()}</g>
+    : mark
+    ? kind === "assign"
+      ? <g><rect x={6} y={5} width={28} height={12} {...st} /><text x={20} y={14} fontSize={6.5} textAnchor="middle" fontFamily="Tahoma">{mark}</text></g>
+      : <g><polygon points="12,5 33,5 28,17 7,17" {...st} /><text x={20} y={14} fontSize={6.5} textAnchor="middle" fontFamily="Tahoma">{mark}</text></g>
+    : null;
+  const body = marked ?? (() => {
     switch (kind) {
       case "assign":
         return <rect x={10} y={5} width={20} height={11} {...st} />;

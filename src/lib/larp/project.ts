@@ -5,7 +5,7 @@
  * traduisent en pseudo-code classique (avec correspondance bloc ↔ ligne pour
  * le surlignage pas-à-pas et la localisation des erreurs).
  */
-import { newId, type FlowKind, type FlowNode, type FlowProgram } from "../flow/model";
+import { newId, type AssignForm, type FlowKind, type FlowNode, type FlowProgram } from "../flow/model";
 import type { CloudInfo } from "./cloud";
 import type { SourceBuffer, SourceModule } from "./interpreter";
 
@@ -213,27 +213,72 @@ export const PSEUDO_TEMPLATES: Template[] = [
     lines: ["POUR {variable} = {début} JUSQU'À {fin} INCRÉMENT {pas} FAIRE", "   {suite_instructions}", "FINPOUR"],
     text: "POUR {variable} = {début} JUSQU'À {fin} FAIRE\n  {suite_instructions}\nFINPOUR",
   },
+  {
+    label: "POUR-INCRÉMENT",
+    lines: ["POUR {variable} = {début} JUSQU'À {fin} INCRÉMENT {pas} FAIRE", "   {suite_instructions}", "FINPOUR"],
+    text: "POUR {variable} = {début} JUSQU'À {fin} INCRÉMENT {pas} FAIRE\n  {suite_instructions}\nFINPOUR",
+  },
+  { label: "DÉBUT-FIN", lines: ["DÉBUT", "   {suite_instructions}", "FIN"], text: "DÉBUT\n  {suite_instructions}\nFIN" },
   { label: "EXÉCUTER", lines: ["EXÉCUTER {module}({liste_arguments})"], text: "EXÉCUTER {module}({liste_arguments})" },
   { label: "ENTRER", lines: ["ENTRER {liste_paramètres}", "   {suite_instructions}", "RETOURNER {valeur}"], text: "ENTRER {liste_paramètres}\n  {suite_instructions}\nRETOURNER {valeur}" },
   { label: "SÉPARATEUR", lines: ["SÉPARATEUR {caractère}"], text: 'SÉPARATEUR ","' },
   { label: "OUVRIR", lines: ["OUVRIR TAMPON {nom} SUR {canal} EN LECTURE"], text: 'OUVRIR TAMPON "{nom}" SUR {canal} EN LECTURE' },
+  { label: "OUVRIR EN ÉCRITURE", lines: ["OUVRIR TAMPON {nom} SUR {canal} EN ÉCRITURE"], text: 'OUVRIR TAMPON "{nom}" SUR {canal} EN ÉCRITURE' },
+  { label: "OUVRIR EN AJOUT", lines: ["OUVRIR TAMPON {nom} SUR {canal} EN AJOUT"], text: 'OUVRIR TAMPON "{nom}" SUR {canal} EN AJOUT' },
+  { label: "OUVRIR FICHIER", lines: ["OUVRIR FICHIER {nom} SUR {canal} EN LECTURE"], text: 'OUVRIR FICHIER "{nom}" SUR {canal} EN LECTURE' },
+  { label: "EST (type)", lines: ["SI {variable} EST {ENTIER|FLOTTANT|CHAÎNE|CONTENEUR|DÉFINIE} ALORS", "   {suite_instructions}", "FINSI"], text: "SI {variable} EST ENTIER ALORS\n  {suite_instructions}\nFINSI" },
   { label: "FERMER", lines: ["FERMER {liste_canaux}"], text: "FERMER {liste_canaux}" },
   { label: "DÉTRUIRE", lines: ["DÉTRUIRE {variable}"], text: "DÉTRUIRE {variable}" },
   { label: "COMPRESSER", lines: ["COMPRESSER {conteneur}"], text: "COMPRESSER {conteneur}" },
   { label: "Commentaire", lines: ["\\\\ {commentaire}"], text: "\\\\ {commentaire}" },
 ];
 
-export const FLOW_TEMPLATES: Array<{ kind: FlowKind; label: string }> = [
-  { kind: "assign", label: "Instruction séquentielle" },
-  { kind: "input", label: "Lecture (LIRE)" },
-  { kind: "output", label: "Écriture (ÉCRIRE)" },
-  { kind: "call", label: "Appel de module (EXÉCUTER)" },
-  { kind: "comment", label: "Commentaire" },
-  { kind: "if", label: "Condition SI (Vrai / Faux)" },
-  { kind: "while", label: "Boucle TANTQUE" },
-  { kind: "repeat", label: "Boucle RÉPÉTER-JUSQU'À" },
-  { kind: "for", label: "Boucle POUR" },
+/**
+ * Modèles du panneau (organigramme), comme dans LARP sur PC : chaque modèle crée
+ * un bloc d'un type donné, prérempli (ex. REQUÊTE, OUVRIR, SÉLECTIONNER sont des
+ * instructions séquentielles au contenu proposé). `mark` : texte dans la vignette.
+ */
+export interface FlowTemplate {
+  id: string;
+  kind: FlowKind;
+  label: string;
+  mark?: string;
+  /** Figure particulière (bloc séquentiel) : requête, tampon, sélection. */
+  form?: AssignForm;
+  make: () => FlowNode;
+}
+
+const seqBlock = (expr: string, form?: AssignForm) => (): FlowNode => ({ id: newId(), kind: "assign", target: "", expr, ...(form ? { form } : {}) });
+
+export const FLOW_TEMPLATES: FlowTemplate[] = [
+  { id: "assign", kind: "assign", label: "Instruction séquentielle", make: () => larpNode("assign") },
+  { id: "input", kind: "input", label: "Lecture (LIRE)", make: () => larpNode("input") },
+  { id: "output", kind: "output", label: "Écriture (ÉCRIRE)", make: () => larpNode("output") },
+  { id: "call", kind: "call", label: "Appel de module (EXÉCUTER)", make: () => larpNode("call") },
+  { id: "comment", kind: "comment", label: "Commentaire", make: () => larpNode("comment") },
+  { id: "if", kind: "if", label: "Condition SI (Vrai / Faux)", make: () => larpNode("if") },
+  { id: "while", kind: "while", label: "Boucle TANTQUE", make: () => larpNode("while") },
+  { id: "repeat", kind: "repeat", label: "Boucle RÉPÉTER-JUSQU'À", make: () => larpNode("repeat") },
+  { id: "for", kind: "for", label: "Boucle POUR", make: () => larpNode("for") },
+  { id: "requete", kind: "assign", form: "requete", mark: "REQ", label: "Requête (REQUÊTE : message puis lecture)", make: seqBlock('REQUÊTE "Entrez une valeur : ", x', "requete") },
+  { id: "lire-de", kind: "input", mark: "L#", label: "Lecture dans un tampon (LIRE … DE canal)", make: () => ({ id: newId(), kind: "input", target: "x DE 1" }) },
+  { id: "ecrire-dans", kind: "output", mark: "É#", label: "Écriture dans un tampon (ÉCRIRE … DANS canal)", make: () => ({ id: newId(), kind: "output", expr: "x DANS 1" }) },
+  {
+    id: "selectionner",
+    kind: "assign",
+    form: "selection",
+    mark: "SEL",
+    label: "Sélection (SÉLECTIONNER … FINSÉLECTIONNER)",
+    make: seqBlock('SÉLECTIONNER x\n  1 : ÉCRIRE "un"\n  2, 3 : ÉCRIRE "deux ou trois"\n  SINON\n    ÉCRIRE "autre"\nFINSÉLECTIONNER', "selection"),
+  },
+  { id: "ouvrir", kind: "assign", form: "tampon", mark: "OUV", label: "Ouvrir un tampon (OUVRIR … SUR canal EN LECTURE/ÉCRITURE/AJOUT)", make: seqBlock('OUVRIR TAMPON "Donnees" SUR 1 EN LECTURE', "tampon") },
+  { id: "fermer", kind: "assign", form: "tampon", mark: "FER", label: "Fermer un tampon (FERMER canal)", make: seqBlock("FERMER 1", "tampon") },
+  { id: "separateur", kind: "assign", mark: "SÉP", label: "Séparateur des valeurs (SÉPARATEUR)", make: seqBlock('SÉPARATEUR ","') },
+  { id: "detruire", kind: "assign", mark: "DÉT", label: "Détruire une variable ou un élément (DÉTRUIRE)", make: seqBlock("DÉTRUIRE x") },
+  { id: "compresser", kind: "assign", mark: "CMP", label: "Compresser un conteneur (COMPRESSER)", make: seqBlock("COMPRESSER t") },
 ];
+
+export const flowTemplate = (id: string) => FLOW_TEMPLATES.find((t) => t.id === id);
 
 // ---------------------------------------------------------------- Enregistrement local
 

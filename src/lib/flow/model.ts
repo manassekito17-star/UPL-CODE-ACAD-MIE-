@@ -23,7 +23,8 @@ export interface FlowVar {
 }
 
 export type FlowNode =
-  | { id: string; kind: "assign"; target: string; expr: string }
+  /** `form` (interface LARP) : figure dessinée pour un bloc séquentiel prérempli. */
+  | { id: string; kind: "assign"; target: string; expr: string; form?: AssignForm }
   | { id: string; kind: "input"; target: string }
   | { id: string; kind: "output"; expr: string }
   | { id: string; kind: "if"; cond: string; yes: FlowNode[]; no: FlowNode[] }
@@ -34,6 +35,8 @@ export type FlowNode =
   | { id: string; kind: "comment"; text: string };
 
 export type FlowKind = FlowNode["kind"];
+/** Figure d'un bloc séquentiel : requête (entrée/sortie), tampon (document), sélection (choix multiple). */
+export type AssignForm = "requete" | "tampon" | "selection";
 export type Branch = "body" | "yes" | "no";
 
 export interface FlowProgram {
