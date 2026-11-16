@@ -183,6 +183,7 @@ export function OfflineDialog({
           {features ?? (
           <ul className="space-y-0.5 text-[var(--ide-muted)]">
             <li>✓ Éditeur, fichiers et dossiers, projet enregistré sur l&apos;appareil</li>
+            <li>✓ Les éditeurs UPL IDE, UPL Algo et l&apos;interface LARP (avec Flow Studio et le laboratoire)</li>
             <li>✓ Pseudocode, JavaScript{ready?.python || withPython ? ", Python, K+" : ""} et aperçu des pages HTML/CSS</li>
             <li>✓ Clavier de programmation, modèles de fichiers, balises Emmet</li>
             <li>✗ C et Java (exécutés sur le serveur), professeur IA, cours en ligne</li>

@@ -22,7 +22,7 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
 
 /** Fichiers déjà chargés par la page (scripts, styles, polices, éditeur) à garder sur l'appareil. */
 function loadedResources(): string[] {
-  const urls = new Set<string>(["/ide", "/editeur", "/laboratoire", "/workers/python-worker.mjs", "/workers/kplus-worker.mjs", "/workers/kplus-moteur.json", "/favicon.ico", "/ide.webmanifest", "/icons/ide-192.png", "/icons/ide-512.png", "/editeur.webmanifest", "/icons/editeur-v2-192.png", "/icons/editeur-v2-512.png"]);
+  const urls = new Set<string>(["/ide", "/editeur", "/laboratoire", "/flow", "/flow/classique", "/workers/python-worker.mjs", "/workers/kplus-worker.mjs", "/workers/kplus-moteur.json", "/favicon.ico", "/ide.webmanifest", "/icons/ide-192.png", "/icons/ide-512.png", "/editeur.webmanifest", "/icons/editeur-v2-192.png", "/icons/editeur-v2-512.png"]);
   for (const e of performance.getEntriesByType("resource") as PerformanceResourceTiming[]) {
     const u = e.name;
     if (u.startsWith(`${location.origin}/_next/static/`) || u.startsWith("https://cdn.jsdelivr.net/npm/monaco-editor@") || u.startsWith("https://cdn.jsdelivr.net/npm/pyodide@")) urls.add(u);
@@ -84,7 +84,8 @@ function warmPage(path: string, timeoutMs = 25_000): Promise<void> {
     const timer = setInterval(() => {
       let ready = false;
       try {
-        ready = Boolean(frame.contentDocument?.querySelector(".monaco-editor"));
+        // Éditeur de code (Monaco), fenêtre de l'interface LARP ou bibliothèque de Flow Studio.
+        ready = Boolean(frame.contentDocument?.querySelector('.monaco-editor, [data-testid="larp-fenetre"], [data-testid="bibliotheque"]'));
       } catch {
         /* cadre inaccessible */
       }
@@ -141,8 +142,8 @@ export async function prepareOffline(opts: {
   try {
     opts.onStep("Langages de l'éditeur (coloration, suggestions, erreurs)…");
     await opts.loadLanguages();
-    opts.onStep("Éditeur et laboratoire d'algorithmique…");
-    for (const path of ["/editeur", "/laboratoire"]) await warmPage(path);
+    opts.onStep("UPL Algo, interface LARP, Flow Studio et laboratoire…");
+    for (const path of ["/editeur", "/flow/classique", "/flow", "/laboratoire"]) await warmPage(path);
     if (opts.warmPython) {
       opts.onStep("Python (environ 10 Mo)…");
       await opts.warmPython();
