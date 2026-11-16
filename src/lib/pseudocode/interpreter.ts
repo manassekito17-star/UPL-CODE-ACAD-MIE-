@@ -36,6 +36,12 @@ export interface RunLimits {
   maxDepth: number;
   /** Taille maximale de la sortie en caractères. */
   maxOutput: number;
+  /**
+   * Graine du hasard (ALEATOIRE) : avec la même graine, les mêmes nombres sont tirés.
+   * L'éditeur relance l'algorithme à chaque saisie dans la console : la graine garde le même
+   * « nombre secret » d'une relance à l'autre.
+   */
+  seed?: number;
 }
 
 export const DEFAULT_LIMITS: RunLimits = {
@@ -333,7 +339,7 @@ class Interpreter {
         "execution",
         `Limite d'exécution atteinte (${this.limits.maxSteps.toLocaleString("fr-FR")} instructions).`,
         line,
-        "Votre programme contient peut-être une boucle infinie : vérifiez que la condition de sortie finit par être atteinte.",
+        this.loopHint() ?? "Votre programme contient peut-être une boucle infinie : vérifiez que la condition de sortie finit par être atteinte.",
       );
     }
   }
@@ -341,9 +347,81 @@ class Interpreter {
   private write(text: string, line: number) {
     this.outLen += text.length;
     if (this.outLen > this.limits.maxOutput) {
-      throw new PseudoError("execution", "Sortie trop longue : le programme affiche trop de texte.", line, "Vérifiez qu'une boucle n'affiche pas indéfiniment.");
+      throw new PseudoError("execution", "Sortie trop longue : le programme affiche trop de texte (boucle sans fin ?).", line, this.loopHint() ?? "Vérifiez qu'une boucle n'affiche pas indéfiniment.");
     }
     this.out.push(text);
+  }
+
+  /** Boucles TANT QUE / RÉPÉTER en cours d'exécution (pour expliquer une boucle sans fin). */
+  private loops: Array<Extract<Stmt, { kind: "while" | "repeat" }>> = [];
+
+  /**
+   * Boucle sans fin : si la condition de la boucle en cours dépend de variables qu'aucune
+   * instruction de la boucle ne modifie, on l'explique et on propose la correction.
+   */
+  private loopHint(): string | undefined {
+    const loop = this.loops[this.loops.length - 1];
+    if (!loop) return undefined;
+    const used = new Map<string, string>();
+    let opaque = false;
+    const scanExpr = (e: Expr) => {
+      if (e.kind === "var" || e.kind === "index") used.set(e.name, e.display);
+      if (e.kind === "index") e.indices.forEach(scanExpr);
+      if (e.kind === "call") {
+        if (this.routines.has(e.name)) opaque = true;
+        e.args.forEach(scanExpr);
+      }
+      if (e.kind === "unary") scanExpr(e.operand);
+      if (e.kind === "binary") {
+        scanExpr(e.left);
+        scanExpr(e.right);
+      }
+    };
+    scanExpr(loop.cond);
+    const changed = new Set<string>();
+    const callsIn = (e: Expr): boolean =>
+      e.kind === "call" ? this.routines.has(e.name) || e.args.some(callsIn) : e.kind === "binary" ? callsIn(e.left) || callsIn(e.right) : e.kind === "unary" ? callsIn(e.operand) : e.kind === "index" ? e.indices.some(callsIn) : false;
+    const scanStmts = (list: Stmt[]) => {
+      for (const st of list) {
+        switch (st.kind) {
+          case "assign":
+            changed.add(st.target.name);
+            if (callsIn(st.value)) opaque = true;
+            break;
+          case "read":
+            st.targets.forEach((t) => changed.add(t.name));
+            break;
+          case "call":
+            opaque = true;
+            break;
+          case "if":
+            st.branches.forEach((b) => scanStmts(b.body));
+            if (st.elseBody) scanStmts(st.elseBody);
+            break;
+          case "for":
+            changed.add(st.variable.name);
+            scanStmts(st.body);
+            break;
+          case "while":
+          case "repeat":
+            scanStmts(st.body);
+            break;
+          case "switch":
+            st.cases.forEach((c) => scanStmts(c.body));
+            if (st.defaultBody) scanStmts(st.defaultBody);
+            break;
+          case "write":
+            if (st.args.some(callsIn)) opaque = true;
+            break;
+        }
+      }
+    };
+    scanStmts(loop.body);
+    if (opaque || !used.size || [...used.keys()].some((k) => changed.has(k))) return undefined;
+    const names = [...used.values()];
+    const list = names.length === 1 ? names[0] : `${names.slice(0, -1).join(", ")} et ${names[names.length - 1]}`;
+    const what = loop.kind === "while" ? "TANT QUE" : "RÉPÉTER … JUSQU'A";
+    return `La boucle ${what} (ligne ${loop.line}) dépend de ${list}, mais aucune de ces variables ne change à l'intérieur de la boucle : elle ne s'arrête jamais. Ajoutez par exemple LIRE(${names[0]}) à la fin de la boucle (nouvelle proposition), ou modifiez ${list} dans la boucle.`;
   }
 
   private execBlock(stmts: Stmt[]) {
@@ -450,6 +528,8 @@ class Interpreter {
       }
       case "while": {
         let turn = 0;
+        this.loops.push(s);
+        try {
         for (;;) {
           const check = turn > 0 ? this.emitLoopCheck(s.line, s.kind, "Retour au TANT QUE : on réévalue la condition.", true) : undefined;
           const ok = this.evalBool(s.cond, "La condition du TANT QUE");
@@ -461,11 +541,16 @@ class Interpreter {
           this.tick(s.line);
           this.execBlock(s.body);
         }
+        } finally {
+          this.loops.pop();
+        }
         return;
       }
       case "repeat": {
         let turn = 0;
         annotate("Début de la boucle RÉPÉTER : le bloc s'exécute au moins une fois.");
+        this.loops.push(s);
+        try {
         for (;;) {
           turn++;
           this.tick(s.line);
@@ -474,6 +559,9 @@ class Interpreter {
           const stop = this.evalBool(s.cond, "La condition du JUSQU'A");
           this.annotateStep(check, stop ? `Condition JUSQU'A VRAIE : sortie de la boucle (${turn} tour(s)).` : `Condition JUSQU'A FAUSSE : tour n° ${turn + 1}.`, !stop);
           if (stop) break;
+        }
+        } finally {
+          this.loops.pop();
         }
         return;
       }
@@ -857,19 +945,42 @@ const len: Builtin = {
  * (n)    → entier entre 0 et n − 1 ;
  * (a, b) → entier entre a et b, bornes comprises.
  */
+/** Générateur pseudo-aléatoire à graine (mulberry32), pour rejouer les mêmes tirages. */
+function seeded(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+let rand: () => number = Math.random;
+/** Utilise la graine fournie (ou le hasard du navigateur) pendant une exécution. */
+function withSeed<T>(seed: number | undefined, f: () => T): T {
+  const previous = rand;
+  rand = seed === undefined ? Math.random : seeded(seed);
+  try {
+    return f();
+  } finally {
+    rand = previous;
+  }
+}
+
 const random: Builtin = {
   fn: (args, line) => {
-    if (args.length === 0) return Math.random();
+    if (args.length === 0) return rand();
     if (args.length === 1) {
       const n = Math.trunc(needNum(args[0], "ALEATOIRE", line));
       if (n < 1) throw new PseudoError("execution", "ALEATOIRE(n) attend un nombre n ≥ 1.", line);
-      return Math.floor(Math.random() * n);
+      return Math.floor(rand() * n);
     }
     if (args.length === 2) {
       let lo = Math.ceil(needNum(args[0], "ALEATOIRE", line));
       let hi = Math.floor(needNum(args[1], "ALEATOIRE", line));
       if (lo > hi) [lo, hi] = [hi, lo];
-      return lo + Math.floor(Math.random() * (hi - lo + 1));
+      return lo + Math.floor(rand() * (hi - lo + 1));
     }
     throw new PseudoError("execution", "ALEATOIRE attend 0, 1 ou 2 arguments : ALEATOIRE(), ALEATOIRE(n) ou ALEATOIRE(min, max).", line);
   },
@@ -1157,6 +1268,10 @@ const CONSTANTS: Record<string, number> = { pi: Math.PI };
 export const BUILTIN_NAMES = Object.keys(BASE_BUILTINS).map((n) => n.toUpperCase());
 
 export function runPseudocode(source: string, stdin = "", limits: Partial<RunLimits> = {}): RunResult {
+  return withSeed(limits.seed, () => runPseudocodeInner(source, stdin, limits));
+}
+
+function runPseudocodeInner(source: string, stdin: string, limits: Partial<RunLimits>): RunResult {
   let interp: Interpreter | null = null;
   try {
     const program = parse(source);
@@ -1191,6 +1306,10 @@ export interface TraceResult extends RunResult {
  * (tableau de suivi des variables, exécution pas à pas).
  */
 export function traceExecution(source: string, stdin = "", maxSteps = 5000, limits: Partial<RunLimits> = {}, options: { detailed?: boolean } = {}): TraceResult {
+  return withSeed(limits.seed, () => traceExecutionInner(source, stdin, maxSteps, limits, options));
+}
+
+function traceExecutionInner(source: string, stdin: string, maxSteps: number, limits: Partial<RunLimits>, options: { detailed?: boolean }): TraceResult {
   const trace: TraceStep[] = [];
   let truncated = false;
   let interp: Interpreter | null = null;

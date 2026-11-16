@@ -169,9 +169,12 @@ export function parseModule(src: string, name: string, main: boolean): ModuleAst
   };
   const mulE = (): Expr => {
     let a = powE();
-    while (isOp("*") || isOp("/") || isOp("//") || isOp("%")) {
+    // MOD et DIV (notation des cours) : équivalents de % et //.
+    const isWordOp = () => peek().k === "id" && (peek().v === "MOD" || peek().v === "DIV");
+    while (isOp("*") || isOp("/") || isOp("//") || isOp("%") || isWordOp()) {
       const t = next();
-      a = { t: "bin", op: t.v, a, b: powE(), line: t.line };
+      const op = t.k === "id" ? (t.v === "MOD" ? "%" : "//") : t.v;
+      a = { t: "bin", op, a, b: powE(), line: t.line };
     }
     return a;
   };
@@ -197,9 +200,13 @@ export function parseModule(src: string, name: string, main: boolean): ModuleAst
   const postfix = (e: Expr): Expr => {
     while (isOp("[")) {
       const t = next();
-      const index = expr();
+      e = { t: "index", base: e, index: expr(), line: t.line };
+      // m[i, j] : écriture abrégée de m[i][j].
+      while (isOp(",")) {
+        next();
+        e = { t: "index", base: e, index: expr(), line: t.line };
+      }
       eatOp("]");
-      e = { t: "index", base: e, index, line: t.line };
     }
     return e;
   };
@@ -282,6 +289,10 @@ export function parseModule(src: string, name: string, main: boolean): ModuleAst
     while (isOp("[")) {
       next();
       idx.push(expr());
+      while (isOp(",")) {
+        next();
+        idx.push(expr());
+      }
       eatOp("]");
     }
     return { name: t.raw, key: t.v, idx, line: t.line };
@@ -318,7 +329,11 @@ export function parseModule(src: string, name: string, main: boolean): ModuleAst
       switch (t.v) {
         case "LIRE": {
           next();
+          // LIRE(x, y) : parenthèses tolérées.
+          const parens = isOp("(") && peek(1).k === "id";
+          if (parens) next();
           const vars = lvalues();
+          if (parens) eatOp(")");
           let canal: Expr | undefined;
           if (isKw("DE")) {
             next();
@@ -330,7 +345,25 @@ export function parseModule(src: string, name: string, main: boolean): ModuleAst
         case "ECRIRE": {
           next();
           const items: Expr[] = [];
-          if (peek().k !== "nl" && peek().k !== "eof" && !isKw("DANS")) {
+          // ÉCRIRE("a", b) : liste entière entre parenthèses (sinon, expression ordinaire).
+          if (isOp("(")) {
+            const save = p;
+            try {
+              next();
+              const list = isOp(")") ? [] : [expr()];
+              while (isOp(",")) {
+                next();
+                list.push(expr());
+              }
+              eatOp(")");
+              const after = peek();
+              if (after.k === "nl" || after.k === "eof" || (after.k === "kw" && (after.v === "DANS" || BLOCK_END.has(after.v)))) items.push(...list);
+              else p = save;
+            } catch {
+              p = save;
+            }
+          }
+          if (!items.length && peek().k !== "nl" && peek().k !== "eof" && !isKw("DANS")) {
             items.push(expr());
             while (isOp(",")) {
               next();

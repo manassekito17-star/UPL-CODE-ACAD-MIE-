@@ -97,10 +97,12 @@ export const KEYWORDS = new Set([
   "FERMER",
 ]);
 
-const OPS = ["//", "!=", "<>", "<=", ">=", "==", "<", ">", "=", "+", "-", "*", "/", "%", "^", "(", ")", "[", "]", ",", ":", "!", "←"];
+const OPS = ["//", "!=", "<>", "<=", ">=", "==", "<", ">", "=", "+", "-", "*", "/", "%", "^", "(", ")", "[", "]", ",", ":", "!", "←", "≠", "≤", "≥", "×", "÷"];
+/** Symboles mathématiques (clavier du téléphone) : équivalents des opérateurs du langage. */
+const OP_ALIAS: Record<string, string> = { "<>": "!=", "==": "=", "←": "=", "≠": "!=", "≤": "<=", "≥": ">=", "×": "*", "÷": "/" };
 
-const isIdStart = (c: string) => /[A-Za-z_À-ɏ]/.test(c);
-const isIdChar = (c: string) => /[A-Za-z0-9_À-ɏ]/.test(c);
+const isIdStart = (c: string) => /[A-Za-z_À-ɏ]/.test(c) && c !== "×" && c !== "÷";
+const isIdChar = (c: string) => /[A-Za-z0-9_À-ɏ]/.test(c) && c !== "×" && c !== "÷";
 
 export function tokenize(src: string): Tok[] {
   const out: Tok[] = [];
@@ -151,8 +153,8 @@ export function tokenize(src: string): Tok[] {
       }
       throw new LarpError("Le symbole $ doit terminer la ligne (prolongation d'instruction).", line);
     }
-    if (c === '"' || c === "'" || c === "“" || c === "”" || c === "‘" || c === "’") {
-      const close = c === "“" ? "”" : c === "‘" ? "’" : c;
+    if (c === '"' || c === "'" || c === "“" || c === "”" || c === "‘" || c === "’" || c === "«") {
+      const close = c === "“" ? "”" : c === "‘" ? "’" : c === "«" ? "»" : c;
       const l = line;
       const cc = col;
       adv();
@@ -173,6 +175,7 @@ export function tokenize(src: string): Tok[] {
       }
       if (i >= n) throw new LarpError("Chaîne de caractères non terminée (guillemet ou apostrophe manquant).", l);
       adv();
+      if (close === "»") s = s.replace(/^[ \u00a0\u202f]/, "").replace(/[ \u00a0\u202f]$/, "");
       push({ k: "str", v: s, raw: s }, l, cc);
       continue;
     }
@@ -198,13 +201,19 @@ export function tokenize(src: string): Tok[] {
         adv(2);
       }
       const key = norm(raw).replace(/['’]/g, "");
+      // « SINONSI » attaché : SINON SI.
+      if (key === "SINONSI") {
+        push({ k: "kw", v: "SINON", raw: raw.slice(0, 5) }, l, cc);
+        push({ k: "kw", v: "SI", raw: raw.slice(5) }, l, cc + 5);
+        continue;
+      }
       if (KEYWORDS.has(key)) push({ k: "kw", v: key, raw }, l, cc);
       else push({ k: "id", v: key, raw }, l, cc);
       continue;
     }
     const op = OPS.find((o) => src.startsWith(o, i));
     if (op) {
-      const v = op === "<>" ? "!=" : op === "==" || op === "←" ? "=" : op;
+      const v = OP_ALIAS[op] ?? op;
       push({ k: "op", v, raw: op });
       adv(op.length);
       continue;
@@ -225,6 +234,13 @@ function merge(t: Tok[]): Tok[] {
     if (a.k === "id" && a.v === "TANT" && b && b.k === "id" && b.v === "QUE" && b.line === a.line) {
       r.push({ ...a, k: "kw", v: "TANTQUE", raw: `${a.raw} ${b.raw}` });
       i++;
+      continue;
+    }
+    // « FIN TANT QUE » en trois mots.
+    const c = t[i + 2];
+    if (a.k === "kw" && a.v === "FIN" && b && c && b.k === "id" && b.v === "TANT" && c.k === "id" && c.v === "QUE" && b.line === a.line && c.line === a.line) {
+      r.push({ ...a, v: "FINTANTQUE", raw: `${a.raw} ${b.raw} ${c.raw}` });
+      i += 2;
       continue;
     }
     if (a.k === "kw" && a.v === "FIN" && b && b.line === a.line && b.k === "kw" && ["SI", "TANTQUE", "POUR", "SELECTIONNER", "SELECTION"].includes(b.v)) {

@@ -351,6 +351,8 @@ export class Machine {
         if (b) return this.wrap(() => b([], this.ctx()));
         const m = this.compiled.modules.get(e.key);
         if (m && !this.top!.env.has(e.key)) return yield* this.callModule(m, [], e.name, e.line, true);
+        // VRAI / FAUX : valeurs logiques (sauf variable de ce nom).
+        if ((e.key === "VRAI" || e.key === "FAUX") && !this.top!.env.has(e.key)) return bool(e.key === "VRAI");
         return this.readVar(e.name, e.key, e.line);
       }
       case "index": {

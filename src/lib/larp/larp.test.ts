@@ -216,3 +216,24 @@ describe("messages d'erreur (compilation et exécution)", () => {
     expect(l.error?.message).toMatch(/boucle infinie/);
   });
 });
+
+describe("écritures tolérées (codes recopiés du cours ou tapés sur téléphone)", () => {
+  it("FIN TANT QUE, SINONSI, FIN SÉLECTIONNER", () => {
+    expect(out("DÉBUT\n i = 0\n TANT QUE i < 3 FAIRE\n  i = i + 1\n FIN TANT QUE\n ÉCRIRE i\nFIN")).toBe("3\n");
+    expect(out("DÉBUT\n x = 1\n SI x = 0 ALORS\n  ÉCRIRE 0\n SINONSI x = 1 ALORS\n  ÉCRIRE 1\n FINSI\nFIN")).toBe("1\n");
+    expect(out('DÉBUT\n x = 5\n SÉLECTIONNER x\n  1: ÉCRIRE "un"\n  SINON\n   ÉCRIRE "autre"\n FIN SÉLECTIONNER\nFIN')).toBe("autre\n");
+  });
+
+  it("ÉCRIRE(…) et LIRE(…) avec parenthèses, sans casser ÉCRIRE (a+b)*2", () => {
+    expect(out('DÉBUT\n ÉCRIRE("a", 2)\nFIN')).toBe("a 2\n");
+    expect(out("DÉBUT\n LIRE(x, y)\n ÉCRIRE x + y\n ÉCRIRE (x + y) * 2\nFIN", ["4 5"])).toBe("4 5\n9\n18\n");
+  });
+
+  it("symboles du téléphone ← ≠ ≤ ≥ × ÷ et guillemets « »", () => {
+    expect(out("DÉBUT\n x ← 3\n SI x ≠ 2 ET x ≥ 3 ET x ≤ 3 ALORS\n  ÉCRIRE x × 2, x ÷ 2\n FINSI\n ÉCRIRE « bonjour »\nFIN")).toBe("6 1.5\nbonjour\n");
+  });
+
+  it("VRAI / FAUX, MOD / DIV, m[i, j]", () => {
+    expect(out('DÉBUT\n ok = VRAI\n SI ok ET NON FAUX ALORS\n  ÉCRIRE "v"\n FINSI\n ÉCRIRE 7 MOD 2, 7 DIV 2\n m[2, 1] = 3\n ÉCRIRE m[2][1]\nFIN')).toBe("v\n1 3\n3\n");
+  });
+});

@@ -57,6 +57,7 @@ export function runInBrowser(
   files: SourceFile[],
   stdin: string,
   onStatus?: (message: string) => void,
+  seed?: number,
 ): Promise<ExecutionResult> {
   // K+ : son moteur gère son propre worker ; ici, exécution « test »
   // (sortie, ou description de la page pour un programme web).
@@ -144,7 +145,7 @@ export function runInBrowser(
       worker.postMessage({ files, stdin });
     } else {
       arm();
-      worker.postMessage({ code: files[0]?.content ?? "", stdin });
+      worker.postMessage({ code: files[0]?.content ?? "", stdin, seed });
     }
   });
 }
@@ -162,11 +163,11 @@ export async function runProgram(
   language: LanguageId,
   files: SourceFile[],
   stdin: string,
-  opts: { programId?: string; onStatus?: (m: string) => void } = {},
+  opts: { programId?: string; onStatus?: (m: string) => void; seed?: number } = {},
 ): Promise<RunOutcome> {
   if (language === "pseudocode") {
     // L'interpréteur de la plateforme tourne directement dans le navigateur : réponse instantanée.
-    return { result: await runInBrowser("pseudocode", files, stdin) };
+    return { result: await runInBrowser("pseudocode", files, stdin, undefined, opts.seed) };
   }
   if (language === "kplus") {
     // Le moteur K+ tourne dans le navigateur (même hors ligne) ; un programme
