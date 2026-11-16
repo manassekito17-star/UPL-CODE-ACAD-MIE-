@@ -1,14 +1,22 @@
 // Service worker de UPL CODE ACADEMY MK : garde UPL IDE sur l'appareil pour l'utiliser sans Internet.
-// - Pages hors ligne autorisées (UPL IDE, éditeur, laboratoire) : réseau d'abord, copie locale si pas de connexion.
+// - Pages hors ligne autorisées (UPL IDE, UPL Algo, interface LARP, Flow Studio, laboratoire) : réseau d'abord, copie locale si pas de connexion.
 // - Fichiers de l'application (/_next/static, versionnés) : copie locale d'abord.
 // - Éditeur de code (Monaco) et Python (Pyodide), sur le CDN jsdelivr, versions figées : copie locale d'abord.
 // - Comptes, API, administration : jamais mis en cache (toujours le réseau).
-const VERSION = "v4";
+const VERSION = "v5";
 const PAGES = `upl-pages-${VERSION}`;
 const STATIC = `upl-static-${VERSION}`;
 const CDN = `upl-cdn-${VERSION}`;
 const KEEP = [PAGES, STATIC, CDN];
-const OFFLINE_PAGES = ["/ide", "/editeur", "/laboratoire"];
+// Éditeurs utilisables sans Internet (nom affiché sur la page « Pas de connexion Internet »).
+const EDITORS = [
+  { path: "/ide", name: "UPL IDE", info: "Python, JavaScript, PHP, SQL, HTML…" },
+  { path: "/editeur", name: "UPL Algo", info: "Éditeur d'algorithmes (pseudo-code)" },
+  { path: "/flow/classique", name: "Interface LARP", info: "Pseudo-code et organigrammes comme sur LARP" },
+  { path: "/flow", name: "UPL Flow Studio", info: "Organigrammes" },
+  { path: "/laboratoire", name: "Laboratoire d'algorithmique", info: "Exécution pas à pas" },
+];
+const OFFLINE_PAGES = EDITORS.map((e) => e.path);
 const CDN_PREFIXES = [
   "https://cdn.jsdelivr.net/npm/monaco-editor@",
   "https://cdn.jsdelivr.net/npm/pyodide@",
@@ -55,10 +63,25 @@ async function cacheFirst(cacheName, request, event) {
   return forClient(request, res);
 }
 
-const OFFLINE_HTML = `<!doctype html><html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Hors connexion</title>
-<body style="margin:0;font-family:system-ui,sans-serif;background:#181818;color:#ccc;display:grid;place-items:center;min-height:100vh;text-align:center;padding:16px">
-<div><p style="font-size:20px;color:#fff">Pas de connexion Internet</p><p>Cette page demande Internet. UPL IDE reste utilisable sans connexion.</p>
-<p><a href="/ide" style="color:#4daafc">Ouvrir UPL IDE</a></p></div></body></html>`;
+const esc = (t) => t.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+
+/** Page « Pas de connexion Internet » : propose les éditeurs déjà gardés sur l'appareil. */
+async function offlineHtml() {
+  const cache = await caches.open(PAGES);
+  const rows = await Promise.all(EDITORS.map(async (e) => ({ ...e, ready: Boolean(await cache.match(e.path)) })));
+  const ready = rows.filter((r) => r.ready);
+  const missing = rows.filter((r) => !r.ready);
+  const link = (r) =>
+    `<a href="${r.path}" style="display:block;margin:8px 0;padding:12px 14px;border-radius:10px;background:#2563eb;color:#fff;text-decoration:none;text-align:left"><b>${esc(r.name)}</b><br><small style="color:#dbeafe">${esc(r.info)}</small></a>`;
+  const later = missing.length
+    ? `<p style="margin-top:18px;font-size:13px">Pas encore sur cet appareil : ${missing.map((r) => esc(r.name)).join(", ")}.<br>Ouvrez-les une fois avec Internet (ou menu « Installer et utiliser sans Internet » dans UPL IDE) pour les garder.</p>`
+    : "";
+  return `<!doctype html><html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Hors connexion</title>
+<body style="margin:0;font-family:system-ui,sans-serif;background:#181818;color:#ccc;display:grid;place-items:center;min-height:100vh;text-align:center;padding:16px;box-sizing:border-box">
+<div style="width:100%;max-width:380px"><p style="font-size:20px;color:#fff;margin-bottom:4px">Pas de connexion Internet</p>
+<p>${ready.length ? "Cette page demande Internet. Ces éditeurs fonctionnent sans connexion :" : "Cette page demande Internet. Aucun éditeur n'est encore gardé sur cet appareil."}</p>
+${ready.map(link).join("")}${later}</div></body></html>`;
+}
 
 async function page(request) {
   const url = new URL(request.url);
@@ -71,7 +94,7 @@ async function page(request) {
     return res;
   } catch {
     const hit = offlineOk ? await caches.match(key) : null;
-    return hit || new Response(OFFLINE_HTML, { headers: { "Content-Type": "text/html; charset=utf-8" } });
+    return hit || new Response(await offlineHtml(), { headers: { "Content-Type": "text/html; charset=utf-8" } });
   }
 }
 

@@ -62,8 +62,19 @@ test("préparation puis utilisation sans Internet : éditeur, JavaScript, pseudo
   await page.getByRole("button", { name: "▶ Lancer l'exécution pas à pas" }).click();
   await expect(page.getByText("Combien de notes ?").first()).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText(/Failed to execute 'importScripts'/)).toHaveCount(0);
+  // Interface LARP : s'ouvre et exécute un algorithme sans Internet.
+  await page.goto("/flow/classique");
+  await expect(page.getByTestId("larp-fenetre")).toBeVisible({ timeout: 30_000 });
+  await page.getByTestId("zone-code").fill('DÉBUT\n  ÉCRIRE "Sans Internet"\nFIN\n');
+  await page.keyboard.press("F7");
+  await expect(page.getByTestId("console-texte")).toContainText("Sans Internet");
+
+  // Page qui demande Internet : propose les éditeurs gardés sur l'appareil.
   await page.goto("/formations");
   await expect(page.getByText("Pas de connexion Internet")).toBeVisible();
+  for (const name of ["UPL IDE", "UPL Algo", "Interface LARP"]) await expect(page.getByRole("link", { name: new RegExp(name) })).toBeVisible();
+  await page.getByRole("link", { name: /Interface LARP/ }).click();
+  await expect(page.getByTestId("larp-fenetre")).toBeVisible({ timeout: 30_000 });
 });
 
 test("éditeur « UPL Algo » : installation, préparation, puis algorithme exécuté sans Internet", async ({ page, context }) => {
