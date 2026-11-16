@@ -5,7 +5,7 @@
  * traduisent en pseudo-code classique (avec correspondance bloc ↔ ligne pour
  * le surlignage pas-à-pas et la localisation des erreurs).
  */
-import { newId, type FlowKind, type FlowNode, type FlowProgram } from "../flow/model";
+import { newId, type AssignForm, type FlowKind, type FlowNode, type FlowProgram } from "../flow/model";
 import type { CloudInfo } from "./cloud";
 import type { SourceBuffer, SourceModule } from "./interpreter";
 
@@ -243,10 +243,12 @@ export interface FlowTemplate {
   kind: FlowKind;
   label: string;
   mark?: string;
+  /** Figure particulière (bloc séquentiel) : requête, tampon, sélection. */
+  form?: AssignForm;
   make: () => FlowNode;
 }
 
-const seqBlock = (expr: string) => (): FlowNode => ({ id: newId(), kind: "assign", target: "", expr });
+const seqBlock = (expr: string, form?: AssignForm) => (): FlowNode => ({ id: newId(), kind: "assign", target: "", expr, ...(form ? { form } : {}) });
 
 export const FLOW_TEMPLATES: FlowTemplate[] = [
   { id: "assign", kind: "assign", label: "Instruction séquentielle", make: () => larpNode("assign") },
@@ -258,18 +260,19 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
   { id: "while", kind: "while", label: "Boucle TANTQUE", make: () => larpNode("while") },
   { id: "repeat", kind: "repeat", label: "Boucle RÉPÉTER-JUSQU'À", make: () => larpNode("repeat") },
   { id: "for", kind: "for", label: "Boucle POUR", make: () => larpNode("for") },
-  { id: "requete", kind: "assign", mark: "REQ", label: "Requête (REQUÊTE : message puis lecture)", make: seqBlock('REQUÊTE "Entrez une valeur : ", x') },
+  { id: "requete", kind: "assign", form: "requete", mark: "REQ", label: "Requête (REQUÊTE : message puis lecture)", make: seqBlock('REQUÊTE "Entrez une valeur : ", x', "requete") },
   { id: "lire-de", kind: "input", mark: "L#", label: "Lecture dans un tampon (LIRE … DE canal)", make: () => ({ id: newId(), kind: "input", target: "x DE 1" }) },
   { id: "ecrire-dans", kind: "output", mark: "É#", label: "Écriture dans un tampon (ÉCRIRE … DANS canal)", make: () => ({ id: newId(), kind: "output", expr: "x DANS 1" }) },
   {
     id: "selectionner",
     kind: "assign",
+    form: "selection",
     mark: "SEL",
     label: "Sélection (SÉLECTIONNER … FINSÉLECTIONNER)",
-    make: seqBlock('SÉLECTIONNER x\n  1 : ÉCRIRE "un"\n  2, 3 : ÉCRIRE "deux ou trois"\n  SINON\n    ÉCRIRE "autre"\nFINSÉLECTIONNER'),
+    make: seqBlock('SÉLECTIONNER x\n  1 : ÉCRIRE "un"\n  2, 3 : ÉCRIRE "deux ou trois"\n  SINON\n    ÉCRIRE "autre"\nFINSÉLECTIONNER', "selection"),
   },
-  { id: "ouvrir", kind: "assign", mark: "OUV", label: "Ouvrir un tampon (OUVRIR … SUR canal EN LECTURE/ÉCRITURE/AJOUT)", make: seqBlock('OUVRIR TAMPON "Donnees" SUR 1 EN LECTURE') },
-  { id: "fermer", kind: "assign", mark: "FER", label: "Fermer un tampon (FERMER canal)", make: seqBlock("FERMER 1") },
+  { id: "ouvrir", kind: "assign", form: "tampon", mark: "OUV", label: "Ouvrir un tampon (OUVRIR … SUR canal EN LECTURE/ÉCRITURE/AJOUT)", make: seqBlock('OUVRIR TAMPON "Donnees" SUR 1 EN LECTURE', "tampon") },
+  { id: "fermer", kind: "assign", form: "tampon", mark: "FER", label: "Fermer un tampon (FERMER canal)", make: seqBlock("FERMER 1", "tampon") },
   { id: "separateur", kind: "assign", mark: "SÉP", label: "Séparateur des valeurs (SÉPARATEUR)", make: seqBlock('SÉPARATEUR ","') },
   { id: "detruire", kind: "assign", mark: "DÉT", label: "Détruire une variable ou un élément (DÉTRUIRE)", make: seqBlock("DÉTRUIRE x") },
   { id: "compresser", kind: "assign", mark: "CMP", label: "Compresser un conteneur (COMPRESSER)", make: seqBlock("COMPRESSER t") },

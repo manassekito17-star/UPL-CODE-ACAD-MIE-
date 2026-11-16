@@ -1108,7 +1108,7 @@ export function LarpStudio() {
                             data-testid={`forme-${t.id}`}
                             className={`grid h-[38px] place-items-center rounded-[2px] border ${armed === t.id ? "border-[#b45309] bg-[#fde68a]" : "border-transparent hover:border-[#aca899] hover:bg-[#f7f6f1]"}`}
                           >
-                            <FlowGlyph kind={t.kind} mark={t.mark} />
+                            <FlowGlyph kind={t.kind} mark={t.mark} form={t.form} />
                           </button>
                         ))}
                         <p className="col-span-3 px-1 pt-1 text-[10px] leading-tight text-[#555]">{armed ? "Touchez maintenant un « + » de l'organigramme." : "Touchez une forme, puis un « + »."}</p>
