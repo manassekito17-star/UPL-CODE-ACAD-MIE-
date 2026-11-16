@@ -27,12 +27,15 @@ export type FlowNode =
   | { id: string; kind: "assign"; target: string; expr: string; form?: AssignForm }
   | { id: string; kind: "input"; target: string }
   | { id: string; kind: "output"; expr: string }
-  | { id: string; kind: "if"; cond: string; yes: FlowNode[]; no: FlowNode[] }
-  | { id: string; kind: "while"; cond: string; body: FlowNode[] }
-  | { id: string; kind: "for"; variable: string; from: string; to: string; step: string; body: FlowNode[] }
-  | { id: string; kind: "repeat"; cond: string; body: FlowNode[] }
+  // `mirror` (interface LARP) : structure dessinée en miroir (Vrai à droite, retour de boucle à droite).
+  // `diamond` : boucle TANTQUE dessinée avec un losange au lieu d'un hexagone.
+  | { id: string; kind: "if"; cond: string; yes: FlowNode[]; no: FlowNode[]; mirror?: boolean }
+  | { id: string; kind: "while"; cond: string; body: FlowNode[]; mirror?: boolean; diamond?: boolean }
+  | { id: string; kind: "for"; variable: string; from: string; to: string; step: string; body: FlowNode[]; mirror?: boolean }
+  | { id: string; kind: "repeat"; cond: string; body: FlowNode[]; mirror?: boolean }
   | { id: string; kind: "call"; name: string; args: string }
-  | { id: string; kind: "comment"; text: string };
+  // `side` (interface LARP) : commentaire placé à gauche ou à droite de la ligne de l'organigramme.
+  | { id: string; kind: "comment"; text: string; side?: "left" | "right" };
 
 export type FlowKind = FlowNode["kind"];
 /** Figure d'un bloc séquentiel : requête (entrée/sortie), tampon (document), sélection (choix multiple). */

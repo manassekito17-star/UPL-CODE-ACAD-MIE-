@@ -103,7 +103,7 @@ test("Interface classique : tous les modèles d'organigramme de LARP (REQUÊTE, 
   await page.getByTestId("menu-Projet").click();
   await page.getByTestId("menu-Projet/Nouveau").click();
   await page.getByTestId("menu-Projet/Nouveau/Organigramme…").click();
-  for (const id of ["assign", "input", "output", "call", "comment", "if", "while", "repeat", "for", "requete", "lire-de", "ecrire-dans", "selectionner", "ouvrir", "fermer", "separateur", "detruire", "compresser"])
+  for (const id of ["assign", "input", "output", "call", "comment", "comment-droite", "if", "if-miroir", "if-sinon", "if-sinon-miroir", "while", "while-miroir", "repeat", "repeat-miroir", "for", "for-miroir", "while-losange", "while-losange-miroir", "requete", "lire-de", "ecrire-dans", "selectionner", "ouvrir", "fermer", "separateur", "detruire", "compresser"])
     await expect(page.getByTestId(`forme-${id}`)).toBeVisible();
   await page.getByTestId("forme-requete").click();
   await page.getByTestId("inserer").last().click();

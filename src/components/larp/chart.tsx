@@ -44,10 +44,14 @@ export function nodeLabel(doc: LarpDoc, n: FlowNode | undefined, id: string): { 
   }
 }
 
-type Figure = LayoutNode["shape"] | "document" | "multi";
+type Figure = LayoutNode["shape"] | "document" | "multi" | "hexagon" | "hexagon2";
 
 /** Figure d'un bloc : celle de la mise en page, ou celle du modèle LARP (REQUÊTE, tampon, sélection). */
 function figureOf(shape: LayoutNode["shape"], n: FlowNode | undefined): Figure {
+  // Boucles comme dans LARP : hexagone (TANTQUE, RÉPÉTER), hexagone double (POUR).
+  if (n?.kind === "while" && !n.diamond) return "hexagon";
+  if (n?.kind === "repeat") return "hexagon";
+  if (n?.kind === "for") return "hexagon2";
   if (n?.kind !== "assign" || !n.form) return shape;
   return n.form === "requete" ? "io" : n.form === "tampon" ? "document" : "multi";
 }
@@ -62,6 +66,16 @@ function shapePath(shape: Figure, w: number, h: number, props: { fill: string; s
       return <polygon points={`${k},1 ${w - 1},1 ${w - k},${h - 1} 1,${h - 1}`} {...c} />;
     case "decision":
       return <polygon points={`${w / 2},1 ${w - 1},${h / 2} ${w / 2},${h - 1} 1,${h / 2}`} {...c} />;
+    case "hexagon":
+      return <polygon points={`${k + 6},1 ${w - k - 6},1 ${w - 1},${h / 2} ${w - k - 6},${h - 1} ${k + 6},${h - 1} 1,${h / 2}`} {...c} />;
+    case "hexagon2":
+      // POUR : deux demi-hexagones accolés (initialisation | test et incrément).
+      return (
+        <g>
+          <polygon points={`${k + 6},1 ${w - k - 6},1 ${w - 1},${h / 2} ${w - k - 6},${h - 1} ${k + 6},${h - 1} 1,${h / 2}`} {...c} />
+          <line x1={w / 2} y1={1} x2={w / 2} y2={h - 1} stroke={props.stroke} strokeWidth={props.sw} />
+        </g>
+      );
     case "loop":
       return <polygon points={`${k + 4},1 ${w - k - 4},1 ${w - 1},${h / 2} ${w - k - 4},${h - 1} ${k + 4},${h - 1} 1,${h / 2}`} {...c} />;
     case "call":
@@ -140,11 +154,12 @@ export function LarpChart({ doc, flow, zoom, selected, armed, editable, activeNo
     const s = byId.get(e.source)!;
     const t = byId.get(e.target)!;
     const sp: Pt = e.sourceHandle === "b" ? [s.x + s.w / 2, s.y + s.h] : e.sourceHandle === "l" ? [s.x, s.y + s.h / 2] : [s.x + s.w, s.y + s.h / 2];
-    const tp: Pt = e.targetHandle === "t" ? [t.x + t.w / 2, t.y] : [t.x, t.y + t.h / 2];
+    const tp: Pt = e.targetHandle === "t" ? [t.x + t.w / 2, t.y] : e.targetHandle === "rt" ? [t.x + t.w, t.y + t.h / 2] : [t.x, t.y + t.h / 2];
     let pts: Pt[];
     if (e.back) {
       const loopId = e.target.endsWith(":debut") ? e.target.slice(0, -6) : e.target;
-      const left = bbox(loopId).minX - 16;
+      // Retour de boucle à gauche (ou à droite pour une structure en miroir).
+      const left = e.targetHandle === "rt" ? bbox(loopId).maxX + 16 : bbox(loopId).minX - 16;
       pts = e.sourceHandle === "b" ? [sp, [sp[0], sp[1] + 12], [left, sp[1] + 12], [left, tp[1]], tp] : [sp, [left, sp[1]], [left, tp[1]], tp];
       return { pts, plus: e.loc ? [sp[0], sp[1] + 6] : undefined };
     }
@@ -216,6 +231,9 @@ export function LarpChart({ doc, flow, zoom, selected, armed, editable, activeNo
               const stroke = errorNode === id ? "#dc2626" : isSel ? "#1d4ed8" : "#222";
               return (
                 <g key={n.id} transform={`translate(${n.x},${n.y})`}>
+                  {n.attach !== undefined && (
+                    <line x1={n.attach < n.x ? 0 : n.w} y1={n.h / 2} x2={n.attach - n.x} y2={n.h / 2} stroke="#222" strokeWidth={1} strokeDasharray="4 3" />
+                  )}
                   {shapePath(figureOf(n.shape, n.flowId ? findNode(flow, n.flowId) : undefined), n.w, n.h, { fill, stroke, sw: isSel || errorNode === id ? 2.4 : 1.2 })}
                 </g>
               );
@@ -359,6 +377,122 @@ export function FlowGlyph({ kind, mark, form }: { kind: FlowKind; mark?: string;
     <svg width={40} height={22} viewBox="0 0 40 22" aria-hidden>
       {kind !== "repeat" && arrowIn}
       {body}
+    </svg>
+  );
+}
+
+/**
+ * Vignette d'un modèle, dessinée comme dans le panneau « Modèles » de LARP sur PC :
+ * flèche d'entrée, structure (branches Vrai / Faux, retour de boucle) et sortie.
+ * Les structures en miroir sont dessinées retournées (Vrai ou retour de boucle à droite).
+ */
+export function LarpGlyph({ t }: { t: { id: string; kind: FlowKind; mark?: string; form?: AssignForm } }) {
+  const W = 56;
+  const st = { fill: "#fff", stroke: "#222", strokeWidth: 1 };
+  const ln = { fill: "none", stroke: "#222", strokeWidth: 1 };
+  const mirror = t.id.endsWith("-miroir") || t.id === "comment-droite";
+  const labels: Array<[number, number, string]> = [];
+  const arrowIn = (
+    <g>
+      <path d="M28 0v6" {...ln} />
+      <path d="M25.5 4h5l-2.5 3z" fill="#222" />
+    </g>
+  );
+  const diamond = (cy: number) => <polygon points={`28,${cy - 6} 35,${cy} 28,${cy + 6} 21,${cy}`} {...st} />;
+  const hexagon = (cy: number, split = false) => (
+    <g>
+      <polygon points={`23,${cy - 5} 33,${cy - 5} 37,${cy} 33,${cy + 5} 23,${cy + 5} 19,${cy}`} {...st} />
+      {split && <path d={`M28 ${cy - 5}v10`} {...ln} />}
+    </g>
+  );
+  let body: ReactNode;
+  if (t.mark || t.form) body = <FlowGlyph kind={t.kind} mark={t.mark} form={t.form} />;
+  else
+    switch (t.kind) {
+      case "assign":
+      case "input":
+      case "output":
+      case "call":
+        body = (
+          <g>
+            {arrowIn}
+            {t.kind === "assign" && <rect x={20} y={8} width={16} height={11} {...st} />}
+            {(t.kind === "input" || t.kind === "output") && <polygon points="23,8 38,8 33,19 18,19" {...st} />}
+            {(t.kind === "input" || t.kind === "output") && (
+              <text x={28} y={17} fontSize={7} textAnchor="middle" fontFamily="Tahoma">
+                {t.kind === "input" ? "L" : "É"}
+              </text>
+            )}
+            {t.kind === "call" && (
+              <g>
+                <rect x={18} y={8} width={20} height={11} {...st} />
+                <path d="M21 8v11M35 8v11" {...ln} />
+              </g>
+            )}
+            <path d="M28 19v9" {...ln} />
+          </g>
+        );
+        break;
+      case "comment":
+        body = (
+          <g>
+            <path d="M36 2v28" {...ln} />
+            <rect x={10} y={10} width={16} height={11} fill="none" stroke="#222" strokeDasharray="2 2" />
+            <path d="M26 15.5h10" stroke="#222" strokeDasharray="2 2" />
+          </g>
+        );
+        break;
+      case "if": {
+        const sinon = t.id.startsWith("if-sinon");
+        labels.push([17, 11, "V"], sinon ? [39, 11, "F"] : [31, 26, "F"]);
+        body = (
+          <g>
+            {arrowIn}
+            {diamond(12)}
+            <path d="M21 12H12v16h16" {...ln} />
+            {sinon ? <path d="M35 12h9v16H28v6" {...ln} /> : <path d="M28 18v16" {...ln} />}
+          </g>
+        );
+        break;
+      }
+      case "while":
+      case "for": {
+        labels.push([31, 26, t.kind === "for" ? "" : "V"], [40, 10, t.kind === "for" ? "" : "F"]);
+        const losange = t.id.startsWith("while-losange");
+        body = (
+          <g>
+            {arrowIn}
+            {losange ? diamond(12) : hexagon(12, t.kind === "for")}
+            <path d={`M28 ${losange ? 18 : 17}v8H12V12h${losange ? 9 : 7}`} {...ln} />
+            <path d={`M${losange ? 35 : 37} 12h7v20`} {...ln} />
+          </g>
+        );
+        break;
+      }
+      case "repeat":
+        labels.push([14, 24, "F"], [31, 33, "V"]);
+        body = (
+          <g>
+            <path d="M28 0v4" {...ln} />
+            <rect x={20} y={6} width={16} height={8} {...st} />
+            <path d="M28 14v4" {...ln} />
+            {hexagon(23)}
+            <path d="M19 23h-7V4h16" {...ln} />
+            <path d="M28 28v6" {...ln} />
+          </g>
+        );
+        break;
+    }
+  return (
+    <svg width={W} height={36} viewBox={`0 0 ${W} 36`} aria-hidden>
+      <g transform={mirror ? `translate(${W},0) scale(-1,1)` : undefined}>{body}</g>
+      {labels
+        .filter((l) => l[2])
+        .map(([x, y, s]) => (
+          <text key={s} x={mirror ? W - x : x} y={y} fontSize={7} textAnchor="middle" fontFamily="Tahoma" fill="#111">
+            {s}
+          </text>
+        ))}
     </svg>
   );
 }

@@ -20,6 +20,8 @@ export interface LayoutNode {
   y: number;
   w: number;
   h: number;
+  /** Commentaire placé à côté de la ligne : abscisse de la ligne à rejoindre (trait pointillé). */
+  attach?: number;
 }
 
 export interface LayoutEdge {
@@ -27,7 +29,7 @@ export interface LayoutEdge {
   source: string;
   sourceHandle: "b" | "l" | "r";
   target: string;
-  targetHandle: "t" | "lt";
+  targetHandle: "t" | "lt" | "rt";
   label?: string;
   /** Emplacement d'insertion représenté par cette flèche. */
   loc?: FlowLoc;
@@ -76,6 +78,7 @@ function seqWidth(list: FlowNode[]): number {
 }
 
 function itemWidth(n: FlowNode): number {
+  if (n.kind === "comment" && n.side) return 2 * (nodeWidth(n) + 28) + 20;
   if (n.kind === "if") return Math.max(nodeWidth(n), seqWidth(n.yes) + HG + seqWidth(n.no));
   if (n.kind === "while" || n.kind === "for" || n.kind === "repeat") return Math.max(nodeWidth(n), seqWidth(n.body)) + 2 * LOOP_M;
   return nodeWidth(n);
@@ -119,10 +122,14 @@ export function layoutProgram(p: FlowProgram): { nodes: LayoutNode[]; edges: Lay
         addNode({ id: n.id, flowId: n.id, shape: "decision", label: info.label, tag: info.tag, cx, y, w, h: H.decision });
         const wy = seqWidth(n.yes);
         const wn = seqWidth(n.no);
-        const left = cx - (wy + HG + wn) / 2;
         const y2 = y + H.decision + GAP;
-        const ry = layoutSeq(n.yes, n.id, "yes", left + wy / 2, y2, { id: n.id, handle: "l", label: "Oui" });
-        const rn = layoutSeq(n.no, n.id, "no", left + wy + HG + wn / 2, y2, { id: n.id, handle: "r", label: "Non" });
+        // Miroir : branche Vrai à droite, branche Faux à gauche.
+        const [wa, wb] = n.mirror ? [wn, wy] : [wy, wn];
+        const left = cx - (wa + HG + wb) / 2;
+        const yesX = n.mirror ? left + wa + HG + wb / 2 : left + wa / 2;
+        const noX = n.mirror ? left + wa / 2 : left + wa + HG + wb / 2;
+        const ry = layoutSeq(n.yes, n.id, "yes", yesX, y2, { id: n.id, handle: n.mirror ? "r" : "l", label: "Oui" });
+        const rn = layoutSeq(n.no, n.id, "no", noX, y2, { id: n.id, handle: n.mirror ? "l" : "r", label: "Non" });
         const jy = Math.max(ry.y, rn.y);
         const j = `${n.id}:fin`;
         addNode({ id: j, shape: "junction", label: "", cx, y: jy, w: H.junction, h: H.junction });
@@ -135,8 +142,8 @@ export function layoutProgram(p: FlowProgram): { nodes: LayoutNode[]; edges: Lay
         const shape = n.kind === "for" ? "loop" : "decision";
         addNode({ id: n.id, flowId: n.id, shape, label: info.label, tag: info.tag, cx, y, w, h: H.decision });
         const rb = layoutSeq(n.body, n.id, "body", cx, y + H.decision + GAP, { id: n.id, handle: "b", label: n.kind === "for" ? "Tour" : "Oui" });
-        addEdge(rb.src, n.id, "lt", { loc: { parent: n.id, branch: "body", index: n.body.length }, back: true });
-        return { entry: n.id, exit: { id: n.id, handle: "r", label: n.kind === "for" ? "Fin" : "Non" }, y: rb.y };
+        addEdge(rb.src, n.id, n.mirror ? "rt" : "lt", { loc: { parent: n.id, branch: "body", index: n.body.length }, back: true });
+        return { entry: n.id, exit: { id: n.id, handle: n.mirror ? "l" : "r", label: n.kind === "for" ? "Fin" : "Non" }, y: rb.y };
       }
       case "repeat": {
         const j = `${n.id}:debut`;
@@ -144,9 +151,20 @@ export function layoutProgram(p: FlowProgram): { nodes: LayoutNode[]; edges: Lay
         const rb = layoutSeq(n.body, n.id, "body", cx, y + H.junction + GAP, { id: j, handle: "b" });
         addNode({ id: n.id, flowId: n.id, shape: "decision", label: info.label, tag: info.tag, cx, y: rb.y, w, h: H.decision });
         addEdge(rb.src, n.id, "t", { loc: { parent: n.id, branch: "body", index: n.body.length } });
-        addEdge({ id: n.id, handle: "l", label: "Non" }, j, "lt", { back: true });
+        addEdge({ id: n.id, handle: n.mirror ? "r" : "l", label: "Non" }, j, n.mirror ? "rt" : "lt", { back: true });
         return { entry: j, exit: { id: n.id, handle: "b", label: "Oui" }, y: rb.y + H.decision + GAP };
       }
+      case "comment": {
+        if (!n.side) break;
+        // Commentaire à côté : un point sur la ligne, le cadre pointillé à gauche ou à droite.
+        const j = `${n.id}:ligne`;
+        addNode({ id: j, shape: "junction", label: "", cx, y, w: H.junction, h: H.junction });
+        const off = w / 2 + 28;
+        addNode({ id: n.id, flowId: n.id, shape: "comment", label: info.label, cx: n.side === "left" ? cx - off : cx + off, y: y + H.junction / 2 - H.simple / 2, w, h: H.simple, attach: cx });
+        return { entry: j, exit: { id: j, handle: "b" }, y: y + H.junction + GAP };
+      }
+    }
+    switch (n.kind) {
       default: {
         addNode({ id: n.id, flowId: n.id, shape: info.shape, label: info.label, tag: info.tag, cx, y, w, h: H.simple });
         return { entry: n.id, exit: { id: n.id, handle: "b" }, y: y + H.simple + GAP };

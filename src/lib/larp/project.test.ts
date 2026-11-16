@@ -56,3 +56,34 @@ describe("modèles d'organigramme (tous ceux de LARP sur PC)", () => {
     expect(runProject(modules, ["2"]).output).toBe("Entrez une valeur : 2\ndeux ou trois\n");
   });
 });
+
+describe("structures en miroir et commentaires latéraux (comme LARP sur PC)", () => {
+  it("les variantes en miroir donnent le même pseudo-code et s'exécutent", async () => {
+    const { flowTemplate } = await import("./project");
+    for (const id of ["if-sinon", "if-sinon-miroir", "while-miroir", "repeat-miroir", "for-miroir", "while-losange-miroir", "comment", "comment-droite"]) {
+      // x = 5 : SI va dans la branche Vrai, TANTQUE / POUR / RÉPÉTER se terminent.
+      const init = { id: "i", kind: "assign" as const, target: "", expr: "x = 5" };
+      const body = [init, flowTemplate(id)!.make()];
+      const doc: LarpDoc = { id: "m", kind: "organigramme", name: "PRINCIPAL", main: true, flow: { name: "P", vars: [], body } };
+      const { modules } = projectSources({ name: "t", docs: [doc] });
+      const r = id.startsWith("while") ? runProject(modules, [], { maxSteps: 500 }) : runProject(modules, []);
+      if (id.startsWith("while")) expect(r.error?.message ?? "", id).toMatch(/limite|boucle/i);
+      else expect(r.error, id).toBeUndefined();
+      if (id.startsWith("if-sinon")) expect(r.output).toBe("Vrai\n");
+    }
+  });
+
+  it("disposition : Vrai à droite et retour de boucle à droite en miroir", async () => {
+    const { flowTemplate } = await import("./project");
+    const { layoutProgram } = await import("../flow/layout");
+    const si = flowTemplate("if-sinon-miroir")!.make();
+    const tq = flowTemplate("while-miroir")!.make();
+    const lay = layoutProgram({ name: "P", vars: [], body: [si, tq] });
+    expect(lay.edges.find((e) => e.source === si.id && e.label === "Oui")!.sourceHandle).toBe("r");
+    expect(lay.edges.find((e) => e.target === tq.id && e.back)!.targetHandle).toBe("rt");
+    const com = flowTemplate("comment-droite")!.make();
+    const l2 = layoutProgram({ name: "P", vars: [], body: [com] });
+    const n = l2.nodes.find((x) => x.flowId === com.id)!;
+    expect(n.x).toBeGreaterThan(n.attach!);
+  });
+});
