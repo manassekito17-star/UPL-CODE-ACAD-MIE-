@@ -38,7 +38,7 @@ import {
 } from "@/lib/larp/project";
 import { BUILTIN_NAMES } from "@/lib/larp/builtins";
 import { deleteCloud, listCloud, loadCloud, saveCloud, type CloudEntry } from "@/lib/larp/cloud";
-import { DRAG_TYPE, FlowGlyph, LarpChart } from "./chart";
+import { DRAG_TYPE, LarpChart, LarpGlyph } from "./chart";
 import { LarpEditor, type EditorHandle } from "./editor";
 import { Icons } from "./icons";
 import { fieldClass, GroupBox, TitleBar, UI_FONT, useDrag, Win, XpButton, FACE } from "./windows";
@@ -1091,7 +1091,7 @@ export function LarpStudio() {
                         </button>
                       ))}
                     {doc.kind === "organigramme" && (
-                      <div className="grid grid-cols-3 gap-[2px] p-[3px]">
+                      <div className="grid grid-cols-2 gap-[2px] p-[3px]">
                         {FLOW_TEMPLATES.map((t) => (
                           <button
                             type="button"
@@ -1106,12 +1106,12 @@ export function LarpStudio() {
                             title={t.label}
                             aria-label={t.label}
                             data-testid={`forme-${t.id}`}
-                            className={`grid h-[38px] place-items-center rounded-[2px] border ${armed === t.id ? "border-[#b45309] bg-[#fde68a]" : "border-transparent hover:border-[#aca899] hover:bg-[#f7f6f1]"}`}
+                            className={`grid h-[44px] place-items-center rounded-[2px] border ${armed === t.id ? "border-[#b45309] bg-[#fde68a]" : "border-transparent hover:border-[#aca899] hover:bg-[#f7f6f1]"}`}
                           >
-                            <FlowGlyph kind={t.kind} mark={t.mark} form={t.form} />
+                            <LarpGlyph t={t} />
                           </button>
                         ))}
-                        <p className="col-span-3 px-1 pt-1 text-[10px] leading-tight text-[#555]">{armed ? "Touchez maintenant un « + » de l'organigramme." : "Touchez une forme, puis un « + »."}</p>
+                        <p className="col-span-2 px-1 pt-1 text-[10px] leading-tight text-[#555]">{armed ? "Touchez maintenant un « + » de l'organigramme." : "Touchez une forme, puis un « + »."}</p>
                       </div>
                     )}
                     {doc.kind === "tampon" && <p className="p-2 text-[#777]">(aucun modèle pour un tampon d&apos;E/S)</p>}

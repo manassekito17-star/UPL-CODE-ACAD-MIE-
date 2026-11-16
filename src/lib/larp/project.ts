@@ -248,18 +248,37 @@ export interface FlowTemplate {
   make: () => FlowNode;
 }
 
+type IfNode = Extract<FlowNode, { kind: "if" }>;
+type LoopNode<K extends "while" | "repeat" | "for"> = Extract<FlowNode, { kind: K }>;
+/** SI-SINON : une instruction à compléter dans chaque branche. */
+const ifElse = (mirror: boolean): FlowNode => ({
+  ...(larpNode("if") as IfNode),
+  yes: [{ id: newId(), kind: "output", expr: '"Vrai"' }],
+  no: [{ id: newId(), kind: "output", expr: '"Faux"' }],
+  ...(mirror ? { mirror: true } : {}),
+});
+
 const seqBlock = (expr: string, form?: AssignForm) => (): FlowNode => ({ id: newId(), kind: "assign", target: "", expr, ...(form ? { form } : {}) });
 
 export const FLOW_TEMPLATES: FlowTemplate[] = [
   { id: "assign", kind: "assign", label: "Instruction séquentielle", make: () => larpNode("assign") },
-  { id: "input", kind: "input", label: "Lecture (LIRE)", make: () => larpNode("input") },
-  { id: "output", kind: "output", label: "Écriture (ÉCRIRE)", make: () => larpNode("output") },
+  { id: "input", kind: "input", label: "Entrée (LIRE)", make: () => larpNode("input") },
+  { id: "output", kind: "output", label: "Sortie (ÉCRIRE)", make: () => larpNode("output") },
   { id: "call", kind: "call", label: "Appel de module (EXÉCUTER)", make: () => larpNode("call") },
-  { id: "comment", kind: "comment", label: "Commentaire", make: () => larpNode("comment") },
-  { id: "if", kind: "if", label: "Condition SI (Vrai / Faux)", make: () => larpNode("if") },
-  { id: "while", kind: "while", label: "Boucle TANTQUE", make: () => larpNode("while") },
-  { id: "repeat", kind: "repeat", label: "Boucle RÉPÉTER-JUSQU'À", make: () => larpNode("repeat") },
-  { id: "for", kind: "for", label: "Boucle POUR", make: () => larpNode("for") },
+  { id: "comment", kind: "comment", label: "Commentaire à gauche de la ligne", make: () => ({ id: newId(), kind: "comment", text: "Commentaire", side: "left" }) },
+  { id: "comment-droite", kind: "comment", label: "Commentaire à droite de la ligne", make: () => ({ id: newId(), kind: "comment", text: "Commentaire", side: "right" }) },
+  { id: "if", kind: "if", label: "SI (Vrai à gauche)", make: () => larpNode("if") },
+  { id: "if-miroir", kind: "if", label: "SI (Vrai à droite)", make: () => ({ ...(larpNode("if") as IfNode), mirror: true }) },
+  { id: "if-sinon", kind: "if", label: "SI-SINON (Vrai à gauche, Faux à droite)", make: () => ifElse(false) },
+  { id: "if-sinon-miroir", kind: "if", label: "SI-SINON (Faux à gauche, Vrai à droite)", make: () => ifElse(true) },
+  { id: "while", kind: "while", label: "TANTQUE (retour à gauche)", make: () => larpNode("while") },
+  { id: "while-miroir", kind: "while", label: "TANTQUE (retour à droite)", make: () => ({ ...(larpNode("while") as LoopNode<"while">), mirror: true }) },
+  { id: "repeat", kind: "repeat", label: "RÉPÉTER-JUSQU'À (retour à gauche)", make: () => larpNode("repeat") },
+  { id: "repeat-miroir", kind: "repeat", label: "RÉPÉTER-JUSQU'À (retour à droite)", make: () => ({ ...(larpNode("repeat") as LoopNode<"repeat">), mirror: true }) },
+  { id: "for", kind: "for", label: "POUR (retour à gauche)", make: () => larpNode("for") },
+  { id: "for-miroir", kind: "for", label: "POUR (retour à droite)", make: () => ({ ...(larpNode("for") as LoopNode<"for">), mirror: true }) },
+  { id: "while-losange", kind: "while", label: "TANTQUE avec losange (retour à gauche)", make: () => ({ ...(larpNode("while") as LoopNode<"while">), diamond: true }) },
+  { id: "while-losange-miroir", kind: "while", label: "TANTQUE avec losange (retour à droite)", make: () => ({ ...(larpNode("while") as LoopNode<"while">), diamond: true, mirror: true }) },
   { id: "requete", kind: "assign", form: "requete", mark: "REQ", label: "Requête (REQUÊTE : message puis lecture)", make: seqBlock('REQUÊTE "Entrez une valeur : ", x', "requete") },
   { id: "lire-de", kind: "input", mark: "L#", label: "Lecture dans un tampon (LIRE … DE canal)", make: () => ({ id: newId(), kind: "input", target: "x DE 1" }) },
   { id: "ecrire-dans", kind: "output", mark: "É#", label: "Écriture dans un tampon (ÉCRIRE … DANS canal)", make: () => ({ id: newId(), kind: "output", expr: "x DANS 1" }) },
