@@ -43,6 +43,35 @@ import { LarpEditor, type EditorHandle } from "./editor";
 import { Icons } from "./icons";
 import { fieldClass, GroupBox, TitleBar, UI_FONT, useDrag, Win, XpButton, FACE } from "./windows";
 
+/** Caractères spéciaux difficiles à trouver sur le clavier d'un téléphone. */
+const SPECIAL_CHARS = ["←", "=", "==", "!=", "<>", "<", ">", "<=", ">=", "+", "-", "*", "/", "//", "%", "^", "(", ")", "[", "]", "{", "}", '"', "'", ",", ";", ":", "!", "_", "#", "&", "|", "\\", "@", "$", "?", "~", "°", "²", "≤", "≥", "≠", "×", "÷", "«", "»", "é", "è", "à", "ç", "ù", "ê", "É"];
+
+/**
+ * Barre des caractères spéciaux sous l'éditeur : un toucher tape le caractère au curseur.
+ * Le clic ne prend pas le focus (onPointerDown/onMouseDown) : le clavier du téléphone reste ouvert.
+ */
+function SpecialChars({ onType }: { onType: (c: string) => void }) {
+  return (
+    <div className="flex h-[24px] shrink-0 items-center gap-[2px] overflow-x-auto overflow-y-hidden border border-t-0 border-[#7f9db9] px-[2px]" style={{ background: FACE }} data-testid="caracteres-speciaux" title="Caractères spéciaux">
+      {["  ", ...SPECIAL_CHARS].map((c) => (
+        <button
+          type="button"
+          key={c}
+          className="h-[20px] min-w-[22px] shrink-0 rounded-[3px] border border-[#003c74] px-1 font-mono text-[12px] leading-none text-black active:bg-[#f8d68a]"
+          style={{ background: "linear-gradient(180deg,#fff 0%,#ecebe6 85%,#d6d0c5 100%)" }}
+          title={c === "  " ? "Tabulation (2 espaces)" : `Taper ${c}`}
+          onPointerDown={(e) => e.preventDefault()}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => onType(c)}
+          data-testid={c === "  " ? "car-tab" : `car-${c}`}
+        >
+          {c === "  " ? "⇥" : c}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 const DW = 1000;
 const DH = 640;
 const CURRENT_KEY = "upl:larp:courant";
@@ -1086,7 +1115,8 @@ export function LarpStudio() {
                   </div>
                 </div>
               )}
-              <div className="relative min-w-0 flex-1 border border-[#7f9db9] bg-white" onClick={(e) => e.stopPropagation()}>
+              <div className="flex min-w-0 flex-1 flex-col" onClick={(e) => e.stopPropagation()}>
+              <div className="relative min-h-0 flex-1 border border-[#7f9db9] bg-white">
                 {doc.kind === "organigramme" && doc.flow ? (
                   <div className="absolute inset-0 overflow-auto" style={{ background: editorBg }} onClick={() => setSelectedNode(null)}>
                     <LarpChart
@@ -1121,6 +1151,8 @@ export function LarpStudio() {
                     testId="editeur-texte"
                   />
                 )}
+              </div>
+              {doc.kind !== "organigramme" && editable && <SpecialChars onType={(c) => editor.current?.type(c)} />}
               </div>
             </div>
 

@@ -49,6 +49,8 @@ export interface EditorHandle {
   textarea: HTMLTextAreaElement | null;
   /** Insère du texte au curseur (annulable avec Ctrl+Z) et sélectionne le premier « {…} ». */
   insert: (text: string) => void;
+  /** Tape du texte tel quel au curseur (barre des caractères spéciaux). */
+  type: (text: string) => void;
   goto: (line: number, col?: number) => void;
   indent: (dir: 1 | -1) => void;
 }
@@ -115,6 +117,12 @@ export const LarpEditor = forwardRef<EditorHandle, Props>(function LarpEditor(
   useImperativeHandle(ref, () => ({
     get textarea() {
       return ta.current;
+    },
+    type(text: string) {
+      const t = ta.current;
+      if (!t || readOnly) return;
+      replaceRange(t.selectionStart, t.selectionEnd, text);
+      cursor();
     },
     insert(text: string) {
       const t = ta.current;

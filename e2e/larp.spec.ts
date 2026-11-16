@@ -40,6 +40,19 @@ test("Interface classique : exécuter (F7), saisie dans la console, erreur de co
   await expect(page.getByTestId("messages")).toContainText("PRINCIPAL (ligne 4) : FINSI attendu");
 });
 
+test("Interface classique : barre des caractères spéciaux (tape au curseur, l'éditeur garde le focus)", async ({ page }) => {
+  await openClassic(page);
+  const zone = page.getByTestId("zone-code");
+  await zone.fill("x ");
+  await zone.evaluate((el: HTMLTextAreaElement) => el.setSelectionRange(2, 2));
+  await zone.focus();
+  for (const c of ["←", "(", '"', "!=", ")"]) await page.getByTestId(`car-${c}`).click();
+  await expect(zone).toHaveValue('x ←("!=)');
+  await expect(zone).toBeFocused();
+  await page.keyboard.type("1");
+  await expect(zone).toHaveValue('x ←("!=)1');
+});
+
 test("Interface classique : pas-à-pas (variables, pile d'appels, ligne surlignée) et point d'arrêt", async ({ page }) => {
   await openClassic(page);
   await page.getByTestId("doc-Factorielle").click();

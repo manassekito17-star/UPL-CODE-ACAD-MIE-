@@ -408,8 +408,12 @@ export function AlgoStudio({
     setPanel(Boolean(LANGUAGES[next].preview));
   };
 
-  const run = async (input: string = stdin) => {
+  // Graine du hasard : nouvelle à chaque ▶, conservée quand la console relance après une saisie
+  // (le « nombre secret » tiré par ALEATOIRE reste le même pendant toute la partie).
+  const seedRef = useRef(0);
+  const run = async (input: string = stdin, keepSeed = false) => {
     if (running) return;
+    if (!keepSeed) seedRef.current = Math.floor(Math.random() * 2 ** 31);
     setPanel(true);
     if (isWeb) {
       setPreviewConsole([]);
@@ -420,7 +424,7 @@ export function AlgoStudio({
     setError(null);
     setResult(null);
     setStatus(null);
-    const { result: r, error: e } = await runProgram(language, files, input, { programId, onStatus: setStatus });
+    const { result: r, error: e } = await runProgram(language, files, input, { programId, onStatus: setStatus, seed: seedRef.current });
     setRunning(false);
     setStatus(null);
     if (e) setError(e);
@@ -439,7 +443,7 @@ export function AlgoStudio({
     const next = (stdin && !stdin.endsWith("\n") ? `${stdin}\n` : stdin) + answer;
     setStdin(next);
     setAnswer("");
-    void run(next);
+    void run(next, true);
   };
 
   // Mes programmes : liste des programmes enregistrés dans le compte, à rouvrir d'un toucher.
