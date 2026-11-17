@@ -49,7 +49,7 @@ export default async function UserPage({ params, searchParams }: PageProps<"/adm
         ["Exercices réussis", `${sum.exercises_passed} (${sum.submissions} soumissions)`],
         ["Programmes exécutés", sum.executions],
         ["Questions au professeur IA", sum.ai_questions],
-        ["Projets UPL IDE", sum.projects],
+        ["Projets ZiTECH IDE", sum.projects],
       ]
     : [];
 

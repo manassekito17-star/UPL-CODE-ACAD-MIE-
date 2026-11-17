@@ -1,4 +1,4 @@
-# Mettre UPL CODE ACADEMY MK en ligne — guide pas à pas (débutant)
+# Mettre ZiTECH en ligne — guide pas à pas (débutant)
 
 Durée : environ 1 heure. Coût : 0 $ (offres gratuites). Il faut seulement :
 
@@ -52,9 +52,9 @@ Tout le travail récent est sur la branche `claude/upl-code-academy-specs-vl0z7e
 ## Étape 2 — Google (bouton « Continuer avec Google »)
 
 1. Allez sur **https://console.cloud.google.com** et connectez-vous avec votre Gmail.
-2. En haut, cliquez sur le sélecteur de projet, puis **New project**. Nom : `UPL CODE ACADEMY MK`. Cliquez **Create**.
+2. En haut, cliquez sur le sélecteur de projet, puis **New project**. Nom : `ZiTECH`. Cliquez **Create**.
 3. Menu ☰ → **APIs & Services → OAuth consent screen**. Selon les versions, la page s'appelle **Google Auth Platform**. Cliquez **Get started** :
-   - **App name** : `UPL CODE ACADEMY MK` ; **User support email** : votre Gmail ;
+   - **App name** : `ZiTECH` ; **User support email** : votre Gmail ;
    - **Audience** : **External** ;
    - **Contact information** : votre Gmail. Acceptez puis cliquez **Create**.
 4. Rubrique **Branding** :
@@ -64,7 +64,7 @@ Tout le travail récent est sur la branche `claude/upl-code-academy-specs-vl0z7e
 
    Rubrique **Audience** → **Publish app** (« In production »). Les autorisations utilisées (nom, e-mail, photo) ne demandent pas de vérification par Google. Vérifiez toujours, en haut de la console, que le bon projet est sélectionné.
 5. Rubrique **Clients** → **Create client** :
-   - **Application type** : **Web application** ; **Name** : `UPL CODE ACADEMY MK — web` ;
+   - **Application type** : **Web application** ; **Name** : `ZiTECH — web` ;
    - **Authorized JavaScript origins** : `https://VOTRE-SITE`. Si vous ne la connaissez pas encore, revenez ici après l'étape 3 ;
    - **Authorized redirect URIs** : `https://VOTRE-REF.supabase.co/auth/v1/callback`. Supabase affiche cette adresse exacte à l'étape 2.7 ;
    - cliquez **Create**. Copiez le **Client ID** et le **Client secret**.
@@ -121,7 +121,7 @@ L'inscription administrateur n'est **pas publique** : on devient administrateur 
 ## Étape 6 — Vérifications
 
 - [ ] `https://VOTRE-SITE` s'ouvre sur téléphone, tablette et ordinateur.
-- [ ] Le lien partagé dans WhatsApp, Telegram, Facebook ou Gmail affiche l'aperçu (titre et image « UPL CODE ACADEMY MK »). WhatsApp et Facebook gardent les aperçus en cache : pour Facebook, utilisez https://developers.facebook.com/tools/debug/ pour actualiser.
+- [ ] Le lien partagé dans WhatsApp, Telegram, Facebook ou Gmail affiche l'aperçu (titre et image « ZiTECH »). WhatsApp et Facebook gardent les aperçus en cache : pour Facebook, utilisez https://developers.facebook.com/tools/debug/ pour actualiser.
 - [ ] **Continuer avec Google** crée le compte et mène au tableau de bord, avec la photo et l'e-mail.
 - [ ] L'inscription par e-mail envoie un message de confirmation.
 - [ ] **Mot de passe oublié** envoie un lien qui permet d'en choisir un nouveau.
@@ -129,7 +129,7 @@ L'inscription administrateur n'est **pas publique** : on devient administrateur 
 
 ## Connexion obligatoire
 
-Toute la plateforme demande un compte, Google (Gmail) ou e-mail et mot de passe. Les cours, les exercices, UPL IDE, l'éditeur, le laboratoire et le professeur IA mènent à la page de connexion, puis reviennent à la page demandée.
+Toute la plateforme demande un compte, Google (Gmail) ou e-mail et mot de passe. Les cours, les exercices, ZiTECH IDE, l'éditeur, le laboratoire et le professeur IA mènent à la page de connexion, puis reviennent à la page demandée.
 
 Restent publics :
 - l'accueil ;
@@ -138,7 +138,7 @@ Restent publics :
 - la vérification des certificats ;
 - les fichiers techniques (manifeste, service worker, icônes).
 
-La liste se trouve dans `src/lib/supabase/proxy.ts` (`PUBLIC_PATHS`). Une fois installé et préparé, UPL IDE s'ouvre aussi sans Internet, avec la copie gardée sur l'appareil.
+La liste se trouve dans `src/lib/supabase/proxy.ts` (`PUBLIC_PATHS`). Une fois installé et préparé, ZiTECH IDE s'ouvre aussi sans Internet, avec la copie gardée sur l'appareil.
 
 ## Comptes Google et e-mail : pas de doublon
 

@@ -1,5 +1,5 @@
 /**
- * Langage K+ dans UPL IDE :
+ * Langage K+ dans ZiTECH IDE :
  *  - le moteur copié (public/workers/kplus-moteur.json) est complet ;
  *  - la coloration Monaco connaît exactement les mots-clés et fonctions du moteur ;
  *  - les fichiers .kplus sont reconnus et exécutables ;
@@ -74,7 +74,7 @@ describe("moteur K+ copié dans UPL", () => {
   });
 });
 
-describe("fichiers .kplus dans UPL IDE", () => {
+describe("fichiers .kplus dans ZiTECH IDE", () => {
   it("sont reconnus, exécutables et ont leurs symboles", () => {
     expect(languageOf("cours/main.kplus")).toEqual({ monaco: "kplus", label: "K+", run: "kplus" });
     const tpl = templateById("kplus")!;

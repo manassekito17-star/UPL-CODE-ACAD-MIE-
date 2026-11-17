@@ -9,15 +9,15 @@ export interface PopupAnnouncement {
 
 export const WELCOME_ANNOUNCEMENT: PopupAnnouncement = {
   id: "bienvenue-2026",
-  title: "Bienvenue sur UPL CODE ACADEMY MK",
+  title: "Bienvenue sur ZiTECH",
   body: [
     "Chers étudiants, chers enseignants,",
-    "Toute l'équipe est heureuse de vous accueillir sur UPL CODE ACADEMY MK, votre espace d'apprentissage de l'informatique.",
+    "Toute l'équipe est heureuse de vous accueillir sur ZiTECH, votre espace d'apprentissage de l'informatique.",
     "Vous y trouverez des parcours progressifs (algorithmique, HTML, CSS, Python, C, JavaScript, Java, PHP, SQL…), des exercices corrigés automatiquement, des éditeurs de code utilisables sur téléphone comme sur ordinateur — dont une interface compatible LARP — ainsi qu'un professeur IA pour vous accompagner pas à pas.",
     "Notre ambition : vous offrir un environnement moderne et fiable pour apprendre, pratiquer et progresser à votre rythme, du premier algorithme jusqu'au niveau professionnel.",
     "Merci de faire partie de cette aventure. Bon apprentissage à toutes et à tous !",
   ].join("\n\n"),
-  signature: "La Direction — UPL CODE ACADEMY MK",
+  signature: "La Direction — ZiTECH",
 };
 
 /** Clé locale : l'annonce n'est montrée qu'une fois par appareil. */
@@ -41,7 +41,7 @@ export const IMPORTANT_NOTICE = {
   eyebrow: "Avis important",
   title: "Information à l'attention de nos utilisateurs",
   paragraphs: [
-    "UPL CODE ACADEMY MK est une initiative indépendante créée par un média étudiant de l'Université Protestante de Lubumbashi.",
+    "ZiTECH est une initiative indépendante créée par un média étudiant de l'Université Protestante de Lubumbashi.",
     "Cette plateforme n'est pas une plateforme officielle de l'Université Protestante de Lubumbashi (UPL). Elle n'est ni reconnue, ni administrée, ni officiellement affiliée à l'université.",
     "Son contenu, ses services et ses activités relèvent de l'initiative de ses créateurs et ne représentent pas nécessairement les positions ou les communications officielles de l'UPL.",
   ],

@@ -12,7 +12,7 @@ import { registerPseudocode } from "./pseudocode-language";
 
 export type MonacoEditor = Parameters<OnMount>[0];
 
-/** Langages pseudocode et K+, et thèmes de la plateforme (partagés par l'éditeur, le laboratoire et UPL IDE). */
+/** Langages pseudocode et K+, et thèmes de la plateforme (partagés par l'éditeur, le laboratoire et ZiTECH IDE). */
 export function configureMonaco(monaco: Monaco) {
   registerPseudocode(monaco);
   registerKPlus(monaco);
@@ -38,7 +38,7 @@ export function configureMonaco(monaco: Monaco) {
     rules,
     colors: { "editor.background": "#050D1F", "editorLineNumber.foreground": "#3A4559", "editor.lineHighlightBackground": "#0A1A3A" },
   });
-  // Thème « studio » de UPL IDE : fond gris neutre, couleurs syntaxiques sobres.
+  // Thème « studio » de ZiTECH IDE : fond gris neutre, couleurs syntaxiques sobres.
   monaco.editor.defineTheme("upl-studio", {
     base: "vs-dark",
     inherit: true,

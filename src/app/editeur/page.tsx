@@ -10,9 +10,9 @@ import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
   title: "Éditeur de code",
-  // Application installable « UPL Algo » (écran d'accueil), utilisable sans Internet.
+  // Application installable « ZiTECH Algo » (écran d'accueil), utilisable sans Internet.
   manifest: "/editeur.webmanifest",
-  appleWebApp: { capable: true, title: "UPL Algo", statusBarStyle: "black-translucent" },
+  appleWebApp: { capable: true, title: "ZiTECH Algo", statusBarStyle: "black-translucent" },
   icons: { apple: "/icons/editeur-v2-apple-touch-icon.png" },
 };
 export const viewport: Viewport = { themeColor: "#3c3f41" };

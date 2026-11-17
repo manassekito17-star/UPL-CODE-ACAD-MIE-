@@ -62,7 +62,7 @@ export function RatingBox() {
   return (
     <div className="rounded-xl border border-gris-200 bg-gris-50 p-4" data-testid="avis">
       <p className="text-sm font-semibold text-nuit-900">{already ? "Votre avis sur la plateforme (modifiable)" : "Que pensez-vous de la plateforme ?"}</p>
-      <p className="text-xs text-gris-500">Notez UPL CODE ACADEMY MK sur 5 étoiles.</p>
+      <p className="text-xs text-gris-500">Notez ZiTECH sur 5 étoiles.</p>
       <div className="mt-2 flex items-center gap-1" role="radiogroup" aria-label="Note sur 5 étoiles" onMouseLeave={() => setHover(0)}>
         {[1, 2, 3, 4, 5].map((n) => (
           <button

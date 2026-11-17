@@ -10,21 +10,21 @@ type Platform = "iphone" | "android" | "ordinateur";
 const APPS = [
   {
     id: "plateforme",
-    name: "UPL CODE ACADEMY MK",
+    name: "ZiTECH",
     icon: "/icons/site-apple-touch-icon.png",
     text: "La plateforme complète : formations, exercices, professeur IA, progression et certificats.",
     open: "/tableau-de-bord",
   },
   {
     id: "ide",
-    name: "UPL IDE",
+    name: "ZiTECH IDE",
     icon: "/icons/apple-touch-icon.png",
     text: "L'environnement de développement : projets, fichiers et dossiers, HTML/CSS/JS, Python, PHP, SQL… même sans Internet.",
     open: "/ide",
   },
   {
     id: "algo",
-    name: "UPL Algo",
+    name: "ZiTECH Algo",
     icon: "/icons/editeur-v2-apple-touch-icon.png",
     text: "L'éditeur d'algorithmes plein écran : pseudocode, console, clavier de symboles, utilisable sans Internet.",
     open: "/editeur?langage=pseudocode",
@@ -150,7 +150,7 @@ export function InstallApps() {
         <ul className="list-disc space-y-1 pl-5">
           <li>Chaque application a sa propre icône et s&apos;ouvre en plein écran, sans la barre du navigateur, comme une application du magasin.</li>
           <li>Gratuit et léger : rien à télécharger depuis Play Store ou App Store, les mises à jour sont automatiques.</li>
-          <li>UPL IDE et UPL Algo fonctionnent aussi <b>sans Internet</b> : dans l&apos;application, menu → « Installer · utiliser sans Internet » → « Télécharger pour utiliser sans Internet ».</li>
+          <li>ZiTECH IDE et ZiTECH Algo fonctionnent aussi <b>sans Internet</b> : dans l&apos;application, menu → « Installer · utiliser sans Internet » → « Télécharger pour utiliser sans Internet ».</li>
           <li>Sur Android, si une icône porte le petit logo Chrome, c&apos;est un simple raccourci : supprimez-la et installez de nouveau avec « Installer l&apos;application ».</li>
           <li>Sur iPhone, l&apos;installation se fait depuis <b>Safari</b> (ou Chrome récent) avec le bouton Partager : Apple n&apos;autorise pas de bouton « Installer » automatique.</li>
         </ul>

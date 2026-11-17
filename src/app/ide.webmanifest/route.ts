@@ -1,14 +1,14 @@
 import { BRAND } from "@/lib/brand";
 
-/** Manifeste de l'application installable « UPL IDE » (écran d'accueil du téléphone, ordinateur). */
+/** Manifeste de l'application installable « ZiTECH IDE » (écran d'accueil du téléphone, ordinateur). */
 export const dynamic = "force-static";
 
 export function GET() {
   const manifest = {
     id: "/ide",
-    name: `UPL IDE — ${BRAND.name}`,
-    short_name: "UPL IDE",
-    description: "Éditeur de code de UPL CODE ACADEMY MK : HTML, CSS, JavaScript, Python, pseudocode, utilisable sans Internet.",
+    name: `ZiTECH IDE — ${BRAND.name}`,
+    short_name: "ZiTECH IDE",
+    description: "Éditeur de code de ZiTECH : HTML, CSS, JavaScript, Python, pseudocode, utilisable sans Internet.",
     lang: "fr",
     start_url: "/ide",
     scope: "/",

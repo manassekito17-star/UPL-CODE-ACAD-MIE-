@@ -13,6 +13,6 @@ export const ACTIVITY_KINDS: Record<string, { label: string; icon: string }> = {
   exercice: { label: "Exercice", icon: "🧩" },
   execution: { label: "Exécution", icon: "▶️" },
   ia: { label: "Professeur IA", icon: "✨" },
-  projet: { label: "Projet UPL IDE", icon: "📁" },
+  projet: { label: "Projet ZiTECH IDE", icon: "📁" },
   compte: { label: "Compte", icon: "👤" },
 };

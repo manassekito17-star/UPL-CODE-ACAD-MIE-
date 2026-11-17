@@ -5,7 +5,7 @@ import { BRAND } from "@/lib/brand";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: BRAND.name,
-    short_name: "UPL CODE MK",
+    short_name: "ZiTECH",
     description: BRAND.description,
     lang: "fr",
     id: "/",
@@ -13,8 +13,8 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: "/tableau-de-bord",
     scope: "/",
     display: "standalone",
-    background_color: "#0a1a3a",
-    theme_color: "#0a1a3a",
+    background_color: "#020817",
+    theme_color: "#020817",
     categories: ["education"],
     icons: [
       { src: "/icons/site-192.png", sizes: "192x192", type: "image/png", purpose: "any" },

@@ -18,7 +18,7 @@ DEBUT
   ECRIRE(s)
 FIN`;
 
-describe("UPL Flow Studio : disposition automatique", () => {
+describe("ZiTECH Flow Studio : disposition automatique", () => {
   it("un nœud par bloc, Début et Fin, chaque flèche relie des nœuds existants", () => {
     const { program } = fromPseudocode(SRC);
     const l = layoutProgram(program);

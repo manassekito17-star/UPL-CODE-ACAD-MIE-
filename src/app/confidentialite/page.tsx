@@ -28,7 +28,7 @@ export default function PrivacyPage() {
         <section>
           <h2>1. Qui sommes-nous ?</h2>
           <p>
-            {BRAND.name} est une plateforme gratuite d&apos;apprentissage de la programmation destinée aux étudiants de l&apos;UPL et aux étudiants en informatique. Cette page explique quelles données nous traitons, pourquoi, et quels sont vos droits.
+            {BRAND.name} est une plateforme gratuite d&apos;apprentissage de la programmation ouverte à tous les étudiants et passionnés d&apos;informatique. Cette page explique quelles données nous traitons, pourquoi, et quels sont vos droits.
           </p>
         </section>
 

@@ -57,7 +57,7 @@ export default async function LabPage({ searchParams }: PageProps<"/laboratoire"
   return (
     <>
       <PageHeader
-        eyebrow="UPL ACADEMY · Laboratoire"
+        eyebrow="ZiTECH · Laboratoire"
         title="Laboratoire d'algorithmique"
         subtitle="Exécutez un algorithme instruction par instruction : avancez, reculez, mettez en pause, observez les variables, la pile d'appels, la sortie et l'organigramme synchronisé. Les conditions et les tours de boucle sont expliqués à chaque étape."
       />

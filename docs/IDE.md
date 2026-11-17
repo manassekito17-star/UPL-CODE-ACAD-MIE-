@@ -1,4 +1,4 @@
-# UPL IDE — environnement de développement hybride
+# ZiTECH IDE — environnement de développement hybride
 
 Ce document couvre trois choses :
 
@@ -20,7 +20,7 @@ Ce document couvre trois choses :
 
 ## 2. Conception
 
-- **Route `/ide`** : plein écran, avec une identité propre (logo `</>`, « UPL IDE — UPL CODE ACADEMY MK », palette nuit et électrique). La disposition reprend des principes d'ergonomie courants (barre d'activité, explorateur, onglets, panneaux, barre d'état) sans aucun élément propriétaire.
+- **Route `/ide`** : plein écran, avec une identité propre (logo `</>`, « ZiTECH IDE — ZiTECH », palette nuit et électrique). La disposition reprend des principes d'ergonomie courants (barre d'activité, explorateur, onglets, panneaux, barre d'état) sans aucun élément propriétaire.
 - **Modèle de données** (migration `20261107000001_projets_ide.sql`) :
   - `projects` : arborescence = fichiers à chemins relatifs + dossiers vides, et une `revision` qui sert à détecter les conflits.
   - `project_versions` : historique.
@@ -86,7 +86,7 @@ Ce document couvre trois choses :
 L'IDE reprend la disposition familière des éditeurs de code de bureau, avec un dessin propre à la plateforme :
 
 - **Thème « studio »** par défaut (gris neutre, barre d'état bleue) ; thèmes « nuit UPL » et « clair » au choix (Affichage ou Paramètres).
-- **Barre de titre** : logo, menus **Fichier, Édition, Sélection, Affichage, Exécuter, Aide** (un seul bouton ☰ sur téléphone), titre « fichier — projet — UPL IDE », boutons d'action et de disposition. Chaque entrée de menu déclenche une action réelle (création, import, export, enregistrement, annuler/rétablir, recherche, commentaire, déplacement de lignes, multicurseur, palette de commandes de l'éditeur, panneaux, thème…).
+- **Barre de titre** : logo, menus **Fichier, Édition, Sélection, Affichage, Exécuter, Aide** (un seul bouton ☰ sur téléphone), titre « fichier — projet — ZiTECH IDE », boutons d'action et de disposition. Chaque entrée de menu déclenche une action réelle (création, import, export, enregistrement, annuler/rétablir, recherche, commentaire, déplacement de lignes, multicurseur, palette de commandes de l'éditeur, panneaux, thème…).
 - **Explorateur en sections** : *Éditeurs ouverts* (fermeture d'un clic), arborescence du projet avec icônes par type de fichier, *Plan* (fonctions et classes du fichier ouvert, clic → ligne).
 - **Onglets** avec icône du type de fichier, **fil d'Ariane** du chemin sous les onglets, **minicarte** activée (ordinateur), **page d'accueil** quand aucun fichier n'est ouvert (démarrer, fichiers du projet, raccourcis).
 - **Aperçu web** en panneau latéral façon navigateur : actualiser, choix de la page HTML affichée, vues ordinateur / tablette / téléphone.
@@ -117,12 +117,12 @@ L'IDE reprend la disposition familière des éditeurs de code de bureau, avec un
 
 ### Application installable et utilisable sans Internet (novembre 2026)
 
-Comme PharmaGestion, UPL IDE est une **application web installable** : pas de magasin d'applications.
+Comme PharmaGestion, ZiTECH IDE est une **application web installable** : pas de magasin d'applications.
 
 - **Installation** : menu **Fichier → Installer et utiliser sans Internet…**
   - bouton « Installer » sur Chrome, Edge et Android ;
   - étapes guidées sur iPhone et iPad (Safari → Partager → Sur l'écran d'accueil) ;
-  - manifeste `/ide.webmanifest` (nom « UPL IDE », icônes `public/icons/`).
+  - manifeste `/ide.webmanifest` (nom « ZiTECH IDE », icônes `public/icons/`).
 - **Préparation hors ligne** (une seule fois, avec Internet), qui garde sur l'appareil :
   - la page de l'IDE et ses fichiers ;
   - les modules de chaque langage de l'éditeur ;
@@ -136,15 +136,15 @@ Comme PharmaGestion, UPL IDE est une **application web installable** : pas de ma
 
   Un même fichier de worker sert plusieurs moteurs, distingués par `#params=…`. Le service worker renvoie donc aux workers une réponse sans adresse propre, pour qu'ils gardent l'adresse exacte demandée.
 - **Sans Internet** :
-  - fonctionnent : UPL IDE, l'Éditeur, le Laboratoire, les fichiers (projet local), le pseudocode, JavaScript, Python (s'il a été préparé) et l'aperçu HTML/CSS ;
-  - les cours et les exercices demandent Internet : une page « Pas de connexion Internet » propose d'ouvrir UPL IDE ;
+  - fonctionnent : ZiTECH IDE, l'Éditeur, le Laboratoire, les fichiers (projet local), le pseudocode, JavaScript, Python (s'il a été préparé) et l'aperçu HTML/CSS ;
+  - les cours et les exercices demandent Internet : une page « Pas de connexion Internet » propose d'ouvrir ZiTECH IDE ;
   - le C et le Java affichent « Hors connexion… » ;
   - la barre d'état affiche « Hors connexion ».
 - **Test** : `e2e/hors-ligne.spec.ts` prépare l'IDE, coupe le réseau, recharge, puis exécute JavaScript et le pseudocode, vérifie l'aperçu et le message du C.
 
 ### Langage K+ (novembre 2026)
 
-[K+](https://github.com/manassekito17-star/K-) est un langage de programmation en français (`si … alors … fin`, `afficher`, `demander`…). Il est intégré à UPL IDE comme langage de fichier :
+[K+](https://github.com/manassekito17-star/K-) est un langage de programmation en français (`si … alors … fin`, `afficher`, `demander`…). Il est intégré à ZiTECH IDE comme langage de fichier :
 
 - **Fichiers `.kplus`** : icône K+, coloration (mots-clés français, textes, nombres, commentaires `#` et `/* */`), extraits (`si`, `pour`, `tant que`, `fonction`…), retrait automatique, clavier de programmation mobile, plan des fonctions, modèle de projet « K+ » et contenu de départ.
 - **Erreurs en direct** : le vrai moteur K+ vérifie le fichier pendant la saisie et souligne l'erreur à la ligne et à la colonne exactes, avec le conseil de K+ (panneau **Problèmes**).

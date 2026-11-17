@@ -27,7 +27,7 @@ export function CommentedAlgorithmView({
   trace: TraceStep[];
   traceTruncated: boolean;
   traceOutput: string;
-  /** Ouvrir ce code dans UPL IDE (démonstration modifiable). */
+  /** Ouvrir ce code dans ZiTECH IDE (démonstration modifiable). */
   editorHref?: string;
   /** Exécution pas à pas dans le laboratoire (pseudocode). */
   labHref?: string;
@@ -47,7 +47,7 @@ export function CommentedAlgorithmView({
         )}
         {editorHref && (
           <Link href={editorHref} className="text-xs font-medium text-electrique-600 hover:underline">
-            Ouvrir dans UPL IDE
+            Ouvrir dans ZiTECH IDE
           </Link>
         )}
         <div className="-mx-1 flex max-w-full gap-1 overflow-x-auto px-1 [&>button]:whitespace-nowrap" role="tablist" aria-label="Affichage">

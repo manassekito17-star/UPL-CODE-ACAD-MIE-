@@ -73,7 +73,7 @@ export const css: Course = {
             <link rel="stylesheet" href="style.css">
             ~~~
 
-            Deux autres possibilités existent : un élément **style** dans head (pratique pour un essai), et l'attribut **style** sur un élément (à éviter : il mélange contenu et présentation). Dans UPL IDE, les projets web contiennent déjà **index.html** et **style.css** reliés.
+            Deux autres possibilités existent : un élément **style** dans head (pratique pour un essai), et l'attribut **style** sur un élément (à éviter : il mélange contenu et présentation). Dans ZiTECH IDE, les projets web contiennent déjà **index.html** et **style.css** reliés.
 
             ## 4. Les sélecteurs de base
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { ZitechSymbol } from "@/components/brand/zitech-mark";
 import type { Monaco } from "@monaco-editor/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -760,7 +761,7 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
         { label: "Minicarte", onClick: () => changeSettings({ minimap: !settings.minimap }), checked: settings.minimap },
         { label: "Retour à la ligne", onClick: () => changeSettings({ wordWrap: !settings.wordWrap }), checked: settings.wordWrap },
         { label: "Thème studio (gris)", onClick: () => changeSettings({ theme: "studio" }), checked: settings.theme === "studio" },
-        { label: "Thème nuit UPL", onClick: () => changeSettings({ theme: "sombre" }), checked: settings.theme === "sombre" },
+        { label: "Thème nuit ZiTECH", onClick: () => changeSettings({ theme: "sombre" }), checked: settings.theme === "sombre" },
         { label: "Thème clair", onClick: () => changeSettings({ theme: "clair" }), checked: settings.theme === "clair" },
       ],
     },
@@ -795,8 +796,8 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
 
       {/* Barre de titre : logo, menus, titre de la fenêtre, actions */}
       <header className="flex h-[35px] shrink-0 items-center gap-1 border-b border-[var(--ide-border)] bg-[var(--ide-activity)] px-1.5">
-        <Link href="/" className="grid h-6 w-6 shrink-0 place-items-center rounded font-mono text-[10px] font-bold text-white" style={{ background: "linear-gradient(135deg, #1d5fe0, #22d3ee)" }} aria-label={`${BRAND.name} — accueil`} title={`${BRAND.name} — accueil`}>
-          {"</>"}
+        <Link href="/" className="grid h-6 w-6 shrink-0 place-items-center" aria-label={`${BRAND.name} — accueil`} title={`${BRAND.name} — accueil`}>
+          <ZitechSymbol size={20} />
         </Link>
         <MenuBar menus={menus} />
         <div className="flex min-w-0 flex-1 items-center justify-center gap-1 truncate px-2 text-xs text-[var(--ide-muted)]">
@@ -804,7 +805,7 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
           <button type="button" onClick={renameProject} className="max-w-[40vw] truncate rounded-sm px-1 py-0.5 text-[var(--ide-text)] hover:bg-[var(--ide-hover)]" title="Renommer le projet" data-testid="ide-nom-projet">
             {project.name}
           </button>
-          <span className="hidden shrink-0 sm:inline">— UPL IDE</span>
+          <span className="hidden shrink-0 sm:inline">— ZiTECH IDE</span>
         </div>
         <div className="flex shrink-0 items-center gap-0.5">
           {!project.id && loggedIn ? (
@@ -1152,7 +1153,7 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
       {/* Barre d'état */}
       <footer className="flex h-[22px] shrink-0 items-center overflow-x-auto bg-[var(--ide-status)] text-xs text-[var(--ide-status-text)]" data-testid="ide-barre-etat">
         <Link href="/" className="flex h-full shrink-0 items-center bg-[#16825d] px-2.5 font-mono text-[11px] font-bold hover:brightness-110" title={`${BRAND.name} — accueil`}>
-          {"</>"} UPL
+          ZiTECH
         </Link>
         <StatusItem onClick={() => setSide("projets")} label="Projet">
           <Icon name="projets" className="h-3.5 w-3.5" /> {project.id ? "compte" : "local"}

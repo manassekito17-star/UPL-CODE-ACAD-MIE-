@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Utilisation sans Internet de UPL IDE (côté navigateur) : enregistrement du
+ * Utilisation sans Internet de ZiTECH IDE (côté navigateur) : enregistrement du
  * service worker et préparation (téléchargement) des fichiers nécessaires.
  */
 
@@ -122,7 +122,7 @@ export interface PrepareStep {
 }
 
 /**
- * Télécharge tout ce qu'il faut pour utiliser UPL IDE sans Internet :
+ * Télécharge tout ce qu'il faut pour utiliser ZiTECH IDE sans Internet :
  * pages et fichiers de l'application, coloration et analyse de chaque langage
  * de l'éditeur, et (facultatif) Python.
  * `loadLanguages` crée un modèle par langage pour que l'éditeur charge ses modules ;
@@ -142,7 +142,7 @@ export async function prepareOffline(opts: {
   try {
     opts.onStep("Langages de l'éditeur (coloration, suggestions, erreurs)…");
     await opts.loadLanguages();
-    opts.onStep("UPL Algo, interface LARP, Flow Studio et laboratoire…");
+    opts.onStep("ZiTECH Algo, interface LARP, Flow Studio et laboratoire…");
     for (const path of ["/editeur", "/flow/classique", "/flow", "/laboratoire"]) await warmPage(path);
     if (opts.warmPython) {
       opts.onStep("Python (environ 10 Mo)…");

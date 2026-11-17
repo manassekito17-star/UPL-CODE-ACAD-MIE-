@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { LarpStudioLoader } from "./loader";
 
 export const metadata: Metadata = {
-  title: "UPL Algo Classique (compatible LARP)",
+  title: "ZiTECH Algo Classique (compatible LARP)",
   description: "Interface d'algorithmique classique compatible LARP : pseudo-code et organigrammes, console et exécution pas-à-pas, à la même place que sur l'ordinateur du professeur.",
 };
 

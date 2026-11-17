@@ -1,4 +1,4 @@
-/** Modèles prêts à l'emploi de UPL Flow Studio (pseudocode converti en organigramme à l'ouverture). */
+/** Modèles prêts à l'emploi de ZiTECH Flow Studio (pseudocode converti en organigramme à l'ouverture). */
 export const FLOW_TEMPLATES = [
   {
     id: "somme",

@@ -8,7 +8,7 @@ import { rateLimit } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 import { projectCreateSchema } from "@/lib/validation";
 
-/** Modèle réservé aux projets de l'interface classique (LARP) : séparés des projets de UPL IDE. */
+/** Modèle réservé aux projets de l'interface classique (LARP) : séparés des projets de ZiTECH IDE. */
 const LARP = "larp";
 
 /** Projets de l'étudiant connecté (RLS : uniquement les siens). ?type=larp : projets de l'interface classique. */

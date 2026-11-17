@@ -14,7 +14,7 @@ const json = (v: unknown) => `${q(JSON.stringify(v))}::jsonb`;
 
 const out: string[] = [
   "-- Fichier généré par scripts/generate-seed.ts — ne pas modifier à la main.",
-  "-- Contenu pédagogique de référence d'UPL CODE ACADEMY MK.",
+  "-- Contenu pédagogique de référence de ZiTECH.",
   "begin;",
 ];
 
@@ -122,7 +122,7 @@ chunks.forEach((c, i) => {
   const n = String(i + 1).padStart(2, "0");
   writeFileSync(
     new URL(`2-contenu-${n}.sql`, installDir),
-    `-- UPL CODE ACADEMY MK — installation, partie 2 (contenu), morceau ${i + 1} sur ${chunks.length}.\n-- À exécuter dans l'ordre, après 1-structure.sql. Peut être relancé sans risque.\nbegin;\n${c.join("\n")}\ncommit;\n`,
+    `-- ZiTECH — installation, partie 2 (contenu), morceau ${i + 1} sur ${chunks.length}.\n-- À exécuter dans l'ordre, après 1-structure.sql. Peut être relancé sans risque.\nbegin;\n${c.join("\n")}\ncommit;\n`,
   );
 });
 console.log(`Installation : contenu découpé en ${chunks.length} morceaux (supabase/installation/2-contenu-NN.sql).`);

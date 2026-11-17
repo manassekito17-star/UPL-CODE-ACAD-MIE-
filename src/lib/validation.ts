@@ -87,7 +87,7 @@ export const tutorSchema = z.object({
 
 export type TutorRequest = z.infer<typeof tutorSchema>;
 
-// ---------------- Projets UPL IDE ----------------
+// ---------------- Projets ZiTECH IDE ----------------
 export const projectSnapshotSchema = z.object({
   files: z.array(z.object({ path: z.string().min(1).max(200), content: z.string().max(300_000) })).max(200),
   folders: z.array(z.string().min(1).max(200)).max(500).default([]),

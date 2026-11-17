@@ -16,7 +16,7 @@ async function openStudio(page: Page) {
   await expect(page.getByTestId("canevas-flow")).toBeVisible();
 }
 
-test("UPL Flow Studio : modèle, exécution réelle, pas à pas avant/arrière, variables", async ({ page }) => {
+test("ZiTECH Flow Studio : modèle, exécution réelle, pas à pas avant/arrière, variables", async ({ page }) => {
   await openStudio(page);
   await expect.poll(() => code(page), { timeout: 60_000 }).toContain("POUR i DE 1 A n FAIRE");
   await page.getByLabel("Entrées préparées (une par ligne)").fill("4");
@@ -32,7 +32,7 @@ test("UPL Flow Studio : modèle, exécution réelle, pas à pas avant/arrière, 
   await expect(page.getByTestId("sortie-flow")).toContainText("Fin de l'algorithme");
 });
 
-test("UPL Flow Studio : insérer un bloc avec « + », le modifier, annuler, erreur rattachée au bloc", async ({ page }) => {
+test("ZiTECH Flow Studio : insérer un bloc avec « + », le modifier, annuler, erreur rattachée au bloc", async ({ page }) => {
   await openStudio(page);
   const before = await page.getByTestId("inserer").count();
   await page.getByTestId("inserer").last().click(); // avant « Fin »
@@ -59,7 +59,7 @@ test("UPL Flow Studio : insérer un bloc avec « + », le modifier, annuler, err
   await expect(page.getByTestId("historique-flow")).toBeVisible();
 });
 
-test("UPL Flow Studio : point d'arrêt, entrée demandée pendant l'exécution, import de pseudocode", async ({ page }) => {
+test("ZiTECH Flow Studio : point d'arrêt, entrée demandée pendant l'exécution, import de pseudocode", async ({ page }) => {
   await openStudio(page);
   // Point d'arrêt sur « s ← s + i »
   await page.getByTestId("canevas-flow").getByText("s ← s + i").click();
@@ -84,7 +84,7 @@ test("UPL Flow Studio : point d'arrêt, entrée demandée pendant l'exécution, 
 });
 
 for (const [name, device] of [["iPhone", devices["iPhone 13"]], ["Android", devices["Pixel 7"]]] as const) {
-  test(`UPL Flow Studio sur ${name} : placer une forme au toucher, exécuter, console`, async ({ browser }) => {
+  test(`ZiTECH Flow Studio sur ${name} : placer une forme au toucher, exécuter, console`, async ({ browser }) => {
     const opts: Record<string, unknown> = { ...device };
     delete opts.defaultBrowserType;
     const context = await browser.newContext(opts);
@@ -104,7 +104,7 @@ for (const [name, device] of [["iPhone", devices["iPhone 13"]], ["Android", devi
   });
 }
 
-test("UPL Flow Studio : pseudocode modifié à la main → organigramme mis à jour, console en bulles", async ({ page }) => {
+test("ZiTECH Flow Studio : pseudocode modifié à la main → organigramme mis à jour, console en bulles", async ({ page }) => {
   await openStudio(page);
   await page.getByRole("button", { name: "Pseudocode", exact: true }).first().click();
   await page.locator(".monaco-editor").first().waitFor({ timeout: 60_000 });
