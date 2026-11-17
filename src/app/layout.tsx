@@ -4,6 +4,7 @@ import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { AnnouncementPopup } from "@/components/annonces/announcement-popup";
 import { RegisterServiceWorker } from "@/components/pwa/register-sw";
+import { getCurrentUser } from "@/lib/auth";
 import { BRAND } from "@/lib/brand";
 import "./globals.css";
 
@@ -31,11 +32,12 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const user = await getCurrentUser();
   return (
     <html lang="fr" className={`${inter.variable} ${jetbrains.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
-        <RegisterServiceWorker />
+        <RegisterServiceWorker loggedIn={Boolean(user)} />
         <a href="#contenu" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded focus:bg-white focus:px-3 focus:py-2">
           Aller au contenu
         </a>

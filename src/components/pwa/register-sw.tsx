@@ -1,12 +1,20 @@
 "use client";
 
 import { useEffect } from "react";
-import { registerServiceWorker } from "@/lib/offline/client";
+import { autoPrepareOffline, registerServiceWorker } from "@/lib/offline/client";
 
-/** Service worker enregistré sur tout le site : la plateforme et ZENTECH IDE peuvent s'installer sur le téléphone. */
-export function RegisterServiceWorker() {
+/**
+ * Service worker enregistré sur tout le site : la plateforme et ses éditeurs s'installent sur le
+ * téléphone. Étudiant connecté : les éditeurs sont gardés automatiquement pour une utilisation sans
+ * Internet (en arrière-plan, quelques secondes après l'ouverture de la page).
+ */
+export function RegisterServiceWorker({ loggedIn = false }: { loggedIn?: boolean }) {
   useEffect(() => {
-    void registerServiceWorker();
-  }, []);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    void registerServiceWorker().then((reg) => {
+      if (reg) timer = setTimeout(() => void autoPrepareOffline(loggedIn), 6000);
+    });
+    return () => clearTimeout(timer);
+  }, [loggedIn]);
   return null;
 }

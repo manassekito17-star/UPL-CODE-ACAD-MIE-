@@ -185,3 +185,49 @@ export function keepForOffline(urls: string[]) {
   if (!offlineSupported() || !navigator.onLine || !urls.length) return;
   void navigator.serviceWorker.ready.then((reg) => reg.active?.postMessage({ type: "precache", urls })).catch(() => undefined);
 }
+
+/** Version du service worker : une nouvelle version garde de nouveau les éditeurs (copie précédente effacée). */
+export const AUTO_OFFLINE_VERSION = "v6";
+const AUTO_KEY = `upl:hors-ligne:auto:${AUTO_OFFLINE_VERSION}`;
+let autoRunning = false;
+
+/**
+ * Garde automatiquement les éditeurs sur l'appareil (une fois par version et par adresse du site) :
+ * à la première visite avec Internet d'un étudiant connecté, chaque éditeur est chargé en arrière-plan
+ * dans un cadre invisible pour que ses fichiers passent par le service worker. Ensuite les éditeurs
+ * s'ouvrent sans Internet, sans que l'étudiant ait à « préparer » quoi que ce soit.
+ */
+export async function autoPrepareOffline(loggedIn: boolean) {
+  if (!loggedIn || autoRunning || !offlineSupported() || !navigator.onLine || window !== window.top) return;
+  // Économiseur de données activé : on n'utilise pas le forfait sans demande.
+  if ((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData) return;
+  let forced = false;
+  try {
+    if (localStorage.getItem(AUTO_KEY)) return;
+    forced = localStorage.getItem("upl:test:auto-hors-ligne") === "1";
+  } catch {
+    return;
+  }
+  // Tests automatisés : seulement sur demande (sinon chaque test téléchargerait tous les éditeurs).
+  if (navigator.webdriver && !forced) return;
+  autoRunning = true;
+  try {
+    await navigator.serviceWorker.ready;
+    const stopTracking = trackWorkers();
+    let workerFiles: string[] = [];
+    try {
+      for (const path of ["/editeur", "/flow/classique", "/ide", "/flow", "/laboratoire"]) {
+        if (!navigator.onLine) return;
+        await warmPage(path);
+      }
+    } finally {
+      workerFiles = stopTracking();
+    }
+    const r = await sendPrecache([...loadedResources(), ...workerFiles]);
+    if (r.ok > 0) localStorage.setItem(AUTO_KEY, new Date().toISOString());
+  } catch {
+    /* nouvel essai à la prochaine visite */
+  } finally {
+    autoRunning = false;
+  }
+}

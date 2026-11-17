@@ -33,6 +33,8 @@ export function AnnouncementModal({
     // Les tests automatisés (navigateur piloté) ne voient une fenêtre que sur demande :
     // ?annonce (bienvenue), ?annonce=avis (note).
     if (param === null && navigator.webdriver) return;
+    // Cadre invisible (préparation hors ligne) : aucune fenêtre.
+    if (window !== window.top) return;
     let next: PopupStep | null = null;
     if (param !== null) next = param === "avis" ? "avis" : "annonce";
     else {
