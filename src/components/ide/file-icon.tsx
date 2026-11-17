@@ -2,7 +2,7 @@ import { languageOf } from "@/lib/ide/fs";
 import { cn } from "../ui";
 
 /**
- * Icône de type de fichier (dessin propre à UPL IDE) : un court sigle coloré
+ * Icône de type de fichier (dessin propre à ZENTECH IDE) : un court sigle coloré
  * selon le langage, lisible dans l'explorateur, les onglets et le fil d'Ariane.
  */
 const BADGES: Record<string, { label: string; color: string }> = {

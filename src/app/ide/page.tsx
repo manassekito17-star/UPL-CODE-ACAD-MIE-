@@ -8,11 +8,11 @@ import { templateById } from "@/lib/ide/templates";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
-  title: "UPL IDE",
+  title: "ZENTECH IDE",
   description: "Environnement de développement : projets à dossiers, onglets, vue fractionnée, exécution, aperçu web et historique des versions.",
   // Application installable (écran d'accueil) et utilisable sans Internet.
   manifest: "/ide.webmanifest",
-  appleWebApp: { capable: true, title: "UPL IDE", statusBarStyle: "black-translucent" },
+  appleWebApp: { capable: true, title: "ZENTECH IDE", statusBarStyle: "black-translucent" },
   icons: { apple: "/icons/apple-touch-icon.png" },
 };
 
@@ -32,7 +32,7 @@ export default async function IdePage({ searchParams }: PageProps<"/ide">) {
     else
       return (
         <Container className="py-12">
-          <Notice tone="erreur">Projet introuvable. <Link href="/ide" className="underline">Ouvrir UPL IDE</Link></Notice>
+          <Notice tone="erreur">Projet introuvable. <Link href="/ide" className="underline">Ouvrir ZENTECH IDE</Link></Notice>
         </Container>
       );
   }

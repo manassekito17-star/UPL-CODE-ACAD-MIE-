@@ -5,7 +5,7 @@ import { IMPORTANT_NOTICE } from "@/lib/announcement";
 
 export const metadata: Metadata = {
   title: "Avis important",
-  description: "UPL CODE ACADEMY MK est une initiative indépendante d'un média étudiant : ce n'est pas une plateforme officielle de l'Université Protestante de Lubumbashi.",
+  description: "ZENTECH est une initiative indépendante d'un média étudiant : ce n'est pas une plateforme officielle de l'Université Protestante de Lubumbashi.",
 };
 
 /** Statut de la plateforme : initiative indépendante, non officielle (page publique). */
@@ -21,7 +21,7 @@ export default function ImportantNoticePage() {
               <p key={p}>{p}</p>
             ))}
           </div>
-          <p className="mt-6 border-t border-gris-200 pt-4 text-sm font-semibold text-nuit-900">L&apos;équipe UPL CODE ACADEMY MK</p>
+          <p className="mt-6 border-t border-gris-200 pt-4 text-sm font-semibold text-nuit-900">L&apos;équipe ZENTECH</p>
         </div>
         <p className="mt-6 text-sm text-gris-500">
           Voir aussi la <Link href="/confidentialite" className="text-electrique-600 underline">politique de confidentialité</Link> et les{" "}

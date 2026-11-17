@@ -1,19 +1,21 @@
 @import "tailwindcss";
 
-/* ===== Design system UPL CODE ACADEMY MK =====
+/* ===== Design system ZENTECH =====
    Bleu nuit, bleu électrique, blanc, gris clair, accents cyan. */
 @theme {
-  --color-nuit-950: #050d1f;
-  --color-nuit-900: #0a1a3a;
-  --color-nuit-800: #10264f;
-  --color-nuit-700: #183466;
-  --color-electrique-600: #1d5fe0;
-  --color-electrique-500: #2f74ff;
-  --color-electrique-400: #5b93ff;
+  --color-nuit-950: #020817;
+  --color-nuit-900: #071029;
+  --color-nuit-800: #0c1a3d;
+  --color-nuit-700: #142a57;
+  --color-electrique-600: #0e62e0;
+  --color-electrique-500: #1677ff;
+  --color-electrique-400: #4f98ff;
   --color-electrique-100: #e3edff;
-  --color-cyan-accent: #22d3ee;
-  --color-cyan-soft: #cffafe;
+  --color-cyan-accent: #00d9d0;
+  --color-cyan-soft: #ccfbf6;
   --color-gris-50: #f6f8fb;
+  /* Gris secondaire ZENTECH (textes secondaires sur fond sombre). */
+  --color-gris-ztech: #aab4c3;
   --color-gris-100: #eef2f7;
   --color-gris-200: #dfe5ee;
   --color-gris-500: #6b778c;
@@ -94,7 +96,7 @@ body {
 .upl-organigramme g.upl-actif > rect,
 .upl-organigramme g.upl-actif > polygon { stroke: #f59e0b; stroke-width: 3.5; fill: #fef3c7; }
 
-/* ===== UPL IDE : thèmes studio (défaut, gris neutre), nuit UPL et clair ===== */
+/* ===== ZENTECH IDE : thèmes studio (défaut, gris neutre), nuit UPL et clair ===== */
 .ide-studio {
   --ide-bg: #181818; --ide-panel: #181818; --ide-sidebar: #181818; --ide-activity: #181818; --ide-tabs: #181818;
   --ide-editor: #1f1f1f; --ide-border: #2b2b2b; --ide-text: #cccccc; --ide-muted: #9d9d9d; --ide-hover: #2a2d2e;

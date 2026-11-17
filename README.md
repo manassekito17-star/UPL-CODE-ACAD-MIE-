@@ -1,4 +1,4 @@
-# UPL CODE ACADEMY MK
+# ZENTECH
 
 **LEARN. CODE. PRACTICE. MASTER.**
 
@@ -14,7 +14,7 @@ Plateforme universitaire d'apprentissage de l'informatique et de la programmatio
 | **Parcours multiniveaux** | 8 parcours (Algorithmique, HTML, CSS, Python, C, JavaScript, Java, K+), chacun en **4 niveaux** (très débutant → professionnel) avec critères de passage, examens de fin de niveau, test de positionnement, dispense des niveaux acquis, bulletin de progression (PDF) et certificats internes vérifiables. Les chapitres non rédigés sont affichés « au programme ». Voir [docs/MULTINIVEAUX.md](docs/MULTINIVEAUX.md). |
 | **Exercices** | 106 exercices (dont 28 HTML/CSS corrigés par analyse structurelle, et des projets pratiques notés rattachés aux chapitres) (débutant → avancé, 8 types : QCM, compléter, corriger, écrire un algorithme/programme, problème, mini-projet…) avec tests visibles et cachés, indices progressifs, correction pédagogique et solution révélées après réussite ou 5 tentatives. |
 | **Éditeur** | Monaco : coloration (y compris pseudocode), numéros de ligne, indentation, suggestions et extraits, erreurs soulignées en direct, Exécuter / Réinitialiser / Enregistrer, multi-fichiers (Python, projets web), **aperçu en direct HTML/CSS/JS** dans une iframe isolée avec console de la page, démonstrations ouvertes depuis un chapitre avec retour au cours, console, zone d'entrée, historique, brouillon automatique, onglets Consignes / Code / Console sur mobile. |
-| **UPL IDE** | `/ide` : projets à dossiers enregistrés dans le compte (révisions, conflits entre appareils, brouillon hors ligne, historique et points de sauvegarde), explorateur (créer, renommer, déplacer, dupliquer, supprimer, import fichiers/dossier/ZIP, export ZIP), onglets et vue fractionnée Monaco, problèmes, console, sortie, journal, aperçu web ordinateur/tablette/téléphone, exécution réelle, thème clair/sombre. Voir [docs/IDE.md](docs/IDE.md). |
+| **ZENTECH IDE** | `/ide` : projets à dossiers enregistrés dans le compte (révisions, conflits entre appareils, brouillon hors ligne, historique et points de sauvegarde), explorateur (créer, renommer, déplacer, dupliquer, supprimer, import fichiers/dossier/ZIP, export ZIP), onglets et vue fractionnée Monaco, problèmes, console, sortie, journal, aperçu web ordinateur/tablette/téléphone, exécution réelle, thème clair/sombre. Voir [docs/IDE.md](docs/IDE.md). |
 | **Laboratoire** | `/laboratoire` : exécution pas à pas (avancer, reculer, lecture, pause), ligne courante dans l'éditeur, organigramme synchronisé, variables et valeurs modifiées, pile d'appels, sortie, explication des conditions, tours de boucle et appels, saisie interactive de LIRE, explication par le professeur IA. |
 | **Exécution** | Pseudocode : interpréteur maison (sans accès système, limites d'instructions, de récursivité et de sortie). Python, C, JavaScript, Java : Judge0 (bac à sable isolé, sans réseau, limites CPU/mémoire/taille). Repli dans un Web Worker du navigateur pour pseudocode, Python (Pyodide) et JavaScript. |
 | **Professeur IA** | Spécialisé par parcours (programme, chapitre en cours et niveau mesuré relus côté serveur) ; modes enseigner, interroger, accompagner un projet, questions, explication ligne par ligne, analyse d'erreurs, indices progressifs (niveaux 1 à 5), génération d'exercices, pseudocode ↔ code, préparation aux évaluations ; français simple adapté au niveau ; jamais de solution complète pour un exercice évalué. Fournisseur interchangeable (`src/lib/ai`). |
@@ -126,7 +126,7 @@ npm run build
 
 L'intégration continue (`.github/workflows/ci.yml`) rejoue l'ensemble à chaque push, en mode démonstration **et** contre un Supabase réel démarré dans la CI.
 
-Documentation : [mise en ligne pas à pas](docs/DEPLOIEMENT.md) · [budget zéro et coûts](docs/COUTS.md) · [UPL IDE](docs/IDE.md) · [multiniveaux](docs/MULTINIVEAUX.md) · [formation](docs/FORMATION.md) · [audit](docs/AUDIT.md) · [architecture](docs/ARCHITECTURE.md) · [plan d'exécution](docs/PLAN.md) · [critères d'acceptation](docs/CRITERES-ACCEPTATION.md) · [pseudocode](docs/PSEUDOCODE.md).
+Documentation : [mise en ligne pas à pas](docs/DEPLOIEMENT.md) · [budget zéro et coûts](docs/COUTS.md) · [ZENTECH IDE](docs/IDE.md) · [multiniveaux](docs/MULTINIVEAUX.md) · [formation](docs/FORMATION.md) · [audit](docs/AUDIT.md) · [architecture](docs/ARCHITECTURE.md) · [plan d'exécution](docs/PLAN.md) · [critères d'acceptation](docs/CRITERES-ACCEPTATION.md) · [pseudocode](docs/PSEUDOCODE.md).
 
 ## Contribuer au contenu
 

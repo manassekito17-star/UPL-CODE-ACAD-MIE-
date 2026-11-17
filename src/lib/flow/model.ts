@@ -1,5 +1,5 @@
 /**
- * UPL Flow Studio — modèle commun des organigrammes algorithmiques.
+ * ZENTECH Flow Studio — modèle commun des organigrammes algorithmiques.
  *
  * L'organigramme est « structuré » (comme Flowgorithm ou RAPTOR) : un arbre de
  * blocs (affectation, entrée, sortie, condition, boucles, appel, commentaire).

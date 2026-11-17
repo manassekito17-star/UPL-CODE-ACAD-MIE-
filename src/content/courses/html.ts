@@ -12,7 +12,7 @@ export const html: Course = {
   title: "HTML",
   tagline: "Structurer le contenu des pages web.",
   description:
-    "HTML est le langage qui décrit la structure et le sens du contenu d'une page web : titres, paragraphes, listes, liens, images, tableaux, formulaires. Ce parcours part de zéro et mène jusqu'à des pages accessibles, sémantiques et prêtes pour la production. Chaque exemple s'affiche en direct dans UPL IDE.",
+    "HTML est le langage qui décrit la structure et le sens du contenu d'une page web : titres, paragraphes, listes, liens, images, tableaux, formulaires. Ce parcours part de zéro et mène jusqu'à des pages accessibles, sémantiques et prêtes pour la production. Chaque exemple s'affiche en direct dans ZENTECH IDE.",
   level: "debutant",
   prerequisites: ["Savoir utiliser un navigateur web. Aucune connaissance en programmation n'est nécessaire."],
   objectives: [
@@ -65,7 +65,7 @@ export const html: Course = {
             HTML entoure le contenu de **balises** écrites entre chevrons :
 
             ~~~html
-            <p>Bienvenue à UPL CODE ACADEMY MK</p>
+            <p>Bienvenue à ZENTECH</p>
             ~~~
 
             - **<p>** est la balise **ouvrante**, **</p>** la balise **fermante** (avec une barre oblique).
@@ -93,7 +93,7 @@ export const html: Course = {
 
             ## 5. Votre première page
 
-            Une page HTML est un simple fichier texte, souvent nommé **index.html**. Dans UPL IDE, choisissez le langage **HTML** : l'aperçu se met à jour pendant que vous tapez. Le chapitre suivant détaille la structure complète d'un document ; pour l'instant, retenez qu'une page commence par **<!DOCTYPE html>** et que le contenu visible se place dans **<body>**.
+            Une page HTML est un simple fichier texte, souvent nommé **index.html**. Dans ZENTECH IDE, choisissez le langage **HTML** : l'aperçu se met à jour pendant que vous tapez. Le chapitre suivant détaille la structure complète d'un document ; pour l'instant, retenez qu'une page commence par **<!DOCTYPE html>** et que le contenu visible se place dans **<body>**.
 
             ## 6. Les commentaires
 
@@ -154,7 +154,7 @@ export const html: Course = {
                   ["  <title>Accueil</title>", "Titre affiché dans l'onglet du navigateur."],
                   ["</head>"],
                   ["<body>", "Corps : tout le contenu visible."],
-                  ["  <h1>UPL CODE ACADEMY MK</h1>", "Titre principal de la page."],
+                  ["  <h1>ZENTECH</h1>", "Titre principal de la page."],
                   ["  <p>Apprendre à coder, pas à pas.</p>", "Un paragraphe."],
                   ["</body>", "Fermeture du corps…"],
                   ["</html>", "… puis de la racine : le dernier ouvert est le premier fermé."],
@@ -238,7 +238,7 @@ export const html: Course = {
             | <title> | titre de l'onglet, des favoris et des résultats de recherche |
             | <link rel="stylesheet" href="style.css"> | feuille de style CSS (parcours CSS) |
 
-            Le **title** est obligatoire et doit décrire précisément la page : « Inscription — UPL CODE ACADEMY MK » plutôt que « Page ».
+            Le **title** est obligatoire et doit décrire précisément la page : « Inscription — ZENTECH » plutôt que « Page ».
 
             ## 5. Le corps : body
 
@@ -269,7 +269,7 @@ export const html: Course = {
               <head>
                 <meta charset="utf-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1">
-                <title>Inscription — UPL CODE ACADEMY MK</title>
+                <title>Inscription — ZENTECH</title>
               </head>
               <body>
                 <h1>Inscription</h1>
@@ -321,7 +321,7 @@ export const html: Course = {
             ],
             solvedExercises: [
               solved("Ordonner un squelette", "Remettez dans l'ordre : </body>, <head>, <!DOCTYPE html>, </html>, <body>, <html lang=\"fr\">, </head>, <title>T</title>.", "<!DOCTYPE html>\n<html lang=\"fr\">\n<head>\n  <title>T</title>\n</head>\n<body>\n</body>\n</html>", "DOCTYPE d'abord ; html contient head puis body ; chaque élément est fermé dans l'ordre inverse de son ouverture."),
-              solved("Choisir un bon titre", "Proposez un title pour la page des horaires de la bibliothèque du site UPL CODE ACADEMY MK.", "<title>Horaires de la bibliothèque — UPL CODE ACADEMY MK</title>", "Un bon titre décrit la page puis le site : il est lisible dans un onglet et utile dans les résultats de recherche."),
+              solved("Choisir un bon titre", "Proposez un title pour la page des horaires de la bibliothèque du site ZENTECH.", "<title>Horaires de la bibliothèque — ZENTECH</title>", "Un bon titre décrit la page puis le site : il est lisible dans un onglet et utile dans les résultats de recherche."),
             ],
             td: { title: "TD 2 — Squelettes de documents", instructions: "Chaque page doit être un document complet et valide.", exerciseSlugs: ["html-meta-viewport", "html-commentaire-titre"] },
             interrogation: interrogation("html-structure-interrogation", "Interrogation — Structure d'un document", [
@@ -431,7 +431,7 @@ export const html: Course = {
 
             Une page dont les titres sont de simples paragraphes en gras est donc illisible pour lui. Les mêmes règles profitent aussi aux moteurs de recherche, qui utilisent les titres pour comprendre le sujet de la page.
 
-            **Règle pratique :** si vous retirez tout le style, la page doit rester compréhensible. C'est exactement ce que montre l'aperçu sans CSS d'UPL IDE.
+            **Règle pratique :** si vous retirez tout le style, la page doit rester compréhensible. C'est exactement ce que montre l'aperçu sans CSS de ZENTECH IDE.
 
             ## 8. Citations et extraits de code
 
@@ -602,7 +602,7 @@ export const html: Course = {
             On peut placer une image dans un lien : le texte alternatif décrit alors la **destination** du lien.
 
             ~~~html
-            <a href="index.html"><img src="logo.png" alt="Accueil d'UPL CODE ACADEMY MK"></a>
+            <a href="index.html"><img src="logo.png" alt="Accueil de ZENTECH"></a>
             ~~~
 
             ## 7. Bonnes pratiques pour les liens et les images
@@ -669,7 +669,7 @@ export const html: Course = {
             ],
             solvedExercises: [
               solved("Écrire des chemins", "La page actuelle est **site/cours/index.html**. Écrivez les chemins relatifs vers (a) site/cours/python.html, (b) site/index.html, (c) site/images/logo.png.", "(a) python.html\n(b) ../index.html\n(c) ../images/logo.png", "« .. » remonte d'un dossier ; un nom seul désigne un fichier du dossier courant."),
-              solved("Rédiger des textes alternatifs", "Proposez un alt pour : (a) la photo d'un étudiant devant un ordinateur, (b) un trait décoratif, (c) un logo qui renvoie à l'accueil.", "(a) alt=\"Étudiant programmant sur un ordinateur portable\"\n(b) alt=\"\"\n(c) alt=\"Accueil d'UPL CODE ACADEMY MK\"", "Une image décorative reçoit un alt vide ; une image cliquable décrit la destination du lien."),
+              solved("Rédiger des textes alternatifs", "Proposez un alt pour : (a) la photo d'un étudiant devant un ordinateur, (b) un trait décoratif, (c) un logo qui renvoie à l'accueil.", "(a) alt=\"Étudiant programmant sur un ordinateur portable\"\n(b) alt=\"\"\n(c) alt=\"Accueil de ZENTECH\"", "Une image décorative reçoit un alt vide ; une image cliquable décrit la destination du lien."),
             ],
             td: { title: "TD 4 — Navigation et images", instructions: "Vérifiez chaque lien et chaque image dans l'aperçu avant de soumettre.", exerciseSlugs: ["html-menu-navigation", "html-ancre-section"] },
             project: {

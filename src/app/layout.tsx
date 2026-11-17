@@ -21,12 +21,12 @@ export const metadata: Metadata = {
   applicationName: BRAND.name,
   openGraph: { siteName: BRAND.name, title: BRAND.name, description: BRAND.description, locale: "fr_FR", type: "website" },
   twitter: { card: "summary_large_image", title: BRAND.name, description: BRAND.description },
-  appleWebApp: { capable: true, title: "UPL CODE MK", statusBarStyle: "default" },
+  appleWebApp: { capable: true, title: "ZENTECH", statusBarStyle: "default" },
   icons: { apple: "/icons/site-apple-touch-icon.png" },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0a1a3a",
+  themeColor: "#020817",
   width: "device-width",
   initialScale: 1,
 };

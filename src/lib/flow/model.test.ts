@@ -18,7 +18,7 @@ DEBUT
   FINSI
 FIN`;
 
-describe("UPL Flow Studio : modèle commun", () => {
+describe("ZENTECH Flow Studio : modèle commun", () => {
   it("pseudocode → organigramme → pseudocode : même résultat à l'exécution", () => {
     const { program, warnings } = fromPseudocode(SOMME);
     expect(warnings).toEqual([]);

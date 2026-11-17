@@ -1,4 +1,4 @@
-/** Icônes de UPL IDE (dessin propre à la plateforme, trait de 1,6 px). */
+/** Icônes de ZENTECH IDE (dessin propre à la plateforme, trait de 1,6 px). */
 const P = {
   fichiers: "M4 4h6l2 2h8v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z",
   recherche: "M11 4a7 7 0 1 1 0 14 7 7 0 0 1 0-14zm5 12 4 4",

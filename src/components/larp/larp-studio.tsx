@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * UPL Algo Classique — interface compatible LARP.
+ * ZENTECH Algo Classique — interface compatible LARP.
  *
  * Même disposition que l'environnement de développement documenté (barre de
  * menu, panneau de contrôle, navigateur de documents, panneau de modèles,
@@ -12,6 +12,7 @@
  * Dessins, icônes et code sont originaux ; seule la disposition fonctionnelle
  * et la syntaxe publique du langage sont reprises.
  */
+import { ZentechSymbol } from "@/components/brand/zentech-mark";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -984,8 +985,8 @@ export function LarpStudio() {
         >
           <div className="flex h-full w-full flex-col overflow-hidden rounded-t-[8px] border border-[#0831d9]" style={{ background: FACE }}>
             <TitleBar
-              title={`UPL Algo Classique (compatible LARP) - [${project.name}${dirty ? "*" : ""}]`}
-              icon={<span className="grid h-[14px] w-[14px] place-items-center rounded-[2px] bg-[#f28c28] text-[8px] font-black text-white">U</span>}
+              title={`ZENTECH Algo Classique (compatible LARP) - [${project.name}${dirty ? "*" : ""}]`}
+              icon={<span className="grid h-[14px] w-[14px] place-items-center rounded-[2px] bg-[#020817]"><ZentechSymbol size={11} /></span>}
               onClose={() => (router.push("/flow"))}
             />
             {/* Barre de menu */}
@@ -1445,7 +1446,7 @@ export function LarpStudio() {
         </div>
       )}
       <Link href="/flow" className="sr-only">
-        Retour à UPL Flow Studio
+        Retour à ZENTECH Flow Studio
       </Link>
     </div>
   );
@@ -1579,7 +1580,7 @@ function DialogView(props: DialogProps) {
       return (
         <Win title="À propos" onClose={close} style={center(380, 210)}>
           <div className="space-y-2 p-3">
-            <p className="font-bold">UPL Algo Classique — UPL CODE ACADEMY MK</p>
+            <p className="font-bold">ZENTECH Algo Classique — ZENTECH</p>
             <p>Interface d&apos;algorithmique classique dont la disposition et la syntaxe du pseudo-code sont compatibles avec le logiciel LARP (Logiciel d&apos;Algorithmes et de Résolution de Problèmes), afin de suivre un cours donné avec LARP sur un téléphone.</p>
             <p className="text-[#555]">Réalisation indépendante : aucun fichier ni code de LARP n&apos;est utilisé. LARP est une œuvre de son auteur.</p>
           </div>

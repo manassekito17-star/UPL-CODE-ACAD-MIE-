@@ -1,4 +1,4 @@
--- UPL CODE ACADEMY MK — installation, partie 2 (contenu), morceau 4 sur 14.
+-- ZENTECH — installation, partie 2 (contenu), morceau 4 sur 14.
 -- À exécuter dans l'ordre, après 1-structure.sql. Peut être relancé sans risque.
 begin;
 with qq as (insert into public.quiz_questions (quiz_id, type, prompt, code, choices, position, level_number) values ((select id from public.quizzes where slug = 'html-positionnement'), 'qcm', 'À quoi sert l''attribut aria-label ?', null, '["à styliser","à donner un nom accessible","à valider un champ","à créer un lien"]'::jsonb, 6, 3) returning id)
@@ -52,7 +52,7 @@ La méthode recommandée est une **feuille de style externe**, fichier **style.c
 <link rel="stylesheet" href="style.css">
 ~~~
 
-Deux autres possibilités existent : un élément **style** dans head (pratique pour un essai), et l''attribut **style** sur un élément (à éviter : il mélange contenu et présentation). Dans UPL IDE, les projets web contiennent déjà **index.html** et **style.css** reliés.
+Deux autres possibilités existent : un élément **style** dans head (pratique pour un essai), et l''attribut **style** sur un élément (à éviter : il mélange contenu et présentation). Dans ZENTECH IDE, les projets web contiennent déjà **index.html** et **style.css** reliés.
 
 ## 4. Les sélecteurs de base
 

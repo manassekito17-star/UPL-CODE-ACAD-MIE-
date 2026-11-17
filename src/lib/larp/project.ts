@@ -1,7 +1,7 @@
 /**
  * Projet de l'interface classique : un module principal, des modules
  * auxiliaires (pseudo-code ou organigramme) et des tampons d'entrées/sorties.
- * Les organigrammes réutilisent le modèle structuré de UPL Flow Studio et se
+ * Les organigrammes réutilisent le modèle structuré de ZENTECH Flow Studio et se
  * traduisent en pseudo-code classique (avec correspondance bloc ↔ ligne pour
  * le surlignage pas-à-pas et la localisation des erreurs).
  */

@@ -25,7 +25,7 @@ export function chapterCompleteness(lesson: Lesson): { checks: ComponentCheck[];
     { id: "cours", label: "Cours complet et détaillé", ok: lesson.content.length >= 3000 && sections >= 4, detail: `${lesson.content.length} caractères, ${sections} sections` },
     { id: "definitions", label: "Définitions simples et rigoureuses", ok: (p?.definitions.length ?? 0) >= 3, detail: `${p?.definitions.length ?? 0} définition(s)` },
     { id: "progression", label: "Explications progressives", ok: sections >= 4, detail: `${sections} sections` },
-    { id: "exemples", label: "Exemples et démonstrations dans l'éditeur", ok: lesson.examples.length >= 1, detail: `${lesson.examples.length} exemple(s) ouvrable(s) dans UPL IDE` },
+    { id: "exemples", label: "Exemples et démonstrations dans l'éditeur", ok: lesson.examples.length >= 1, detail: `${lesson.examples.length} exemple(s) ouvrable(s) dans ZENTECH IDE` },
     { id: "commentes", label: "Algorithmes commentés ligne par ligne", ok: wellCommented.length >= 1, detail: `${wellCommented.length}/${commented.length} commenté(s) à au moins 50 %` },
     {
       id: "schemas",

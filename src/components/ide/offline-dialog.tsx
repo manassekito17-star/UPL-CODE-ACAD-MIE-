@@ -24,7 +24,7 @@ export function isStandalone(): boolean {
 }
 
 /**
- * Fenêtre « Installer UPL IDE et l'utiliser sans Internet » : installation sur
+ * Fenêtre « Installer ZENTECH IDE et l'utiliser sans Internet » : installation sur
  * l'écran d'accueil (comme PharmaGestion), puis téléchargement des fichiers
  * nécessaires pour travailler sans connexion.
  */
@@ -38,7 +38,7 @@ export function OfflineDialog({
   warmPython,
   warmEngines,
   warmPhpSql,
-  appName = "UPL IDE",
+  appName = "ZENTECH IDE",
   features,
 }: {
   open: boolean;
@@ -51,7 +51,7 @@ export function OfflineDialog({
   warmEngines: () => Promise<void>;
   /** Télécharge PHP 8.3 et SQLite (facultatif, environ 13 Mo). */
   warmPhpSql?: () => Promise<void>;
-  /** Nom de l'application installée (UPL IDE, ou l'éditeur d'algorithmes « UPL »). */
+  /** Nom de l'application installée (ZENTECH IDE, ou l'éditeur d'algorithmes « UPL »). */
   appName?: string;
   /** Liste « Ce qui marche sans Internet » propre à l'application. */
   features?: React.ReactNode;
@@ -183,7 +183,7 @@ export function OfflineDialog({
           {features ?? (
           <ul className="space-y-0.5 text-[var(--ide-muted)]">
             <li>✓ Éditeur, fichiers et dossiers, projet enregistré sur l&apos;appareil</li>
-            <li>✓ Les éditeurs UPL IDE, UPL Algo et l&apos;interface LARP (avec Flow Studio et le laboratoire)</li>
+            <li>✓ Les éditeurs ZENTECH IDE, ZENTECH Algo et l&apos;interface LARP (avec Flow Studio et le laboratoire)</li>
             <li>✓ Pseudocode, JavaScript{ready?.python || withPython ? ", Python, K+" : ""} et aperçu des pages HTML/CSS</li>
             <li>✓ Clavier de programmation, modèles de fichiers, balises Emmet</li>
             <li>✗ C et Java (exécutés sur le serveur), professeur IA, cours en ligne</li>

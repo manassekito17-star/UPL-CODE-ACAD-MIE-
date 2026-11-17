@@ -1,4 +1,4 @@
--- UPL CODE ACADEMY MK — installation, partie 1 sur 2 : structure et sécurité.
+-- ZENTECH — installation, partie 1 sur 2 : structure et sécurité.
 -- À coller dans Supabase → SQL Editor → New query, puis « Run ». Une seule fois, sur un projet vide.
 -- Fichier généré par scripts/build-installation.mjs — ne pas modifier à la main.
 

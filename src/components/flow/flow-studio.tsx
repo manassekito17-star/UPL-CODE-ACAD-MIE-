@@ -677,7 +677,7 @@ function Studio() {
           <div className="flex min-h-0 flex-col gap-1">
             <div className="min-h-16 flex-1 space-y-1 overflow-auto rounded bg-black/40 p-2 font-mono text-[13px] text-gray-100" aria-live="polite" data-testid="sortie-flow">
               {running && <p className="text-[#f28c28]">Exécution…</p>}
-              {!trace && !running && <p className="text-gray-500">▶ Exécuter lance le vrai interpréteur UPL ; ⏭ avance bloc par bloc.</p>}
+              {!trace && !running && <p className="text-gray-500">▶ Exécuter lance le vrai interpréteur ZENTECH ; ⏭ avance bloc par bloc.</p>}
               {transcript.map((t, i) => (
                 <p key={i} className={cn("w-fit max-w-[90%] whitespace-pre-wrap rounded-lg px-2 py-0.5", t.kind === "out" ? "bg-emerald-600/25 text-emerald-100" : "ml-auto bg-sky-600/30 text-sky-100")} data-type={t.kind === "out" ? "sortie" : "entree"}>
                   {t.kind === "in" ? `↳ ${t.text}` : t.text}
@@ -841,7 +841,7 @@ function Studio() {
       {/* Barre supérieure */}
       <header className="flex shrink-0 flex-wrap items-center gap-2 border-b border-white/10 bg-[#2b2d30] px-2 py-1.5">
         <Link href="/" className="rounded px-2 py-1 text-sm font-bold text-white hover:bg-white/10" aria-label="Retour à l'accueil">
-          ← <span className="text-[#f28c28]">UPL</span> Flow Studio
+          ← <span className="text-[#f28c28]">ZENTECH</span> Flow Studio
         </Link>
         <Link href="/flow/classique" className="rounded border border-[#f28c28]/60 px-2 py-1 text-xs font-semibold text-[#f8b46a] hover:bg-white/10" data-testid="lien-classique" title="Interface à la même disposition que LARP">
           Interface classique (LARP)

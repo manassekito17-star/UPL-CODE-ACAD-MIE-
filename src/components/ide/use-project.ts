@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ProjectSnapshot } from "@/lib/ide/fs";
 
 /**
- * Persistance d'un projet UPL IDE.
+ * Persistance d'un projet ZENTECH IDE.
  *  - Compte connecté : projet enregistré en base (API /api/projects, RLS),
  *    avec révision pour détecter les conflits entre appareils.
  *  - Brouillon local permanent (localStorage) : rien n'est perdu si la

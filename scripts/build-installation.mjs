@@ -11,6 +11,6 @@ const files = readdirSync(dir).filter((f) => f.endsWith(".sql")).sort();
 const parts = files.map((f) => `-- ===== ${f} =====\n${readFileSync(new URL(f, dir), "utf8").trim()}\n`);
 writeFileSync(
   new URL("../supabase/installation/1-structure.sql", import.meta.url),
-  `-- UPL CODE ACADEMY MK — installation, partie 1 sur 2 : structure et sécurité.\n-- À coller dans Supabase → SQL Editor → New query, puis « Run ». Une seule fois, sur un projet vide.\n-- Fichier généré par scripts/build-installation.mjs — ne pas modifier à la main.\n\n${parts.join("\n")}`,
+  `-- ZENTECH — installation, partie 1 sur 2 : structure et sécurité.\n-- À coller dans Supabase → SQL Editor → New query, puis « Run ». Une seule fois, sur un projet vide.\n-- Fichier généré par scripts/build-installation.mjs — ne pas modifier à la main.\n\n${parts.join("\n")}`,
 );
 console.log(`Installation générée : ${files.length} migrations.`);

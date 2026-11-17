@@ -1,5 +1,6 @@
 "use client";
 
+import { ZentechSymbol } from "@/components/brand/zentech-mark";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -264,7 +265,7 @@ export function AlgoStudio({
     const choice = await installEvent.userChoice;
     if (choice.outcome === "accepted") {
       setInstallEvent(null);
-      notify("UPL Algo est installé ✓ Pensez à « Télécharger pour utiliser sans Internet » (⋮ → Installer).");
+      notify("ZENTECH Algo est installé ✓ Pensez à « Télécharger pour utiliser sans Internet » (⋮ → Installer).");
     }
   };
   const loadLanguages = async () => {
@@ -794,7 +795,7 @@ export function AlgoStudio({
           background: BG,
           height: viewport ? viewport.height : "100dvh",
           top: viewport?.top ?? 0,
-          // Couleurs de la fenêtre « Installer · utiliser sans Internet » (partagée avec UPL IDE).
+          // Couleurs de la fenêtre « Installer · utiliser sans Internet » (partagée avec ZENTECH IDE).
           "--ide-border": "#4a4d50",
           "--ide-menu": "#3c3f41",
           "--ide-text": "#e8e8e8",
@@ -816,7 +817,7 @@ export function AlgoStudio({
           </Link>
         )}
         <h1 className="min-w-0 flex-1 truncate pl-1 text-lg font-semibold">
-          {title || "UPL"}
+          {title || "ZENTECH"}
           {!online && <span className="ml-2 rounded bg-amber-500/20 px-1.5 py-0.5 align-middle text-[11px] font-medium text-amber-300">hors ligne</span>}
         </h1>
         <button type="button" className={iconButton} aria-label={isWeb ? "↻ Actualiser l'aperçu" : "▶ Exécuter"} title="Exécuter (Ctrl + Entrée)" aria-keyshortcuts="Control+Enter" onClick={() => run()} disabled={running}>
@@ -1051,7 +1052,7 @@ export function AlgoStudio({
         warmPython={warmPython}
         warmEngines={async () => {}}
         warmPhpSql={warmPhpSql}
-        appName="UPL Algo"
+        appName="ZENTECH Algo"
         features={
           <ul className="space-y-0.5 text-[var(--ide-muted)]">
             <li>✓ Écrire et exécuter vos algorithmes (pseudocode), JavaScript et Python (et PHP, SQL si vous les incluez)</li>
@@ -1090,9 +1091,9 @@ export function AlgoStudio({
           <button type="button" className="fixed inset-0 z-[61] bg-black/50" aria-label="Fermer le menu latéral" onClick={() => setDrawer(false)} />
           <nav className="fixed inset-y-0 left-0 z-[62] flex w-72 max-w-[85vw] flex-col overflow-y-auto shadow-2xl" style={{ background: "#313335" }} aria-label="Menu de l'éditeur">
             <div className="flex items-center gap-3 px-4 py-5" style={{ background: BAR }}>
-              <span className="grid h-10 w-10 place-items-center rounded-lg bg-[#f28c28] font-mono text-sm font-bold text-black">{"</>"}</span>
+              <ZentechSymbol size={40} />
               <span className="leading-tight">
-                <span className="block font-bold">UPL CODE ACADEMY MK</span>
+                <span className="block font-bold">ZENTECH</span>
                 <span className="block text-xs text-gray-400">Interpréteur d&apos;algorithmes</span>
               </span>
             </div>
@@ -1106,7 +1107,7 @@ export function AlgoStudio({
               className="flex items-center gap-3 px-4 py-3 text-left text-[15px] font-semibold text-[#f28c28] hover:bg-white/10"
               data-testid="installer-upl-algo"
             >
-              <Icon name="phone" className="h-5 w-5" /> Installer l&apos;application UPL Algo
+              <Icon name="phone" className="h-5 w-5" /> Installer l&apos;application ZENTECH Algo
             </button>
             {back && (
               <Link href={back} className="flex items-center gap-3 px-4 py-3 text-[15px] text-[#f28c28] hover:bg-white/10">
@@ -1125,7 +1126,7 @@ export function AlgoStudio({
               ["/", "Accueil"],
               ["/formations", "Formations"],
               ["/exercices", "Exercices"],
-              ["/ide", "UPL IDE"],
+              ["/ide", "ZENTECH IDE"],
               ["/laboratoire", "Laboratoire pas à pas"],
               ["/tableau-de-bord", "Mon espace"],
             ].map(([href, label]) => (

@@ -1,26 +1,33 @@
 import { expect, test } from "@playwright/test";
 
-/** Nom officiel : « UPL CODE ACADEMY MK » partout, aucune ancienne appellation visible. */
+/** Nom officiel : « ZENTECH » partout (slogan BUILD BEYOND LIMITS), aucune ancienne appellation visible. */
 const PAGES = ["/", "/laboratoire", "/formations", "/formation", "/formations/algorithmique", "/formations/html/html-introduction-web", "/exercices", "/connexion", "/inscription", "/certificats/deadbeefdeadbeef"];
-const OLD = /UPL Code Academy(?! MK)|UPL CODE ACADEMY(?! MK)/i;
+// Anciennes appellations de marque (les mentions de l'université dans l'avis restent autorisées).
+const OLD = /UPL CODE|UPL IDE|UPL Algo|UPL Flow|Academy MK|ACADEMY MK|LEARN\. CODE\./i;
 
 for (const path of PAGES) {
   test(`nom officiel sur ${path}`, async ({ page }) => {
     await page.goto(path);
-    await expect(page).toHaveTitle(/UPL CODE ACADEMY MK/);
-    await expect(page.getByRole("link", { name: "UPL CODE ACADEMY MK — accueil" }).first()).toBeVisible();
+    await expect(page).toHaveTitle(/ZENTECH/);
+    await expect(page.getByRole("link", { name: "ZENTECH — accueil" }).first()).toBeVisible();
     const text = await page.locator("body").innerText();
     expect(text).not.toMatch(OLD);
-    expect(text).toContain("MK");
+    expect(text).toContain("BUILD BEYOND LIMITS");
   });
 }
 
 test("métadonnées et manifeste d'application", async ({ page, request }) => {
   await page.goto("/");
-  await expect(page.locator('meta[name="application-name"]')).toHaveAttribute("content", "UPL CODE ACADEMY MK");
-  await expect(page.locator('meta[property="og:site_name"]')).toHaveAttribute("content", "UPL CODE ACADEMY MK");
+  await expect(page.locator('meta[name="application-name"]')).toHaveAttribute("content", "ZENTECH");
+  await expect(page.locator('meta[property="og:site_name"]')).toHaveAttribute("content", "ZENTECH");
   const m = await (await request.get("/manifest.webmanifest")).json();
-  expect(m.name).toBe("UPL CODE ACADEMY MK");
+  expect(m.name).toBe("ZENTECH");
+  expect(m.theme_color).toBe("#020817");
+  // Logo officiel : fichiers vectoriels et image de partage.
+  for (const f of ["/brand/zentech-symbole.svg", "/brand/zentech-logo-horizontal-blanc.svg", "/brand/zentech-logo-vertical-sombre.svg", "/favicon.ico", "/icons/site-512.png"]) expect((await request.get(f)).status(), f).toBe(200);
+  const og = await request.get("/opengraph-image");
+  expect(og.status()).toBe(200);
+  expect(og.headers()["content-type"]).toContain("image/png");
 });
 
 test("le résumé PDF porte le nouveau nom", async ({ request }) => {
@@ -28,6 +35,6 @@ test("le résumé PDF porte le nouveau nom", async ({ request }) => {
   expect(r.status()).toBe(200);
   const { PDFDocument } = await import("pdf-lib");
   const doc = await PDFDocument.load(await r.body());
-  expect(doc.getAuthor()).toBe("UPL CODE ACADEMY MK");
-  expect(doc.getCreator()).toBe("UPL CODE ACADEMY MK");
+  expect(doc.getAuthor()).toBe("ZENTECH");
+  expect(doc.getCreator()).toBe("ZENTECH");
 });

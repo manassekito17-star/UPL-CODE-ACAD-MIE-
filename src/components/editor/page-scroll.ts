@@ -11,7 +11,7 @@
  * - appui long : le mot touché est sélectionné ; en gardant le doigt et en le faisant glisser,
  *   la sélection s'étend jusqu'au doigt (comme sur Android) ;
  * - toucher bref pendant qu'une sélection est active (option `extendOnTap`) : la sélection s'étend jusque-là.
- * UPL IDE (plein écran, rien à faire défiler derrière) garde le comportement de Monaco.
+ * ZENTECH IDE (plein écran, rien à faire défiler derrière) garde le comportement de Monaco.
  */
 interface Position {
   lineNumber: number;

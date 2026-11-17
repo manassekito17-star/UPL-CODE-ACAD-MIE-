@@ -120,7 +120,7 @@ check("La vérification ne révèle ni identifiant ni e-mail", v.length === 1 &&
 check("Code de certificat inconnu → aucun résultat", (await as(null, "select * from public.verify_certificate('deadbeefdeadbeef')")).rows.length === 0);
 check("Un visiteur ne lit pas la table des certificats", (await as(null, "select * from public.certificates")).rows.length === 0);
 
-console.log("\nProjets UPL IDE :");
+console.log("\nProjets ZENTECH IDE :");
 const C = "44444444-4444-4444-4444-444444444444";
 await db.query(`insert into auth.users (id, email, raw_user_meta_data) values ($1, 'c@x.cd', '{"full_name":"Chloé"}')`, [C]);
 const proj = (await as(C, `insert into public.projects (user_id, name, files) values ($1, 'Mon site', '[{"path":"index.html","content":"<p>secret</p>"}]') returning id`, [C])).rows[0].id;

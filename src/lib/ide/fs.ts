@@ -1,7 +1,7 @@
 import type { LanguageId } from "@/content/types";
 
 /**
- * Système de fichiers d'un projet UPL IDE (fonctions pures, partagées par le
+ * Système de fichiers d'un projet ZENTECH IDE (fonctions pures, partagées par le
  * navigateur, l'API et les tests). Un projet = une liste de fichiers à
  * chemins relatifs (« src/main.py ») + d'éventuels dossiers vides.
  */
@@ -187,7 +187,7 @@ export const countInside = (p: ProjectSnapshot, path: string) => p.files.filter(
 
 // ---------------- Langages ----------------
 
-/** Langages exécutables dans UPL IDE (ceux de la plateforme, K+ compris). */
+/** Langages exécutables dans ZENTECH IDE (ceux de la plateforme, K+ compris). */
 export type RunLanguage = LanguageId;
 
 export interface FileLanguage {

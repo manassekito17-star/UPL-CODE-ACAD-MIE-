@@ -129,7 +129,7 @@ test("espace personnel, administration privée, statistiques et export", async (
 
 test("aperçu de lien partagé (WhatsApp, Facebook, Telegram, Gmail) et robots", async ({ page, request }) => {
   await page.goto("/");
-  await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", "UPL CODE ACADEMY MK");
+  await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", "ZENTECH");
   const image = await page.locator('meta[property="og:image"]').getAttribute("content");
   expect(image).toMatch(/^https?:\/\/.+\/opengraph-image/);
   const img = await request.get(new URL(image!).pathname);
@@ -157,7 +157,7 @@ test("message de l'administration à l'ouverture : titre, signature, fermeture m
   const m = page.getByTestId("annonce-accueil");
   await expect(m).toBeVisible();
   await expect(m).toContainText("Message de l'administration");
-  await expect(m).toContainText("UPL CODE ACADEMY MK");
+  await expect(m).toContainText("ZENTECH");
   await page.getByTestId("annonce-fermer").click();
   await expect(m).toHaveCount(0);
   const seen = await page.evaluate(() => Object.keys(localStorage).some((k) => k.startsWith("upl:annonce:vue:")));

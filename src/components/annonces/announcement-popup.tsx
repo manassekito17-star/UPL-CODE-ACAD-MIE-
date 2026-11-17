@@ -29,7 +29,7 @@ export async function AnnouncementPopup() {
     alreadyRated = !!rating.data;
     const { data } = await supabase.from("announcements").select("id, title, body, audience, created_at").eq("published", true).order("created_at", { ascending: false }).limit(5);
     const visible = (data ?? []).find((x) => x.audience !== "enseignants" || user.isTeacher || user.isAdmin);
-    if (visible) a = { id: visible.id, title: visible.title, body: visible.body, date: visible.created_at, signature: "L'administration — UPL CODE ACADEMY MK" };
+    if (visible) a = { id: visible.id, title: visible.title, body: visible.body, date: visible.created_at, signature: "L'administration — ZENTECH" };
   } catch {
     /* annonce indisponible : message de bienvenue */
   }

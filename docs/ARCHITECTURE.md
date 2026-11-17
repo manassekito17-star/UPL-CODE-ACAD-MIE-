@@ -1,4 +1,4 @@
-# Architecture — UPL CODE ACADEMY MK
+# Architecture — ZENTECH
 
 ## 1. Vue d'ensemble
 
