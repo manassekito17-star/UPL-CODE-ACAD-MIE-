@@ -89,13 +89,17 @@ export async function reactivateUser(form: FormData) {
   redirect(userPage(userId.data, "Compte réactivé."));
 }
 
+/** Texte de confirmation comparé sans tenir compte de la casse ni des espaces en trop. */
+const confirmKey = (s: string) => s.normalize("NFC").trim().replace(/\s+/g, " ").toLowerCase();
+
 /**
  * Suppression définitive d'un compte et de toutes ses données (progression, soumissions,
- * programmes, projets, messages). L'adresse e-mail doit être recopiée pour confirmer.
+ * programmes, projets, messages, photo). Pour confirmer, l'adresse e-mail doit être recopiée ;
+ * un compte « accès rapide » n'a pas d'adresse : c'est alors son nom complet qui est recopié.
  */
 export async function deleteUser(form: FormData) {
   const admin = await requireAdmin();
-  const parsed = z.object({ userId: z.string().uuid(), confirmEmail: z.string().trim().toLowerCase() }).safeParse({ userId: form.get("userId"), confirmEmail: form.get("confirmEmail") });
+  const parsed = z.object({ userId: z.string().uuid(), confirmEmail: z.string().max(200) }).safeParse({ userId: form.get("userId"), confirmEmail: form.get("confirmEmail") });
   if (!parsed.success) return;
   const { userId, confirmEmail } = parsed.data;
   if (userId === admin.id) redirect(userPage(userId, "Vous ne pouvez pas supprimer votre propre compte."));
@@ -104,15 +108,22 @@ export async function deleteUser(form: FormData) {
   const { data } = await service.auth.admin.getUserById(userId);
   const email = (data.user?.email ?? "").toLowerCase();
   if (!data.user) redirect("/admin/utilisateurs?message=" + encodeURIComponent("Compte introuvable."));
-  if (!email || confirmEmail !== email) redirect(userPage(userId, "L'adresse e-mail recopiée ne correspond pas : compte non supprimé."));
   const { data: profile } = await service.from("profiles").select("full_name").eq("id", userId).maybeSingle();
+  const fullName = (profile?.full_name ?? "").trim();
+  // Compte sans adresse e-mail (accès rapide) : confirmation par le nom complet.
+  const expected = email || fullName;
+  if (!expected || confirmKey(confirmEmail) !== confirmKey(expected))
+    redirect(userPage(userId, email ? "L'adresse e-mail recopiée ne correspond pas : compte non supprimé." : "Le nom recopié ne correspond pas : compte non supprimé."));
+  // Photo de profil (dossier du compte dans le stockage « avatars ») : supprimée avec le compte.
+  const { data: photos } = await service.storage.from("avatars").list(userId, { limit: 100 });
+  if (photos?.length) await service.storage.from("avatars").remove(photos.map((f) => `${userId}/${f.name}`));
   const { error } = await service.auth.admin.deleteUser(userId);
   if (error) {
     redirect(userPage(userId, `Suppression impossible : ${/foreign key|violates/i.test(error.message) ? "ce compte a créé des contenus pédagogiques (retirez-lui d'abord son rôle et réattribuez ses contenus)." : error.message}`));
   }
-  await audit(admin.id, "utilisateur.supprime", { type: "utilisateur", id: userId }, { email, nom: profile?.full_name ?? null }, await ip());
+  await audit(admin.id, "utilisateur.supprime", { type: "utilisateur", id: userId }, { email: email || null, nom: fullName || null }, await ip());
   revalidatePath("/admin", "layout");
-  redirect("/admin/utilisateurs?message=" + encodeURIComponent(`Compte ${email} supprimé définitivement.`));
+  redirect("/admin/utilisateurs?message=" + encodeURIComponent(`Compte ${email || fullName} supprimé définitivement.`));
 }
 
 // ---------------- Formations ----------------
