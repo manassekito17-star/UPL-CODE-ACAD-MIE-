@@ -2,10 +2,10 @@ import { useId } from "react";
 import { SYMBOL_PATH, SYMBOL_TRANSFORM, WORDMARK_H, WORDMARK_PATH, WORDMARK_W } from "@/lib/brand-paths";
 
 /**
- * Logo ZiTECH : symbole « Z » à circuit (dégradé bleu électrique → turquoise),
+ * Logo ZENTECH : symbole « Z » à circuit (dégradé bleu électrique → turquoise),
  * vectorisé d'après le logo officiel. `tone` : couleur du symbole (dégradé, blanc, sombre).
  */
-export function ZitechSymbol({ size = 36, tone = "degrade", className, title }: { size?: number; tone?: "degrade" | "blanc" | "sombre"; className?: string; title?: string }) {
+export function ZentechSymbol({ size = 36, tone = "degrade", className, title }: { size?: number; tone?: "degrade" | "blanc" | "sombre"; className?: string; title?: string }) {
   const id = useId().replace(/:/g, "");
   const fill = tone === "blanc" ? "#FFFFFF" : tone === "sombre" ? "#020817" : `url(#${id})`;
   return (
@@ -23,8 +23,8 @@ export function ZitechSymbol({ size = 36, tone = "degrade", className, title }: 
   );
 }
 
-/** Mot « ZiTECH » (lettres géométriques espacées), à la hauteur donnée. */
-export function ZitechWordmark({ height = 14, color = "currentColor", className }: { height?: number; color?: string; className?: string }) {
+/** Mot « ZENTECH » (lettres géométriques espacées), à la hauteur donnée. */
+export function ZentechWordmark({ height = 14, color = "currentColor", className }: { height?: number; color?: string; className?: string }) {
   return (
     <svg height={height} width={(height * WORDMARK_W) / WORDMARK_H} viewBox={`0 0 ${WORDMARK_W} ${WORDMARK_H}`} className={className} aria-hidden>
       <path fill={color} d={WORDMARK_PATH} />

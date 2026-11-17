@@ -1,4 +1,4 @@
-# Sécurité de ZiTECH
+# Sécurité de ZENTECH
 
 Ce document décrit les protections en place, les réglages à faire dans Supabase et Vercel,
 et la marche à suivre pour revenir en arrière. Aucune application n'est invulnérable :

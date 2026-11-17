@@ -51,7 +51,7 @@ Conformément à la consigne « ne pas générer des centaines de leçons superf
   - Le PDF est réservé à son titulaire.
   - Il porte partout la mention : *document interne, ni diplôme ni crédits académiques officiels*.
 
-## ZiTECH IDE
+## ZENTECH IDE
 
 - **Projets HTML/CSS/JS** à trois fichiers, avec aperçu en direct.
   - L'aperçu s'affiche dans une `iframe sandbox="allow-scripts"` : origine opaque, donc ni cookies, ni stockage, ni accès à la page parente.
@@ -59,7 +59,7 @@ Conformément à la consigne « ne pas générer des centaines de leçons superf
   - La console de la page est relayée par `postMessage`, et seuls les messages provenant de cette iframe sont acceptés.
 - **Correction des exercices web** par analyse structurelle sur le serveur (linkedom, css-tree), qui vérifie éléments, textes, attributs et règles CSS.
   - Le JavaScript de l'étudiant n'est jamais exécuté sur le serveur ; `/api/execute` refuse HTML et CSS.
-- **Démonstrations depuis un chapitre** (exemples et code commenté) : « Ouvrir dans ZiTECH IDE », puis retour au cours à l'aide du paramètre `?retour=`. Ce paramètre n'accepte que des chemins `/formations/...`.
+- **Démonstrations depuis un chapitre** (exemples et code commenté) : « Ouvrir dans ZENTECH IDE », puis retour au cours à l'aide du paramètre `?retour=`. Ce paramètre n'accepte que des chemins `/formations/...`.
 - **Langages compilés ou serveur** : Judge0 isolé quand il est configuré (inchangé).
 
 ## Professeur IA spécialisé

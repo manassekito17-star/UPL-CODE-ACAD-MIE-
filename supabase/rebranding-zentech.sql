@@ -1,5 +1,5 @@
 -- =====================================================================
--- Rebranding ZiTECH : remplacement des anciennes appellations de marque
+-- Rebranding ZENTECH : remplacement des anciennes appellations de marque
 -- dans les CONTENUS PÉDAGOGIQUES et les annonces de l'administration.
 --
 -- À lancer UNE FOIS dans Supabase → SQL Editor (« Run »).
@@ -17,11 +17,11 @@ declare
   tables text[] := array['courses', 'course_levels', 'course_categories', 'modules', 'lessons', 'lesson_resources',
                          'quizzes', 'quiz_questions', 'quiz_answer_keys', 'achievements', 'announcements', 'platform_settings'];
   -- Du plus long au plus court (« UPL CODE ACADEMY MK » avant « UPL CODE ACADEMY »).
-  expr text := 'replace(replace(replace(replace(replace(replace(replace(replace(%s, '
-    || '''UPL CODE ACADEMY MK'', ''ZiTECH''), ''UPL CODE ACADEMY'', ''ZiTECH''), ''UPL CODE MK'', ''ZiTECH''), '
-    || '''UPL Algo Classique'', ''ZiTECH Algo Classique''), ''UPL Flow Studio'', ''ZiTECH Flow Studio''), '
-    || '''UPL IDE'', ''ZiTECH IDE''), ''UPL Algo'', ''ZiTECH Algo''), ''LEARN. CODE. PRACTICE. MASTER.'', ''BUILD BEYOND LIMITS'')';
-  motif text := '''UPL CODE|UPL IDE|UPL Algo|UPL Flow|LEARN\. CODE\.''';
+  expr text := 'replace(replace(replace(replace(replace(replace(replace(replace(replace(%s, ''ZiTECH'', ''ZENTECH''), '
+    || '''UPL CODE ACADEMY MK'', ''ZENTECH''), ''UPL CODE ACADEMY'', ''ZENTECH''), ''UPL CODE MK'', ''ZENTECH''), '
+    || '''UPL Algo Classique'', ''ZENTECH Algo Classique''), ''UPL Flow Studio'', ''ZENTECH Flow Studio''), '
+    || '''UPL IDE'', ''ZENTECH IDE''), ''UPL Algo'', ''ZENTECH Algo''), ''LEARN. CODE. PRACTICE. MASTER.'', ''BUILD BEYOND LIMITS'')';
+  motif text := '''UPL CODE|UPL IDE|UPL Algo|UPL Flow|LEARN\. CODE\.|ZiTECH''';
 begin
   foreach t in array tables loop
     if to_regclass('public.' || t) is null then
@@ -45,5 +45,5 @@ begin
       total := total + n;
     end loop;
   end loop;
-  raise notice 'Rebranding ZiTECH terminé : % mise(s) à jour au total.', total;
+  raise notice 'Rebranding ZENTECH terminé : % mise(s) à jour au total.', total;
 end $$;

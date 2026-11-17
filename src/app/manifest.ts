@@ -5,7 +5,7 @@ import { BRAND } from "@/lib/brand";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: BRAND.name,
-    short_name: "ZiTECH",
+    short_name: "ZENTECH",
     description: BRAND.description,
     lang: "fr",
     id: "/",

@@ -249,7 +249,7 @@ export function EditorGroup({
           />
         ) : (
           <div className="h-full overflow-auto p-6 text-sm text-[var(--ide-muted)] md:p-12" data-testid="ide-bienvenue">
-            <p className="text-2xl font-light text-[var(--ide-text)]">ZiTECH IDE</p>
+            <p className="text-2xl font-light text-[var(--ide-text)]">ZENTECH IDE</p>
             <p className="mt-1">Éditer, exécuter et prévisualiser vos projets.</p>
             <div className="mt-8 grid gap-8 md:grid-cols-2">
               {welcome && (

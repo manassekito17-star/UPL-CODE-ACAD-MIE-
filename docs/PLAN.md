@@ -1,6 +1,6 @@
-# Plan d'exécution — ZiTECH
+# Plan d'exécution — ZENTECH
 
-La plateforme réunit trois produits : **UPL ACADEMY** (formation), **ZiTECH IDE** (environnement de développement) et **UPL STUDIO** (création de sites et d'applications). L'addendum au master prompt fixe sept phases ; les treize étapes techniques du master prompt s'y répartissent.
+La plateforme réunit trois produits : **UPL ACADEMY** (formation), **ZENTECH IDE** (environnement de développement) et **UPL STUDIO** (création de sites et d'applications). L'addendum au master prompt fixe sept phases ; les treize étapes techniques du master prompt s'y répartissent.
 
 Chaque phase suit le même cycle : annoncer, identifier les fichiers, modifier, tester, corriger, vérifier dans le navigateur, documenter, lister le reste à faire. Une phase n'est close que si `lint`, `typecheck`, `test`, `test:db`, `build` et `test:e2e` passent, y compris contre Supabase réel.
 
@@ -11,7 +11,7 @@ Légende : 🟢 terminé et vérifié · 🔵 en cours · ⚪ à faire · 🔌 d
 | 0 | Audit, architecture, base de tests, CI (étape 1 du master prompt) | 🟢 |
 | 1 | Formation complète en algorithmique et pseudocode | 🔵 Partie 1 (7 chapitres) terminée et vérifiée ; Parties 2 à 6 à enrichir |
 | 2 | Laboratoire d'exécution et visualisation des algorithmes | 🟢 `/laboratoire` |
-| 3 | Formation Python et éditeur de programmation (ZiTECH IDE, 1re version) | ⚪ |
+| 3 | Formation Python et éditeur de programmation (ZENTECH IDE, 1re version) | ⚪ |
 | 4 | Intégration des autres langages (C, JavaScript, Java) | ⚪ 🔌 Judge0 |
 | 5 | UPL Studio et création de sites web | ⚪ |
 | 6 | Environnements cloud, projets complets et déploiement | ⚪ 🔌 |
@@ -48,7 +48,7 @@ Voir [AUDIT.md](AUDIT.md) et [ARCHITECTURE.md](ARCHITECTURE.md). Vulnérabilité
 
 ## Module supplémentaire — UPL ACADEMY multiniveaux 🔵
 
-Livré et vérifié (unitaires, PGlite, E2E contre Supabase local) : huit parcours en quatre niveaux (dont K+), positionnement, examens de niveau, passage de niveau côté serveur, bulletin et certificats internes, parcours HTML (niveau 1) et CSS (niveau 1) complets avec correction structurelle, aperçu web isolé dans ZiTECH IDE, liaison cours ↔ IDE, projets pratiques, professeur IA spécialisé, administration des niveaux et ressources. Détail et reste à faire : [MULTINIVEAUX.md](MULTINIVEAUX.md).
+Livré et vérifié (unitaires, PGlite, E2E contre Supabase local) : huit parcours en quatre niveaux (dont K+), positionnement, examens de niveau, passage de niveau côté serveur, bulletin et certificats internes, parcours HTML (niveau 1) et CSS (niveau 1) complets avec correction structurelle, aperçu web isolé dans ZENTECH IDE, liaison cours ↔ IDE, projets pratiques, professeur IA spécialisé, administration des niveaux et ressources. Détail et reste à faire : [MULTINIVEAUX.md](MULTINIVEAUX.md).
 
 ## Phase 2 — Laboratoire d'algorithmique 🟢
 
@@ -68,7 +68,7 @@ Vérifié par 7 tests unitaires de la trace détaillée et 3 scénarios E2E (sai
 
 Reste possible : points d'arrêt sur une ligne, visualisation graphique des tableaux (cases), exécution pas à pas pour Python.
 
-## Phase 3 — Python et ZiTECH IDE ⚪
+## Phase 3 — Python et ZENTECH IDE ⚪
 
 Explorateur de fichiers et dossiers, onglets multiples, projets (`student_projects`, `project_files`), sauvegarde automatique, recherche dans les fichiers, import/export, thèmes clair et sombre, terminal et débogueur (Python), formation Python au niveau de la Formation algorithmique.
 

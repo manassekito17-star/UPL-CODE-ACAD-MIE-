@@ -1,6 +1,6 @@
 /**
  * Enregistrement des projets de l'interface classique dans le compte de
- * l'étudiant. Réutilise l'API des projets de ZiTECH IDE (table « projects »,
+ * l'étudiant. Réutilise l'API des projets de ZENTECH IDE (table « projects »,
  * protégée par RLS, historique des versions, détection des conflits entre
  * appareils) avec le modèle « larp » : le projet est un seul fichier JSON.
  */

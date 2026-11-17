@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 import { BRAND } from "@/lib/brand";
 import { SYMBOL_PATH, SYMBOL_TRANSFORM, WORDMARK_H, WORDMARK_PATH, WORDMARK_W } from "@/lib/brand-paths";
 
-/** Image d'aperçu des liens partagés (WhatsApp, Facebook, Telegram, Gmail…) : logo ZiTECH officiel. */
+/** Image d'aperçu des liens partagés (WhatsApp, Facebook, Telegram, Gmail…) : logo ZENTECH officiel. */
 export const alt = `${BRAND.name} — ${BRAND.slogan}`;
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";

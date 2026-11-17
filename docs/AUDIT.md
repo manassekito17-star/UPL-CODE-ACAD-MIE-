@@ -1,6 +1,6 @@
-# Audit du dépôt — ZiTECH
+# Audit du dépôt — ZENTECH
 
-Date : 5 novembre 2026 · Branche : `claude/upl-code-academy-specs-vl0z7e` · Référentiel : *Master prompt ZiTECH* (parties I à XVIII).
+Date : 5 novembre 2026 · Branche : `claude/upl-code-academy-specs-vl0z7e` · Référentiel : *Master prompt ZENTECH* (parties I à XVIII).
 
 ## 1. État constaté
 

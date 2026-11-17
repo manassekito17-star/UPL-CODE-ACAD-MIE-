@@ -69,7 +69,7 @@ export interface SqlTableInfo {
 export function engineName(r: Pick<ExecutionResult, "engine" | "engineLabel">, long = false): string {
   if (r.engineLabel) return r.engineLabel;
   if (r.engine === "serveur") return long ? "bac à sable serveur (Judge0)" : "bac à sable serveur";
-  if (r.engine === "interpreteur") return "interpréteur ZiTECH";
+  if (r.engine === "interpreteur") return "interpréteur ZENTECH";
   return long ? "navigateur (Web Worker isolé)" : "navigateur";
 }
 

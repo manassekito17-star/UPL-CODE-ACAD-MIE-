@@ -1,4 +1,4 @@
-# Architecture — ZiTECH
+# Architecture — ZENTECH
 
 ## 1. Vue d'ensemble
 

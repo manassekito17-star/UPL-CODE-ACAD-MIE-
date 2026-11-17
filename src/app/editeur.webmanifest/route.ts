@@ -1,14 +1,14 @@
 import { BRAND } from "@/lib/brand";
 
-/** Manifeste de l'application installable « ZiTECH Algo » : l'éditeur d'algorithmes, utilisable sans Internet. */
+/** Manifeste de l'application installable « ZENTECH Algo » : l'éditeur d'algorithmes, utilisable sans Internet. */
 export const dynamic = "force-static";
 
 export function GET() {
   const manifest = {
     id: "/editeur",
-    name: `ZiTECH Algo — ${BRAND.name}`,
-    short_name: "ZiTECH Algo",
-    description: "Interpréteur d'algorithmes de ZiTECH : écrire, exécuter et comprendre ses algorithmes, même sans Internet.",
+    name: `ZENTECH Algo — ${BRAND.name}`,
+    short_name: "ZENTECH Algo",
+    description: "Interpréteur d'algorithmes de ZENTECH : écrire, exécuter et comprendre ses algorithmes, même sans Internet.",
     lang: "fr",
     start_url: "/editeur?langage=pseudocode",
     scope: "/",
@@ -23,7 +23,7 @@ export function GET() {
     // Captures : fenêtre d'installation complète (« Installer l'application ») sur Android et sur ordinateur.
     screenshots: [
       { src: "/icons/editeur-capture-telephone.webp", sizes: "1080x1920", type: "image/webp", form_factor: "narrow", label: "Écrire et exécuter un algorithme sur téléphone" },
-      { src: "/icons/editeur-capture-ordinateur.webp", sizes: "1280x800", type: "image/webp", form_factor: "wide", label: "ZiTECH Algo sur ordinateur" },
+      { src: "/icons/editeur-capture-ordinateur.webp", sizes: "1280x800", type: "image/webp", form_factor: "wide", label: "ZENTECH Algo sur ordinateur" },
     ],
     icons: [
       { src: "/icons/editeur-v2-192.png", sizes: "192x192", type: "image/png", purpose: "any" },

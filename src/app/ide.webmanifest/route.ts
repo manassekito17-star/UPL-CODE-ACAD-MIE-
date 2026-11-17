@@ -1,14 +1,14 @@
 import { BRAND } from "@/lib/brand";
 
-/** Manifeste de l'application installable « ZiTECH IDE » (écran d'accueil du téléphone, ordinateur). */
+/** Manifeste de l'application installable « ZENTECH IDE » (écran d'accueil du téléphone, ordinateur). */
 export const dynamic = "force-static";
 
 export function GET() {
   const manifest = {
     id: "/ide",
-    name: `ZiTECH IDE — ${BRAND.name}`,
-    short_name: "ZiTECH IDE",
-    description: "Éditeur de code de ZiTECH : HTML, CSS, JavaScript, Python, pseudocode, utilisable sans Internet.",
+    name: `ZENTECH IDE — ${BRAND.name}`,
+    short_name: "ZENTECH IDE",
+    description: "Éditeur de code de ZENTECH : HTML, CSS, JavaScript, Python, pseudocode, utilisable sans Internet.",
     lang: "fr",
     start_url: "/ide",
     scope: "/",

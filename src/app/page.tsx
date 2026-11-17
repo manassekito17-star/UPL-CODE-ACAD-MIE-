@@ -1,4 +1,4 @@
-import { ZitechSymbol } from "@/components/brand/zitech-mark";
+import { ZentechSymbol } from "@/components/brand/zentech-mark";
 import { EditorDemo } from "@/components/home/editor-demo";
 import { CourseCard } from "@/components/learning/course-card";
 import { ButtonLink, Card, Container } from "@/components/ui";
@@ -26,14 +26,14 @@ export default async function HomePage() {
         <Container className="relative grid gap-10 py-16 sm:py-24 lg:grid-cols-2 lg:items-center">
           <div>
             <div className="mb-5 flex items-center gap-3">
-              <ZitechSymbol size={44} title="ZiTECH" />
+              <ZentechSymbol size={44} title="ZENTECH" />
               <p className="rounded-full border border-cyan-accent/40 bg-cyan-accent/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-accent">BUILD BEYOND LIMITS</p>
             </div>
             <h1 className="text-4xl font-extrabold leading-tight sm:text-5xl">
               Apprendre à programmer, <span className="bg-gradient-to-r from-electrique-400 to-cyan-accent bg-clip-text text-transparent">de la théorie à la pratique.</span>
             </h1>
             <p className="mt-5 max-w-xl text-lg text-gray-300">
-              ZiTECH réunit cours, éditeur de code, exercices corrigés automatiquement et professeur IA pour développer votre logique et maîtriser l&apos;algorithmique, HTML, CSS, Python, le C, JavaScript et Java, du niveau très débutant au niveau professionnel.
+              ZENTECH réunit cours, éditeur de code, exercices corrigés automatiquement et professeur IA pour développer votre logique et maîtriser l&apos;algorithmique, HTML, CSS, Python, le C, JavaScript et Java, du niveau très débutant au niveau professionnel.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <ButtonLink href={user ? "/tableau-de-bord" : "/formation"} size="lg">

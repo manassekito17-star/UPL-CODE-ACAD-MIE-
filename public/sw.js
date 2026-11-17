@@ -1,5 +1,5 @@
-// Service worker de ZiTECH : garde ZiTECH IDE sur l'appareil pour l'utiliser sans Internet.
-// - Pages hors ligne autorisées (ZiTECH IDE, ZiTECH Algo, interface LARP, Flow Studio, laboratoire) : réseau d'abord, copie locale si pas de connexion.
+// Service worker de ZENTECH : garde ZENTECH IDE sur l'appareil pour l'utiliser sans Internet.
+// - Pages hors ligne autorisées (ZENTECH IDE, ZENTECH Algo, interface LARP, Flow Studio, laboratoire) : réseau d'abord, copie locale si pas de connexion.
 // - Fichiers de l'application (/_next/static, versionnés) : copie locale d'abord.
 // - Éditeur de code (Monaco) et Python (Pyodide), sur le CDN jsdelivr, versions figées : copie locale d'abord.
 // - Projets et programmes enregistrés dans le compte (liste et contenu, pages ?projet= / ?programme=) :
@@ -49,10 +49,10 @@ async function dataFirst(request, event) {
 }
 // Éditeurs utilisables sans Internet (nom affiché sur la page « Pas de connexion Internet »).
 const EDITORS = [
-  { path: "/ide", name: "ZiTECH IDE", info: "Python, JavaScript, PHP, SQL, HTML…" },
-  { path: "/editeur", name: "ZiTECH Algo", info: "Éditeur d'algorithmes (pseudo-code)" },
+  { path: "/ide", name: "ZENTECH IDE", info: "Python, JavaScript, PHP, SQL, HTML…" },
+  { path: "/editeur", name: "ZENTECH Algo", info: "Éditeur d'algorithmes (pseudo-code)" },
   { path: "/flow/classique", name: "Interface LARP", info: "Pseudo-code et organigrammes comme sur LARP" },
-  { path: "/flow", name: "ZiTECH Flow Studio", info: "Organigrammes" },
+  { path: "/flow", name: "ZENTECH Flow Studio", info: "Organigrammes" },
   { path: "/laboratoire", name: "Laboratoire d'algorithmique", info: "Exécution pas à pas" },
 ];
 const OFFLINE_PAGES = EDITORS.map((e) => e.path);
@@ -113,7 +113,7 @@ async function offlineHtml() {
   const link = (r) =>
     `<a href="${r.path}" style="display:block;margin:8px 0;padding:12px 14px;border-radius:10px;background:#2563eb;color:#fff;text-decoration:none;text-align:left"><b>${esc(r.name)}</b><br><small style="color:#dbeafe">${esc(r.info)}</small></a>`;
   const later = missing.length
-    ? `<p style="margin-top:18px;font-size:13px">Pas encore sur cet appareil : ${missing.map((r) => esc(r.name)).join(", ")}.<br>Ouvrez-les une fois avec Internet (ou menu « Installer et utiliser sans Internet » dans ZiTECH IDE) pour les garder.</p>`
+    ? `<p style="margin-top:18px;font-size:13px">Pas encore sur cet appareil : ${missing.map((r) => esc(r.name)).join(", ")}.<br>Ouvrez-les une fois avec Internet (ou menu « Installer et utiliser sans Internet » dans ZENTECH IDE) pour les garder.</p>`
     : "";
   return `<!doctype html><html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Hors connexion</title>
 <body style="margin:0;font-family:system-ui,sans-serif;background:#181818;color:#ccc;display:grid;place-items:center;min-height:100vh;text-align:center;padding:16px;box-sizing:border-box">

@@ -94,7 +94,7 @@ export const php: Course = {
             <p>Nous sommes le <?= date("d/m/Y") ?>.</p>
             ~~~
 
-            ## Exécuter PHP sur ZiTECH
+            ## Exécuter PHP sur ZENTECH
 
             Sur la plateforme, votre code est exécuté par le **vrai PHP 8.3**, compilé en WebAssembly, **dans votre navigateur** : rien n'est envoyé au serveur. Si le programme produit du HTML, l'éditeur affiche aussi l'**aperçu de la page**. En entreprise, on installe PHP sur un serveur (ou localement avec XAMPP, WAMP, Laragon ou la commande **php -S localhost:8000**).
           `,
@@ -814,7 +814,7 @@ export const php: Course = {
 
             ## Sur la plateforme
 
-            Dans l'éditeur, il n'y a pas de vrai navigateur qui envoie le formulaire : les exemples **simulent** les données reçues en remplissant $_POST au début du script. Sur un vrai serveur, PHP remplit ces tableaux tout seul. Dans ZiTECH IDE, les paramètres d'adresse peuvent aussi être fournis à $_GET.
+            Dans l'éditeur, il n'y a pas de vrai navigateur qui envoie le formulaire : les exemples **simulent** les données reçues en remplissant $_POST au début du script. Sur un vrai serveur, PHP remplit ces tableaux tout seul. Dans ZENTECH IDE, les paramètres d'adresse peuvent aussi être fournis à $_GET.
           `,
           examples: [
             example(PHP, "Validation d'un formulaire d'inscription", r`
@@ -892,7 +892,7 @@ export const php: Course = {
             - **include** affiche seulement un avertissement ;
             - **require_once** évite de charger deux fois le même fichier (fonctions, classes).
 
-            Dans ZiTECH IDE, créez un projet **Site PHP** : index.php inclut includes/config.php, includes/functions.php et includes/database.php.
+            Dans ZENTECH IDE, créez un projet **Site PHP** : index.php inclut includes/config.php, includes/functions.php et includes/database.php.
 
             ## Les erreurs de PHP
 

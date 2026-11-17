@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-/** ZiTECH IDE installable et utilisable sans Internet (service worker, préparation, exécution hors ligne). */
+/** ZENTECH IDE installable et utilisable sans Internet (service worker, préparation, exécution hors ligne). */
 
 test.skip(({ browserName }) => browserName !== "chromium", "Service worker testé sur Chromium");
 
@@ -28,7 +28,7 @@ test("préparation puis utilisation sans Internet : éditeur, JavaScript, pseudo
   const dialog = page.getByTestId("ide-hors-ligne");
   await dialog.getByLabel("Inclure Python (environ 10 Mo)").uncheck();
   await dialog.getByTestId("ide-preparer-hors-ligne").click();
-  await expect(dialog.getByText(/Prêt : ZiTECH IDE fonctionne maintenant sans Internet/)).toBeVisible({ timeout: 120_000 });
+  await expect(dialog.getByText(/Prêt : ZENTECH IDE fonctionne maintenant sans Internet/)).toBeVisible({ timeout: 120_000 });
   await dialog.getByRole("button", { name: "Fermer" }).click();
 
   await context.setOffline(true);
@@ -56,7 +56,7 @@ test("préparation puis utilisation sans Internet : éditeur, JavaScript, pseudo
   await page.goto("/editeur");
   await expect(page.locator(".monaco-editor").first()).toBeVisible({ timeout: 30_000 });
   await page.getByRole("button", { name: "▶ Exécuter" }).click();
-  await expect(page.getByText("interpréteur ZiTECH").first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText("interpréteur ZENTECH").first()).toBeVisible({ timeout: 30_000 });
   await page.goto("/laboratoire");
   await expect(page.locator(".monaco-editor").first()).toBeVisible({ timeout: 30_000 });
   await page.getByRole("button", { name: "▶ Lancer l'exécution pas à pas" }).click();
@@ -72,19 +72,19 @@ test("préparation puis utilisation sans Internet : éditeur, JavaScript, pseudo
   // Page qui demande Internet : propose les éditeurs gardés sur l'appareil.
   await page.goto("/formations");
   await expect(page.getByText("Pas de connexion Internet")).toBeVisible();
-  for (const name of ["ZiTECH IDE", "ZiTECH Algo", "Interface LARP"]) await expect(page.getByRole("link", { name: new RegExp(name) })).toBeVisible();
+  for (const name of ["ZENTECH IDE", "ZENTECH Algo", "Interface LARP"]) await expect(page.getByRole("link", { name: new RegExp(name) })).toBeVisible();
   await page.getByRole("link", { name: /Interface LARP/ }).click();
   await expect(page.getByTestId("larp-fenetre")).toBeVisible({ timeout: 30_000 });
 });
 
-test("éditeur « ZiTECH Algo » : installation, préparation, puis algorithme exécuté sans Internet", async ({ page, context }) => {
+test("éditeur « ZENTECH Algo » : installation, préparation, puis algorithme exécuté sans Internet", async ({ page, context }) => {
   test.setTimeout(180_000);
   await page.goto("/editeur?langage=pseudocode");
   await page.locator(".monaco-editor").first().waitFor({ timeout: 60_000 });
   await page.evaluate(() => navigator.serviceWorker.ready);
   await expect(page.locator('link[rel="manifest"]')).toHaveAttribute("href", "/editeur.webmanifest");
   const manifest = await (await page.request.get("/editeur.webmanifest")).json();
-  expect(manifest.short_name).toBe("ZiTECH Algo");
+  expect(manifest.short_name).toBe("ZENTECH Algo");
   // Vraie application installable (sans logo du navigateur) : icône adaptable et captures pour la fenêtre d'installation.
   expect(manifest.icons.some((i: { purpose?: string }) => i.purpose === "maskable")).toBe(true);
   expect(manifest.screenshots.map((s: { form_factor: string }) => s.form_factor).sort()).toEqual(["narrow", "wide"]);
@@ -93,10 +93,10 @@ test("éditeur « ZiTECH Algo » : installation, préparation, puis algorithme e
   await page.getByRole("button", { name: "Plus d'options" }).click();
   await page.getByRole("menuitem", { name: /Installer · utiliser sans Internet/ }).click();
   const dialog = page.getByTestId("ide-hors-ligne");
-  await expect(dialog.getByRole("heading", { name: /Installer ZiTECH Algo/ })).toBeVisible();
+  await expect(dialog.getByRole("heading", { name: /Installer ZENTECH Algo/ })).toBeVisible();
   await dialog.getByLabel("Inclure Python (environ 10 Mo)").uncheck();
   await dialog.getByTestId("ide-preparer-hors-ligne").click();
-  await expect(dialog.getByText(/Prêt : ZiTECH Algo fonctionne maintenant sans Internet/)).toBeVisible({ timeout: 120_000 });
+  await expect(dialog.getByText(/Prêt : ZENTECH Algo fonctionne maintenant sans Internet/)).toBeVisible({ timeout: 120_000 });
   await dialog.getByRole("button", { name: "Fermer" }).click();
 
   // Sans Internet : la page se rouvre, l'algorithme s'écrit et s'exécute.
@@ -127,7 +127,7 @@ test("projets enregistrés consultables sans Internet : « Mes programmes » pui
   const prep = page.getByTestId("ide-hors-ligne");
   await prep.getByLabel("Inclure Python (environ 10 Mo)").uncheck();
   await prep.getByTestId("ide-preparer-hors-ligne").click();
-  await expect(prep.getByText(/Prêt : ZiTECH Algo fonctionne maintenant sans Internet/)).toBeVisible({ timeout: 150_000 });
+  await expect(prep.getByText(/Prêt : ZENTECH Algo fonctionne maintenant sans Internet/)).toBeVisible({ timeout: 150_000 });
   await prep.getByRole("button", { name: "Fermer" }).click();
   await setEditorCode(page, 'ALGORITHME HorsLigne\nDEBUT\n  ECRIRE("sans internet")\nFIN');
   const titre = `Hors ligne ${Date.now()}`;

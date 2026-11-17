@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { staticExercises } from "../src/content";
 import { isDemoMode, signUpStudent } from "./helpers";
 
-/** Parcours HTML / CSS : aperçu isolé dans ZiTECH IDE, console de la page, correction structurelle. */
+/** Parcours HTML / CSS : aperçu isolé dans ZENTECH IDE, console de la page, correction structurelle. */
 
 async function setFile(page: Page, file: string, code: string) {
   await page.locator(".monaco-editor").first().waitFor({ timeout: 60_000 });
@@ -20,7 +20,7 @@ async function setFile(page: Page, file: string, code: string) {
 
 const preview = (page: Page) => page.frameLocator('iframe[title="Aperçu de la page"]');
 
-test("ZiTECH IDE : projet web avec aperçu en direct et console de la page", async ({ page }) => {
+test("ZENTECH IDE : projet web avec aperçu en direct et console de la page", async ({ page }) => {
   await page.goto("/editeur?langage=html");
   await expect(page.getByRole("button", { name: "↻ Actualiser l'aperçu" })).toBeVisible();
   for (const f of ["index.html", "style.css", "script.js"]) await expect(page.getByRole("button", { name: f, exact: true })).toBeVisible();
@@ -47,11 +47,11 @@ test("ZiTECH IDE : projet web avec aperçu en direct et console de la page", asy
   expect(r.status()).toBe(400);
 });
 
-test("une démonstration de chapitre s'ouvre dans ZiTECH IDE avec un retour au cours", async ({ page }) => {
+test("une démonstration de chapitre s'ouvre dans ZENTECH IDE avec un retour au cours", async ({ page }) => {
   await page.goto("/formations/css/css-introduction-selecteurs");
   await page.locator("section#algorithmes").getByRole("tab", { name: "Aperçu" }).first().click();
   await expect(page.locator("section#algorithmes iframe").first()).toBeVisible();
-  await page.locator("section#algorithmes").getByRole("link", { name: "Ouvrir dans ZiTECH IDE" }).first().click();
+  await page.locator("section#algorithmes").getByRole("link", { name: "Ouvrir dans ZENTECH IDE" }).first().click();
   await expect(page).toHaveURL(/\/editeur\?algorithme=css\/css-introduction-selecteurs\/0/);
   await expect(preview(page).locator("h1").first()).toBeVisible();
   await page.getByTestId("retour-cours").click();

@@ -1,4 +1,4 @@
-# Lancement à budget zéro — ZiTECH
+# Lancement à budget zéro — ZENTECH
 
 Les limites des offres gratuites citées ici sont **indicatives (novembre 2026)**. Elles changent souvent : vérifiez-les sur les pages officielles de chaque fournisseur. La page **Administration → Consommation et coûts** compare l'usage réel à ces limites, avec une alerte à 80 % et à 100 %.
 
@@ -36,7 +36,7 @@ Sans aucun service payant :
   - pseudocode (interpréteur), Python (Pyodide), JavaScript (Web Worker isolé) et aperçu HTML/CSS/JS, **dans le navigateur** ;
   - correction officielle **sur le serveur, sans coût** pour le pseudocode et le HTML/CSS (analyse structurelle).
 - **Outils :**
-  - éditeur, **ZiTECH IDE** (projets à dossiers synchronisés, historique, import/export ZIP, aperçu, thèmes) ;
+  - éditeur, **ZENTECH IDE** (projets à dossiers synchronisés, historique, import/export ZIP, aperçu, thèmes) ;
   - **laboratoire** d'algorithmique pas à pas.
 - **Comptes et suivi :** rôles, administration pédagogique, suivi, annonces, journaux.
 

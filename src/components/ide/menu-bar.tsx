@@ -11,7 +11,7 @@ export interface MenuDef {
 }
 
 /**
- * Barre de menus de ZiTECH IDE (Fichier, Édition, Sélection, Affichage…).
+ * Barre de menus de ZENTECH IDE (Fichier, Édition, Sélection, Affichage…).
  * Chaque entrée déclenche une action réelle de l'IDE ou de l'éditeur.
  * Sur petit écran, les menus sont regroupés derrière un seul bouton.
  */

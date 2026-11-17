@@ -142,7 +142,7 @@ export function ChapterSections({
         <DefinitionsView definitions={p.definitions} />
       </Section>
 
-      <Section id="exemples" title={web ? "Exemples et démonstrations" : "Exemples à exécuter"} subtitle={web ? "Affichez l'aperçu ici, ou ouvrez l'exemple dans ZiTECH IDE pour le modifier." : "Exécutez ici, ou ouvrez l'exemple dans ZiTECH IDE pour le modifier."}>
+      <Section id="exemples" title={web ? "Exemples et démonstrations" : "Exemples à exécuter"} subtitle={web ? "Affichez l'aperçu ici, ou ouvrez l'exemple dans ZENTECH IDE pour le modifier." : "Exécutez ici, ou ouvrez l'exemple dans ZENTECH IDE pour le modifier."}>
         <div className="space-y-4">
           {lesson.examples.map((ex, i) => <ExampleRunner key={i} example={ex} editorHref={`/editeur?exemple=${course.slug}/${lesson.slug}/${i}`} />)}
         </div>

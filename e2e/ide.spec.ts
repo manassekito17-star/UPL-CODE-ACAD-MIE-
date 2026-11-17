@@ -2,7 +2,7 @@ import { strToU8, zipSync } from "fflate";
 import { expect, test, type Page } from "@playwright/test";
 import { isDemoMode, signUpStudent } from "./helpers";
 
-/** ZiTECH IDE — phase 2 : explorateur, onglets, éditeur, exécution réelle, projets, versions, import/export. */
+/** ZENTECH IDE — phase 2 : explorateur, onglets, éditeur, exécution réelle, projets, versions, import/export. */
 
 async function setModel(page: Page, file: string, code: string) {
   await page.waitForFunction((f) => {

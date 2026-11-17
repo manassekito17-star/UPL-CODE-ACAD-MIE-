@@ -1,4 +1,4 @@
--- ZiTECH — installation, partie 2 (contenu), morceau 14 sur 14.
+-- ZENTECH — installation, partie 2 (contenu), morceau 14 sur 14.
 -- À exécuter dans l'ordre, après 1-structure.sql. Peut être relancé sans risque.
 begin;
 insert into public.exercise_solutions (exercise_id, solution_code, correction) values ((select id from public.exercises where slug = 'php-calculs'), '<?php

@@ -2,7 +2,7 @@ import type { AiSettings, ExecutionSettings, PlanSettings } from "./settings";
 
 /**
  * Offres. Au lancement, tout est gratuit : formation complète, éditeur,
- * ZiTECH IDE, laboratoire, exécution dans le navigateur. Les ressources qui ont
+ * ZENTECH IDE, laboratoire, exécution dans le navigateur. Les ressources qui ont
  * un coût pour la plateforme (professeur IA, service d'exécution isolé)
  * sont plafonnées par jour. L'offre « premium » est prévue (colonne
  * profiles.plan, limites séparées) mais n'est pas commercialisée : tant que
@@ -20,7 +20,7 @@ export interface Entitlements {
 export const FREE_FEATURES = [
   "Les dix parcours (algorithmique, HTML, CSS, Python, C, JavaScript, Java, K+, PHP, SQL) en quatre niveaux",
   "Exercices corrigés automatiquement, quiz, TD, évaluations, projets et certificats internes",
-  "Éditeur, ZiTECH IDE (projets, dossiers, historique) et laboratoire d'algorithmique",
+  "Éditeur, ZENTECH IDE (projets, dossiers, historique) et laboratoire d'algorithmique",
   "Exécution dans le navigateur : pseudocode, Python, JavaScript, HTML/CSS",
 ] as const;
 

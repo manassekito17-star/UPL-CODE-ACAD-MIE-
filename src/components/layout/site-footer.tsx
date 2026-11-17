@@ -9,7 +9,7 @@ export function SiteFooter() {
       <Container className="grid gap-8 py-10 sm:grid-cols-3">
         <div className="space-y-3">
           <Logo light />
-          <p className="text-sm text-gray-400">L&apos;écosystème technologique ZiTECH : programmation, développement logiciel et intelligence artificielle, de la théorie à la pratique, avec un professeur IA à vos côtés.</p>
+          <p className="text-sm text-gray-400">L&apos;écosystème technologique ZENTECH : programmation, développement logiciel et intelligence artificielle, de la théorie à la pratique, avec un professeur IA à vos côtés.</p>
         </div>
         <div>
           <p className="mb-3 text-sm font-semibold text-white">Apprendre</p>
@@ -18,7 +18,7 @@ export function SiteFooter() {
             <li><Link href="/formations" className="hover:text-cyan-accent">Parcours</Link></li>
             <li><Link href="/exercices" className="hover:text-cyan-accent">Exercices</Link></li>
             <li><Link href="/editeur" className="hover:text-cyan-accent">Éditeur de code</Link></li>
-            <li><Link href="/flow" className="hover:text-cyan-accent">ZiTECH Flow Studio (organigrammes)</Link></li>
+            <li><Link href="/flow" className="hover:text-cyan-accent">ZENTECH Flow Studio (organigrammes)</Link></li>
             <li><Link href="/flow/classique" className="hover:text-cyan-accent">Interface classique (compatible LARP)</Link></li>
             <li><Link href="/professeur-ia" className="hover:text-cyan-accent">Professeur IA</Link></li>
             <li><Link href="/telecharger" className="hover:text-cyan-accent">Télécharger l&apos;application</Link></li>
@@ -28,7 +28,7 @@ export function SiteFooter() {
         <div>
           <p className="mb-3 text-sm font-semibold text-white">À propos</p>
           <p className="text-sm text-gray-400">
-            Écosystème technologique indépendant d&apos;éducation numérique, ouvert à tous. ZiTECH n&apos;est pas une plateforme officielle de l&apos;Université Protestante de Lubumbashi (UPL).
+            Écosystème technologique indépendant d&apos;éducation numérique, ouvert à tous. ZENTECH n&apos;est pas une plateforme officielle de l&apos;Université Protestante de Lubumbashi (UPL).
           </p>
         </div>
       </Container>

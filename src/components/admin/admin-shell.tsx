@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ZitechSymbol } from "@/components/brand/zitech-mark";
+import { ZentechSymbol } from "@/components/brand/zentech-mark";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { cn } from "../ui";
@@ -80,9 +80,9 @@ export function AdminShell({
         aria-label="Menu de l'administration"
       >
         <Link href="/admin" className="flex items-center gap-2.5 border-b border-white/10 px-5 py-4">
-          <ZitechSymbol size={34} />
+          <ZentechSymbol size={34} />
           <span className="leading-tight">
-            <span className="block text-sm font-bold text-white">ZiTECH</span>
+            <span className="block text-sm font-bold text-white">ZENTECH</span>
             <span className="block text-[11px] font-semibold uppercase tracking-wider text-cyan-accent">{title}</span>
           </span>
         </Link>
