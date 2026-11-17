@@ -126,7 +126,8 @@ test("administration : un compte « accès rapide » (sans e-mail) se supprime e
   const adminEmail = (await signUpStudent(admin, "Admin Suppression"))!;
   await promoteToAdmin(adminEmail);
 
-  const prenom = `Rapide${Date.now().toString(36)}`;
+  // Prénom unique en lettres seulement (le formulaire refuse les chiffres).
+  const prenom = `Rapide${[...Date.now().toString(36)].map((c) => String.fromCharCode(97 + (parseInt(c, 36) % 26))).join("")}`;
   const { context } = await quickAccess(browser, "ordinateur", prenom);
   await context.close();
 
