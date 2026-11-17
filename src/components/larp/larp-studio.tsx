@@ -1671,7 +1671,13 @@ function OpenDialog({ close, style, onOpen, onOpenCloud }: DialogProps & { style
     listCloud().then((r) => {
       if (r.ok) {
         setCloud(r.list);
-        setCloudMsg(r.list.length ? "" : "Aucun projet dans votre compte pour l'instant : utilisez Fichier » Sauvegarder.");
+        setCloudMsg(
+          r.list.length
+            ? r.offline
+              ? "Hors connexion : liste gardée sur cet appareil (projets listés ou ouverts avec Internet)."
+              : ""
+            : "Aucun projet dans votre compte pour l'instant : utilisez Fichier » Sauvegarder.",
+        );
       } else {
         setCloud([]);
         setCloudMsg(r.message);

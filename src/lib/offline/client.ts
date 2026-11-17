@@ -173,3 +173,15 @@ export function offlineReadyInfo(): { at: string; python: boolean } | null {
     return null;
   }
 }
+
+/** Réponse servie par la copie de l'appareil (pas de connexion Internet). */
+export const isOfflineCopy = (res: Response) => res.headers.get("X-UPL-Hors-Ligne") === "1";
+
+/**
+ * Garde sur l'appareil des pages de projets / programmes du compte (ex. « /ide?projet=… »)
+ * pour les rouvrir sans Internet. Sans effet hors ligne ou sans service worker.
+ */
+export function keepForOffline(urls: string[]) {
+  if (!offlineSupported() || !navigator.onLine || !urls.length) return;
+  void navigator.serviceWorker.ready.then((reg) => reg.active?.postMessage({ type: "precache", urls })).catch(() => undefined);
+}

@@ -9,6 +9,7 @@ import { runInBrowser, runProgram, warmupEngine } from "@/lib/execution/browser"
 import { LANGUAGE_IDS, LANGUAGES } from "@/lib/execution/languages";
 import { STATUS_LABELS, engineName, type ExecutionResult, type SourceFile } from "@/lib/execution/types";
 import { buildPreviewDocument } from "@/lib/execution/web-document";
+import { isOfflineCopy, keepForOffline } from "@/lib/offline/client";
 import { OfflineDialog, type InstallPromptEvent } from "../ide/offline-dialog";
 import { cn } from "../ui";
 import type { MonacoEditor } from "./code-editor";
@@ -449,6 +450,7 @@ export function AlgoStudio({
   // Mes programmes : liste des programmes enregistrés dans le compte, à rouvrir d'un toucher.
   const [programs, setPrograms] = useState<Array<{ id: string; title: string; language_id: string; updated_at: string }> | null>(null);
   const [programsError, setProgramsError] = useState<string | null>(null);
+  const [programsOffline, setProgramsOffline] = useState(false);
   const loadPrograms = async () => {
     setPrograms(null);
     setProgramsError(null);
@@ -457,6 +459,9 @@ export function AlgoStudio({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) return setProgramsError(data.error ?? "Liste indisponible pour le moment.");
       setPrograms(data.programs ?? []);
+      setProgramsOffline(isOfflineCopy(res));
+      // Avec Internet : les programmes récents sont gardés sur l'appareil pour les rouvrir hors ligne.
+      if (!isOfflineCopy(res)) keepForOffline(((data.programs ?? []) as Array<{ id: string }>).slice(0, 20).map((p) => `/editeur?programme=${p.id}`));
     } catch {
       setProgramsError("Pas de connexion Internet : la liste ne peut pas être chargée.");
     }
@@ -966,7 +971,8 @@ export function AlgoStudio({
             <li>✓ Écrire et exécuter vos algorithmes (pseudocode), JavaScript et Python (et PHP, SQL si vous les incluez)</li>
             <li>✓ Console, saisie au moment de « lire », clavier de symboles</li>
             <li>✓ Exemples, sélection, copier-coller, télécharger le fichier</li>
-            <li>✗ Enregistrer dans « Mes programmes », C et Java, cours en ligne (Internet nécessaire)</li>
+            <li>✓ « Mes programmes » : consulter et rouvrir les programmes déjà listés ou ouverts avec Internet</li>
+            <li>✗ Enregistrer un nouveau programme dans le compte, C et Java, cours en ligne (Internet nécessaire)</li>
           </ul>
         }
       />
@@ -1122,6 +1128,7 @@ Fin`}</pre>
                 <div className="space-y-2" data-testid="mes-programmes">
                   {programsError && <p className="text-red-300">{programsError}</p>}
                   {!programs && !programsError && <p className="text-gray-400">Chargement…</p>}
+                  {programsOffline && <p className="text-xs text-amber-300" data-testid="programmes-hors-ligne">Hors connexion : liste gardée sur cet appareil. Les programmes ouverts ou listés avec Internet se rouvrent sans connexion.</p>}
                   {programs?.length === 0 && <p className="text-gray-300">Aucun programme enregistré. Écrivez votre code puis touchez 💾 pour l&apos;enregistrer.</p>}
                   <ul className="space-y-1">
                     {programs?.map((p) => (
