@@ -7,6 +7,7 @@ import { LANGUAGES } from "@/lib/execution/languages";
 import { checkPseudocode } from "@/lib/pseudocode";
 import { emmetCSS, emmetHTML } from "emmet-monaco-es";
 import { letPageScrollOverEditor } from "./page-scroll";
+import { attachTouchEditMenu } from "./touch-edit-menu";
 import { registerKPlus } from "./kplus-language";
 import { registerPseudocode } from "./pseudocode-language";
 
@@ -118,6 +119,7 @@ export function CodeEditor({
   fontSize = 14,
   pageScroll = true,
   extendSelectionOnTap,
+  touchMenu = true,
   onEditor,
 }: {
   language: LanguageId;
@@ -135,6 +137,8 @@ export function CodeEditor({
   pageScroll?: boolean;
   /** Toucher bref pendant une sélection : l'étendre jusque-là (barre de sélection ouverte). */
   extendSelectionOnTap?: () => boolean;
+  /** Appui long : menu Coller / Copier / Couper / Tout. Désactivé quand la page a sa propre barre de sélection. */
+  touchMenu?: boolean;
   /** Accès à l'instance Monaco (clavier de symboles, annuler, rechercher…). */
   onEditor?: (editor: MonacoEditor) => void;
 }) {
@@ -206,6 +210,8 @@ export function CodeEditor({
         monacoRef.current = monaco;
         setMounted(true);
         onEditor?.(editor);
+        // Appui long : menu Coller / Copier / Couper / Tout (comme dans les applications du téléphone).
+        if (touchMenu) attachTouchEditMenu(editor);
         if (!pageScroll) return;
         // Balayage sur l'éditeur : le code défile, puis la page (sinon la page reste bloquée).
         const stop = letPageScrollOverEditor(editor, { extendOnTap: extendSelectionOnTap });

@@ -7,6 +7,7 @@ import { tagToClose } from "@/lib/ide/html-close";
 import { checkKPlus } from "@/lib/kplus";
 import { checkPseudocode } from "@/lib/pseudocode";
 import { configureMonaco } from "../editor/code-editor";
+import { attachTouchEditMenu } from "../editor/touch-edit-menu";
 import { cn } from "../ui";
 import { FileIcon } from "./file-icon";
 import { Icon } from "./icons";
@@ -205,6 +206,8 @@ export function EditorGroup({
             onMount={(editor, monaco) => {
               editorRef.current = editor;
               monacoRef.current = monaco;
+              // Appui long : menu Coller / Copier / Couper / Tout (comme dans les applications du téléphone).
+              attachTouchEditMenu(editor);
               editor.onDidChangeCursorPosition((e) => handlers.current.onCursor(e.position.lineNumber, e.position.column));
               editor.onDidFocusEditorText(() => handlers.current.onFocus());
               editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => handlers.current.onSave());

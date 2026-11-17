@@ -108,3 +108,39 @@ test("sur téléphone : un toucher ailleurs efface la sélection (comme Bloc-not
   await tap(box.x + 30, box.y + box.height * 4.5);
   await expect(page.getByTestId("barre-selection")).toHaveCount(0);
 });
+
+test("sur téléphone : appui long sur l'éditeur → menu Coller / Copier / Couper / Tout (comme les applications)", async ({ page, context }) => {
+  await page.goto("/");
+  const editor = page.locator(".monaco-editor").first();
+  await editor.waitFor({ timeout: 60_000 });
+  await editor.scrollIntoViewIfNeeded();
+  const lines = editor.locator(".view-lines");
+  let box: { x: number; y: number; width: number; height: number } | null = null;
+  await expect.poll(async () => (box = await lines.boundingBox())).not.toBeNull();
+  box = box!;
+  const cdp = await context.newCDPSession(page);
+  const longPress = async () => {
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: box!.x + 40, y: box!.y + 10 }] });
+    await page.waitForTimeout(700);
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  };
+  const code = () => page.evaluate(() => (window as unknown as { monaco: { editor: { getModels(): Array<{ getValue(): string }> } } }).monaco.editor.getModels().map((m) => m.getValue()).join("\n"));
+  const menu = page.getByTestId("menu-edition-tactile");
+
+  // Presse-papiers accessible : le texte copié ailleurs est collé directement.
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await longPress();
+  await expect(menu.getByRole("menuitem")).toHaveText(["Coller", "Copier", "Couper", "Tout"]);
+  await page.evaluate(() => navigator.clipboard.writeText("texte_venu_de_whatsapp"));
+  await menu.getByRole("menuitem", { name: "Coller" }).click();
+  await expect.poll(code).toContain("texte_venu_de_whatsapp");
+  await expect(menu).toHaveCount(0);
+
+  // Accès refusé : fenêtre où coller avec le menu du téléphone.
+  await context.clearPermissions();
+  await longPress();
+  await menu.getByRole("menuitem", { name: "Coller" }).click();
+  await page.getByTestId("zone-coller-tactile").fill("colle_a_la_main");
+  await page.getByTestId("fenetre-coller").getByRole("button", { name: "Insérer" }).click();
+  await expect.poll(code).toContain("colle_a_la_main");
+});
