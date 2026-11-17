@@ -461,7 +461,7 @@ export function AlgoStudio({
       setPrograms(data.programs ?? []);
       setProgramsOffline(isOfflineCopy(res));
       // Avec Internet : les programmes récents sont gardés sur l'appareil pour les rouvrir hors ligne.
-      if (!isOfflineCopy(res)) keepForOffline(((data.programs ?? []) as Array<{ id: string }>).slice(0, 20).map((p) => `/editeur?programme=${p.id}`));
+      if (!isOfflineCopy(res)) keepForOffline(["/api/programs", ...((data.programs ?? []) as Array<{ id: string }>).slice(0, 20).map((p) => `/editeur?programme=${p.id}`)]);
     } catch {
       setProgramsError("Pas de connexion Internet : la liste ne peut pas être chargée.");
     }

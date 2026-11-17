@@ -1351,7 +1351,7 @@ function ProjectsView({ current, loggedIn, onOpen, notify, onExport }: { current
     setRows(data.projects);
     setOfflineList(isOfflineCopy(res));
     // Avec Internet : les projets récents sont gardés sur l'appareil pour les ouvrir hors ligne.
-    if (!isOfflineCopy(res)) keepForOffline((data.projects as ProjectRow[]).slice(0, 15).map((p) => `/ide?projet=${p.id}`));
+    if (!isOfflineCopy(res)) keepForOffline(["/api/projects", ...(data.projects as ProjectRow[]).slice(0, 15).map((p) => `/ide?projet=${p.id}`)]);
   }, [loggedIn, notify]);
   useEffect(() => {
     // Chargement de la liste depuis l'API (mise à jour d'état asynchrone).

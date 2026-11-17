@@ -4,6 +4,7 @@
  * protégée par RLS, historique des versions, détection des conflits entre
  * appareils) avec le modèle « larp » : le projet est un seul fichier JSON.
  */
+import { keepForOffline } from "../offline/client";
 import type { LarpDoc, LarpProject } from "./project";
 
 export const CLOUD_FILE = "projet.larp.json";
@@ -60,7 +61,7 @@ export async function listCloud(): Promise<{ ok: true; list: CloudEntry[]; offli
     const b = (await res.json()) as { projects: CloudEntry[] };
     const offline = res.headers.get("X-UPL-Hors-Ligne") === "1";
     // Avec Internet : le contenu des projets récents est gardé sur l'appareil (ouverture hors ligne).
-    if (!offline) for (const p of b.projects.slice(0, 15)) void fetch(`/api/projects/${p.id}`, { cache: "no-store" }).catch(() => undefined);
+    if (!offline) keepForOffline(["/api/projects?type=larp", ...b.projects.slice(0, 15).map((p) => `/api/projects/${p.id}`)]);
     return { ok: true, list: b.projects, offline };
   } catch {
     return { ok: false, reason: "erreur", message: "Pas de connexion Internet : projets du compte indisponibles." };

@@ -183,11 +183,14 @@ self.addEventListener("message", (e) => {
         for (const u of data.urls) {
           try {
             const url = new URL(u, self.location.origin);
-            const userKey = url.origin === self.location.origin ? userPageKey(url) : null;
-            const isPage = url.origin === self.location.origin && (OFFLINE_PAGES.includes(url.pathname) || Boolean(userKey));
-            const cacheName = CDN_PREFIXES.some((p) => url.href.startsWith(p)) ? CDN : isPage ? PAGES : STATIC;
-            const key = userKey ?? (isPage ? url.pathname : withoutHash(url.href));
-            if (!isPage && (await caches.match(key))) {
+            const sameOrigin = url.origin === self.location.origin;
+            const userKey = sameOrigin ? userPageKey(url) : null;
+            // Liste / contenu des projets du compte : copie toujours rafraîchie.
+            const isData = sameOrigin && DATA_API.test(url.pathname);
+            const isPage = sameOrigin && (OFFLINE_PAGES.includes(url.pathname) || Boolean(userKey));
+            const cacheName = isData ? DATA : CDN_PREFIXES.some((p) => url.href.startsWith(p)) ? CDN : isPage ? PAGES : STATIC;
+            const key = isData ? url.pathname + url.search : userKey ?? (isPage ? url.pathname : withoutHash(url.href));
+            if (!isPage && !isData && (await caches.match(key))) {
               ok++;
               continue;
             }

@@ -142,7 +142,7 @@ test("projets enregistrés consultables sans Internet : « Mes programmes » pui
   await expect(link).toBeVisible();
   const href = (await link.getAttribute("href"))!;
   await expect
-    .poll(() => page.evaluate(async (h) => Boolean(await caches.match(h)), href), { timeout: 30_000 })
+    .poll(() => page.evaluate(async (h) => Boolean((await caches.match(h)) && (await caches.match("/api/programs"))), href), { timeout: 30_000 })
     .toBe(true);
 
   // Sans Internet : la liste et le programme s'ouvrent depuis la copie de l'appareil.
