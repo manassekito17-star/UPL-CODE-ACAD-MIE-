@@ -170,8 +170,8 @@ export default async function UserPage({ params, searchParams }: PageProps<"/adm
               <form action={deleteUser} className="mt-2 space-y-2" data-testid="form-suppression">
                 <input type="hidden" name="userId" value={id} />
                 <label className="block text-xs text-gris-700">
-                  Recopiez l&apos;adresse e-mail pour confirmer
-                  <input name="confirmEmail" required autoComplete="off" placeholder={email} className={`${inputClass} mt-1`} />
+                  {email ? "Recopiez l'adresse e-mail pour confirmer" : "Compte « accès rapide » (sans e-mail) : recopiez le nom complet pour confirmer"}
+                  <input name="confirmEmail" required autoComplete="off" placeholder={email || profile.full_name || ""} className={`${inputClass} mt-1`} />
                 </label>
                 <ConfirmSubmit variant="danger" message={`Supprimer DÉFINITIVEMENT le compte de ${name} et toutes ses données ?`}>Supprimer définitivement</ConfirmSubmit>
               </form>

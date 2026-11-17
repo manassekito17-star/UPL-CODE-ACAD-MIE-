@@ -117,3 +117,35 @@ test("« Créer un compte » propose aussi l'accès rapide avec un profil (Optio
   await expect(page.getByRole("heading", { name: /Option C/ })).toBeVisible();
   await ctx.close();
 });
+
+test("administration : un compte « accès rapide » (sans e-mail) se supprime en recopiant son nom", async ({ page, browser }) => {
+  test.skip(await isDemoMode(page), "Supabase non configuré");
+  const { signUpStudent, promoteToAdmin } = await import("./helpers");
+  const adminCtx = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+  const admin = await adminCtx.newPage();
+  const adminEmail = (await signUpStudent(admin, "Admin Suppression"))!;
+  await promoteToAdmin(adminEmail);
+
+  // Prénom unique en lettres seulement (le formulaire refuse les chiffres).
+  const prenom = `Rapide${[...Date.now().toString(36)].map((c) => String.fromCharCode(97 + (parseInt(c, 36) % 26))).join("")}`;
+  const { context } = await quickAccess(browser, "ordinateur", prenom);
+  await context.close();
+
+  await admin.goto(`/admin/utilisateurs?q=${encodeURIComponent(prenom)}`);
+  const row = admin.getByTestId("table-utilisateurs").getByRole("row").filter({ hasText: prenom });
+  await expect(row).toContainText("Accès rapide");
+  await row.getByRole("link", { name: "Voir" }).click();
+  const del = admin.getByTestId("form-suppression");
+  await expect(del).toContainText("recopiez le nom complet");
+  await del.locator('input[name="confirmEmail"]').fill("Autre Nom");
+  admin.once("dialog", (d) => d.accept());
+  await del.getByRole("button", { name: "Supprimer définitivement" }).click();
+  await expect(admin.getByText("Le nom recopié ne correspond pas : compte non supprimé.")).toBeVisible();
+  await admin.getByTestId("form-suppression").locator('input[name="confirmEmail"]').fill(`${prenom.toLowerCase()}  kabila`);
+  admin.once("dialog", (d) => d.accept());
+  await admin.getByTestId("form-suppression").getByRole("button", { name: "Supprimer définitivement" }).click();
+  await expect(admin.getByText(`Compte ${prenom} Kabila supprimé définitivement.`)).toBeVisible();
+  await admin.goto(`/admin/utilisateurs?q=${encodeURIComponent(prenom)}`);
+  await expect(admin.getByTestId("table-utilisateurs")).toContainText("Aucun compte ne correspond.");
+  await adminCtx.close();
+});
