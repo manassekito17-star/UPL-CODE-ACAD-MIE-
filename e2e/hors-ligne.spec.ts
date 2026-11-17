@@ -163,3 +163,22 @@ test("projets enregistrés consultables sans Internet : « Mes programmes » pui
   await expect.poll(() => page.evaluate(() => (window as unknown as { monaco: { editor: { getModels(): Array<{ getValue(): string }> } } }).monaco.editor.getModels().map((m) => m.getValue()).join("\n"))).toContain("sans internet");
   await context.setOffline(false);
 });
+
+test("éditeurs gardés automatiquement pour un étudiant connecté, puis ouverts sans Internet", async ({ page, context }) => {
+  test.setTimeout(240_000);
+  const { isDemoMode } = await import("./helpers");
+  test.skip(await isDemoMode(page), "Supabase non configuré");
+  await page.goto("/tableau-de-bord");
+  // Les tests ne déclenchent la préparation automatique que sur demande.
+  await page.evaluate(() => localStorage.setItem("upl:test:auto-hors-ligne", "1"));
+  await page.reload();
+  await expect
+    .poll(() => page.evaluate(async () => Boolean((await caches.match("/editeur")) && (await caches.match("/flow/classique")) && localStorage.getItem("upl:hors-ligne:auto:v6"))), { timeout: 200_000, intervals: [2000] })
+    .toBe(true);
+  await context.setOffline(true);
+  await page.goto("/flow/classique");
+  await expect(page.getByTestId("larp-fenetre")).toBeVisible({ timeout: 30_000 });
+  await page.goto("/editeur");
+  await expect(page.locator(".monaco-editor").first()).toBeVisible({ timeout: 30_000 });
+  await context.setOffline(false);
+});

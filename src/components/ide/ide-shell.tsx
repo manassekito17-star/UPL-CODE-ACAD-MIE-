@@ -140,11 +140,16 @@ function Splitter({ direction, onDelta, label }: { direction: "x" | "y"; onDelta
         last.current = pos;
       }}
       onPointerUp={() => (last.current = null)}
+      onPointerCancel={() => (last.current = null)}
       className={cn(
         "shrink-0 bg-[var(--ide-border)] transition-colors hover:bg-[var(--ide-accent)] focus:bg-[var(--ide-accent)] focus:outline-none",
-        direction === "x" ? "w-1 cursor-col-resize" : "h-1 cursor-row-resize",
+        direction === "x" ? "w-1 cursor-col-resize" : "relative flex h-3 cursor-row-resize touch-none items-center justify-center bg-[var(--ide-panel)] hover:bg-[var(--ide-hover)]",
       )}
-    />
+      data-testid={direction === "y" ? "ide-poignee-panneau" : undefined}
+    >
+      {/* Barre visible et assez haute pour être attrapée au doigt. */}
+      {direction === "y" && <span aria-hidden className="h-1 w-10 rounded-full bg-[var(--ide-muted)] opacity-70" />}
+    </div>
   );
 }
 
@@ -163,6 +168,8 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
   const [bottom, setBottom] = useState<BottomTab | null>("console");
   const [bottomHeight, setBottomHeight] = useState(190);
   const [bottomMax, setBottomMax] = useState(false);
+  // Panneau replié : seule la barre d'onglets reste visible (utile sur téléphone, clavier ouvert).
+  const [bottomMin, setBottomMin] = useState(false);
   const [previewTarget, setPreviewTarget] = useState<string | null>(null);
   const [createRequest, setCreateRequest] = useState<CreateRequest | null>(null);
   const [sections, setSections] = useState({ ouverts: true, plan: true });
@@ -226,6 +233,16 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
   // Clavier du téléphone ouvert : l'IDE se limite à la partie visible de l'écran,
   // pour que la ligne en cours et le clavier de programmation restent au-dessus du clavier.
   const [viewport, setViewport] = useState<{ top: number; height: number } | null>(null);
+  // Clavier ouvert : le panneau inférieur ne prend jamais plus d'un tiers de la partie visible,
+  // pour laisser l'éditeur à l'écran.
+  const bottomHeightShown = viewport ? Math.max(70, Math.min(bottomHeight, Math.round(viewport.height / 3))) : bottomHeight;
+  // Plein écran : le site derrière l'IDE est masqué et ne défile plus (sinon, quand le clavier du
+  // téléphone s'ouvre, la page du site — menu, pied de page — apparaît derrière l'éditeur).
+  useEffect(() => {
+    const html = document.documentElement;
+    html.classList.add("upl-plein-ecran");
+    return () => html.classList.remove("upl-plein-ecran");
+  }, []);
   useEffect(() => {
     const v = window.visualViewport;
     if (!v || !touch) return;
@@ -604,6 +621,7 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
     setResult(null);
     setRunError(null);
     setBottom("console");
+    setBottomMin(false);
     const started = new Date();
     const r = await runProgram(runnable.language, runnable.files, stdin, { onStatus: setRunStatus });
     setRunning(false);
@@ -790,7 +808,7 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
   ];
 
   return (
-    <div className={cn("ide-root fixed inset-0 z-50 flex flex-col bg-[var(--ide-bg)] text-[var(--ide-text)]", settings.theme === "clair" ? "ide-clair" : settings.theme === "sombre" ? "ide-sombre" : "ide-studio")} style={viewport ? { top: viewport.top, height: viewport.height, bottom: "auto" } : undefined} data-testid="ide">
+    <div className={cn("ide-root fixed inset-0 z-50 flex flex-col bg-[var(--ide-bg)] text-[var(--ide-text)]", settings.theme === "clair" ? "ide-clair" : settings.theme === "sombre" ? "ide-sombre" : "ide-studio")} style={viewport ? { top: viewport.top, height: viewport.height, bottom: "auto" } : undefined} data-testid="ide" data-plein-ecran>
       <input ref={fileInput} type="file" multiple hidden onChange={(e) => { void onImport(e.target.files, false); e.target.value = ""; }} aria-label="Importer des fichiers" data-testid="ide-import-fichiers" />
       <input ref={folderInput} type="file" multiple hidden {...{ webkitdirectory: "", directory: "" }} onChange={(e) => { void onImport(e.target.files, true); e.target.value = ""; }} aria-label="Importer un dossier" />
 
@@ -1046,8 +1064,27 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
           {/* Panneau inférieur */}
           {bottom && (
             <>
-              {!bottomMax && <Splitter direction="y" label="Hauteur du panneau inférieur" onDelta={(d) => setBottomHeight((h) => Math.min(600, Math.max(110, h - d)))} />}
-              <section className={cn("flex shrink-0 flex-col border-t border-[var(--ide-border)] bg-[var(--ide-panel)]", bottomMax && "min-h-0 flex-1")} style={bottomMax ? undefined : { height: bottomHeight }} aria-label="Panneau inférieur">
+              {!bottomMax && (
+                <Splitter
+                  direction="y"
+                  label="Hauteur du panneau inférieur"
+                  onDelta={(d) => {
+                    if (bottomMin) {
+                      // Glisser vers le haut un panneau replié le rouvre.
+                      if (d < -4) {
+                        setBottomMin(false);
+                        setBottomHeight(110);
+                      }
+                      return;
+                    }
+                    const next = bottomHeightShown - d;
+                    // Glisser tout en bas replie le panneau au lieu de le bloquer.
+                    if (next < 80) setBottomMin(true);
+                    else setBottomHeight(Math.min(600, Math.max(110, next)));
+                  }}
+                />
+              )}
+              <section className={cn("flex shrink-0 flex-col border-t border-[var(--ide-border)] bg-[var(--ide-panel)]", bottomMax && "min-h-0 flex-1")} style={bottomMax ? undefined : { height: bottomMin ? 36 : bottomHeightShown }} aria-label="Panneau inférieur" data-testid="ide-panneau-inferieur" data-replie={bottomMin ? "oui" : undefined}>
                 <div className="flex h-[35px] shrink-0 items-center gap-1 overflow-x-auto px-2" role="tablist">
                   {(
                     [
@@ -1057,16 +1094,17 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
                       ["journal", "Journal"],
                     ] as Array<[BottomTab, string]>
                   ).map(([id, label]) => (
-                    <button key={id} role="tab" aria-selected={bottom === id} type="button" onClick={() => setBottom(id)} className={cn("flex h-full shrink-0 items-center gap-1.5 px-2 text-[11px] uppercase tracking-wide", bottom === id ? "text-[var(--ide-text)] shadow-[inset_0_-1px_0_var(--ide-text)]" : "text-[var(--ide-muted)] hover:text-[var(--ide-text)]")}>
+                    <button key={id} role="tab" aria-selected={bottom === id} type="button" onClick={() => { setBottom(id); setBottomMin(false); }} className={cn("flex h-full shrink-0 items-center gap-1.5 px-2 text-[11px] uppercase tracking-wide", bottom === id ? "text-[var(--ide-text)] shadow-[inset_0_-1px_0_var(--ide-text)]" : "text-[var(--ide-muted)] hover:text-[var(--ide-text)]")}>
                       {label}
                       {id === "problemes" && problems.length > 0 && <span className="grid min-w-4 place-items-center rounded-full bg-[var(--ide-accent)] px-1 text-[10px] leading-4 text-white">{problems.length}</span>}
                     </button>
                   ))}
                   <span className="ml-auto" />
-                  <ToolButton icon={bottomMax ? "reduire" : "agrandir"} label={bottomMax ? "Restaurer la taille du panneau" : "Agrandir le panneau"} onClick={() => setBottomMax((m) => !m)} />
+                  <ToolButton icon={bottomMin ? "remonter" : "baisser"} label={bottomMin ? "Déplier le panneau" : "Replier le panneau"} onClick={() => { setBottomMin((m) => !m); setBottomMax(false); }} />
+                  {!bottomMin && <ToolButton icon={bottomMax ? "reduire" : "agrandir"} label={bottomMax ? "Restaurer la taille du panneau" : "Agrandir le panneau"} onClick={() => setBottomMax((m) => !m)} />}
                   <ToolButton icon="fermer" label="Fermer le panneau" onClick={() => { setBottom(null); setBottomMax(false); }} />
                 </div>
-                <div className="min-h-0 flex-1 overflow-auto font-mono text-xs" data-testid={`ide-panneau-${bottom}`}>
+                <div className={cn("min-h-0 flex-1 overflow-auto overscroll-contain font-mono text-xs", bottomMin && "hidden")} data-testid={`ide-panneau-${bottom}`}>
                   {bottom === "problemes" &&
                     (problems.length ? (
                       <ul>

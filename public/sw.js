@@ -113,7 +113,7 @@ async function offlineHtml() {
   const link = (r) =>
     `<a href="${r.path}" style="display:block;margin:8px 0;padding:12px 14px;border-radius:10px;background:#2563eb;color:#fff;text-decoration:none;text-align:left"><b>${esc(r.name)}</b><br><small style="color:#dbeafe">${esc(r.info)}</small></a>`;
   const later = missing.length
-    ? `<p style="margin-top:18px;font-size:13px">Pas encore sur cet appareil : ${missing.map((r) => esc(r.name)).join(", ")}.<br>Ouvrez-les une fois avec Internet (ou menu « Installer et utiliser sans Internet » dans ZENTECH IDE) pour les garder.</p>`
+    ? `<p style="margin-top:18px;font-size:13px">Pas encore sur cet appareil : ${missing.map((r) => esc(r.name)).join(", ")}.<br>Ouvrez ZENTECH une fois avec Internet en étant connecté à votre compte : les éditeurs sont alors gardés automatiquement sur cet appareil (chaque adresse du site garde sa propre copie).</p>`
     : "";
   return `<!doctype html><html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Hors connexion</title>
 <body style="margin:0;font-family:system-ui,sans-serif;background:#181818;color:#ccc;display:grid;place-items:center;min-height:100vh;text-align:center;padding:16px;box-sizing:border-box">

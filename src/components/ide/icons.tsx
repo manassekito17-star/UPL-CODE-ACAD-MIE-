@@ -29,6 +29,8 @@ const P = {
   actualiser: "M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5",
   agrandir: "M6 15l6-6 6 6",
   reduire: "M6 9l6 6 6-6",
+  baisser: "M5 20h14M7 9l5 5 5-5",
+  remonter: "M5 4h14M7 15l5-5 5 5",
   barreLaterale: "M4 4h16v16H4zM9 4v16",
   panneauDroit: "M4 4h16v16H4zM15 4v16",
   nouvelOnglet: "M14 4h6v6M20 4l-8 8M18 14v6H4V6h6",
