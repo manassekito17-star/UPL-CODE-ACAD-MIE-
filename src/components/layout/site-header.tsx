@@ -5,7 +5,7 @@ import { buttonClass, Container } from "../ui";
 import { Logo } from "./logo";
 
 /** Liens présents seulement dans le menu ☰ (la barre des très grands écrans resterait trop chargée). */
-const MENU_ONLY_LINKS = [{ href: "/avis-important", label: "⚠ Avis important" }];
+const MENU_ONLY_LINKS: Array<{ href: string; label: string }> = [];
 
 const PUBLIC_LINKS = [
   { href: "/formation", label: "Formation" },

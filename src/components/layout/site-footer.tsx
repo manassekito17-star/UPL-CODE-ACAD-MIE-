@@ -22,13 +22,12 @@ export function SiteFooter() {
             <li><Link href="/flow/classique" className="hover:text-cyan-accent">Interface classique (compatible LARP)</Link></li>
             <li><Link href="/professeur-ia" className="hover:text-cyan-accent">Professeur IA</Link></li>
             <li><Link href="/telecharger" className="hover:text-cyan-accent">Télécharger l&apos;application</Link></li>
-            <li><Link href="/avis-important" className="hover:text-cyan-accent">Avis important</Link></li>
           </ul>
         </div>
         <div>
           <p className="mb-3 text-sm font-semibold text-white">À propos</p>
           <p className="text-sm text-gray-400">
-            Écosystème technologique indépendant d&apos;éducation numérique, ouvert à tous. ZENTECH n&apos;est pas une plateforme officielle de l&apos;Université Protestante de Lubumbashi (UPL).
+            Écosystème technologique indépendant d&apos;éducation numérique, ouvert à tous.
           </p>
         </div>
       </Container>

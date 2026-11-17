@@ -10,7 +10,7 @@ const { NUIT, BLEU, GRIS, A4, M } = PDF_COLORS;
 const date = (iso: string) => new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric", timeZone: "Africa/Kinshasa" });
 
 export const INTERNAL_NOTICE =
-  "Document interne à ZENTECH. Il atteste une progression mesurée sur la plateforme et ne constitue ni un diplôme, ni un titre, ni des crédits académiques officiels de l'Université Protestante de Lubumbashi.";
+  "Document interne à ZENTECH. Il atteste une progression mesurée sur la plateforme et ne constitue ni un diplôme, ni un titre, ni des crédits académiques officiels.";
 
 /** Bulletin de progression (A4). */
 export async function buildBulletinPdf(student: { name: string; email: string }, data: BulletinCourse[]): Promise<Uint8Array> {

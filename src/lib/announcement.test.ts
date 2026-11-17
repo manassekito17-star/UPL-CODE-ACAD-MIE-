@@ -15,23 +15,19 @@ describe("note sur 5 étoiles proposée après 7 jours d'utilisation", () => {
 
 
 describe("enchaînement des fenêtres : une par visite", () => {
-  const base = { loggedIn: true, welcomeSeen: false, canRate: true, ratingAsked: false, importantSeen: false, shownThisVisit: false };
-  it("ancien utilisateur : bienvenue, puis avis, puis avis important, puis plus rien", () => {
+  const base = { loggedIn: true, welcomeSeen: false, canRate: true, ratingAsked: false, shownThisVisit: false };
+  it("ancien utilisateur : bienvenue, puis avis, puis plus rien", () => {
     expect(nextPopup(base)).toBe("annonce");
     expect(nextPopup({ ...base, welcomeSeen: true })).toBe("avis");
-    expect(nextPopup({ ...base, welcomeSeen: true, ratingAsked: true })).toBe("important");
-    expect(nextPopup({ ...base, welcomeSeen: true, ratingAsked: true, importantSeen: true })).toBeNull();
+    expect(nextPopup({ ...base, welcomeSeen: true, ratingAsked: true })).toBeNull();
   });
-  it("nouveau compte (moins de 7 jours) : bienvenue puis avis important ; la note viendra plus tard", () => {
+  it("nouveau compte (moins de 7 jours) : bienvenue ; la note viendra plus tard", () => {
     const n = { ...base, canRate: false };
     expect(nextPopup(n)).toBe("annonce");
-    expect(nextPopup({ ...n, welcomeSeen: true })).toBe("important");
-    expect(nextPopup({ ...n, welcomeSeen: true, importantSeen: true })).toBeNull();
-    expect(nextPopup({ ...base, welcomeSeen: true, importantSeen: true })).toBe("avis");
+    expect(nextPopup({ ...n, welcomeSeen: true })).toBeNull();
   });
-  it("une seule fenêtre par visite ; visiteur non connecté : avis important seulement", () => {
+  it("une seule fenêtre par visite ; visiteur non connecté : aucune fenêtre", () => {
     expect(nextPopup({ ...base, shownThisVisit: true })).toBeNull();
-    expect(nextPopup({ ...base, loggedIn: false })).toBe("important");
-    expect(nextPopup({ ...base, loggedIn: false, importantSeen: true })).toBeNull();
+    expect(nextPopup({ ...base, loggedIn: false })).toBeNull();
   });
 });
