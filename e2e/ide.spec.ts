@@ -365,7 +365,7 @@ test("ZENTECH IDE en plein écran : le site derrière est masqué et ne défile 
   await expect(page.getByTestId("ide")).toBeVisible({ timeout: 60_000 });
   await expect(page.locator("html")).toHaveClass(/upl-plein-ecran/);
   // Le pied de page du site existe toujours dans la page mais n'est plus visible derrière l'IDE.
-  await expect(page.locator("body > footer, footer").first()).toBeHidden();
+  await expect(page.locator("footer:not([data-testid=ide-barre-etat])").first()).toBeHidden();
   const scrollable = await page.evaluate(() => getComputedStyle(document.documentElement).overflow);
   expect(scrollable).toBe("hidden");
 });
