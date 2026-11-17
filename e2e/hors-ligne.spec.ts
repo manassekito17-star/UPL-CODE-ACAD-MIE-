@@ -144,6 +144,11 @@ test("projets enregistrés consultables sans Internet : « Mes programmes » pui
   await expect
     .poll(() => page.evaluate(async (h) => Boolean((await caches.match(h)) && (await caches.match("/api/programs"))), href), { timeout: 30_000 })
     .toBe(true);
+  // Copie dans le stockage du téléphone (liste + contenu), utilisée même sans mode hors ligne à jour.
+  const id = href.split("programme=")[1];
+  await expect
+    .poll(() => page.evaluate((pid) => Object.keys(localStorage).some((k) => k.startsWith("upl:programmes:") && localStorage.getItem(k)!.includes(pid) && localStorage.getItem(k)!.includes("sans internet")), id), { timeout: 30_000 })
+    .toBe(true);
 
   // Sans Internet : la liste et le programme s'ouvrent depuis la copie de l'appareil.
   await context.setOffline(true);
