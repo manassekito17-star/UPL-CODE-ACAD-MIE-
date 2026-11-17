@@ -34,7 +34,7 @@ export function OfflineEditorsCard() {
           ? "Les éditeurs sont gardés sur cet appareil : ils s'ouvrent même sans connexion."
           : busy
             ? `Enregistrement en cours : ${state.current ?? "…"} (gardez cette page ouverte).`
-            : "Gardez les éditeurs sur cet appareil pour les ouvrir sans connexion Internet."}
+            : "Les éditeurs se téléchargent automatiquement sur cet appareil quand vous avez Internet. Vous pouvez aussi lancer le téléchargement maintenant."}
       </p>
       <ul className="mt-3 space-y-1 text-sm">
         {OFFLINE_EDITORS.map((e) => {

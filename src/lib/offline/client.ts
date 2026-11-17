@@ -219,7 +219,7 @@ export async function editorsOnDevice(): Promise<string[]> {
  * invisible pour que ses fichiers passent par le service worker. `force` : demandé par l'étudiant
  * (bouton « Garder les éditeurs »), sans attente entre deux essais.
  */
-export async function autoPrepareOffline(loggedIn: boolean, opts: { force?: boolean } = {}) {
+export async function autoPrepareOffline(loggedIn: boolean, opts: { force?: boolean; resume?: boolean } = {}) {
   if (!loggedIn || autoRunning || !offlineSupported() || !navigator.onLine || window !== window.top) return;
   let forcedTest = false;
   try {
@@ -242,16 +242,21 @@ export async function autoPrepareOffline(loggedIn: boolean, opts: { force?: bool
       return;
     }
     // Échec récent : nouvel essai automatique au plus toutes les 10 minutes.
-    if (!opts.force) {
+    // (Sauf au retour d'Internet : un téléchargement coupé par la perte de connexion reprend tout de suite.)
+    if (!opts.force && !opts.resume) {
       const last = Number(sessionStorage.getItem(RETRY_KEY) ?? 0);
       if (Date.now() - last < 10 * 60_000) return;
     }
     sessionStorage.setItem(RETRY_KEY, String(Date.now()));
     const stopTracking = trackWorkers();
     let workerFiles: string[] = [];
+    let interrupted = false;
     try {
       for (const e of missing) {
-        if (!navigator.onLine) break;
+        if (!navigator.onLine) {
+          interrupted = true;
+          break;
+        }
         emit({ status: "en-cours", current: e.name, ready });
         await warmPage(e.path);
         ready = await editorsOnDevice();
@@ -263,10 +268,8 @@ export async function autoPrepareOffline(loggedIn: boolean, opts: { force?: bool
     await sendPrecache([...loadedResources(), ...workerFiles]);
     ready = await editorsOnDevice();
     const complete = ready.length === OFFLINE_EDITORS.length;
-    if (complete) {
-      localStorage.setItem(AUTO_KEY, new Date().toISOString());
-      sessionStorage.removeItem(RETRY_KEY);
-    }
+    if (complete || interrupted) sessionStorage.removeItem(RETRY_KEY);
+    if (complete) localStorage.setItem(AUTO_KEY, new Date().toISOString());
     emit({ status: complete ? "pret" : "erreur", ready });
   } catch {
     emit({ status: "erreur", ready: await editorsOnDevice().catch(() => []) });
