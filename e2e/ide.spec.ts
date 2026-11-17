@@ -359,3 +359,13 @@ test.describe("copier-coller dans l'éditeur", () => {
     await expect.poll(() => value(page)).toContain("<!-- depuis le presse-papiers -->");
   });
 });
+
+test("ZENTECH IDE en plein écran : le site derrière est masqué et ne défile pas (clavier du téléphone)", async ({ page }) => {
+  await page.goto("/ide");
+  await expect(page.getByTestId("ide")).toBeVisible({ timeout: 60_000 });
+  await expect(page.locator("html")).toHaveClass(/upl-plein-ecran/);
+  // Le pied de page du site existe toujours dans la page mais n'est plus visible derrière l'IDE.
+  await expect(page.locator("body > footer, footer").first()).toBeHidden();
+  const scrollable = await page.evaluate(() => getComputedStyle(document.documentElement).overflow);
+  expect(scrollable).toBe("hidden");
+});

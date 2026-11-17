@@ -226,6 +226,13 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
   // Clavier du téléphone ouvert : l'IDE se limite à la partie visible de l'écran,
   // pour que la ligne en cours et le clavier de programmation restent au-dessus du clavier.
   const [viewport, setViewport] = useState<{ top: number; height: number } | null>(null);
+  // Plein écran : le site derrière l'IDE est masqué et ne défile plus (sinon, quand le clavier du
+  // téléphone s'ouvre, la page du site — menu, pied de page — apparaît derrière l'éditeur).
+  useEffect(() => {
+    const html = document.documentElement;
+    html.classList.add("upl-plein-ecran");
+    return () => html.classList.remove("upl-plein-ecran");
+  }, []);
   useEffect(() => {
     const v = window.visualViewport;
     if (!v || !touch) return;
@@ -790,7 +797,7 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
   ];
 
   return (
-    <div className={cn("ide-root fixed inset-0 z-50 flex flex-col bg-[var(--ide-bg)] text-[var(--ide-text)]", settings.theme === "clair" ? "ide-clair" : settings.theme === "sombre" ? "ide-sombre" : "ide-studio")} style={viewport ? { top: viewport.top, height: viewport.height, bottom: "auto" } : undefined} data-testid="ide">
+    <div className={cn("ide-root fixed inset-0 z-50 flex flex-col bg-[var(--ide-bg)] text-[var(--ide-text)]", settings.theme === "clair" ? "ide-clair" : settings.theme === "sombre" ? "ide-sombre" : "ide-studio")} style={viewport ? { top: viewport.top, height: viewport.height, bottom: "auto" } : undefined} data-testid="ide" data-plein-ecran>
       <input ref={fileInput} type="file" multiple hidden onChange={(e) => { void onImport(e.target.files, false); e.target.value = ""; }} aria-label="Importer des fichiers" data-testid="ide-import-fichiers" />
       <input ref={folderInput} type="file" multiple hidden {...{ webkitdirectory: "", directory: "" }} onChange={(e) => { void onImport(e.target.files, true); e.target.value = ""; }} aria-label="Importer un dossier" />
 

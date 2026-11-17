@@ -130,6 +130,7 @@ html.upl-plein-ecran body {
 html.upl-plein-ecran body {
   visibility: hidden;
 }
-html.upl-plein-ecran [data-testid="editeur-algo"] {
+html.upl-plein-ecran [data-testid="editeur-algo"],
+html.upl-plein-ecran [data-plein-ecran] {
   visibility: visible;
 }

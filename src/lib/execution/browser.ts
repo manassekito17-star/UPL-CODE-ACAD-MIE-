@@ -1,5 +1,6 @@
 "use client";
 
+import { pythonHint } from "./python-hints";
 import type { LanguageId } from "@/content/types";
 import { runKPlus, runKPlusTest } from "@/lib/kplus";
 import type { ExecutionResult, SourceFile } from "./types";
@@ -127,7 +128,8 @@ export function runInBrowser(
         engine: "navigateur",
         engineLabel: d.engineLabel ?? ENGINE_LABELS[language],
         errorLine: d.errorLine,
-        hint: d.hint,
+        // Python : explication en français des erreurs courantes (sous le message d'origine).
+        hint: d.hint ?? (language === "python" && !d.ok ? pythonHint(d.stderr || d.stdout || "") : undefined),
         tables: d.tables,
         schema: d.schema,
         log: d.log,
