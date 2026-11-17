@@ -8,7 +8,7 @@ import { BRAND } from "@/lib/brand";
 import { runInBrowser, runProgram } from "@/lib/execution/browser";
 import { warmupKPlus } from "@/lib/kplus";
 import { KPlusPage } from "../editor/kplus-page";
-import { registerServiceWorker } from "@/lib/offline/client";
+import { isOfflineCopy, keepForOffline, registerServiceWorker } from "@/lib/offline/client";
 import { STATUS_LABELS, engineName, type ExecutionResult } from "@/lib/execution/types";
 import { buildPreviewDocument } from "@/lib/execution/web-document";
 import {
@@ -1332,6 +1332,7 @@ interface ProjectRow {
 
 function ProjectsView({ current, loggedIn, onOpen, notify, onExport }: { current: IdeProject; loggedIn: boolean; onOpen: (id: string | null) => void; notify: (t: string, tone?: "erreur" | "info") => void; onExport: () => void }) {
   const [rows, setRows] = useState<ProjectRow[] | null>(null);
+  const [offlineList, setOfflineList] = useState(false);
   const [name, setName] = useState("");
   const [template, setTemplate] = useState("web");
   const [busy, setBusy] = useState(false);
@@ -1339,10 +1340,18 @@ function ProjectsView({ current, loggedIn, onOpen, notify, onExport }: { current
 
   const load = useCallback(async () => {
     if (!loggedIn) return;
-    const res = await fetch("/api/projects");
+    let res: Response;
+    try {
+      res = await fetch("/api/projects");
+    } catch {
+      return notify("Pas de connexion Internet : liste des projets indisponible.");
+    }
     const data = await res.json().catch(() => ({}));
-    if (res.ok) setRows(data.projects);
-    else notify(data.error ?? "Liste des projets indisponible.");
+    if (!res.ok) return notify(data.error ?? "Liste des projets indisponible.");
+    setRows(data.projects);
+    setOfflineList(isOfflineCopy(res));
+    // Avec Internet : les projets récents sont gardés sur l'appareil pour les ouvrir hors ligne.
+    if (!isOfflineCopy(res)) keepForOffline(["/api/projects", ...(data.projects as ProjectRow[]).slice(0, 15).map((p) => `/ide?projet=${p.id}`)]);
   }, [loggedIn, notify]);
   useEffect(() => {
     // Chargement de la liste depuis l'API (mise à jour d'état asynchrone).
@@ -1424,6 +1433,7 @@ function ProjectsView({ current, loggedIn, onOpen, notify, onExport }: { current
       <SideTitle>Mes projets</SideTitle>
       <ul className="min-h-0 flex-1 overflow-auto text-sm" data-testid="ide-liste-projets">
         {rows === null && <li className="px-3 text-xs text-[var(--ide-muted)]">Chargement…</li>}
+        {offlineList && <li className="px-3 pb-1 text-xs text-amber-300" data-testid="projets-hors-ligne">Hors connexion : liste gardée sur cet appareil (projets ouverts ou listés avec Internet).</li>}
         {rows?.length === 0 && <li className="px-3 text-xs text-[var(--ide-muted)]">Aucun projet enregistré.</li>}
         {rows?.map((p) => (
           <li key={p.id} className={cn("group px-3 py-1.5 hover:bg-[var(--ide-hover)]", p.id === current.id && "bg-[var(--ide-selection)]")}>

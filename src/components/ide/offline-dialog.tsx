@@ -187,6 +187,7 @@ export function OfflineDialog({
             <li>✓ Pseudocode, JavaScript{ready?.python || withPython ? ", Python, K+" : ""} et aperçu des pages HTML/CSS</li>
             <li>✓ Clavier de programmation, modèles de fichiers, balises Emmet</li>
             <li>✗ C et Java (exécutés sur le serveur), professeur IA, cours en ligne</li>
+            <li>✓ Projets du compte déjà listés ou ouverts avec Internet : consultables et modifiables sans connexion</li>
             <li>↻ Projets du compte : modifications gardées sur l&apos;appareil et envoyées au retour de la connexion</li>
           </ul>
           )}

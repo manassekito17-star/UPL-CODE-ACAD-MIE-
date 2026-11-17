@@ -113,3 +113,48 @@ test("éditeur « UPL Algo » : installation, préparation, puis algorithme exé
   await expect(page.locator("pre[aria-live]").last()).toContainText("Carré = 81");
   await context.setOffline(false);
 });
+
+test("projets enregistrés consultables sans Internet : « Mes programmes » puis réouverture du programme", async ({ page, context }) => {
+  test.setTimeout(240_000);
+  const { isDemoMode, setEditorCode } = await import("./helpers");
+  test.skip(await isDemoMode(page), "Supabase non configuré");
+  await page.goto("/editeur?langage=pseudocode");
+  await page.locator(".monaco-editor").first().waitFor({ timeout: 60_000 });
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  // Préparation « utiliser sans Internet » (éditeur gardé sur l'appareil), comme un étudiant.
+  await page.getByRole("button", { name: "Plus d'options" }).click();
+  await page.getByRole("menuitem", { name: /Installer · utiliser sans Internet/ }).click();
+  const prep = page.getByTestId("ide-hors-ligne");
+  await prep.getByLabel("Inclure Python (environ 10 Mo)").uncheck();
+  await prep.getByTestId("ide-preparer-hors-ligne").click();
+  await expect(prep.getByText(/Prêt : UPL Algo fonctionne maintenant sans Internet/)).toBeVisible({ timeout: 150_000 });
+  await prep.getByRole("button", { name: "Fermer" }).click();
+  await setEditorCode(page, 'ALGORITHME HorsLigne\nDEBUT\n  ECRIRE("sans internet")\nFIN');
+  const titre = `Hors ligne ${Date.now()}`;
+  page.once("dialog", (d) => d.accept(titre));
+  await page.getByRole("button", { name: "Enregistrer" }).click();
+  await expect(page.getByText(/Programme enregistré/)).toBeVisible();
+
+  // Avec Internet : la liste est affichée (et gardée sur l'appareil avec la page du programme).
+  await page.getByRole("button", { name: "Plus d'options" }).click();
+  await page.getByRole("menuitem", { name: "Mes programmes" }).click();
+  const link = page.getByTestId("mes-programmes").getByRole("link", { name: new RegExp(titre) });
+  await expect(link).toBeVisible();
+  const href = (await link.getAttribute("href"))!;
+  await expect
+    .poll(() => page.evaluate(async (h) => Boolean((await caches.match(h)) && (await caches.match("/api/programs"))), href), { timeout: 30_000 })
+    .toBe(true);
+
+  // Sans Internet : la liste et le programme s'ouvrent depuis la copie de l'appareil.
+  await context.setOffline(true);
+  await page.goto("/editeur?langage=pseudocode");
+  await page.locator(".monaco-editor").first().waitFor({ timeout: 30_000 });
+  await page.getByRole("button", { name: "Plus d'options" }).click();
+  await page.getByRole("menuitem", { name: "Mes programmes" }).click();
+  await expect(page.getByTestId("programmes-hors-ligne")).toBeVisible();
+  await page.getByTestId("mes-programmes").getByRole("link", { name: new RegExp(titre) }).click();
+  await expect(page).toHaveURL(/programme=/);
+  await page.waitForFunction(() => Boolean((window as unknown as { monaco?: unknown }).monaco));
+  await expect.poll(() => page.evaluate(() => (window as unknown as { monaco: { editor: { getModels(): Array<{ getValue(): string }> } } }).monaco.editor.getModels().map((m) => m.getValue()).join("\n"))).toContain("sans internet");
+  await context.setOffline(false);
+});

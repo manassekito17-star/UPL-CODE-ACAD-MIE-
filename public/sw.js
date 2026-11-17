@@ -2,12 +2,51 @@
 // - Pages hors ligne autorisées (UPL IDE, UPL Algo, interface LARP, Flow Studio, laboratoire) : réseau d'abord, copie locale si pas de connexion.
 // - Fichiers de l'application (/_next/static, versionnés) : copie locale d'abord.
 // - Éditeur de code (Monaco) et Python (Pyodide), sur le CDN jsdelivr, versions figées : copie locale d'abord.
-// - Comptes, API, administration : jamais mis en cache (toujours le réseau).
-const VERSION = "v5";
+// - Projets et programmes enregistrés dans le compte (liste et contenu, pages ?projet= / ?programme=) :
+//   réseau d'abord, copie sur l'appareil pour les consulter sans Internet ; effacée à la déconnexion.
+// - Autres API, comptes, administration : jamais mis en cache (toujours le réseau).
+const VERSION = "v6";
 const PAGES = `upl-pages-${VERSION}`;
 const STATIC = `upl-static-${VERSION}`;
 const CDN = `upl-cdn-${VERSION}`;
-const KEEP = [PAGES, STATIC, CDN];
+const DATA = `upl-donnees-${VERSION}`;
+const KEEP = [PAGES, STATIC, CDN, DATA];
+const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+/** API des projets et programmes du compte (lecture) gardées pour une consultation hors ligne. */
+const DATA_API = new RegExp(`^/api/(projects|programs)(/${UUID})?$`);
+/** Page d'un projet ou d'un programme précis : gardée avec son adresse complète. */
+function userPageKey(url) {
+  if (url.pathname === "/ide" && new RegExp(`^${UUID}$`).test(url.searchParams.get("projet") ?? "")) return `/ide?projet=${url.searchParams.get("projet")}`;
+  if (url.pathname === "/editeur" && new RegExp(`^${UUID}$`).test(url.searchParams.get("programme") ?? "")) return `/editeur?programme=${url.searchParams.get("programme")}`;
+  return null;
+}
+
+/** Déconnexion (ou nouvelle connexion) : les copies des projets du compte sont effacées de l'appareil. */
+async function clearUserData() {
+  await caches.delete(DATA);
+  const pages = await caches.open(PAGES);
+  for (const req of await pages.keys()) if (new URL(req.url).search) await pages.delete(req);
+}
+
+const offlineJson = (msg) => new Response(JSON.stringify({ error: msg }), { status: 503, headers: { "Content-Type": "application/json; charset=utf-8" } });
+
+/** Réseau d'abord ; sans connexion, dernière copie gardée (marquée « X-UPL-Hors-Ligne »). */
+async function dataFirst(request, event) {
+  const url = new URL(request.url);
+  const key = url.pathname + url.search;
+  try {
+    const res = await fetch(request);
+    if (res.ok) event.waitUntil(put(DATA, key, res.clone()));
+    if (res.status === 401 || res.status === 403) event.waitUntil(clearUserData());
+    return res;
+  } catch {
+    const hit = await caches.match(key, { cacheName: DATA });
+    if (!hit) return offlineJson("Pas de connexion Internet : ce contenu n'a pas encore été gardé sur cet appareil.");
+    const headers = new Headers(hit.headers);
+    headers.set("X-UPL-Hors-Ligne", "1");
+    return new Response(hit.body, { status: hit.status, statusText: hit.statusText, headers });
+  }
+}
 // Éditeurs utilisables sans Internet (nom affiché sur la page « Pas de connexion Internet »).
 const EDITORS = [
   { path: "/ide", name: "UPL IDE", info: "Python, JavaScript, PHP, SQL, HTML…" },
@@ -87,21 +126,32 @@ async function page(request) {
   const url = new URL(request.url);
   const key = url.pathname; // une copie par page, sans les paramètres
   const offlineOk = OFFLINE_PAGES.includes(url.pathname);
+  // Projet / programme précis : copie à son adresse complète (contenu du compte).
+  const userKey = userPageKey(url);
   try {
     const res = await fetch(request);
     // Une page redirigée (vers la connexion) n'est jamais gardée à la place de la page demandée.
     if (offlineOk && res.ok && !res.redirected && !url.search) await put(PAGES, key, res.clone());
+    if (userKey && res.ok && !res.redirected) await put(PAGES, userKey, res.clone());
     return res;
   } catch {
-    const hit = offlineOk ? await caches.match(key) : null;
+    const hit = (userKey ? await caches.match(userKey) : null) || (offlineOk ? await caches.match(key) : null);
     return hit || new Response(await offlineHtml(), { headers: { "Content-Type": "text/html; charset=utf-8" } });
   }
 }
 
 self.addEventListener("fetch", (e) => {
   const r = e.request;
-  if (r.method !== "GET") return;
   const url = new URL(r.url);
+  // Déconnexion : les copies des projets du compte sont effacées de l'appareil.
+  if (r.method === "POST" && url.origin === self.location.origin && url.pathname === "/auth/deconnexion") {
+    e.waitUntil(clearUserData());
+    return;
+  }
+  if (r.method !== "GET") return;
+  // Nouvelle connexion (Google) : on repart sans les copies d'un éventuel autre compte.
+  if (url.origin === self.location.origin && url.pathname === "/auth/callback") e.waitUntil(clearUserData());
+  if (url.origin === self.location.origin && DATA_API.test(url.pathname)) return e.respondWith(dataFirst(r, e));
   if (CDN_PREFIXES.some((p) => r.url.startsWith(p))) return e.respondWith(cacheFirst(CDN, r, e));
   if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/auth/") || url.pathname.startsWith("/admin")) return;
@@ -133,10 +183,14 @@ self.addEventListener("message", (e) => {
         for (const u of data.urls) {
           try {
             const url = new URL(u, self.location.origin);
-            const isPage = url.origin === self.location.origin && OFFLINE_PAGES.includes(url.pathname);
-            const cacheName = CDN_PREFIXES.some((p) => url.href.startsWith(p)) ? CDN : isPage ? PAGES : STATIC;
-            const key = isPage ? url.pathname : withoutHash(url.href);
-            if (!isPage && (await caches.match(key))) {
+            const sameOrigin = url.origin === self.location.origin;
+            const userKey = sameOrigin ? userPageKey(url) : null;
+            // Liste / contenu des projets du compte : copie toujours rafraîchie.
+            const isData = sameOrigin && DATA_API.test(url.pathname);
+            const isPage = sameOrigin && (OFFLINE_PAGES.includes(url.pathname) || Boolean(userKey));
+            const cacheName = isData ? DATA : CDN_PREFIXES.some((p) => url.href.startsWith(p)) ? CDN : isPage ? PAGES : STATIC;
+            const key = isData ? url.pathname + url.search : userKey ?? (isPage ? url.pathname : withoutHash(url.href));
+            if (!isPage && !isData && (await caches.match(key))) {
               ok++;
               continue;
             }
@@ -154,4 +208,5 @@ self.addEventListener("message", (e) => {
     );
   }
   if (data.type === "clear-pages") e.waitUntil(caches.delete(PAGES));
+  if (data.type === "clear-user-data") e.waitUntil(clearUserData());
 });
