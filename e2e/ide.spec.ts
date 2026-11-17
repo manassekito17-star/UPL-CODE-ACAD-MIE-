@@ -409,3 +409,13 @@ test.describe("panneau Console sur téléphone", () => {
     await expect(panel).not.toHaveAttribute("data-replie", "oui");
   });
 });
+
+test("iPhone : pas d'agrandissement automatique et clavier de programmation au-dessus de la barre d'accueil", async ({ page }) => {
+  await page.goto("/ide");
+  await expect(page.getByTestId("ide")).toBeVisible({ timeout: 60_000 });
+  const meta = await page.locator('meta[name="viewport"]').getAttribute("content");
+  expect(meta).toContain("maximum-scale=1");
+  expect(meta).toContain("viewport-fit=cover");
+  // Sans clavier ouvert, l'IDE réserve la zone de la barre d'accueil (les boutons Copier / Coller restent touchables).
+  expect(await page.getByTestId("ide").getAttribute("style")).toContain("safe-area-inset-bottom");
+});
