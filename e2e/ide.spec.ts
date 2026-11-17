@@ -369,3 +369,43 @@ test("ZENTECH IDE en plein écran : le site derrière est masqué et ne défile 
   const scrollable = await page.evaluate(() => getComputedStyle(document.documentElement).overflow);
   expect(scrollable).toBe("hidden");
 });
+
+test.describe("panneau Console sur téléphone", () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+
+  test("le panneau se replie (bouton ou poignée glissée vers le bas) et laisse l'éditeur visible", async ({ page }) => {
+    await page.goto("/ide");
+    await page.locator(".monaco-editor").first().waitFor({ timeout: 60_000 });
+    await page.getByRole("button", { name: "Panneau inférieur (Ctrl+J)" }).click();
+    const panel = page.getByTestId("ide-panneau-inferieur");
+    await expect(panel).toBeVisible();
+    const height = async () => (await panel.boundingBox())!.height;
+    expect(await height()).toBeGreaterThan(100);
+
+    // Bouton « Replier » : seule la barre d'onglets reste, l'éditeur reprend la place.
+    await panel.getByRole("button", { name: "Replier le panneau" }).click();
+    await expect(panel).toHaveAttribute("data-replie", "oui");
+    expect(await height()).toBeLessThan(40);
+    await expect(page.locator(".monaco-editor").first()).toBeVisible();
+    await panel.getByRole("button", { name: "Déplier le panneau" }).click();
+    await expect(panel).not.toHaveAttribute("data-replie", "oui");
+    await expect(page.getByTestId("ide-panneau-console")).toBeVisible();
+
+    // Poignée assez haute pour le doigt : glissée vers le bas, elle replie le panneau.
+    const handle = page.getByTestId("ide-poignee-panneau");
+    const box = (await handle.boundingBox())!;
+    expect(box.height).toBeGreaterThanOrEqual(12);
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2, box.y + 400, { steps: 10 });
+    await page.mouse.up();
+    await expect(panel).toHaveAttribute("data-replie", "oui");
+    // Glissée vers le haut, elle le rouvre.
+    const box2 = (await handle.boundingBox())!;
+    await page.mouse.move(box2.x + box2.width / 2, box2.y + box2.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box2.x + box2.width / 2, box2.y - 200, { steps: 10 });
+    await page.mouse.up();
+    await expect(panel).not.toHaveAttribute("data-replie", "oui");
+  });
+});
