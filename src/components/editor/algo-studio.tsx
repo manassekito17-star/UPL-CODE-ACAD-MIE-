@@ -182,6 +182,13 @@ interface MenuItem {
   separatorBefore?: boolean;
 }
 
+type ProgramRow = { id: string; title: string; language_id: string; updated_at: string };
+interface LocalPrograms {
+  list: ProgramRow[];
+  contents: Record<string, { title: string; language_id: string; files: SourceFile[]; stdin: string; updated_at: string }>;
+  at: string;
+}
+
 export function AlgoStudio({
   initialLanguage = "pseudocode",
   initialFiles,
@@ -191,6 +198,7 @@ export function AlgoStudio({
   programTitle = "",
   back,
   initialNotice,
+  userId,
 }: {
   initialLanguage?: LanguageId;
   initialFiles?: SourceFile[];
@@ -201,6 +209,8 @@ export function AlgoStudio({
   /** Retour au chapitre d'où vient la démonstration. */
   back?: string | null;
   initialNotice?: string | null;
+  /** Compte connecté : clé de la copie locale de « Mes programmes » (consultation sans Internet). */
+  userId?: string;
 }) {
   const defaultFiles = useCallback(
     // Page blanche : chacun écrit son propre code (les modèles restent dans le menu « Exemples »).
@@ -448,22 +458,98 @@ export function AlgoStudio({
   };
 
   // Mes programmes : liste des programmes enregistrés dans le compte, à rouvrir d'un toucher.
-  const [programs, setPrograms] = useState<Array<{ id: string; title: string; language_id: string; updated_at: string }> | null>(null);
+  const [programs, setPrograms] = useState<ProgramRow[] | null>(null);
   const [programsError, setProgramsError] = useState<string | null>(null);
   const [programsOffline, setProgramsOffline] = useState(false);
+  // Copie de « Mes programmes » dans le stockage du téléphone (liste + contenu des plus récents) :
+  // consultable sans Internet, même si le mode hors ligne du navigateur n'est pas encore à jour.
+  const localKey = userId ? `upl:programmes:${userId}` : null;
+  const readLocal = (): LocalPrograms | null => {
+    if (!localKey) return null;
+    try {
+      return JSON.parse(localStorage.getItem(localKey) ?? "null") as LocalPrograms | null;
+    } catch {
+      return null;
+    }
+  };
+  const writeLocal = (v: LocalPrograms) => {
+    if (!localKey) return;
+    try {
+      localStorage.setItem(localKey, JSON.stringify(v));
+    } catch {
+      /* stockage plein ou indisponible */
+    }
+  };
+  const saveLocalCopy = async (list: ProgramRow[]) => {
+    const previous = readLocal()?.contents ?? {};
+    const contents: LocalPrograms["contents"] = {};
+    for (const p of list.slice(0, 20)) {
+      const old = previous[p.id];
+      if (old && old.updated_at === p.updated_at) {
+        contents[p.id] = old;
+        continue;
+      }
+      try {
+        const r = await fetch(`/api/programs/${p.id}`);
+        if (!r.ok) continue;
+        const { program } = (await r.json()) as { program: { title: string; language_id: string; files: SourceFile[]; stdin: string; updated_at: string } };
+        contents[p.id] = { title: program.title, language_id: program.language_id, files: program.files, stdin: program.stdin ?? "", updated_at: program.updated_at };
+      } catch {
+        if (old) contents[p.id] = old;
+      }
+    }
+    writeLocal({ list, contents, at: new Date().toISOString() });
+  };
+  const showLocal = () => {
+    const local = readLocal();
+    if (!local) return false;
+    setPrograms(local.list);
+    setProgramsOffline(true);
+    return true;
+  };
+  /** Hors ligne : ouvre un programme depuis la copie du téléphone (sans recharger la page). */
+  const openLocal = (id: string) => {
+    const p = readLocal()?.contents[id];
+    if (!p || !LANGUAGE_IDS.includes(p.language_id as LanguageId)) return false;
+    setLanguage(p.language_id as LanguageId);
+    setFiles(p.files?.length ? p.files : defaultFiles(p.language_id as LanguageId));
+    setActive(0);
+    setStdin(p.stdin);
+    setResult(null);
+    setError(null);
+    setMarkers([]);
+    setProgramId(id);
+    setTitle(p.title);
+    setDialog(null);
+    window.history.replaceState(null, "", `/editeur?programme=${id}`);
+    notify(`« ${p.title} » ouvert depuis la copie de ce téléphone (hors connexion).`);
+    return true;
+  };
   const loadPrograms = async () => {
     setPrograms(null);
     setProgramsError(null);
+    setProgramsOffline(false);
     try {
       const res = await fetch("/api/programs");
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) return setProgramsError(data.error ?? "Liste indisponible pour le moment.");
-      setPrograms(data.programs ?? []);
-      setProgramsOffline(isOfflineCopy(res));
+      if (!res.ok) {
+        if (res.status === 503 && showLocal()) return;
+        return setProgramsError(data.error ?? "Liste indisponible pour le moment.");
+      }
+      const list = (data.programs ?? []) as ProgramRow[];
+      if (isOfflineCopy(res)) {
+        if (!showLocal()) {
+          setPrograms(list);
+          setProgramsOffline(true);
+        }
+        return;
+      }
+      setPrograms(list);
       // Avec Internet : les programmes récents sont gardés sur l'appareil pour les rouvrir hors ligne.
-      if (!isOfflineCopy(res)) keepForOffline(["/api/programs", ...((data.programs ?? []) as Array<{ id: string }>).slice(0, 20).map((p) => `/editeur?programme=${p.id}`)]);
+      keepForOffline(["/api/programs", ...list.slice(0, 20).map((p) => `/editeur?programme=${p.id}`)]);
+      void saveLocalCopy(list);
     } catch {
-      setProgramsError("Pas de connexion Internet : la liste ne peut pas être chargée.");
+      if (!showLocal()) setProgramsError("Pas de connexion Internet, et la liste n'a pas encore été gardée sur ce téléphone : ouvrez « Mes programmes » une fois avec Internet.");
     }
   };
   const newProgram = () => {
@@ -1135,7 +1221,11 @@ Fin`}</pre>
                       <li key={p.id}>
                         <Link
                           href={`/editeur?programme=${p.id}`}
-                          onClick={() => setDialog(null)}
+                          onClick={(e) => {
+                            // Sans Internet : ouverture depuis la copie du téléphone.
+                            if (!navigator.onLine && openLocal(p.id)) return e.preventDefault();
+                            setDialog(null);
+                          }}
                           className={cn("flex items-center justify-between gap-3 rounded px-3 py-2.5 hover:bg-white/10", p.id === programId && "bg-white/10")}
                         >
                           <span className="min-w-0 truncate">{p.title}</span>

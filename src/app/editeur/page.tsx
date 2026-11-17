@@ -66,6 +66,7 @@ export default async function EditorPage({ searchParams }: PageProps<"/editeur">
       initialFiles={files}
       initialStdin={stdin}
       canSave={Boolean(user)}
+      userId={user?.id}
       programId={programId}
       programTitle={title}
       back={back}
