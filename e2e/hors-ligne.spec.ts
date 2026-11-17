@@ -115,12 +115,20 @@ test("éditeur « UPL Algo » : installation, préparation, puis algorithme exé
 });
 
 test("projets enregistrés consultables sans Internet : « Mes programmes » puis réouverture du programme", async ({ page, context }) => {
-  test.setTimeout(120_000);
+  test.setTimeout(240_000);
   const { isDemoMode, setEditorCode } = await import("./helpers");
   test.skip(await isDemoMode(page), "Supabase non configuré");
   await page.goto("/editeur?langage=pseudocode");
   await page.locator(".monaco-editor").first().waitFor({ timeout: 60_000 });
   await page.evaluate(() => navigator.serviceWorker.ready);
+  // Préparation « utiliser sans Internet » (éditeur gardé sur l'appareil), comme un étudiant.
+  await page.getByRole("button", { name: "Plus d'options" }).click();
+  await page.getByRole("menuitem", { name: /Installer · utiliser sans Internet/ }).click();
+  const prep = page.getByTestId("ide-hors-ligne");
+  await prep.getByLabel("Inclure Python (environ 10 Mo)").uncheck();
+  await prep.getByTestId("ide-preparer-hors-ligne").click();
+  await expect(prep.getByText(/Prêt : UPL Algo fonctionne maintenant sans Internet/)).toBeVisible({ timeout: 150_000 });
+  await prep.getByRole("button", { name: "Fermer" }).click();
   await setEditorCode(page, 'ALGORITHME HorsLigne\nDEBUT\n  ECRIRE("sans internet")\nFIN');
   const titre = `Hors ligne ${Date.now()}`;
   page.once("dialog", (d) => d.accept(titre));
