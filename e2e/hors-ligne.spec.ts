@@ -164,19 +164,23 @@ test("projets enregistrés consultables sans Internet : « Mes programmes » pui
   await context.setOffline(false);
 });
 
-test("éditeurs gardés automatiquement pour un étudiant connecté, puis ouverts sans Internet", async ({ page, context }) => {
+test("tableau de bord : « Garder les éditeurs sur cet appareil », puis éditeurs ouverts sans Internet", async ({ page, context }) => {
   test.setTimeout(240_000);
   const { isDemoMode } = await import("./helpers");
   test.skip(await isDemoMode(page), "Supabase non configuré");
   await page.goto("/tableau-de-bord");
-  // Les tests ne déclenchent la préparation automatique que sur demande.
-  await page.evaluate(() => localStorage.setItem("upl:test:auto-hors-ligne", "1"));
-  await page.reload();
-  await expect
-    .poll(() => page.evaluate(async () => Boolean((await caches.match("/editeur")) && (await caches.match("/flow/classique")) && localStorage.getItem("upl:hors-ligne:auto:v6"))), { timeout: 200_000, intervals: [2000] })
-    .toBe(true);
+  const card = page.getByTestId("carte-hors-ligne");
+  await expect(card).toBeVisible();
+  await card.getByRole("button", { name: "Garder les éditeurs sur cet appareil" }).click();
+  // Les cinq éditeurs sont cochés quand leur copie est réellement sur l'appareil.
+  await expect(card.locator('[data-pret="oui"]')).toHaveCount(5, { timeout: 200_000 });
+  await expect(card).toContainText("ils s'ouvrent même sans connexion");
+  expect(await page.evaluate(() => localStorage.getItem("upl:hors-ligne:auto:v6"))).toBeTruthy();
   await context.setOffline(true);
-  await page.goto("/flow/classique");
+  // Page qui demande Internet : la page « Pas de connexion » propose les éditeurs gardés.
+  await page.goto("/formations");
+  await expect(page.getByText("Ces éditeurs fonctionnent sans connexion")).toBeVisible();
+  await page.getByRole("link", { name: /Interface LARP/ }).click();
   await expect(page.getByTestId("larp-fenetre")).toBeVisible({ timeout: 30_000 });
   await page.goto("/editeur");
   await expect(page.locator(".monaco-editor").first()).toBeVisible({ timeout: 30_000 });

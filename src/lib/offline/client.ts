@@ -189,44 +189,87 @@ export function keepForOffline(urls: string[]) {
 /** Version du service worker : une nouvelle version garde de nouveau les éditeurs (copie précédente effacée). */
 export const AUTO_OFFLINE_VERSION = "v6";
 const AUTO_KEY = `upl:hors-ligne:auto:${AUTO_OFFLINE_VERSION}`;
+const RETRY_KEY = "upl:hors-ligne:essai";
 let autoRunning = false;
 
+/** Éditeurs utilisables sans Internet (mêmes adresses que dans le service worker). */
+export const OFFLINE_EDITORS = [
+  { path: "/ide", name: "ZENTECH IDE" },
+  { path: "/editeur", name: "ZENTECH Algo" },
+  { path: "/flow/classique", name: "Interface LARP" },
+  { path: "/flow", name: "ZENTECH Flow Studio" },
+  { path: "/laboratoire", name: "Laboratoire d'algorithmique" },
+] as const;
+
+export type OfflineState = { status: "inactif" | "en-cours" | "pret" | "erreur"; current?: string; ready: string[] };
+export const OFFLINE_EVENT = "upl:hors-ligne";
+const emit = (detail: OfflineState) => window.dispatchEvent(new CustomEvent<OfflineState>(OFFLINE_EVENT, { detail }));
+
+/** Éditeurs dont la page est réellement gardée sur cet appareil (lecture directe de la copie). */
+export async function editorsOnDevice(): Promise<string[]> {
+  if (!offlineSupported()) return [];
+  const found = await Promise.all(OFFLINE_EDITORS.map(async (e) => ((await caches.match(e.path).catch(() => undefined)) ? (e.path as string) : null)));
+  return found.filter((p): p is string => Boolean(p));
+}
+
 /**
- * Garde automatiquement les éditeurs sur l'appareil (une fois par version et par adresse du site) :
- * à la première visite avec Internet d'un étudiant connecté, chaque éditeur est chargé en arrière-plan
- * dans un cadre invisible pour que ses fichiers passent par le service worker. Ensuite les éditeurs
- * s'ouvrent sans Internet, sans que l'étudiant ait à « préparer » quoi que ce soit.
+ * Garde automatiquement les éditeurs sur l'appareil : à chaque visite avec Internet d'un étudiant
+ * connecté, si un éditeur manque dans la copie de l'appareil (première visite, nouvelle version,
+ * copie effacée par le téléphone), chaque éditeur manquant est chargé en arrière-plan dans un cadre
+ * invisible pour que ses fichiers passent par le service worker. `force` : demandé par l'étudiant
+ * (bouton « Garder les éditeurs »), sans attente entre deux essais.
  */
-export async function autoPrepareOffline(loggedIn: boolean) {
+export async function autoPrepareOffline(loggedIn: boolean, opts: { force?: boolean } = {}) {
   if (!loggedIn || autoRunning || !offlineSupported() || !navigator.onLine || window !== window.top) return;
-  // Économiseur de données activé : on n'utilise pas le forfait sans demande.
-  if ((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData) return;
-  let forced = false;
+  let forcedTest = false;
   try {
-    if (localStorage.getItem(AUTO_KEY)) return;
-    forced = localStorage.getItem("upl:test:auto-hors-ligne") === "1";
+    forcedTest = localStorage.getItem("upl:test:auto-hors-ligne") === "1";
   } catch {
     return;
   }
   // Tests automatisés : seulement sur demande (sinon chaque test téléchargerait tous les éditeurs).
-  if (navigator.webdriver && !forced) return;
+  if (navigator.webdriver && !forcedTest && !opts.force) return;
+  // Économiseur de données activé : on n'utilise pas le forfait sans demande.
+  if (!opts.force && (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData) return;
   autoRunning = true;
   try {
     await navigator.serviceWorker.ready;
+    let ready = await editorsOnDevice();
+    const missing = OFFLINE_EDITORS.filter((e) => !ready.includes(e.path));
+    if (!missing.length) {
+      localStorage.setItem(AUTO_KEY, localStorage.getItem(AUTO_KEY) ?? new Date().toISOString());
+      emit({ status: "pret", ready });
+      return;
+    }
+    // Échec récent : nouvel essai automatique au plus toutes les 10 minutes.
+    if (!opts.force) {
+      const last = Number(sessionStorage.getItem(RETRY_KEY) ?? 0);
+      if (Date.now() - last < 10 * 60_000) return;
+    }
+    sessionStorage.setItem(RETRY_KEY, String(Date.now()));
     const stopTracking = trackWorkers();
     let workerFiles: string[] = [];
     try {
-      for (const path of ["/editeur", "/flow/classique", "/ide", "/flow", "/laboratoire"]) {
-        if (!navigator.onLine) return;
-        await warmPage(path);
+      for (const e of missing) {
+        if (!navigator.onLine) break;
+        emit({ status: "en-cours", current: e.name, ready });
+        await warmPage(e.path);
+        ready = await editorsOnDevice();
       }
     } finally {
       workerFiles = stopTracking();
     }
-    const r = await sendPrecache([...loadedResources(), ...workerFiles]);
-    if (r.ok > 0) localStorage.setItem(AUTO_KEY, new Date().toISOString());
+    // Pages des éditeurs comprises : gardées même si leur cadre n'a pas fini de charger.
+    await sendPrecache([...loadedResources(), ...workerFiles]);
+    ready = await editorsOnDevice();
+    const complete = ready.length === OFFLINE_EDITORS.length;
+    if (complete) {
+      localStorage.setItem(AUTO_KEY, new Date().toISOString());
+      sessionStorage.removeItem(RETRY_KEY);
+    }
+    emit({ status: complete ? "pret" : "erreur", ready });
   } catch {
-    /* nouvel essai à la prochaine visite */
+    emit({ status: "erreur", ready: await editorsOnDevice().catch(() => []) });
   } finally {
     autoRunning = false;
   }

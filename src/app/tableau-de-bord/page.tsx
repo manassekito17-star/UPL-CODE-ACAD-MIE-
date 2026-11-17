@@ -8,6 +8,7 @@ import { formatDate, formatDuration } from "@/components/ui/labels";
 import { requireUser } from "@/lib/auth";
 import { listCourses } from "@/lib/content/repository";
 import { getDashboard } from "@/lib/student";
+import { OfflineEditorsCard } from "@/components/pwa/offline-editors-card";
 
 export const metadata: Metadata = { title: "Tableau de bord" };
 
@@ -84,6 +85,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/tablea
           </div>
         ))}
         <div className="space-y-6 lg:col-span-2">
+          <OfflineEditorsCard />
           <section>
             <h2 className="mb-3 text-lg font-bold text-nuit-900">Reprendre</h2>
             {d.recent.length === 0 ? (
