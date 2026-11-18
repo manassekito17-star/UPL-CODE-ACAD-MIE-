@@ -1,0 +1,23 @@
+[package]
+name = "zynora-desktop"
+description = "ZYNORA OFFICE — application de bureau (Tauri 2)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lib]
+name = "zynora_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.7.6", features = [] }
+
+[dependencies]
+tauri = { version = "2.12.7", features = [] }
+serde.workspace = true
+serde_json.workspace = true
+zynora-database.workspace = true
+
+[lints]
+workspace = true

@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Permissions minimales de la fenêtre principale : aucune API système n'est exposée à l'interface. Les commandes ZYNORA (paramètres, journal) sont définies et validées côté Rust.",
+  "windows": ["main"],
+  "permissions": []
+}

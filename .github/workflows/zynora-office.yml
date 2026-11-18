@@ -1,0 +1,121 @@
+name: ZYNORA OFFICE
+
+on:
+  push:
+    paths:
+      - "zynora-office/**"
+      - ".github/workflows/zynora-office.yml"
+  pull_request:
+    paths:
+      - "zynora-office/**"
+      - ".github/workflows/zynora-office.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: zynora-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: zynora-office
+
+jobs:
+  linux:
+    name: Linux — qualité, tests, paquets et bout en bout
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dépendances système (WebKitGTK, écran virtuel, WebDriver)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev \
+            libayatana-appindicator3-dev libxdo-dev libssl-dev xvfb webkit2gtk-driver file
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: zynora-office/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: zynora-office/pnpm-lock.yaml
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: zynora-office
+      - run: pnpm install --frozen-lockfile
+      - name: Types (TypeScript strict)
+        run: pnpm typecheck
+      - name: Tests unitaires et d'interface (Vitest, node:test)
+        run: pnpm test
+      - name: Format et lint Rust (clippy -D warnings)
+        run: pnpm lint:rust
+      - name: Tests Rust
+        run: cargo test --workspace --locked
+      - name: Licences de toutes les dépendances
+        run: pnpm check:licenses
+      - name: Audit des dépendances npm de production
+        run: pnpm audit --prod --audit-level high
+      - name: Compilation et paquets Linux (DEB, RPM, AppImage)
+        run: pnpm --filter @zynora/desktop tauri build --bundles deb,rpm,appimage
+      - name: Pilote WebDriver de Tauri
+        run: cargo install tauri-driver --locked
+      - name: Test de bout en bout sur l'application compilée
+        run: pnpm test:e2e
+      - uses: actions/upload-artifact@v4
+        with:
+          name: zynora-office-linux
+          path: |
+            zynora-office/target/release/bundle/deb/*.deb
+            zynora-office/target/release/bundle/rpm/*.rpm
+            zynora-office/target/release/bundle/appimage/*.AppImage
+          retention-days: 14
+
+  desktop:
+    name: ${{ matrix.name }} — tests et installateurs (non signés)
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows
+            os: windows-latest
+            bundles: msi,nsis
+            artifacts: |
+              zynora-office/target/release/bundle/msi/*.msi
+              zynora-office/target/release/bundle/nsis/*.exe
+          - name: macOS
+            os: macos-latest
+            bundles: app,dmg
+            artifacts: |
+              zynora-office/target/release/bundle/dmg/*.dmg
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: zynora-office/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: zynora-office/pnpm-lock.yaml
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: zynora-office
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: cargo test --workspace --locked
+      - name: Compilation et installateurs
+        run: pnpm --filter @zynora/desktop tauri build --bundles ${{ matrix.bundles }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: zynora-office-${{ matrix.os }}
+          path: ${{ matrix.artifacts }}
+          retention-days: 14

@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Première version statique du site (branche main), conservée telle quelle.
     "js/**",
+    // ZYNORA OFFICE : projet indépendant (application de bureau), avec ses propres outils.
+    "zynora-office/**",
   ]),
 ]);
 
