@@ -130,6 +130,11 @@ html.upl-plein-ecran body {
 html.upl-plein-ecran body {
   visibility: hidden;
 }
+/* ZENTECH IDE : le fond derrière l'éditeur (zones de l'encoche et de la barre d'accueil de l'iPhone)
+   a la couleur de l'IDE, sans bande grise. */
+html.upl-plein-ecran:has(.ide-studio) { background: #181818; }
+html.upl-plein-ecran:has(.ide-sombre) { background: #050d1f; }
+html.upl-plein-ecran:has(.ide-clair) { background: #f5f7fb; }
 html.upl-plein-ecran [data-testid="editeur-algo"],
 html.upl-plein-ecran [data-plein-ecran] {
   visibility: visible;

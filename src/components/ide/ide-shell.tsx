@@ -153,6 +153,18 @@ function Splitter({ direction, onDelta, label }: { direction: "x" | "y"; onDelta
   );
 }
 
+/**
+ * iPhone (application de l'écran d'accueil) : l'IDE occupe tout l'écran, encoche et barre d'accueil
+ * comprises. Ces marges gardent la barre du haut sous l'heure et la batterie, et les boutons du bas
+ * au-dessus de la barre d'accueil (valeurs nulles sur ordinateur et dans Safari avec ses barres).
+ */
+const SAFE_AREA = {
+  paddingTop: "env(safe-area-inset-top)",
+  paddingBottom: "env(safe-area-inset-bottom)",
+  paddingLeft: "env(safe-area-inset-left)",
+  paddingRight: "env(safe-area-inset-right)",
+} as const;
+
 export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject; loggedIn: boolean; userName: string | null }) {
   const router = useRouter();
   const [settings, changeSettings] = useSettings();
@@ -808,7 +820,7 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
   ];
 
   return (
-    <div className={cn("ide-root fixed inset-0 z-50 flex flex-col bg-[var(--ide-bg)] text-[var(--ide-text)]", settings.theme === "clair" ? "ide-clair" : settings.theme === "sombre" ? "ide-sombre" : "ide-studio")} style={viewport ? { top: viewport.top, height: viewport.height, bottom: "auto" } : { paddingBottom: "env(safe-area-inset-bottom)" }} data-testid="ide" data-plein-ecran>
+    <div className={cn("ide-root fixed inset-0 z-50 flex flex-col bg-[var(--ide-bg)] text-[var(--ide-text)]", settings.theme === "clair" ? "ide-clair" : settings.theme === "sombre" ? "ide-sombre" : "ide-studio")} style={{ ...SAFE_AREA, ...(viewport ? { top: viewport.top, height: viewport.height, bottom: "auto", paddingBottom: 0 } : null) }} data-testid="ide" data-plein-ecran>
       <input ref={fileInput} type="file" multiple hidden onChange={(e) => { void onImport(e.target.files, false); e.target.value = ""; }} aria-label="Importer des fichiers" data-testid="ide-import-fichiers" />
       <input ref={folderInput} type="file" multiple hidden {...{ webkitdirectory: "", directory: "" }} onChange={(e) => { void onImport(e.target.files, true); e.target.value = ""; }} aria-label="Importer un dossier" />
 
