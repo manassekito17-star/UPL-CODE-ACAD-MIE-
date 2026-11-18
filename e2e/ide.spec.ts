@@ -417,5 +417,8 @@ test("iPhone : pas d'agrandissement automatique et clavier de programmation au-d
   expect(meta).toContain("maximum-scale=1");
   expect(meta).toContain("viewport-fit=cover");
   // Sans clavier ouvert, l'IDE réserve la zone de la barre d'accueil (les boutons Copier / Coller restent touchables).
-  expect(await page.getByTestId("ide").getAttribute("style")).toContain("safe-area-inset-bottom");
+  const style = (await page.getByTestId("ide").getAttribute("style")) ?? "";
+  expect(style).toContain("safe-area-inset-bottom");
+  // Barre du haut sous l'heure et la batterie (application de l'écran d'accueil).
+  expect(style).toContain("safe-area-inset-top");
 });
