@@ -863,6 +863,8 @@ export function AlgoStudio({
           path={`algo/${language}/${current?.name}`}
           theme="upl-algo"
           fontSize={fontSize}
+          // Barre de sélection propre à ZENTECH Algo (Copier, Couper, Coller, Supprimer, Tout).
+          touchMenu={false}
           onEditor={(ed) => {
             editorRef.current = ed;
             ed.onDidChangeCursorSelection((e) => {

@@ -16,7 +16,9 @@ export const metadata: Metadata = {
   icons: { apple: "/icons/apple-touch-icon.png" },
 };
 
-export const viewport: Viewport = { themeColor: "#181818" };
+// iPhone : pas d'agrandissement automatique quand on touche l'éditeur (la page restait décalée),
+// et l'IDE connaît la zone de la barre d'accueil du téléphone (env(safe-area-inset-bottom)).
+export const viewport: Viewport = { themeColor: "#181818", width: "device-width", initialScale: 1, maximumScale: 1, viewportFit: "cover" };
 
 export default async function IdePage({ searchParams }: PageProps<"/ide">) {
   const sp = await searchParams;

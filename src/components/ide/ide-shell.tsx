@@ -808,7 +808,7 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
   ];
 
   return (
-    <div className={cn("ide-root fixed inset-0 z-50 flex flex-col bg-[var(--ide-bg)] text-[var(--ide-text)]", settings.theme === "clair" ? "ide-clair" : settings.theme === "sombre" ? "ide-sombre" : "ide-studio")} style={viewport ? { top: viewport.top, height: viewport.height, bottom: "auto" } : undefined} data-testid="ide" data-plein-ecran>
+    <div className={cn("ide-root fixed inset-0 z-50 flex flex-col bg-[var(--ide-bg)] text-[var(--ide-text)]", settings.theme === "clair" ? "ide-clair" : settings.theme === "sombre" ? "ide-sombre" : "ide-studio")} style={viewport ? { top: viewport.top, height: viewport.height, bottom: "auto" } : { paddingBottom: "env(safe-area-inset-bottom)" }} data-testid="ide" data-plein-ecran>
       <input ref={fileInput} type="file" multiple hidden onChange={(e) => { void onImport(e.target.files, false); e.target.value = ""; }} aria-label="Importer des fichiers" data-testid="ide-import-fichiers" />
       <input ref={folderInput} type="file" multiple hidden {...{ webkitdirectory: "", directory: "" }} onChange={(e) => { void onImport(e.target.files, true); e.target.value = ""; }} aria-label="Importer un dossier" />
 
@@ -1248,7 +1248,7 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
               onChange={(e) => setPasteBox(e.target.value)}
               rows={8}
               aria-label="Texte à coller"
-              className="mt-2 w-full resize-y rounded border border-[var(--ide-border)] bg-[var(--ide-input)] p-2 font-mono text-xs text-[var(--ide-text)]"
+              className="mt-2 w-full resize-y rounded border border-[var(--ide-border)] bg-[var(--ide-input)] p-2 font-mono text-base text-[var(--ide-text)]"
               data-testid="zone-coller"
             />
             <div className="mt-3 flex justify-end gap-2">
