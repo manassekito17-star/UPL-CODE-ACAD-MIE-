@@ -165,6 +165,16 @@ describe("langage classique (compatible LARP) — exemples du guide", () => {
     expect(r.buffers.find((b) => b.name === "SORTIE")?.content).toBe("40\n50\n60\n");
   });
 
+  it("variable jamais remplie dans un calcul : vaut 0 (comme LARP sur ordinateur), avec avertissement", () => {
+    const code = "DÉBUT\n NOTE ← [6, 12, 7]\n POUR i = 1 JUSQU'À LONGUEUR(NOTE) FAIRE\n  SOMME = SOMME + NOTE[i]\n FINPOUR\n ÉCRIRE \"Somme=\", SOMME\n ÉCRIRE somme / 3\nFIN";
+    const r = run(code);
+    expect(r.error).toBeUndefined();
+    expect(r.output).toBe("Somme= 25\n8.33333333333333\n");
+    expect(r.warnings[0]).toMatch(/SOMME est indéfinie/);
+    // Variable jamais remplie et seulement affichée : #IND, comme sur ordinateur.
+    expect(run("DÉBUT\n x = 2 * y\n ÉCRIRE x, z\nFIN").output).toBe("0 #IND\n");
+  });
+
   it("variable indéfinie : #IND et avertissement", () => {
     const r = run("DÉBUT\n ÉCRIRE z\nFIN");
     expect(r.output).toBe("#IND\n");
@@ -210,7 +220,7 @@ describe("messages d'erreur (compilation et exécution)", () => {
     expect(r.error?.line).toBe(3);
     const o = run("DÉBUT\n a = 2147483647\n a = a + 1\nFIN");
     expect(o.error?.message).toMatch(/Débordement/);
-    const c = run("DÉBUT\n a = 5\n b = a + z\nFIN");
+    const c = run('DÉBUT\n a = "x"\n b = a + z\nFIN');
     expect(c.error?.message).toMatch(/indéfinie/);
     const l = run("DÉBUT\n TANTQUE 1 = 1 FAIRE\n  x = 1\n FINTANTQUE\nFIN");
     expect(l.error?.message).toMatch(/boucle infinie/);

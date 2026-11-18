@@ -155,7 +155,17 @@ export function compare(a: Val, b: Val): number {
   return s1 < s2 ? -1 : s1 > s2 ? 1 : 0;
 }
 
+const ARITH = new Set(["+", "-", "*", "/", "//", "%", "^"]);
+const isNumOrNull = (v: Val) => v === null || v.k === "i" || v.k === "f";
+
 export function binary(op: string, a: Val, b: Val): Value | null {
+  // Comme LARP sur ordinateur : une variable jamais remplie (#IND) vaut 0 dans un calcul avec des
+  // nombres (ex. « SOMME = SOMME + NOTE[i] » sans « SOMME = 0 » avant la boucle). L'avertissement
+  // « variable indéfinie » reste affiché pour que l'étudiant voie l'oubli.
+  if (ARITH.has(op) && (a === null || b === null) && isNumOrNull(a) && isNumOrNull(b)) {
+    a ??= int(0);
+    b ??= int(0);
+  }
   switch (op) {
     case "+": {
       if (a === null || b === null) throw new RunError("Valeur indéfinie (#IND) utilisée dans une expression.");
