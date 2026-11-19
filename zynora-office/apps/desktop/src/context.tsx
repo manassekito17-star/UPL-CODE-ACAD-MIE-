@@ -7,6 +7,12 @@ export interface AppContextValue {
   api: Api;
   t: Translate;
   language: Language;
+  /** Ouvre un classeur de la bibliothèque dans ZYNORA Sheets. */
+  openWorkbook: (path: string) => Promise<void>;
+  /** Crée un classeur vide dans un dossier de la bibliothèque et l'ouvre. */
+  createWorkbook: (folder: string) => Promise<void>;
+  /** Rouvre un classeur depuis sa copie de récupération. */
+  openRecovery: (path: string) => Promise<void>;
 }
 
 export const AppContext = createContext<AppContextValue | null>(null);

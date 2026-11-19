@@ -64,6 +64,100 @@ export interface TrashItem {
   deleted_at_ms: number;
 }
 
+// --- ZYNORA Sheets -------------------------------------------------------------
+
+export interface CellRange {
+  sheet: number;
+  top: number;
+  left: number;
+  bottom: number;
+  right: number;
+}
+
+export type Align = "general" | "left" | "center" | "right";
+
+export interface CellStyle {
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+  strike?: boolean;
+  color?: string;
+  fill?: string;
+  align: Align;
+  /** Alignement choisi explicitement (sinon alignement par défaut du type de valeur). */
+  align_set?: boolean;
+}
+
+export interface CellView {
+  row: number;
+  column: number;
+  /** Valeur affichée, calculée par le moteur. */
+  text: string;
+  numeric: boolean;
+  style: CellStyle;
+}
+
+export interface RangeView {
+  sheet: number;
+  cells: CellView[];
+  column_widths: number[];
+  row_heights: number[];
+}
+
+export interface SheetInfo {
+  index: number;
+  name: string;
+  visible: boolean;
+}
+
+export interface BookState {
+  dirty: boolean;
+  can_undo: boolean;
+  can_redo: boolean;
+}
+
+export interface WorkbookInfo {
+  id: number;
+  path: string;
+  name: string;
+  format: "xlsx" | "csv";
+  sheets: SheetInfo[];
+  state: BookState;
+  recovered: boolean;
+}
+
+export interface EditResult<T> {
+  value: T;
+  state: BookState;
+}
+
+export interface SelectionStats {
+  count: number;
+  numeric_count: number;
+  sum: number;
+  average: number | null;
+  min: number | null;
+  max: number | null;
+}
+
+export type StyleChange =
+  | { kind: "bold" | "italic" | "underline" | "strike"; value: boolean }
+  | { kind: "font_color" | "fill" | "number_format"; value: string }
+  | { kind: "align"; value: Align };
+
+export type Structure =
+  | { op: "insert_rows" | "delete_rows" | "insert_columns" | "delete_columns"; sheet: number; at: number; count: number }
+  | { op: "merge" | "unmerge"; range: CellRange }
+  | { op: "column_width"; sheet: number; column: number; width: number };
+
+export type SheetOp = { op: "add" } | { op: "rename"; sheet: number; name: string } | { op: "delete"; sheet: number };
+
+export interface RecoveryRecord {
+  path: string;
+  file: string;
+  saved_at_ms: number;
+}
+
 export interface AuditEvent {
   id: number;
   at_ms: number;
@@ -114,6 +208,30 @@ export const api = {
   restoreTrash: (id: string) => call<Entry>("restore_trash", { id }),
   purgeTrash: (id: string) => call<null>("purge_trash", { id }),
   emptyTrash: () => call<number>("empty_trash"),
+
+  sheetsOpen: (path: string) => call<WorkbookInfo>("sheets_open", { path }),
+  sheetsCreate: (folder: string) => call<WorkbookInfo>("sheets_create", { folder }),
+  sheetsRange: (id: number, range: CellRange) => call<RangeView>("sheets_range", { id, range }),
+  sheetsCell: (id: number, sheet: number, row: number, column: number) =>
+    call<{ content: string; display: string }>("sheets_cell", { id, sheet, row, column }),
+  sheetsStats: (id: number, range: CellRange) => call<SelectionStats>("sheets_stats", { id, range }),
+  sheetsSetInput: (id: number, sheet: number, row: number, column: number, input: string) =>
+    call<EditResult<null>>("sheets_set_input", { id, sheet, row, column, input }),
+  sheetsClear: (id: number, range: CellRange) => call<EditResult<null>>("sheets_clear", { id, range }),
+  sheetsStyle: (id: number, range: CellRange, change: StyleChange) => call<EditResult<null>>("sheets_style", { id, range, change }),
+  sheetsStructure: (id: number, change: Structure) => call<EditResult<null>>("sheets_structure", { id, change }),
+  sheetsSheet: (id: number, change: SheetOp) => call<EditResult<SheetInfo[]>>("sheets_sheet", { id, change }),
+  sheetsHistory: (id: number, redo: boolean) => call<EditResult<SheetInfo[]>>("sheets_history", { id, redo }),
+  sheetsCopy: (id: number, range: CellRange, cut: boolean) => call<string>("sheets_copy", { id, range, cut }),
+  sheetsPaste: (id: number, target: CellRange, text: string, cut: boolean) =>
+    call<EditResult<null>>("sheets_paste", { id, target, text, cut }),
+  sheetsSave: (id: number) => call<BookState>("sheets_save", { id }),
+  sheetsAutosave: (id: number) => call<boolean>("sheets_autosave", { id }),
+  /** `false` si le classeur a des modifications non enregistrées et `discard` est faux. */
+  sheetsClose: (id: number, discard: boolean) => call<boolean>("sheets_close", { id, discard }),
+  listRecoveries: () => call<RecoveryRecord[]>("list_recoveries"),
+  sheetsOpenRecovery: (path: string) => call<WorkbookInfo>("sheets_open_recovery", { path }),
+  discardRecovery: (path: string) => call<null>("discard_recovery_command", { path }),
 };
 
 export type Api = typeof api;

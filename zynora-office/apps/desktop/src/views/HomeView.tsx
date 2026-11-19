@@ -1,10 +1,10 @@
 import { Badge, Button, Card, IconButton } from "@zynora/design-system";
-import { AlertTriangle, FileText, FolderOpen, Presentation, Sheet, Upload } from "lucide-react";
+import { AlertTriangle, FileText, FolderOpen, LifeBuoy, Presentation, Sheet, Upload } from "lucide-react";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 
 import { errorText, useApp } from "../context";
 import { parentPath } from "../format";
-import type { AppInfo, Dashboard, EntryView } from "../ipc";
+import type { AppInfo, Dashboard, EntryView, RecoveryRecord } from "../ipc";
 import { EntryIcon } from "./EntryIcon";
 import { useImport } from "./useImport";
 
@@ -27,8 +27,9 @@ interface Props {
 }
 
 export function HomeView({ info, onLocate }: Props) {
-  const { api, t } = useApp();
+  const { api, t, openWorkbook, createWorkbook, openRecovery } = useApp();
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
+  const [recoveries, setRecoveries] = useState<RecoveryRecord[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [noticeDismissed, setNoticeDismissed] = useState(false);
 
@@ -40,6 +41,7 @@ export function HomeView({ info, onLocate }: Props) {
         setError(null);
       })
       .catch((e: unknown) => setError(errorText(e, t)));
+    api.listRecoveries().then(setRecoveries, (e: unknown) => setError(errorText(e, t)));
   }, [api, t]);
   useEffect(load, [load]);
   const { importInto, rejectedDialog } = useImport(load);
@@ -73,6 +75,29 @@ export function HomeView({ info, onLocate }: Props) {
           </Button>
         </div>
       )}
+      {recoveries.length > 0 && (
+        <div className="notice notice--recovery" role="region" aria-label={t("recovery.title")}>
+          <LifeBuoy size={18} aria-hidden />
+          <div>
+            <strong>{t("recovery.title")}</strong>
+            <p className="muted">{t("recovery.desc")}</p>
+            <ul className="doc-list">
+              {recoveries.map((r) => (
+                <li key={r.path}>
+                  <EntryIcon kind="spreadsheet" />
+                  <span className="doc-list__name">{r.path}</span>
+                  <Button size="sm" variant="primary" onClick={() => void openRecovery(r.path)}>
+                    {t("recovery.open")}
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => void api.discardRecovery(r.path).then(load, (e: unknown) => setError(errorText(e, t)))}>
+                    {t("recovery.discard")}
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
       {error && (
         <p className="error-text" role="alert">
           {error}
@@ -90,7 +115,13 @@ export function HomeView({ info, onLocate }: Props) {
             <div className="module__icon">{m.icon}</div>
             <h2>ZYNORA {t(`app.${m.key}`)}</h2>
             <p className="muted">{t(`app.${m.key}.desc`)}</p>
-            <Badge tone="warning">{t("status.phase", { n: m.phase })}</Badge>
+            {m.key === "sheets" ? (
+              <Button variant="primary" size="sm" icon={<Sheet size={14} aria-hidden />} onClick={() => void createWorkbook("")}>
+                {t("sheets.new")}
+              </Button>
+            ) : (
+              <Badge tone="warning">{t("status.phase", { n: m.phase })}</Badge>
+            )}
           </Card>
         ))}
       </section>
@@ -118,7 +149,7 @@ export function HomeView({ info, onLocate }: Props) {
 }
 
 function DocumentList({ title, empty, items, onLocate }: { title: string; empty: string; items: EntryView[] | undefined; onLocate: (folder: string) => void }) {
-  const { t } = useApp();
+  const { t, openWorkbook } = useApp();
   return (
     <Card>
       <h2>{title}</h2>
@@ -129,7 +160,13 @@ function DocumentList({ title, empty, items, onLocate }: { title: string; empty:
             <li key={item.path}>
               <EntryIcon kind={item.kind} />
               <span className="doc-list__name">
-                {item.name}
+                {item.kind === "spreadsheet" ? (
+                  <button type="button" className="link" onClick={() => void openWorkbook(item.path)}>
+                    {item.name}
+                  </button>
+                ) : (
+                  item.name
+                )}
                 <span className="muted">{parentPath(item.path) || t("docs.root")}</span>
               </span>
               <IconButton label={`${t("home.locate")} : ${item.name}`} onClick={() => onLocate(parentPath(item.path))}>

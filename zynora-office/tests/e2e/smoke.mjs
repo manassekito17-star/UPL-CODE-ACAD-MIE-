@@ -99,11 +99,12 @@ const inTrash = (name) => existsSync(trashDir) && readdirSync(trashDir).some((sl
 const isDark = (app) => async () => (await app.exec("return document.documentElement.dataset.theme")) === "dark";
 
 let failed = false;
+let app;
 try {
   await waitFor(() => fetch(`${base}/status`).then((r) => r.ok), "démarrage de tauri-driver");
 
   console.log("Session 1 : premier lancement");
-  let app = await openSession();
+  app = await openSession();
   assert.equal(await app.waitText("//h1", "affichage de l'accueil"), "Bienvenue dans ZYNORA Office");
   step("l'accueil s'affiche (paramètres lus dans SQLite)");
   await app.waitText("//dd[contains(., '·')]", "informations système");
@@ -112,11 +113,11 @@ try {
 
   // --- Bibliothèque : documents réellement présents sur le disque ---
   await app.click(navItem("Documents"));
-  await app.waitText("//table//span[text()='budget.csv']", "liste de la bibliothèque");
+  await app.waitText("//table//*[text()='budget.csv']", "liste de la bibliothèque");
   await app.click(button("Ouvrir Clients"));
-  await app.waitText("//table//span[text()='devis.xlsx']", "contenu du dossier Clients");
+  await app.waitText("//table//*[text()='devis.xlsx']", "contenu du dossier Clients");
   await app.click("//nav[@aria-label='Bibliothèque']/button");
-  await app.waitText("//table//span[text()='budget.csv']", "retour à la racine");
+  await app.waitText("//table//*[text()='budget.csv']", "retour à la racine");
   step("la bibliothèque liste et parcourt les dossiers du disque");
 
   await app.click(button("Nouveau dossier"));
@@ -129,7 +130,7 @@ try {
   await app.click(button("Renommer budget.csv"));
   await app.type("//div[@role='dialog']//input", "Budget 2026.csv");
   await app.click("//div[@role='dialog']//button[normalize-space()='Renommer']");
-  await app.waitText("//table//span[text()='Budget 2026.csv']", "document renommé");
+  await app.waitText("//table//*[text()='Budget 2026.csv']", "document renommé");
   assert.ok(existsSync(join(library, "Budget 2026.csv")) && !existsSync(join(library, "budget.csv")), "renommage absent du disque");
   step("le renommage est appliqué sur le disque");
 
@@ -166,6 +167,47 @@ try {
   assert.ok(!inTrash("Projets") && !existsSync(join(library, "Projets")), "suppression définitive non effectuée");
   step("la suppression définitive n'a lieu qu'après confirmation");
 
+  // --- ZYNORA Sheets : saisie, calcul par le moteur, mise en forme, enregistrement ---
+  const ENTER = "\uE007";
+  const cell = (row, column) => `//div[@id='cell-${row}-${column}']`;
+  // Lecture directe du DOM : la recherche XPath par text() n'est pas fiable sous WebKitWebDriver.
+  const cellText = (row, column) => app.exec(`return document.getElementById('cell-${row}-${column}')?.textContent ?? null`);
+  const waitCell = (row, column, expected, what) => waitFor(async () => (await cellText(row, column)) === expected, what);
+  const typeInCell = async (row, column, text) => {
+    await app.click(cell(row, column));
+    await app.type("//input[@id='formula-input']", text + ENTER);
+  };
+  await app.click(navItem("Accueil"));
+  await app.click("//section//button[normalize-space()='Nouveau classeur']");
+  await waitFor(async () => (await app.exec("return document.querySelector('h1')?.textContent")) === "Classeur.xlsx", "ouverture du nouveau classeur");
+  assert.ok(existsSync(join(library, "Classeur.xlsx")), "le nouveau classeur est créé dans la bibliothèque");
+  step("un nouveau classeur est créé dans la bibliothèque et ouvert");
+
+  await typeInCell(1, 1, "10");
+  await typeInCell(2, 1, "32,5");
+  await typeInCell(3, 1, "=SOMME(A1:A2)");
+  await typeInCell(1, 2, "=A1/0");
+  await waitCell(3, 1, "42,5", "résultat de la formule");
+  await waitCell(1, 2, "#DIV/0!", "erreur de calcul");
+  step("les formules sont calculées par le moteur (SOMME, #DIV/0!)");
+
+  await app.click(cell(3, 1));
+  await waitFor(async () => (await app.exec("return document.getElementById('formula-input').value")) === "=SOMME(A1:A2)", "formule dans la barre");
+  await app.click(button("Gras"));
+  await waitFor(async () => (await app.exec("return getComputedStyle(document.getElementById('cell-3-1')).fontWeight")) === "700", "gras appliqué");
+  step("la barre de formule montre la formule ; le gras est appliqué");
+  await app.screenshot("6-sheets");
+
+  await app.click("//header//button[normalize-space()='Enregistrer']");
+  await waitFor(async () => (await app.exec("return document.querySelector('.sheets__status')?.textContent")) === "Enregistré", "enregistrement");
+  await app.click(button("Retour à la bibliothèque"));
+  await app.click(navItem("Documents"));
+  await app.click(button("Ouvrir Classeur.xlsx"));
+  await waitCell(3, 1, "42,5", "valeur après réouverture");
+  await waitFor(async () => (await app.exec("return getComputedStyle(document.getElementById('cell-3-1')).fontWeight")) === "700", "gras conservé");
+  step("le classeur enregistré en XLSX se rouvre avec ses formules et sa mise en forme");
+  await app.click(button("Retour à la bibliothèque"));
+
   // --- Paramètres et journal ---
   await app.click(navItem("Paramètres"));
   await app.click("//button[@role='radio' and normalize-space()='Sombre']");
@@ -192,12 +234,13 @@ try {
   await app.waitText(`//strong[text()="La dernière session s'est interrompue"]`, "avertissement d'incident");
   step("l'interruption de la session précédente est détectée et signalée");
   await app.click(navItem("Documents"));
-  await app.waitText("//table//span[text()='Budget 2026.csv']", "bibliothèque après relance");
+  await app.waitText("//table//*[text()='Budget 2026.csv']", "bibliothèque après relance");
   step("la bibliothèque est intacte après relance");
   await app.close();
 } catch (error) {
   failed = true;
   console.error(`\n✗ ${error.stack ?? error}`);
+  await app?.screenshot("echec").catch(() => undefined);
 } finally {
   driver.kill();
   rmSync(dataHome, { recursive: true, force: true });

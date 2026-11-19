@@ -1,10 +1,11 @@
-import { Badge, Button, NavItem, ToastProvider, ZynoraMark, applyTheme } from "@zynora/design-system";
+import { Badge, Button, NavItem, ToastProvider, ZynoraMark, applyTheme, useToasts } from "@zynora/design-system";
 import { FolderOpen, Home, Settings as SettingsIcon, Trash2 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 
-import { AppContext, errorText } from "./context";
+import { AppContext, errorText, useApp } from "./context";
 import { translator } from "./i18n";
-import { api as defaultApi, type Api, type AppInfo, type Language, type SettingChange, type Settings } from "./ipc";
+import { api as defaultApi, type Api, type AppInfo, type Language, type SettingChange, type Settings, type WorkbookInfo } from "./ipc";
+import { SheetsEditor } from "./sheets/SheetsEditor";
 import { DocumentsView } from "./views/DocumentsView";
 import { HomeView, MODULES } from "./views/HomeView";
 import { SettingsView } from "./views/SettingsView";
@@ -24,7 +25,7 @@ export function App({ api = defaultApi }: { api?: Api }) {
 
   const language: Language = settings?.language ?? "fr";
   const t = useMemo(() => translator(language), [language]);
-  const context = useMemo(() => ({ api, t, language }), [api, t, language]);
+  const [book, setBook] = useState<WorkbookInfo | null>(null);
 
   const load = useCallback(async () => {
     setError(null);
@@ -75,8 +76,18 @@ export function App({ api = defaultApi }: { api?: Api }) {
   }
 
   return (
-    <AppContext.Provider value={context}>
-      <ToastProvider closeLabel={t("dialog.close")}>
+    <ToastProvider closeLabel={t("dialog.close")}>
+      <Workspace api={api} t={t} language={language} onBook={setBook}>
+        {book ? (
+          <SheetsEditor
+            key={book.id}
+            book={book}
+            onClose={() => {
+              setBook(null);
+              setLibraryRevision((r) => r + 1);
+            }}
+          />
+        ) : (
         <div className="shell">
           <aside className="sidebar">
             <div className="brand">
@@ -97,16 +108,20 @@ export function App({ api = defaultApi }: { api?: Api }) {
               />
               <NavItem icon={<Trash2 size={18} aria-hidden />} label={t("nav.trash")} current={view === "trash"} onSelect={() => setView("trash")} />
               <div className="nav__section">{t("nav.apps")}</div>
-              {MODULES.map((m) => (
-                <NavItem
-                  key={m.key}
-                  icon={m.icon}
-                  label={t(`app.${m.key}`)}
-                  disabled
-                  title={t("status.phase", { n: m.phase })}
-                  trailing={<Badge>{t("status.soon", { n: m.phase })}</Badge>}
-                />
-              ))}
+              {MODULES.map((m) =>
+                m.key === "sheets" ? (
+                  <SheetsNavItem key={m.key} icon={m.icon} label={t("app.sheets")} folder={view === "documents" ? folder : ""} />
+                ) : (
+                  <NavItem
+                    key={m.key}
+                    icon={m.icon}
+                    label={t(`app.${m.key}`)}
+                    disabled
+                    title={t("status.phase", { n: m.phase })}
+                    trailing={<Badge>{t("status.soon", { n: m.phase })}</Badge>}
+                  />
+                ),
+              )}
             </nav>
             <div className="nav nav--bottom">
               <NavItem
@@ -145,7 +160,52 @@ export function App({ api = defaultApi }: { api?: Api }) {
             )}
           </main>
         </div>
-      </ToastProvider>
-    </AppContext.Provider>
+        )}
+      </Workspace>
+    </ToastProvider>
   );
+}
+
+/** Fournit le contexte (API, traductions, ouverture des classeurs) sous le fournisseur de notifications. */
+function Workspace({
+  api,
+  t,
+  language,
+  onBook,
+  children,
+}: {
+  api: Api;
+  t: ReturnType<typeof translator>;
+  language: Language;
+  onBook: (book: WorkbookInfo) => void;
+  children: ReactNode;
+}) {
+  const toast = useToasts();
+  const guard = useCallback(
+    async (open: () => Promise<WorkbookInfo>) => {
+      try {
+        onBook(await open());
+      } catch (e) {
+        toast({ tone: "error", message: errorText(e, t) });
+      }
+    },
+    [onBook, t, toast],
+  );
+  const context = useMemo(
+    () => ({
+      api,
+      t,
+      language,
+      openWorkbook: (path: string) => guard(() => api.sheetsOpen(path)),
+      createWorkbook: (folder: string) => guard(() => api.sheetsCreate(folder)),
+      openRecovery: (path: string) => guard(() => api.sheetsOpenRecovery(path)),
+    }),
+    [api, t, language, guard],
+  );
+  return <AppContext.Provider value={context}>{children}</AppContext.Provider>;
+}
+
+function SheetsNavItem({ icon, label, folder }: { icon: ReactNode; label: string; folder: string }) {
+  const { createWorkbook, t } = useApp();
+  return <NavItem icon={icon} label={label} title={t("sheets.new")} onSelect={() => void createWorkbook(folder)} />;
 }

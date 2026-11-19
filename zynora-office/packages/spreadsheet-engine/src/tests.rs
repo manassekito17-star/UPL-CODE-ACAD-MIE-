@@ -134,10 +134,13 @@ fn styles_annuler_retablir() {
     assert!(view.cells[0].style.italic);
     assert_eq!(view.cells[0].style.color.as_deref(), Some("#c00000"));
     assert_eq!(view.cells[0].style.align, Align::Right, "nombre aligné à droite par défaut");
+    assert!(!view.cells[0].style.align_set, "alignement par défaut, non choisi");
     assert_eq!(view.cells[1].style.align, Align::General);
+    assert!(view.cells[0].numeric && !view.cells[1].numeric);
 
     wb.apply_style(a1, &StyleChange::Align(Align::Center)).expect("centré");
     assert_eq!(wb.range(a1).expect("plage").cells[0].style.align, Align::Center);
+    assert!(wb.range(a1).expect("plage").cells[0].style.align_set);
     assert!(wb.can_undo());
     wb.undo().expect("annuler");
     wb.undo().expect("annuler");

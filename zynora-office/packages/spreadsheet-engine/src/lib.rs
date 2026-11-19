@@ -105,6 +105,9 @@ pub struct CellStyleView {
     pub fill: Option<String>,
     /// Alignement effectif (« Général » : nombres à droite, texte à gauche, booléens et erreurs centrés).
     pub align: Align,
+    /// Alignement choisi explicitement par l'utilisateur (sinon : alignement par défaut du type).
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub align_set: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -112,6 +115,8 @@ pub struct CellView {
     pub row: i32,
     pub column: i32,
     pub text: String,
+    /// Valeur numérique (au sens du moteur, formules comprises).
+    pub numeric: bool,
     pub style: CellStyleView,
 }
 
@@ -428,7 +433,8 @@ impl Workbook {
             if text.is_empty() && style == CellStyleView::default() {
                 continue;
             }
-            cells.push(CellView { row, column, text, style });
+            let numeric = matches!(self.model.get_cell_type(sheet, row, column), Ok(CellType::Number));
+            cells.push(CellView { row, column, text, numeric, style });
         }
         cells.sort_by_key(|c| (c.row, c.column));
         let column_widths = (range.left..=range.right)
@@ -461,6 +467,13 @@ impl Workbook {
             other => Some(self.model.resolve_color(other).to_lowercase()),
         };
         let horizontal = style.alignment.as_ref().map(|a| a.horizontal.clone()).unwrap_or(HorizontalAlignment::General);
+        let align_set = matches!(
+            horizontal,
+            HorizontalAlignment::Left
+                | HorizontalAlignment::Center
+                | HorizontalAlignment::CenterContinuous
+                | HorizontalAlignment::Right
+        );
         let align = match horizontal {
             HorizontalAlignment::Left => Align::Left,
             HorizontalAlignment::Center | HorizontalAlignment::CenterContinuous => Align::Center,
@@ -480,6 +493,7 @@ impl Workbook {
             color: font_color,
             fill: color(&style.fill.color),
             align,
+            align_set,
         })
     }
 

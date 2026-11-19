@@ -58,6 +58,10 @@ jobs:
         run: pnpm lint:rust
       - name: Tests Rust
         run: cargo test --workspace --locked
+      - name: Compatibilité croisée avec LibreOffice (XLSX lus et produits par un outil tiers)
+        run: |
+          sudo apt-get install -y --no-install-recommends libreoffice-calc
+          cargo test -p zynora-spreadsheet-engine --locked -- --ignored
       - name: Licences de toutes les dépendances
         run: pnpm check:licenses
       - name: Audit des dépendances npm de production

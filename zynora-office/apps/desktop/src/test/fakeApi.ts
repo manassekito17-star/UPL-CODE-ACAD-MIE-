@@ -5,7 +5,20 @@
  */
 import { vi } from "vitest";
 
-import { IpcError, type Api, type AuditEvent, type Entry, type EntryKind, type ImportOutcome, type Settings, type TrashItem } from "../ipc";
+import {
+  IpcError,
+  type Api,
+  type AuditEvent,
+  type BookState,
+  type CellStyle,
+  type Entry,
+  type EntryKind,
+  type ImportOutcome,
+  type RecoveryRecord,
+  type Settings,
+  type SheetInfo,
+  type TrashItem,
+} from "../ipc";
 
 interface Options {
   settings?: Settings;
@@ -13,6 +26,9 @@ interface Options {
   folders?: string[];
   interrupted?: boolean;
   importOutcome?: ImportOutcome;
+  /** Résultats affichés pour des formules données (le faux backend ne calcule rien). */
+  formulaResults?: Record<string, string>;
+  recoveries?: RecoveryRecord[];
 }
 
 function kindOf(name: string): EntryKind {
@@ -39,6 +55,29 @@ export function fakeApi(options: Options = {}) {
   const add = (path: string, kind: EntryKind) => entries.set(path, { path, name: baseName(path), kind, size: kind === "folder" ? 0 : 2048, modified_ms: Date.UTC(2026, 10, 17, 14, 5) });
   for (const f of options.folders ?? []) add(f, "folder");
   for (const f of options.files ?? []) add(f, kindOf(f));
+
+  // --- Classeur en mémoire : saisies et styles par cellule « feuille:ligne:colonne ». ---
+  const inputs = new Map<string, string>();
+  const styles = new Map<string, CellStyle>();
+  let sheets: SheetInfo[] = [{ index: 0, name: "Feuil1", visible: true }];
+  let book: BookState = { dirty: false, can_undo: false, can_redo: false };
+  const undo: Array<Map<string, string>> = [];
+  let recoveries = [...(options.recoveries ?? [])];
+  const key = (sheet: number, row: number, column: number) => `${sheet}:${row}:${column}`;
+  const display = (input: string) => (input.startsWith("=") ? (options.formulaResults?.[input] ?? "#FAUX-BACKEND") : input);
+  const changed = () => {
+    book = { dirty: true, can_undo: undo.length > 0, can_redo: false };
+    return { value: null, state: { ...book } };
+  };
+  const workbook = (path: string, recovered = false) => ({
+    id: 7,
+    path,
+    name: baseName(path),
+    format: (path.endsWith(".csv") ? "csv" : "xlsx") as "csv" | "xlsx",
+    sheets: [...sheets],
+    state: { ...book },
+    recovered,
+  });
 
   const view = (e: Entry) => ({ ...e, favorite: favorites.has(e.path) });
   const sorted = (list: Entry[]) =>
@@ -122,6 +161,85 @@ export function fakeApi(options: Options = {}) {
       const n = trash.length;
       trash = [];
       return n;
+    }),
+    sheetsOpen: vi.fn(async (path: string) => {
+      if (!entries.has(path)) throw new IpcError("élément introuvable");
+      return workbook(path);
+    }),
+    sheetsCreate: vi.fn(async (folder: string) => {
+      const path = folder ? `${folder}/Classeur.xlsx` : "Classeur.xlsx";
+      add(path, "spreadsheet");
+      return workbook(path);
+    }),
+    sheetsRange: vi.fn(async (_id, range) => {
+      const cells = [];
+      for (const [k, input] of inputs) {
+        const [sheet = 0, row = 0, column = 0] = k.split(":").map(Number);
+        if (sheet !== range.sheet || row < range.top || row > range.bottom || column < range.left || column > range.right) continue;
+        const text = display(input);
+        cells.push({ row, column, text, numeric: text !== "" && !Number.isNaN(Number(text.replace(",", "."))), style: styles.get(k) ?? { align: "general" as const } });
+      }
+      return {
+        sheet: range.sheet,
+        cells,
+        column_widths: Array.from({ length: range.right - range.left + 1 }, () => 100),
+        row_heights: Array.from({ length: range.bottom - range.top + 1 }, () => 24),
+      };
+    }),
+    sheetsCell: vi.fn(async (_id, sheet, row, column) => {
+      const input = inputs.get(key(sheet, row, column)) ?? "";
+      return { content: input, display: display(input) };
+    }),
+    sheetsStats: vi.fn(async () => ({ count: 2, numeric_count: 2, sum: 30, average: 15, min: 10, max: 20 })),
+    sheetsSetInput: vi.fn(async (_id, sheet, row, column, input) => {
+      undo.push(new Map(inputs));
+      inputs.set(key(sheet, row, column), input);
+      return changed();
+    }),
+    sheetsClear: vi.fn(async (_id, range) => {
+      undo.push(new Map(inputs));
+      for (let r = range.top; r <= range.bottom; r++) for (let c = range.left; c <= range.right; c++) inputs.delete(key(range.sheet, r, c));
+      return changed();
+    }),
+    sheetsStyle: vi.fn(async (_id, range, change) => {
+      const k = key(range.sheet, range.top, range.left);
+      const current = styles.get(k) ?? { align: "general" as const };
+      const field = change.kind === "font_color" ? "color" : change.kind;
+      styles.set(k, { ...current, [field]: change.value });
+      if (!inputs.has(k)) inputs.set(k, "");
+      return changed();
+    }),
+    sheetsStructure: vi.fn(async () => changed()),
+    sheetsSheet: vi.fn(async (_id, change) => {
+      if (change.op === "add") sheets = [...sheets, { index: sheets.length, name: `Feuil${sheets.length + 1}`, visible: true }];
+      if (change.op === "rename") sheets = sheets.map((s) => (s.index === change.sheet ? { ...s, name: change.name } : s));
+      if (change.op === "delete") sheets = sheets.filter((s) => s.index !== change.sheet).map((s, index) => ({ ...s, index }));
+      return { value: [...sheets], state: changed().state };
+    }),
+    sheetsHistory: vi.fn(async (_id, redo) => {
+      const previous = undo.pop();
+      if (!redo && previous) {
+        inputs.clear();
+        previous.forEach((v, k) => inputs.set(k, v));
+      }
+      return { value: [...sheets], state: changed().state };
+    }),
+    sheetsCopy: vi.fn(async () => "10\t20"),
+    sheetsPaste: vi.fn(async () => changed()),
+    sheetsSave: vi.fn(async () => {
+      book = { ...book, dirty: false };
+      return { ...book };
+    }),
+    sheetsAutosave: vi.fn(async () => book.dirty),
+    sheetsClose: vi.fn(async (_id, discard) => !book.dirty || discard),
+    listRecoveries: vi.fn(async () => [...recoveries]),
+    sheetsOpenRecovery: vi.fn(async (path: string) => {
+      book = { dirty: true, can_undo: false, can_redo: false };
+      return workbook(path, true);
+    }),
+    discardRecovery: vi.fn(async (path: string) => {
+      recoveries = recoveries.filter((r) => r.path !== path);
+      return null;
     }),
   };
   return api;

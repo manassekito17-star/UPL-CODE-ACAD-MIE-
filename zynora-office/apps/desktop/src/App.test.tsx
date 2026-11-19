@@ -23,9 +23,10 @@ describe("Socle", () => {
     render(<App api={fakeApi()} />);
     expect(await screen.findByRole("heading", { name: "Bienvenue dans ZYNORA Office" })).toBeTruthy();
     expect(await screen.findByText("linux · x86_64")).toBeTruthy();
-    for (const name of ["Sheets", "Word", "Slides"]) {
+    for (const name of ["Word", "Slides"]) {
       expect((nav(name) as HTMLButtonElement).disabled).toBe(true);
     }
+    expect((nav("Sheets") as HTMLButtonElement).disabled).toBe(false);
     expect(document.documentElement.dataset.theme).toBe("light");
   });
 

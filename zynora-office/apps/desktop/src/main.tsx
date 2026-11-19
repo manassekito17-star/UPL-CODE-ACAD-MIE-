@@ -1,6 +1,7 @@
 import "@zynora/design-system/tokens.css";
 import "@zynora/design-system/components.css";
 import "./app.css";
+import "./sheets/sheets.css";
 
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
