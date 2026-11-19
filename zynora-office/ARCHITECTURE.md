@@ -5,7 +5,8 @@
 ```
 ┌──────────────────────── Interface : React 19 + TypeScript (WebView) ─────────────────────────┐
 │  design-system (jetons, composants, thèmes)  ·  shell Core (navigation, paramètres, journal)  │
-│  Sheets (ruban, barre de formule, grille virtualisée) · à venir : Word, Slides                │
+│  Sheets (ruban, barre de formule, grille virtualisée) · Word (ProseMirror, page, ruban)       │
+│  · à venir : Slides                                                                           │
 └───────────────────────────── IPC Tauri : commandes typées uniquement ────────────────────────┘
 ┌─────────────────────────────────────── Cœur Rust ─────────────────────────────────────────────┐
 │  apps/desktop/src-tauri   commandes, état, cycle de vie                                       │
@@ -13,7 +14,8 @@
 │  packages/database        SQLite : migrations, paramètres, journal, récents, favoris, corbeille│
 │  packages/file-manager    bibliothèque : import validé, dossiers, corbeille, écriture atomique │
 │  packages/spreadsheet-engine  IronCalc : formules, XLSX, CSV, styles, feuilles, historique    │
-│  À venir : document-engine · presentation-engine ·                                            │
+│  packages/document-engine     docx-rs : modèle de texte, DOCX, TXT, détection des pertes      │
+│  À venir : presentation-engine ·                                                              │
 │            export-engine (PDF) · ai-assistant (optionnel)                                      │
 └───────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -57,11 +59,32 @@ Notes d'origine :
 - Avant intégration : prototype mesurant fidélité XLSX, performances (100 000 lignes), couverture
   des fonctions françaises (SOMME, RECHERCHEV…), API de dépendances et de recalcul.
 
-### D4 — Traitement de texte : ProseMirror + moteur de pagination maison (phase 3)
-- ProseMirror (MIT) pour l'édition structurée, l'annulation, la collaboration future.
-- Pagination, en-têtes/pieds, notes : moteur de mise en page à écrire (risque n°1 du projet).
-- DOCX/ODT : analyseurs Rust (`zip`, `quick-xml`) avec **conservation du XML non compris** pour ne
-  rien perdre à l'enregistrement.
+### D4 — Traitement de texte : ProseMirror + docx-rs — **première version intégrée** (phase 3)
+- **Édition** : ProseMirror (MIT) dans l'interface. Le schéma (`apps/desktop/src/word/schema.ts`)
+  reflète exactement le modèle du moteur Rust : paragraphes « à plat » (style, alignement, liste
+  et niveau, retraits, espacements, interligne), marques (gras, italique, souligné, barré,
+  exposant/indice, couleur, surlignage, taille, police, lien), tableaux simples, sauts de page.
+  Les listes sont à plat comme dans le format DOCX : la numérotation est rendue par des compteurs CSS.
+- **Fichiers** : `packages/document-engine` lit et écrit le DOCX avec docx-rs 0.4.22 (MIT ; ses
+  champs étant privés, la lecture parcourt sa représentation JSON). Le texte brut est géré à part.
+- **Aucune perte silencieuse** : la conservation du XML non compris (prévue à l'origine) n'est pas
+  réalisable avec docx-rs. À la place, la lecture **relève** tout ce qui ne sera pas réécrit
+  (images, notes, champs, commentaires, modifications suivies, en-têtes et pieds de page,
+  cellules fusionnées, styles personnalisés…). Si la liste n'est pas vide, l'interface l'affiche et
+  **l'original n'est jamais remplacé** : seule « Enregistrer une copie » est possible. La règle est
+  appliquée **dans le cœur Rust** (`word_save` relit le fichier présent sur le disque et refuse),
+  pas seulement par l'interface.
+- **Pagination** : affichage en page continue aux dimensions et marges du document ; les sauts de
+  page sont respectés à l'écran et à l'impression. La pagination automatique avec en-têtes, pieds
+  et notes reste un moteur de mise en page à écrire (risque n° 1 du projet).
+- ODT : non pris en charge par docx-rs ; refus explicite à l'ouverture.
+
+### D15 — Paniques des bibliothèques de lecture rattrapées
+Les lecteurs tiers (docx-rs, IronCalc) peuvent paniquer sur un fichier inattendu ou piégé. Le profil
+de compilation release utilise `panic = "unwind"` (au lieu de `abort`) et les appels de lecture sont
+enveloppés dans `catch_unwind` : un fichier défectueux produit un message d'erreur au lieu de fermer
+l'application (et de faire perdre le travail ouvert dans d'autres fenêtres). Coût : binaire un peu
+plus gros.
 
 ### D5 — Présentations : modèle maison, rendu SVG/DOM, PPTX/ODP en Rust (phase 4)
 
@@ -147,6 +170,11 @@ brutal de la session précédente.
 | `sheets_autosave` | `{id}` | copie écrite ? | copie de récupération (dossier de l'application) |
 | `sheets_close` | `{id, discard}` | fermé ? (refusé si non enregistré sans `discard`) | — |
 | `list_recoveries`, `sheets_open_recovery`, `discard_recovery_command` | chemin | copies de récupération | lecture / suppression de la copie |
+| `word_open` / `word_create` | `{path}` / `{folder}` | document (modèle JSON, format, **éléments non conservés**) | lecture revalidée / création atomique |
+| `word_save` | `{path, document}` (modèle revalidé : dimensions, couleurs, liens http/https/mailto) | — | **écriture atomique** ; refusée si le fichier sur le disque contient des éléments non conservés |
+| `word_save_copy` | `{path, name, document}` (.docx ou .txt) | nouveau document | création sans écrasement (nom libre choisi) |
+| `word_autosave`, `word_open_recovery` | `{path, document}` / `{path}` | — / document | copie de récupération JSON (dossier de l'application) |
+| `print_webview` | — | dialogue natif ouvert ? | impression (macOS) ; ailleurs `window.print()` |
 
 Règles : arguments désérialisés en types Rust fermés (une clé ou valeur inconnue est rejetée par
 serde) ; erreurs renvoyées sous forme `{message}` lisible, sans trace interne ; la fenêtre n'a

@@ -51,31 +51,31 @@ fn styles(docx: dx::Docx) -> dx::Docx {
             .fonts(dx::RunFonts::new().ascii("Calibri").hi_ansi("Calibri").cs("Calibri"))
             .line_spacing(dx::LineSpacing::new().after(160).line(259).line_rule(dx::LineSpacingType::Auto)),
     )
-        .add_style(
-            dx::Style::new("Title", dx::StyleType::Paragraph)
-                .name("Title")
-                .based_on("Normal")
-                .next("Normal")
-                .q_format(true)
-                .size(56)
-                .line_spacing(dx::LineSpacing::new().after(160)),
-        )
-        .add_style(
-            dx::Style::new("Hyperlink", dx::StyleType::Character).name("Hyperlink").color("0563C1").underline("single"),
-        )
-        .add_style(heading("Heading1", "heading 1", 32, "1F3864"))
-        .add_style(heading("Heading2", "heading 2", 26, "2F5496"))
-        .add_style(heading("Heading3", "heading 3", 24, "2F5496"))
-        .add_style(
-            dx::Style::new("Quote", dx::StyleType::Paragraph)
-                .name("Quote")
-                .based_on("Normal")
-                .next("Normal")
-                .q_format(true)
-                .italic()
-                .color("404040")
-                .indent(Some(864), None, Some(864), None),
-        )
+    .add_style(
+        dx::Style::new("Title", dx::StyleType::Paragraph)
+            .name("Title")
+            .based_on("Normal")
+            .next("Normal")
+            .q_format(true)
+            .size(56)
+            .line_spacing(dx::LineSpacing::new().after(160)),
+    )
+    .add_style(
+        dx::Style::new("Hyperlink", dx::StyleType::Character).name("Hyperlink").color("0563C1").underline("single"),
+    )
+    .add_style(heading("Heading1", "heading 1", 32, "1F3864"))
+    .add_style(heading("Heading2", "heading 2", 26, "2F5496"))
+    .add_style(heading("Heading3", "heading 3", 24, "2F5496"))
+    .add_style(
+        dx::Style::new("Quote", dx::StyleType::Paragraph)
+            .name("Quote")
+            .based_on("Normal")
+            .next("Normal")
+            .q_format(true)
+            .italic()
+            .color("404040")
+            .indent(Some(864), None, Some(864), None),
+    )
 }
 
 fn numbering_definitions(mut docx: dx::Docx) -> dx::Docx {

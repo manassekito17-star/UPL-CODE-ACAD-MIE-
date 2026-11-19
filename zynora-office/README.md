@@ -3,10 +3,11 @@
 Suite bureautique indépendante et multiplateforme (Windows 10/11, macOS, Linux), utilisable hors connexion :
 **ZYNORA Sheets** (tableur), **ZYNORA Word** (traitement de texte), **ZYNORA Slides** (présentations).
 
-> **État : phase 2 — ZYNORA Sheets disponible.** Tableur complet pour l'usage courant (formules
-> calculées par le moteur IronCalc, mise en forme, plusieurs feuilles, XLSX et CSV, sauvegarde
-> automatique et récupération), bibliothèque de documents, interface adaptée au téléphone.
-> Word et Slides ne sont pas encore disponibles et l'interface l'indique.
+> **État : phase 3 — ZYNORA Sheets et ZYNORA Word disponibles.** Tableur (formules calculées par
+> le moteur IronCalc, mise en forme, plusieurs feuilles, XLSX et CSV) et traitement de texte
+> (styles, listes, tableaux, liens, mise en page, DOCX et texte brut, sans perte silencieuse),
+> sauvegarde automatique et récupération, bibliothèque de documents, interface adaptée au
+> téléphone. Slides n'est pas encore disponible et l'interface l'indique.
 > Détail à jour : [PROJECT_STATUS.md](PROJECT_STATUS.md).
 
 ## Démarrage rapide
@@ -43,12 +44,13 @@ zynora-office/
   packages/database/       Base locale SQLite : migrations, paramètres, journal, récents, favoris, corbeille (Rust)
   packages/file-manager/   Bibliothèque de documents : import validé, dossiers, corbeille, écriture atomique (Rust)
   packages/spreadsheet-engine/  Tableur adossé à IronCalc : formules, XLSX, CSV, styles, feuilles (Rust)
+  packages/document-engine/     Traitement de texte : modèle, DOCX (docx-rs), texte brut, pertes signalées (Rust)
   apps/site/               Site vitrine et de téléchargement (Next.js + Turbopack, export statique, GitHub Pages)
   tests/e2e/               Tests de bout en bout sur l'application compilée (WebDriver)
   scripts/                 Installation, contrôle des licences
 ```
 
-Les paquets `document-engine`, `presentation-engine`, `export-engine`
+Les paquets `presentation-engine`, `export-engine`
 et `ai-assistant` seront créés **au moment où ils auront du code réel** (voir
 [ROADMAP.md](ROADMAP.md)). Aucun dossier vide n'est créé pour faire illusion.
 

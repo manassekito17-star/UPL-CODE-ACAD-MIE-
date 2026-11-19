@@ -4,21 +4,21 @@ Légende : ✅ pris en charge et **testé** · 🟡 partiel (limites listées) �
 🔒 refusé volontairement (sécurité). **Aucune case ne passe à ✅ sans test automatisé sur des
 fichiers réels.**
 
-## Formats — phase 2
+## Formats — phases 2 et 3
 
 « Importer » = contrôlé puis rangé dans la bibliothèque (✅ testé).
 
 | Format | Importer | Ouvrir | Modifier | Enregistrer | Remarque |
 |---|---|---|---|---|---|
-| DOCX | ✅ | ❌ | ❌ | ❌ | Phase 3. Contrôles de sécurité du conteneur prêts (✅ testés) |
-| ODT | ✅ | ❌ | ❌ | ❌ | Phase 3 |
+| DOCX | ✅ | ✅ | ✅ | 🟡 | ZYNORA Word. Aller-retour sans perte de tout ce que le modèle couvre (tests) ; relu par LibreOffice et fichiers produits par LibreOffice ouverts (tests croisés). Un document contenant des éléments non pris en charge (voir ci-dessous) **n'est jamais remplacé** : copie obligatoire. **Fichiers produits par Microsoft Word : corpus à constituer** |
+| ODT | ✅ | ❌ | ❌ | ❌ | Non pris en charge par docx-rs ; message explicite à l'ouverture (convertir en DOCX) |
 | XLSX | ✅ | ✅ | ✅ | ✅ | ZYNORA Sheets. 3 cycles sans perte (tests) ; relu par LibreOffice et fichiers produits par LibreOffice ouverts (tests croisés). **Fichiers produits par Microsoft Excel : corpus à constituer** |
 | ODS | ✅ | ❌ | ❌ | ❌ | Non pris en charge par le moteur IronCalc ; message explicite à l'ouverture |
 | CSV | ✅ | ✅ | ✅ | 🟡 | Séparateur détecté (; , tabulation), UTF-8 ; enregistrement de la 1re feuille seulement, sans mise en forme ; formules venues du fichier importées comme texte |
 | PPTX | ✅ | ❌ | ❌ | ❌ | Phase 4 |
 | ODP | ✅ | ❌ | ❌ | ❌ | Phase 4 |
 | PDF | ✅ | — | — | ❌ | Export prévu phases 2–4 |
-| TXT | ✅ | ❌ | ❌ | ❌ | Phase 3 |
+| TXT | ✅ | ✅ | ✅ | ✅ | UTF-8 (BOM accepté) ; un paragraphe par ligne ; la mise en forme n'est pas enregistrée dans un .txt (avertissement affiché) ; export d'un DOCX en .txt |
 | DOCM, XLSM, PPTM | 🔒 | 🔒 | 🔒 | 🔒 | Formats à macros refusés |
 | DOC, XLS, PPT (OLE) | ❌ | ❌ | ❌ | ❌ | Anciens formats binaires ; détectés et signalés |
 | Office chiffré | ❌ | ❌ | ❌ | ❌ | Détecté (conteneur OLE) et signalé clairement |
@@ -54,6 +54,43 @@ fichiers réels.**
 | Hauteurs de ligne personnalisées | 🟡 | Conservées dans le fichier ; affichées à la hauteur standard |
 | Filtres, graphiques, mise en forme conditionnelle, tableaux, tableaux croisés, liens hypertexte, commentaires, protection, figer les volets, zoom | ❌ | Onglets « Mise en page » et « Révision » absents tant que leurs fonctions ne sont pas réelles |
 | Impression, export PDF | ❌ | Moteur PDF à choisir (ARCHITECTURE.md, D6) |
+
+## ZYNORA Word — fonctionnalités (phase 3, première version)
+
+| Onglet | Groupe | Contenu (chaque bouton est fonctionnel et enregistré dans le DOCX) |
+|---|---|---|
+| Accueil | Presse-papiers | Coller (texte), couper, copier, reproduire la mise en forme |
+| | Police | Police, taille, agrandir/réduire, gras, italique, souligné, barré, indice, exposant, couleur, surlignage (15 couleurs DOCX), effacer la mise en forme |
+| | Paragraphe | Puces, numérotation (9 niveaux), retraits, alignements (gauche, centre, droite, justifié), interligne, marques de paragraphe |
+| | Styles | Normal, Titre, Titre 1 à 3, Citation |
+| | Modification | Rechercher, remplacer (un par un ou tout), sélectionner tout |
+| Insertion | Pages | Saut de page, saut de ligne |
+| | Tableaux | Insertion (2×2 à 100×20), lignes et colonnes (ajout, suppression), suppression du tableau |
+| | Liens | Lien web ou adresse électronique (autres schémas refusés), suppression du lien |
+| | Texte, Symboles | Date et heure (3 formats), 40 symboles |
+| Mise en page | Mise en page | Marges (4 préréglages + personnalisées), orientation, taille (A4, A5, A3, Letter, Legal) |
+| | Retrait, Espacement | Retraits, retrait de 1re ligne ou suspendu, espacement avant/après, interligne (dialogue Paragraphe) |
+| Révision | Vérification | Vérification orthographique du système (activable), statistiques (mots, caractères, paragraphes) |
+| Affichage | Zoom, Afficher, Impression | Zoom 50–200 %, largeur de page, marques de mise en forme, impression aux dimensions et marges du document |
+
+Barre de titre : annuler/rétablir, enregistrer, enregistrer une copie (.docx ou .txt), exporter en
+texte brut. Barre d'état : mots, caractères, zoom. Sauvegarde automatique toutes les 30 s
+(copie de récupération) et confirmation avant de fermer sans enregistrer.
+
+**Éléments DOCX non pris en charge** (signalés à l'ouverture ; l'original n'est jamais remplacé) :
+images et dessins, en-têtes et pieds de page, notes de bas de page et de fin, champs (numéros de
+page, dates automatiques, renvois), commentaires, modifications suivies, table des matières,
+cellules fusionnées et couleurs de cellule, tableaux imbriqués, colonnes de texte, sections
+multiples, taquets de tabulation, styles personnalisés (convertis en Normal), titres de niveau 4+,
+numérotations en lettres ou chiffres romains, interlignes exacts, effets de caractère (petites
+majuscules, espacement…), texte masqué, contrôles de contenu.
+
+**Approximations sans perte de contenu** (non signalées) : l'espacement défini par les styles
+« Corps de texte » des autres logiciels est remplacé par celui du style Normal de ZYNORA ; les
+bordures et largeurs des tableaux sont réécrites en bordures simples et colonnes égales.
+
+**Pagination** : page continue aux dimensions du document ; les sauts de page sont respectés à
+l'écran et à l'impression ; pas encore de découpage automatique en pages à l'écran.
 
 ## Plateformes — phase 2
 

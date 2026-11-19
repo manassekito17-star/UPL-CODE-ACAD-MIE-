@@ -42,6 +42,26 @@
 - Bout en bout : nouveau classeur, saisie, formules calculées (SOMME, #DIV/0!), gras,
   enregistrement XLSX, réouverture avec formules et mise en forme.
 
+## Traitement de texte
+- Moteur (`cargo test -p zynora-document-engine`) : aller-retour DOCX **sans aucune différence**
+  d'un document couvrant toutes les fonctions du modèle ; numérotation redémarrée après une
+  coupure ; orientation et marges ; lecture d'un DOCX produit par LibreOffice (titres, listes
+  imbriquées, liens, citation, retraits, tableau) avec **signalement** de l'image et de la cellule
+  fusionnée ; texte brut (BOM, fins de ligne, sauts de page) ; refus des données invalides
+  (liens `javascript:`/`file:`, couleurs, surlignages, tailles) ; fichier tronqué refusé sans panique.
+- **Compatibilité croisée** (`-- --ignored`, LibreOffice requis) : LibreOffice relit notre DOCX
+  (titres, listes à puces et numérotées, tableau, gras, lien) et nous relisons le DOCX qu'il
+  réenregistre.
+- Commandes Tauri (`cargo test -p zynora-desktop`) : création, copie de récupération sans toucher
+  l'original, enregistrement ; **un document avec pertes n'est jamais écrasé** (octets identiques)
+  et la copie reçoit un nom libre ; texte brut ; formats refusés.
+- Interface (Vitest) : conversion modèle ↔ ProseMirror sans perte, commandes (listes, retraits,
+  recherche à cheval sur plusieurs mises en forme, remplacement, saut de page), et éditeur complet
+  (ruban, enregistrement de ce qui est affiché, tableaux, mise en page, liens dangereux refusés,
+  copie imposée, confirmation de fermeture, récupération).
+- Bout en bout : nouveau document, saisie, Titre 1 + gras, paysage, enregistrement DOCX,
+  réouverture identique, export en texte brut vérifié sur le disque.
+
 ## Téléphone
 - Interface vérifiée en émulation iPhone 13 (Playwright) : navigation en bas, aucune largeur
   excédentaire, grille et ruban utilisables.

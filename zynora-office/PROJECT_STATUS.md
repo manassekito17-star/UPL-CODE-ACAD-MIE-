@@ -1,6 +1,6 @@
 # État du projet — ZYNORA OFFICE
 
-_Mise à jour : 19/11/2026 — Sheets : ruban complet (5 onglets) ; page de téléchargement ZENTECH ; PR n° 50._
+_Mise à jour : 19/11/2026 — Phase 3 : première version de ZYNORA Word ; PR n° 50._
 
 ## Terminé (et testé)
 
@@ -39,9 +39,19 @@ favoris, récents, recherche, corbeille avec restauration), détection d'arrêt 
 - Page `/zynora-office` sur le site ZENTECH (PR n° 50, à fusionner) et version GitHub
   « zynora-office-preview » publiée automatiquement après réussite de la CI.
 
+### Phase 3 — ZYNORA Word (première version, validée sur Linux)
+- **Moteur** `packages/document-engine` (docx-rs, MIT) : modèle de document, lecture et écriture
+  DOCX, texte brut ; tout élément que ZYNORA ne sait pas réécrire est **relevé**.
+- **Aucune perte silencieuse** : un document dont la lecture a relevé des éléments non conservés
+  n'est jamais remplacé — refus appliqué dans le cœur Rust, copie imposée côté interface.
+- **Éditeur** ProseMirror (MIT) : page aux dimensions et marges du document, ruban Accueil,
+  Insertion, Mise en page, Révision, Affichage, chaque bouton fonctionnel et enregistré
+  (détail : COMPATIBILITY.md), barre d'état, impression, sauvegarde automatique et récupération.
+- Word activé dans la navigation, l'accueil et la bibliothèque.
+
 ## En cours
-- Exécution de la CI : Linux, Windows, macOS et **premier APK Android** (l'assemblage local de
-  l'APK a été bloqué par les limites de débit de Maven Central depuis le conteneur de développement).
+- Exécution de la CI sur Windows, macOS et Android avec Word (Linux validé en local, y compris
+  bout en bout).
 
 ## Restant
 - **Sheets** : affichage des cellules fusionnées dans la grille, bordures, tri, filtres,
@@ -50,8 +60,10 @@ favoris, récents, recherche, corbeille avec restauration), détection d'arrêt 
 - **Smartphone** : import depuis le stockage du téléphone (adresses `content://`), tests sur
   émulateur Android, édition tactile avancée (sélection par glissement), **iOS** (Mac + Xcode +
   compte Apple Developer), APK signé pour la distribution.
-- Phases suivantes : **Word** (phase 3), Slides (phase 4), fonctions avancées, IA, synchronisation,
-  publication signée (voir ROADMAP.md).
+- **Word** : images, pagination automatique à l'écran, en-têtes et pieds de page, notes, table des
+  matières, cellules fusionnées, ODT, export PDF, corpus de fichiers produits par **Microsoft Word**.
+- Phases suivantes : Slides (phase 4), fonctions avancées, IA, synchronisation, publication
+  signée (voir ROADMAP.md).
 
 ## Erreurs corrigées pendant la phase 2
 - Formats de nombre : syntaxe canonique Excel (« 0.00 ») ; l'affichage suit la langue.
@@ -60,7 +72,16 @@ favoris, récents, recherche, corbeille avec restauration), détection d'arrêt 
 - Test de bout en bout : la recherche XPath par `text()` n'est pas fiable sous WebKitWebDriver →
   lecture directe du DOM.
 
+## Erreurs corrigées pendant la phase 3
+- Listes à puces affichées numérotées par LibreOffice : identifiant de numérotation en conflit
+  avec celui que docx-rs déclare déjà → identifiants dédiés (détecté par le test croisé).
+- Profil release en `panic = "abort"` : une panique d'un lecteur aurait fermé l'application →
+  `unwind` + `catch_unwind` (ARCHITECTURE.md, D15).
+
 ## Erreurs et limites connues
+- Word : affichage en page continue (pas de découpage automatique en pages à l'écran) ; les
+  documents contenant images, notes, en-têtes… s'ouvrent en lecture-modification mais ne peuvent
+  être enregistrés que sous forme de copie, sans ces éléments.
 - Cellules fusionnées : la fusion est enregistrée dans le fichier mais la grille ne l'affiche pas
   encore comme une seule cellule.
 - ODS non pris en charge par le moteur (message explicite) ; CSV : première feuille seulement.
@@ -77,16 +98,17 @@ favoris, récents, recherche, corbeille avec restauration), détection d'arrêt 
 | Rust `zynora-database` | ✅ 13 / 13 |
 | Rust `zynora-file-manager` | ✅ 13 / 13 |
 | Rust `zynora-spreadsheet-engine` | ✅ 24 / 24 (+ 2 / 2 croisés LibreOffice) |
-| Rust `zynora-desktop` | ✅ 3 / 3 |
+| Rust `zynora-document-engine` | ✅ 8 / 8 (+ 1 / 1 croisé LibreOffice) |
+| Rust `zynora-desktop` | ✅ 6 / 6 |
 | Vitest design system | ✅ 11 / 11 |
-| Vitest application (dont 12 Sheets, 11 ruban, 3 références) | ✅ 45 / 45 |
+| Vitest application (dont 12 Sheets, 11 ruban, 15 Word) | ✅ 60 / 60 |
 | node:test scripts | ✅ 2 / 2 |
 | TypeScript strict, `cargo fmt`, `clippy -D warnings` | ✅ |
-| Licences | ✅ 472 / 472 |
-| Bout en bout (binaire compilé, vrai disque, vrai moteur) | ✅ 21 / 21 vérifications |
+| Licences | ✅ 531 / 531 |
+| Bout en bout (binaire compilé, vrai disque, vrais moteurs) | ✅ 25 / 25 vérifications |
 | Interface téléphone (émulation iPhone 13) | ✅ vérifiée visuellement |
 | Compilation Rust Android arm64 | ✅ |
-| APK Android | ⏳ CI |
+| APK Android | ✅ CI (run n° 16) |
 
 **Tests échoués actuellement : aucun en local.**
 
@@ -94,14 +116,15 @@ favoris, récents, recherche, corbeille avec restauration), détection d'arrêt 
 1. Emplacement : dossier isolé du dépôt actuel (dépôt dédié recommandé).
 2. ONLYOFFICE écarté (AGPL + logo obligatoire) ; **IronCalc validé et intégré**.
 3. Ordre : Sheets (phase 2) avant Word (phase 3).
+7. Word : docx-rs au lieu d'un analyseur maison conservant le XML ; en contrepartie, copie imposée
+   pour tout document contenant des éléments non pris en charge (ARCHITECTURE.md, D4).
 4. Interface « familière » des tableurs **sans copie** de l'interface, des icônes ou des marques
    de Microsoft (demande « ressembler à 100 % » adaptée : voir ARCHITECTURE.md, D13).
 5. Version smartphone avec Tauri 2 mobile (même code) ; iOS nécessite un Mac.
 6. Licence de ZYNORA OFFICE : non choisie.
 
 ## Prochaine tâche
-1. Confirmer la CI (dont l'APK Android) et corriger si nécessaire.
-2. **Phase 3 — ZYNORA Word** : prototype de validation ProseMirror + pagination + lecture/écriture
-   DOCX (ARCHITECTURE.md, D4), avec la même méthode que pour Sheets (prototype mesuré avant
-   intégration).
-3. En parallèle : fin de Sheets (fusions affichées, bordures, tri/filtres) et import mobile.
+1. Confirmer la CI (Windows, macOS, Android) avec Word.
+2. Word : images (lecture, affichage, réécriture), pagination à l'écran, en-têtes et pieds de page,
+   export PDF ; corpus de documents Microsoft Word.
+3. En parallèle : fin de Sheets (fusions affichées, filtres, graphiques) et import mobile.

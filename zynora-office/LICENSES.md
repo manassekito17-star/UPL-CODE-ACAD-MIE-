@@ -20,7 +20,7 @@ inconnues ou absentes. Une expression `A OR B` est acceptée si une option est a
 
 Contrôle automatique : `pnpm check:licenses` (`scripts/check-licenses.mjs`) vérifie **toutes** les crates
 Rust (y compris celles propres à Windows et macOS) et les paquets npm de production. Résultat au
-19/11/2026 : **472 dépendances, toutes autorisées**.
+19/11/2026 : **531 dépendances, toutes autorisées**.
 
 ## Dépendances directes
 
@@ -30,6 +30,8 @@ Rust (y compris celles propres à Windows et macOS) et les paquets npm de produc
 | @tauri-apps/api, @tauri-apps/cli | 2.12.5 / 2.12.6 | MIT OR Apache-2.0 | IPC, outillage |
 | ironcalc (moteur de tableur) | 0.9.1 | MIT OR Apache-2.0 | Formules, XLSX |
 | tauri-plugin-dialog | 2.8.4 | MIT OR Apache-2.0 | Dialogues natifs (utilisés depuis Rust uniquement) |
+| docx-rs (moteur de documents) | 0.4.22 | MIT | Lecture et écriture DOCX |
+| prosemirror-model, -state, -view, -commands, -history, -keymap, -inputrules, -tables, -dropcursor, -gapcursor | 1.x | MIT | Éditeur de texte de ZYNORA Word |
 | rusqlite (SQLite intégré) | 0.43.0 | MIT (SQLite : domaine public) | Base locale |
 | zip | 9.7.0 | MIT | Lecture des conteneurs OOXML/ODF |
 | serde, serde_json, thiserror | 1.x / 2.x | MIT OR Apache-2.0 | Sérialisation, erreurs |
@@ -45,7 +47,8 @@ Rust (y compris celles propres à Windows et macOS) et les paquets npm de produc
 | ONLYOFFICE (sdkjs, web-apps, core/x2t, Desktop Editors) | AGPL-3.0 + 7(b) logo obligatoire | **Écarté** (voir ARCHITECTURE.md, D2) |
 | IronCalc | MIT OR Apache-2.0 | **Validé et intégré** (phase 2) |
 | HyperFormula | GPL-3.0 ou commerciale | Écarté |
-| ProseMirror | MIT | **Retenu** pour Word (phase 3) |
+| ProseMirror | MIT | **Intégré** (ZYNORA Word, phase 3) |
+| docx-rs | MIT | **Intégré** (lecture et écriture DOCX, phase 3) |
 | LibreOffice (sans interface) | MPL-2.0 | Option future : convertisseur externe s'il est installé, jamais livré |
 | krilla | MIT OR Apache-2.0 | Candidat PDF (prototype) |
 | spellbook + dictionnaires Hunspell | MPL-2.0 ; dictionnaires : licences variables | Candidat correcteur ; licence de chaque dictionnaire à vérifier |

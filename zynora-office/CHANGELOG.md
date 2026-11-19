@@ -4,6 +4,26 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; versions : S
 
 ## [Non publié]
 
+### Ajouté — Phase 3 : ZYNORA Word (première version)
+- `packages/document-engine` : modèle de document, lecture et écriture DOCX (docx-rs), texte
+  brut, **relevé des éléments non conservés** (images, notes, champs, en-têtes…).
+- Commandes `word_open`, `word_create`, `word_save` (refus de remplacer un original avec pertes,
+  vérifié sur le disque), `word_save_copy`, `word_autosave`, `word_open_recovery`, `print_webview`.
+- Éditeur ProseMirror : page aux dimensions et marges du document, ruban Accueil, Insertion, Mise
+  en page, Révision, Affichage (détail : COMPATIBILITY.md), barre d'état, raccourcis clavier
+  usuels, saisie automatique des listes (« - », « 1. »), impression.
+- Word activé dans la navigation, l'accueil et la bibliothèque (ouverture des .docx et .txt) ;
+  récupération après incident commune à Sheets et Word.
+- Contrôles du ruban partagés entre Sheets et Word (`src/ribbon/controls.tsx`).
+
+### Modifié
+- Profil release en `panic = "unwind"` et lecteurs DOCX/XLSX protégés par `catch_unwind`
+  (ARCHITECTURE.md, D15).
+
+### Corrigé — Phase 3
+- Listes à puces écrites avec l'identifiant de numérotation n° 1, déjà déclaré par docx-rs :
+  LibreOffice les affichait numérotées. Identifiants dédiés (test croisé).
+
 ### Ajouté — Site dédié
 - `apps/site` : site ZYNORA Office (accueil, fonctionnalités, téléchargements selon l'appareil),
   Next.js 16 compilé avec Turbopack, export statique, thème sombre automatique ; publication sur

@@ -10,7 +10,7 @@ Ne pas ouvrir de ticket public. Contacter le mainteneur du dépôt en privé (on
 3. **Chaîne d'approvisionnement** : dépendance ou mise à jour piégée.
 4. **Perte de données** : écrasement, plantage, base corrompue.
 
-## Protections en place (phases 0 et 1)
+## Protections en place (phases 0 à 3)
 
 | Menace | Protection | Où | Testé |
 |---|---|---|---|
@@ -36,10 +36,14 @@ Ne pas ouvrir de ticket public. Contacter le mainteneur du dépôt en privé (on
 | CSV piégé | Une valeur commençant par « = » est importée comme texte ; à l'export, un texte commençant par =, +, - ou @ est préfixé d'une apostrophe (injection CSV) | `spreadsheet-engine` | unitaire |
 | Document modifié hors de ZYNORA | Chaque ouverture relit le fichier et le **revalide** (macros, DTD, archive piégée) avant de le passer au moteur | `file-manager` | unitaire |
 | Perte de modifications | Copie de récupération toutes les 30 s dans le dossier de l'application (jamais à la place du document) ; fermeture d'un classeur modifié soumise à confirmation | `src-tauri/src/sheets.rs`, interface | unitaire, interface |
+| Document texte avec contenu non pris en charge | La lecture DOCX relève tout élément qui ne serait pas réécrit ; `word_save` relit le fichier **sur le disque** et refuse de le remplacer s'il en contient (copie obligatoire, nom libre choisi sans écrasement) | `document-engine`, `src-tauri/src/word.rs` | unitaire, interface |
+| Liens piégés dans un document | Seuls `http`, `https` et `mailto` sont acceptés (lecture, saisie et écriture) ; `javascript:`, `file:`… refusés ; un clic dans l'éditeur n'ouvre jamais un lien | `document-engine`, `word/schema.ts` | unitaire, interface |
+| Modèle de document forgé par l'interface | `word_save` revalide le modèle : dimensions et marges bornées, couleurs hexadécimales, surlignages de la liste DOCX, tailles de police, noms de police | `document-engine` | unitaire |
+| Lecteur tiers qui panique | Paniques de docx-rs et IronCalc rattrapées (`panic = "unwind"` + `catch_unwind`) : erreur affichée, application conservée | `document-engine`, `spreadsheet-engine` | unitaire |
 | Saisies démesurées | Cellule ≤ 32 767 caractères ; plage demandée ≤ 20 000 cellules ; CSV ≤ 2 millions de cellules ; insertions bornées | `spreadsheet-engine`, `sheets.rs` | unitaire |
 | Téléphone | Bibliothèque dans l'espace privé de l'application ; aucune permission de stockage demandée | `src-tauri/src/lib.rs` | revue |
 | Journalisation | Opérations sensibles enregistrées localement (jamais le contenu des documents), journal borné à 10 000 entrées | `packages/database` | unitaire, e2e |
-| Licences et dépendances | Contrôle automatique de 472 dépendances ; `pnpm audit` ; versions exactes ; `Cargo.lock` et `pnpm-lock.yaml` versionnés | `scripts/check-licenses.mjs`, CI | CI |
+| Licences et dépendances | Contrôle automatique de 531 dépendances ; `pnpm audit` ; versions exactes ; `Cargo.lock` et `pnpm-lock.yaml` versionnés | `scripts/check-licenses.mjs`, CI | CI |
 | Secrets | Aucun secret dans le dépôt ni l'interface ; signature et clés de mise à jour prévues dans les secrets GitHub | — | revue |
 
 ## Prévu

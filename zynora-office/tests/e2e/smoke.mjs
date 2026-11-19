@@ -7,7 +7,7 @@
 // Captures d'écran facultatives : ZYNORA_E2E_SCREENSHOTS=dossier
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
@@ -78,6 +78,12 @@ async function openSession() {
     type: async (xpath, text) => {
       const element = await find(xpath);
       await s("POST", `/element/${element}/clear`, {});
+      await s("POST", `/element/${element}/value`, { text });
+    },
+    /** Frappe au clavier sans vider l'élément (zone éditable : `clear` y laisse un <br> parasite). */
+    keys: async (xpath, text) => {
+      const element = await find(xpath);
+      await s("POST", `/element/${element}/click`, {});
       await s("POST", `/element/${element}/value`, { text });
     },
     waitText: (xpath, what) => waitFor(async () => (await s("GET", `/element/${await findNow(xpath)}/text`)) || false, what),
@@ -223,6 +229,42 @@ try {
   await waitCell(3, 1, "42,5", "valeur après réouverture");
   await waitFor(async () => (await app.exec("return getComputedStyle(document.getElementById('cell-3-1')).fontWeight")) === "700", "gras conservé");
   step("le classeur enregistré en XLSX se rouvre avec ses formules et sa mise en forme");
+  await app.click(button("Retour à la bibliothèque"));
+
+  // --- ZYNORA Word : saisie, mise en forme, enregistrement DOCX, copie en texte brut ---
+  const editorText = () => app.exec("return document.querySelector('.word-editor')?.textContent ?? null");
+  await app.click(navItem("Accueil"));
+  await app.click("//section//button[normalize-space()='Nouveau document']");
+  await waitFor(async () => (await app.exec("return document.querySelector('h1')?.textContent")) === "Document.docx", "ouverture du nouveau document");
+  assert.ok(existsSync(join(library, "Document.docx")), "le nouveau document est créé dans la bibliothèque");
+  await app.keys("//div[contains(@class,'word-editor')]", "Rapport annuel");
+  await waitFor(async () => (await editorText()) === "Rapport annuel", "texte saisi dans l'éditeur");
+  step("un nouveau document est créé et le texte saisi s'affiche");
+
+  await app.click(button("Sélectionner tout"));
+  await app.click("//button[@role='option' and normalize-space()='Titre 1']");
+  await app.click(button("Gras (Ctrl+G)"));
+  await waitFor(async () => (await app.exec("return document.querySelector('.word-editor h1 strong')?.textContent")) === "Rapport annuel", "titre en gras");
+  await app.click("//button[@role='tab' and normalize-space()='Mise en page']");
+  await app.click("//button[normalize-space()='Orientation']");
+  await app.click("//button[@role='menuitem' and contains(., 'Paysage')]");
+  await waitFor(async () => (await app.exec("return document.querySelector('.word__page').style.width")) === "297mm", "page en paysage");
+  step("style Titre 1, gras et orientation paysage appliqués depuis le ruban");
+  await app.screenshot("7-word");
+
+  await app.click("//header//button[normalize-space()='Enregistrer']");
+  await waitFor(async () => (await app.exec("return document.querySelector('.sheets__status')?.textContent")) === "Enregistré", "enregistrement du document");
+  await app.click(button("Retour à la bibliothèque"));
+  await app.click(navItem("Documents"));
+  await app.click(button("Ouvrir Document.docx"));
+  await waitFor(async () => (await app.exec("return document.querySelector('.word-editor h1 strong')?.textContent")) === "Rapport annuel", "titre après réouverture");
+  assert.equal(await app.exec("return document.querySelector('.word__page').style.width"), "297mm");
+  step("le document enregistré en DOCX se rouvre avec son style, son gras et sa mise en page");
+
+  await app.click(button("Exporter en texte brut (.txt)"));
+  await waitFor(() => existsSync(join(library, "Document.txt")), "export texte sur le disque");
+  assert.equal(readFileSync(join(library, "Document.txt"), "utf8"), "Rapport annuel\n");
+  step("l'export en texte brut écrit un nouveau fichier sans toucher au DOCX");
   await app.click(button("Retour à la bibliothèque"));
 
   // --- Paramètres et journal ---
