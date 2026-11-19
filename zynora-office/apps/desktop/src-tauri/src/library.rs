@@ -96,6 +96,13 @@ pub(crate) fn library_info(state: State<'_, AppState>) -> CommandResult<LibraryI
 }
 
 /// Ouvre le dialogue natif de choix de dossier. `None` si l'utilisateur annule.
+#[cfg(mobile)]
+#[tauri::command]
+pub(crate) async fn choose_library(_app: AppHandle, _state: State<'_, AppState>) -> CommandResult<Option<LibraryInfo>> {
+    Err(CommandError::new("sur téléphone, la bibliothèque est rangée dans l'espace privé de l'application"))
+}
+
+#[cfg(desktop)]
 #[tauri::command]
 pub(crate) async fn choose_library(app: AppHandle, state: State<'_, AppState>) -> CommandResult<Option<LibraryInfo>> {
     let Some(picked) = app.dialog().file().set_title("Dossier des documents ZYNORA").blocking_pick_folder() else {
@@ -174,8 +181,25 @@ pub(crate) async fn import_documents(
         return Ok(ImportOutcome { cancelled: true, imported: Vec::new(), rejected: Vec::new() });
     };
 
-    let sources: Vec<PathBuf> = picked.into_iter().filter_map(|p| p.into_path().ok()).collect();
-    Ok(import_paths(&state, &library, &key, &folder, &sources))
+    // Sur Android, le sélecteur renvoie des adresses « content:// » et non des chemins : elles sont
+    // signalées comme refusées plutôt qu'ignorées en silence (prise en charge à venir).
+    let mut sources = Vec::new();
+    let mut unsupported = Vec::new();
+    for item in picked {
+        let shown = item.to_string();
+        match item.into_path() {
+            Ok(path) => sources.push(path),
+            Err(_) => unsupported.push(Rejected {
+                name: shown,
+                reason:
+                    "emplacement non pris en charge : l'import depuis le stockage du téléphone arrive prochainement"
+                        .into(),
+            }),
+        }
+    }
+    let mut outcome = import_paths(&state, &library, &key, &folder, &sources);
+    outcome.rejected.extend(unsupported);
+    Ok(outcome)
 }
 
 fn import_paths(state: &AppState, library: &Library, key: &str, folder: &str, sources: &[PathBuf]) -> ImportOutcome {

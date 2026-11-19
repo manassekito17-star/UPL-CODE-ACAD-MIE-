@@ -85,7 +85,7 @@ export function fakeApi(options: Options = {}) {
   const within = (path: string, root: string) => path === root || path.startsWith(`${root}/`);
 
   const api: Api = {
-    appInfo: vi.fn(async () => ({ name: "ZYNORA Office", version: "0.1.0", schema_version: 2, os: "linux", arch: "x86_64", previous_session_interrupted: options.interrupted ?? false })),
+    appInfo: vi.fn(async () => ({ name: "ZYNORA Office", version: "0.1.0", schema_version: 2, os: "linux", arch: "x86_64", previous_session_interrupted: options.interrupted ?? false, mobile: false })),
     getSettings: vi.fn(async () => ({ ...settings })),
     updateSetting: vi.fn(async (change) => {
       settings = { ...settings, [change.key]: change.value };

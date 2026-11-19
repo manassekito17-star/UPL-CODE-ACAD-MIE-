@@ -69,6 +69,8 @@ struct AppInfo {
     os: &'static str,
     arch: &'static str,
     previous_session_interrupted: bool,
+    /// Application mobile (Android, iOS) : bibliothèque dans l'espace privé de l'application.
+    mobile: bool,
 }
 
 #[tauri::command]
@@ -80,6 +82,7 @@ fn app_info(state: State<'_, AppState>) -> Result<AppInfo, CommandError> {
         os: std::env::consts::OS,
         arch: std::env::consts::ARCH,
         previous_session_interrupted: state.previous_session_interrupted,
+        mobile: cfg!(mobile),
     })
 }
 
@@ -120,12 +123,13 @@ fn open_state(app: &tauri::App) -> Result<AppState, Box<dyn std::error::Error>> 
         })
         .map_err(|e| format!("La base locale n'a pas pu être ouverte : {e}"));
 
-    let default_library = app
-        .path()
-        .document_dir()
-        .or_else(|_| app.path().home_dir())
-        .unwrap_or_else(|_| data_dir.clone())
-        .join("ZYNORA");
+    // Sur téléphone, les documents restent dans l'espace privé de l'application (aucune permission
+    // de stockage demandée) ; sur ordinateur, dans « Documents/ZYNORA ».
+    let default_library = if cfg!(mobile) {
+        data_dir.join("ZYNORA")
+    } else {
+        app.path().document_dir().or_else(|_| app.path().home_dir()).unwrap_or_else(|_| data_dir.clone()).join("ZYNORA")
+    };
 
     Ok(AppState {
         db,
@@ -136,6 +140,7 @@ fn open_state(app: &tauri::App) -> Result<AppState, Box<dyn std::error::Error>> 
     })
 }
 
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())

@@ -14,7 +14,7 @@ Ne pas ouvrir de ticket public. Contacter le mainteneur du dépôt en privé (on
 
 | Menace | Protection | Où | Testé |
 |---|---|---|---|
-| Interface compromise | Fenêtre **sans aucune permission Tauri** ; seules 18 commandes applicatives typées (liste : ARCHITECTURE.md §3) ; CSP stricte (`script-src 'self'`, pas d'`eval`, pas de ressources distantes) ; `freezePrototype` | `src-tauri/capabilities`, `tauri.conf.json` | e2e |
+| Interface compromise | Fenêtre **sans aucune permission Tauri** ; seules les commandes applicatives typées (liste : ARCHITECTURE.md §3) ; CSP stricte (`script-src 'self'`, pas d'`eval`, pas de ressources distantes) ; `freezePrototype` | `src-tauri/capabilities`, `tauri.conf.json` | e2e |
 | Injection via IPC | Arguments désérialisés en énumérations fermées ; clé ou valeur inconnue rejetée ; limites bornées | `packages/database`, `src-tauri/src/lib.rs` | unitaire |
 | Injection SQL | Requêtes paramétrées uniquement | `packages/database` | revue |
 | Traversée de chemin | `resolve_within` : normalisation, refus des `..` hors racine, des chemins absolus externes et des liens symboliques sortants | `packages/security/src/paths.rs` | unitaire |
@@ -33,8 +33,13 @@ Ne pas ouvrir de ticket public. Contacter le mainteneur du dépôt en privé (on
 | Identifiants de corbeille piégés | Format strict (hexadécimal et tirets) ; chemin d'origine restreint à des composants ordinaires | `file-manager` | unitaire |
 | Liens symboliques | Jamais suivis dans la bibliothèque (ni listés, ni cherchés) ; écriture à travers un lien cassé refusée | `security`, `file-manager` | unitaire |
 | Fichier à moitié écrit | `write_atomic` : fichier temporaire, `fsync`, renommage, `fsync` du dossier | `file-manager` | unitaire |
+| CSV piégé | Une valeur commençant par « = » est importée comme texte ; à l'export, un texte commençant par =, +, - ou @ est préfixé d'une apostrophe (injection CSV) | `spreadsheet-engine` | unitaire |
+| Document modifié hors de ZYNORA | Chaque ouverture relit le fichier et le **revalide** (macros, DTD, archive piégée) avant de le passer au moteur | `file-manager` | unitaire |
+| Perte de modifications | Copie de récupération toutes les 30 s dans le dossier de l'application (jamais à la place du document) ; fermeture d'un classeur modifié soumise à confirmation | `src-tauri/src/sheets.rs`, interface | unitaire, interface |
+| Saisies démesurées | Cellule ≤ 32 767 caractères ; plage demandée ≤ 20 000 cellules ; CSV ≤ 2 millions de cellules ; insertions bornées | `spreadsheet-engine`, `sheets.rs` | unitaire |
+| Téléphone | Bibliothèque dans l'espace privé de l'application ; aucune permission de stockage demandée | `src-tauri/src/lib.rs` | revue |
 | Journalisation | Opérations sensibles enregistrées localement (jamais le contenu des documents), journal borné à 10 000 entrées | `packages/database` | unitaire, e2e |
-| Licences et dépendances | Contrôle automatique de 450 dépendances ; `pnpm audit` ; versions exactes ; `Cargo.lock` et `pnpm-lock.yaml` versionnés | `scripts/check-licenses.mjs`, CI | CI |
+| Licences et dépendances | Contrôle automatique de 472 dépendances ; `pnpm audit` ; versions exactes ; `Cargo.lock` et `pnpm-lock.yaml` versionnés | `scripts/check-licenses.mjs`, CI | CI |
 | Secrets | Aucun secret dans le dépôt ni l'interface ; signature et clés de mise à jour prévues dans les secrets GitHub | — | revue |
 
 ## Prévu

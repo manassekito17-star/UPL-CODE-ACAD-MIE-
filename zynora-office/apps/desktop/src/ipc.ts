@@ -22,6 +22,8 @@ export interface AppInfo {
   arch: string;
   /** La session précédente ne s'est pas terminée normalement (plantage, coupure). */
   previous_session_interrupted: boolean;
+  /** Application mobile : bibliothèque dans l'espace privé de l'application. */
+  mobile: boolean;
 }
 
 export type EntryKind = "folder" | "text" | "spreadsheet" | "presentation" | "pdf";

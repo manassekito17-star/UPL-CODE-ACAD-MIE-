@@ -32,6 +32,22 @@
    Captures facultatives : `ZYNORA_E2E_SCREENSHOTS=dossier`. Les dialogues natifs (import, choix
    du dossier) ne sont pas pilotables par WebDriver : leur logique est testée en Rust.
 
+## Tableur
+- Valeurs de référence calculées à la main pour chaque fonction usuelle (le moteur doit les
+  retrouver exactement), erreurs, dépendances, 3 cycles XLSX, CSV, styles, feuilles, copier-coller,
+  lignes et colonnes, statistiques, garde-fou de performance.
+- **Compatibilité croisée** (`cargo test -p zynora-spreadsheet-engine -- --ignored`, LibreOffice
+  requis ; exécuté en CI Linux) : LibreOffice relit nos classeurs et recalcule les mêmes valeurs ;
+  ZYNORA ouvre un XLSX produit par LibreOffice et traduit ses formules en français.
+- Bout en bout : nouveau classeur, saisie, formules calculées (SOMME, #DIV/0!), gras,
+  enregistrement XLSX, réouverture avec formules et mise en forme.
+
+## Téléphone
+- Interface vérifiée en émulation iPhone 13 (Playwright) : navigation en bas, aucune largeur
+  excédentaire, grille et ruban utilisables.
+- Android : le cœur Rust se compile pour arm64 ; l'APK est assemblé par la CI. Tests sur émulateur
+  Android : à mettre en place.
+
 ## Prérequis e2e (Linux)
 ```bash
 sudo apt-get install -y xvfb webkit2gtk-driver

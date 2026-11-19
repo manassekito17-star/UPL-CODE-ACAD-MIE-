@@ -5,14 +5,15 @@
 ```
 ┌──────────────────────── Interface : React 19 + TypeScript (WebView) ─────────────────────────┐
 │  design-system (jetons, composants, thèmes)  ·  shell Core (navigation, paramètres, journal)  │
-│  Phases suivantes : Sheets (grille canvas) · Word (ProseMirror + pagination) · Slides (SVG)    │
+│  Sheets (ruban, barre de formule, grille virtualisée) · à venir : Word, Slides                │
 └───────────────────────────── IPC Tauri : commandes typées uniquement ────────────────────────┘
 ┌─────────────────────────────────────── Cœur Rust ─────────────────────────────────────────────┐
 │  apps/desktop/src-tauri   commandes, état, cycle de vie                                       │
 │  packages/security        noms/chemins sûrs, format réel, inspection ZIP/XML                   │
 │  packages/database        SQLite : migrations, paramètres, journal, récents, favoris, corbeille│
 │  packages/file-manager    bibliothèque : import validé, dossiers, corbeille, écriture atomique │
-│  À venir : spreadsheet-engine (IronCalc) · document-engine · presentation-engine ·            │
+│  packages/spreadsheet-engine  IronCalc : formules, XLSX, CSV, styles, feuilles, historique    │
+│  À venir : document-engine · presentation-engine ·                                            │
 │            export-engine (PDF) · ai-assistant (optionnel)                                      │
 └───────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -39,7 +40,16 @@ n'a **aucun** accès direct au système de fichiers, au shell ou au réseau.
 
 **Décision** : ne pas intégrer ONLYOFFICE. Réévaluable si une licence commerciale est achetée.
 
-### D3 — Moteur de tableur : IronCalc (phase 2)
+### D3 — Moteur de tableur : IronCalc — **validé et intégré** (phase 2)
+Prototype du 19/11/2026 : fonctions en français justes (SOMME, MOYENNE, SI, NB.SI, SOMME.SI,
+RECHERCHEV, ET, OU, NBVAL…), séparateurs « ; » et virgule décimale, erreurs (#DIV/0!, #NOM?),
+100 000 lignes de formules calculées en 0,6 s et recalcul en 38 ms, 3 cycles XLSX sans perte,
+fichiers relus par LibreOffice et fichiers produits par LibreOffice ouverts. Formats de nombre
+stockés en syntaxe Excel canonique (« 0.00 ») et affichés selon la langue. ODS non pris en charge
+par IronCalc. Intégration : `packages/spreadsheet-engine` (classeurs ouverts côté Rust ; l'interface
+ne reçoit que la fenêtre visible de la grille).
+
+Notes d'origine :
 - Rust, **MIT / Apache-2.0**, moteur de formules réel, lecture/écriture XLSX, ~300 fonctions.
 - Intégré côté Rust ; l'interface envoie des saisies et reçoit des valeurs calculées. Aucun résultat
   n'est jamais calculé ou « deviné » côté interface.
@@ -79,6 +89,18 @@ dont la mise en page est à construire. Ordre modifiable sur décision du porteu
 Dossier isolé `zynora-office/` du dépôt existant, faute de dépôt dédié dans cette session. Exclu
 du lint et du typage de ZENTECH ; CI séparée filtrée par chemin. Déplaçable sans modification.
 
+### D13 — Interface « familière » sans copie de Microsoft Office
+Disposition reprise des conventions des tableurs (ruban à onglets, zone de nom, barre de formule,
+onglets de feuilles, barre d'état), **avec l'identité ZYNORA** (icônes Lucide, couleurs, typographie).
+Une reproduction à l'identique de l'interface, des icônes ou des marques de Microsoft n'est pas
+faite (droits de propriété intellectuelle ; exigence du cahier des charges).
+
+### D14 — Version smartphone : Tauri 2 mobile
+Même application (interface React adaptative + cœur Rust) compilée pour Android et iOS. Sur
+téléphone : bibliothèque dans l'espace privé de l'application (aucune permission de stockage),
+navigation en bas d'écran, choix du dossier de bibliothèque désactivé. Limites actuelles : import
+depuis le stockage du téléphone (adresses `content://`) à implémenter ; iOS à compiler sur Mac.
+
 ### D11 — Bibliothèque de documents et corbeille interne (phase 1)
 - Les documents vivent dans un dossier ordinaire (`Documents/ZYNORA` par défaut), lisible par
   n'importe quel autre logiciel. Tous les chemins échangés avec l'interface sont **relatifs** à ce
@@ -116,6 +138,15 @@ brutal de la session précédente.
 | `list_trash` | — | éléments de corbeille | lecture |
 | `restore_trash` | `{id}` | élément restauré | disque + base + journal |
 | `purge_trash` / `empty_trash` | `{id}` / — | — / nombre | **suppression définitive** + journal |
+| `sheets_open` / `sheets_create` | `{path}` / `{folder}` | classeur ouvert (id, feuilles, état) | lecture revalidée / création atomique |
+| `sheets_range` | `{id, range}` (≤ 20 000 cellules) | valeurs **calculées par le moteur** et styles | lecture |
+| `sheets_cell`, `sheets_stats` | cellule / plage | contenu saisi ; somme, moyenne, nombre | lecture |
+| `sheets_set_input`, `sheets_clear`, `sheets_style`, `sheets_structure`, `sheets_sheet`, `sheets_history` | modifications typées (énumérations fermées) | nouvel état (non enregistré, annuler/rétablir) | mémoire |
+| `sheets_copy`, `sheets_paste` | plage, texte | texte tabulé | mémoire |
+| `sheets_save` | `{id}` | état | **écriture atomique** du document + journal |
+| `sheets_autosave` | `{id}` | copie écrite ? | copie de récupération (dossier de l'application) |
+| `sheets_close` | `{id, discard}` | fermé ? (refusé si non enregistré sans `discard`) | — |
+| `list_recoveries`, `sheets_open_recovery`, `discard_recovery_command` | chemin | copies de récupération | lecture / suppression de la copie |
 
 Règles : arguments désérialisés en types Rust fermés (une clé ou valeur inconnue est rejetée par
 serde) ; erreurs renvoyées sous forme `{message}` lisible, sans trace interne ; la fenêtre n'a

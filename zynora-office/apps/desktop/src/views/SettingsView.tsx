@@ -6,13 +6,15 @@ import { errorText, useApp } from "../context";
 import type { AuditEvent, Language, LibraryInfo, SettingChange, Settings, Theme } from "../ipc";
 
 interface Props {
+  /** Sur téléphone, la bibliothèque ne peut pas être déplacée (espace privé de l'application). */
+  mobile: boolean;
   settings: Settings;
   saving: boolean;
   onChange: (change: SettingChange) => Promise<void>;
   onLibraryChanged: () => void;
 }
 
-export function SettingsView({ settings, saving, onChange, onLibraryChanged }: Props) {
+export function SettingsView({ mobile, settings, saving, onChange, onLibraryChanged }: Props) {
   const { api, t, language } = useApp();
   const toast = useToasts();
   const [events, setEvents] = useState<AuditEvent[] | null>(null);
@@ -106,9 +108,11 @@ export function SettingsView({ settings, saving, onChange, onLibraryChanged }: P
             </p>
           )}
         </div>
-        <Button icon={<FolderOpen size={16} aria-hidden />} onClick={() => void changeLibrary()}>
-          {t("settings.library.change")}
-        </Button>
+        {!mobile && (
+          <Button icon={<FolderOpen size={16} aria-hidden />} onClick={() => void changeLibrary()}>
+            {t("settings.library.change")}
+          </Button>
+        )}
       </Card>
 
       <Card>

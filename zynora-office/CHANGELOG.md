@@ -4,6 +4,26 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; versions : S
 
 ## [Non publié]
 
+### Ajouté — Phase 2 : ZYNORA Sheets et version smartphone
+- Prototype IronCalc validé (fonctions françaises, erreurs, 100 000 lignes en 0,6 s, 3 cycles XLSX,
+  relecture croisée par LibreOffice) puis intégré : `packages/spreadsheet-engine`.
+- Tableur : ruban (Accueil, Insertion, Disposition), zone de nom, barre de formule, grille
+  virtualisée, onglets de feuilles, barre d'état (somme, moyenne, nombre), gras/italique/souligné/
+  barré, couleurs, alignements, formats de nombre, fusion, lignes et colonnes, copier/couper/coller
+  avec références ajustées, annuler/rétablir, somme automatique, raccourcis clavier usuels.
+- Fichiers : XLSX (lecture revalidée, enregistrement atomique), CSV (séparateur détecté, formules
+  importées comme texte, protection contre l'injection CSV à l'export), nouveau classeur.
+- Sauvegarde automatique (copie de récupération toutes les 30 s, hors du document), récupération
+  proposée sur l'accueil, confirmation avant de fermer un classeur non enregistré. Base locale v3.
+- Version smartphone : interface adaptative (navigation en bas, zones sûres, ruban défilant),
+  cœur Rust compilé pour Android (arm64), projet Android Tauri, job CI produisant un APK de test.
+- Tests : 57 Rust (+ 2 croisés LibreOffice), 47 JavaScript, 19 vérifications de bout en bout.
+
+### Corrigé — Phase 2
+- Formats de nombre : syntaxe canonique (« 0.00 ») documentée ; l'affichage suit la langue.
+- Les boutons d'alignement ne paraissent plus enfoncés pour l'alignement par défaut des nombres.
+- Tests LibreOffice : un profil distinct par instance (deux instances ne peuvent pas partager le même).
+
 ### Ajouté — Phase 1 : ZYNORA Core
 - `packages/file-manager` : bibliothèque de documents (liste, recherche sans accents, dossiers,
   renommage sans écrasement, import validé sur copie avec apparition atomique, corbeille interne

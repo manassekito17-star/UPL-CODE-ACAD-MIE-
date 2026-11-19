@@ -149,6 +149,7 @@ export function App({ api = defaultApi }: { api?: Api }) {
             {settings && view === "trash" && <TrashView />}
             {settings && view === "settings" && (
               <SettingsView
+                mobile={info?.mobile ?? false}
                 settings={settings}
                 saving={saving}
                 onChange={change}

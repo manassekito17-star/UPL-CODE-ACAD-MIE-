@@ -15,7 +15,7 @@ inconnues ou absentes. Une expression `A OR B` est acceptée si une option est a
 
 Contrôle automatique : `pnpm check:licenses` (`scripts/check-licenses.mjs`) vérifie **toutes** les crates
 Rust (y compris celles propres à Windows et macOS) et les paquets npm de production. Résultat au
-19/11/2026 : **450 dépendances, toutes autorisées**.
+19/11/2026 : **472 dépendances, toutes autorisées**.
 
 ## Dépendances directes
 
@@ -23,6 +23,7 @@ Rust (y compris celles propres à Windows et macOS) et les paquets npm de produc
 |---|---|---|---|
 | tauri, tauri-build | 2.12.7 / 2.7.6 | MIT OR Apache-2.0 | Application de bureau |
 | @tauri-apps/api, @tauri-apps/cli | 2.12.5 / 2.12.6 | MIT OR Apache-2.0 | IPC, outillage |
+| ironcalc (moteur de tableur) | 0.9.1 | MIT OR Apache-2.0 | Formules, XLSX |
 | tauri-plugin-dialog | 2.8.4 | MIT OR Apache-2.0 | Dialogues natifs (utilisés depuis Rust uniquement) |
 | rusqlite (SQLite intégré) | 0.43.0 | MIT (SQLite : domaine public) | Base locale |
 | zip | 9.7.0 | MIT | Lecture des conteneurs OOXML/ODF |
@@ -37,7 +38,7 @@ Rust (y compris celles propres à Windows et macOS) et les paquets npm de produc
 | Moteur | Licence | Décision |
 |---|---|---|
 | ONLYOFFICE (sdkjs, web-apps, core/x2t, Desktop Editors) | AGPL-3.0 + 7(b) logo obligatoire | **Écarté** (voir ARCHITECTURE.md, D2) |
-| IronCalc | MIT OR Apache-2.0 | **Retenu** pour Sheets (phase 2, après prototype) |
+| IronCalc | MIT OR Apache-2.0 | **Validé et intégré** (phase 2) |
 | HyperFormula | GPL-3.0 ou commerciale | Écarté |
 | ProseMirror | MIT | **Retenu** pour Word (phase 3) |
 | LibreOffice (sans interface) | MPL-2.0 | Option future : convertisseur externe s'il est installé, jamais livré |

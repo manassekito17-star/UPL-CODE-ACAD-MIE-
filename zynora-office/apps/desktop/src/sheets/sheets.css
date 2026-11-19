@@ -63,3 +63,19 @@
 .sheet-tab:focus-visible { outline: 2px solid var(--z-focus); }
 .sheets__stats { display: flex; gap: var(--z-space-4); font-size: var(--z-text-xs); color: var(--z-text-muted); white-space: nowrap; }
 .sheets__cell { font-family: var(--z-font-mono); }
+
+/* --- Téléphone ------------------------------------------------------------ */
+.grid, .tool, .ribbon__tab, .sheet-tab { touch-action: manipulation; }
+@media (max-width: 720px) {
+  .sheets { padding-top: env(safe-area-inset-top); }
+  .sheets__app, .sheets__status { display: none; }
+  .sheets__name { max-width: 45vw; }
+  .ribbon__panel { gap: 0; padding: var(--z-space-1); }
+  .ribbon__group { padding: 0 var(--z-space-1); }
+  .ribbon__label { display: none; }
+  .tool { min-width: 38px; height: 38px; }
+  .formula-bar__name { width: 64px; }
+  .formula-bar__input, .formula-bar__name, .grid__editor { font-size: 16px; } /* évite le zoom automatique d'iOS */
+  .sheets__footer { padding-bottom: env(safe-area-inset-bottom); }
+  .sheets__stats span:not(.sheets__cell) { display: none; }
+}
