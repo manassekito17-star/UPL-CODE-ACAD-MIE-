@@ -9,16 +9,40 @@
 .word__footer { gap: var(--z-space-4); justify-content: flex-start; font-size: var(--z-text-xs); color: var(--z-text-muted); }
 .word__footer-note { flex: 1; text-align: right; }
 
+/* Règle */
+.word-ruler { position: relative; height: 18px; margin: 0 auto 6px; background: #fff; color: #555; border: 1px solid var(--z-border); box-sizing: border-box; font-size: 9px; user-select: none; }
+.word-ruler__margin { position: absolute; top: 0; bottom: 0; background: #d8dbe2; }
+.word-ruler__tick { position: absolute; bottom: 0; width: 1px; height: 4px; background: #777; }
+.word-ruler__tick--major { height: 7px; }
+.word-ruler__label { position: absolute; top: -11px; left: 0; transform: translateX(-50%); line-height: 1; }
+
+/* Barre d'état : modes d'affichage et curseur de zoom */
+.word__views { display: inline-flex; gap: 2px; }
+.word__view { display: inline-grid; place-items: center; min-width: 26px; height: 24px; border: 1px solid transparent; border-radius: var(--z-radius-sm); background: none; color: var(--z-text-muted); cursor: pointer; font: inherit; }
+.word__view:hover:not(:disabled) { background: var(--z-surface-hover); }
+.word__view[aria-pressed="true"] { background: var(--z-word-soft); color: var(--z-word); border-color: var(--z-word); }
+.word__view:focus-visible { outline: 2px solid var(--z-focus); }
+.word__zoom { display: inline-flex; align-items: center; gap: 4px; }
+.word__zoom input[type="range"] { width: 110px; accent-color: var(--z-word); }
+.word__zoom-value { min-width: 70px; }
+
+/* Mode Web : texte sur toute la largeur de la fenêtre */
+.word--web .word__page { width: auto !important; min-height: 100% !important; padding: 8mm 10mm !important; box-shadow: none; zoom: 1 !important; }
+.word--web .word__canvas { padding: 0; background: #fff; }
+
 /* Galerie de styles du ruban */
 .word-styles { display: flex; gap: 2px; }
-.word-style { min-width: 64px; height: 34px; padding: 0 var(--z-space-2); border: 1px solid var(--z-border); border-radius: var(--z-radius-sm); background: var(--z-surface); color: var(--z-text); cursor: pointer; font-size: 12px; white-space: nowrap; }
+.word-style { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-width: 64px; height: 62px; padding: 0 var(--z-space-2); border: 1px solid var(--z-border); border-radius: var(--z-radius-sm); background: var(--z-surface); color: var(--z-text); cursor: pointer; font-size: 12px; white-space: nowrap; }
 .word-style:hover { background: var(--z-surface-hover); }
 .word-style[aria-selected="true"] { border-color: var(--accent); background: var(--accent-soft); }
 .word-style:focus-visible { outline: 2px solid var(--z-focus); outline-offset: 1px; }
-.word-style--title { font-size: 15px; }
-.word-style--heading1 { color: #1f3864; font-weight: 700; }
-.word-style--heading2, .word-style--heading3 { color: #2f5496; font-weight: 700; }
-.word-style--quote { font-style: italic; }
+.word-style__sample { font-size: 14px; line-height: 1.1; color: #000; }
+.word-style__name { font-size: 11px; color: var(--z-text-muted); font-weight: 400; font-style: normal; }
+.word-style { background: #fff; }
+.word-style--title .word-style__sample { font-size: 17px; }
+.word-style--heading1 .word-style__sample { color: #1f3864; font-weight: 700; font-size: 16px; }
+.word-style--heading2 .word-style__sample, .word-style--heading3 .word-style__sample { color: #2f5496; font-weight: 700; }
+.word-style--quote .word-style__sample { font-style: italic; color: #404040; }
 
 /* Contenu du document (couleurs du papier, quel que soit le thème de l'application) */
 .word-editor { outline: none; min-height: 100%; font-family: Calibri, Carlito, "Segoe UI", Arial, sans-serif; font-size: 11pt; line-height: 1.24; color: #000; caret-color: #000; }
@@ -94,7 +118,7 @@
   .word__canvas { padding: var(--z-space-2) 0; }
   .word__page { width: auto !important; min-height: 0 !important; padding: 6mm !important; box-shadow: none; zoom: 1 !important; }
   .word-editor { font-size: 16px; } /* évite le zoom automatique d'iOS */
-  .word__footer-note { display: none; }
+  .word__footer-note, .word-ruler, .word__views, .word__zoom input[type="range"] { display: none; }
   .word__footer { padding-bottom: env(safe-area-inset-bottom); }
 }
 

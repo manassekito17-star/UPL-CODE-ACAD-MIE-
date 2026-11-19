@@ -4,6 +4,13 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; versions : S
 
 ## [Non publié]
 
+### Modifié — Ruban à la disposition habituelle des suites bureautiques
+- Grands boutons (Coller, Insérer, Supprimer, Format, Marges, Orientation, Taille), groupes sur
+  deux lignes (police et taille au-dessus, gras/italique… en dessous), bouton d'ouverture du
+  dialogue des groupes Paragraphe et Mise en page ; galerie de styles avec aperçu.
+- Word : règle, modes d'affichage Page et Web, curseur de zoom, « Modifier la casse ».
+- Le ruban tient en largeur à 1 280 px sans défilement.
+
 ### Ajouté — Images dans ZYNORA Word
 - Images des DOCX lues, affichées et réécrites (PNG ; JPEG et GIF convertis), y compris celles
   produites par LibreOffice ; les images flottantes sont placées dans le texte (signalé).

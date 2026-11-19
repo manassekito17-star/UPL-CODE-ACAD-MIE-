@@ -1,5 +1,5 @@
 import { Button, Dialog, IconButton, useToasts } from "@zynora/design-system";
-import { ArrowLeft, Copy as CopyIcon, FileDown, FileText, Redo2, Save, Undo2 } from "lucide-react";
+import { ArrowLeft, Copy as CopyIcon, FileDown, FileText, Globe, Redo2, Save, Undo2 } from "lucide-react";
 import { toggleMark } from "prosemirror-commands";
 import { dropCursor } from "prosemirror-dropcursor";
 import { gapCursor } from "prosemirror-gapcursor";
@@ -13,6 +13,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { errorText, useApp } from "../context";
 import type { DocPage, DocumentInfo } from "../ipc";
 import {
+  changeCase,
   changeIndent,
   clearFormatting,
   insertHardBreak,
@@ -67,6 +68,7 @@ export function WordEditor({ doc, onClose, onReplace }: Props) {
   const [marks, setMarks] = useState(false);
   const [spellcheck, setSpellcheck] = useState(true);
   const [zoom, setZoomState] = useState(100);
+  const [layout, setLayout] = useState<"page" | "web">("page");
   const painter = useRef<readonly Mark[] | null>(null);
   const [painterActive, setPainterActive] = useState(false);
   const pageRef = useRef(page);
@@ -322,6 +324,7 @@ export function WordEditor({ doc, onClose, onReplace }: Props) {
     color: (value) => exec(setMark(M.color, { value })),
     highlight: (value) => exec(setMark(M.highlight, value ? { value } : null)),
     clear: () => exec(clearFormatting),
+    changeCase: (mode) => exec(changeCase(mode)),
     list: (kind) => exec(toggleList(kind)),
     indent: (delta) => exec(changeIndent(delta)),
     paragraph: (attrs) => exec(setParagraphAttrs(attrs)),
@@ -380,7 +383,7 @@ export function WordEditor({ doc, onClose, onReplace }: Props) {
   const stem = doc.name.replace(/\.(docx|txt)$/i, "");
 
   return (
-    <div className={`word${marks ? " word--marks" : ""}${painterActive ? " word--painter" : ""}`}>
+    <div className={`word${marks ? " word--marks" : ""}${painterActive ? " word--painter" : ""}${layout === "web" ? " word--web" : ""}`}>
       {/* Format de la page à l'impression : celui du document. */}
       <style>{`@page { size: ${box.width}mm ${box.height}mm; margin: ${page.margin_top_mm}mm ${page.margin_right_mm}mm ${page.margin_bottom_mm}mm ${page.margin_left_mm}mm; }`}</style>
       <header className="sheets__titlebar word__titlebar">
@@ -422,6 +425,7 @@ export function WordEditor({ doc, onClose, onReplace }: Props) {
       {doc.format === "txt" && <p className="sheets__note">{w("txtNote")}</p>}
 
       <div className="word__canvas" ref={canvas}>
+        {layout === "page" && <Ruler page={page} width={box.width} zoom={zoom} />}
         <div
           className="word__page"
           style={{
@@ -438,8 +442,25 @@ export function WordEditor({ doc, onClose, onReplace }: Props) {
       <footer className="sheets__footer word__footer">
         <span>{w("status.words", { n: number(counts.words) })}</span>
         <span>{w("status.chars", { n: number(counts.characters) })}</span>
-        <span className="word__footer-note">{w("status.continuous")}</span>
-        <span>{w("status.zoom", { n: zoom })}</span>
+        <span className="word__footer-note">{layout === "page" ? w("status.continuous") : ""}</span>
+        <span className="word__views" role="group" aria-label={w("layout")}>
+          <button type="button" className="word__view" aria-pressed={layout === "page"} title={w("layout.page")} aria-label={w("layout.page")} onClick={() => setLayout("page")}>
+            <FileText size={15} aria-hidden />
+          </button>
+          <button type="button" className="word__view" aria-pressed={layout === "web"} title={w("layout.web")} aria-label={w("layout.web")} onClick={() => setLayout("web")}>
+            <Globe size={15} aria-hidden />
+          </button>
+        </span>
+        <span className="word__zoom">
+          <button type="button" className="word__view" aria-label={w("zoomOut")} disabled={zoom <= 50} onClick={() => setZoom(Math.max(50, zoom - 10))}>
+            −
+          </button>
+          <input type="range" min={50} max={200} step={10} value={zoom} aria-label={w("status.zoomSlider")} onChange={(e) => setZoom(Number(e.target.value))} />
+          <button type="button" className="word__view" aria-label={w("zoomIn")} disabled={zoom >= 200} onClick={() => setZoom(Math.min(200, zoom + 10))}>
+            +
+          </button>
+          <span className="word__zoom-value">{w("status.zoom", { n: zoom })}</span>
+        </span>
       </footer>
 
       {dialog && state && (
@@ -477,6 +498,29 @@ export function WordEditor({ doc, onClose, onReplace }: Props) {
           </>
         }
       />
+    </div>
+  );
+}
+
+/** Règle horizontale en centimètres, graduée depuis la marge gauche ; marges grisées. */
+function Ruler({ page, width, zoom }: { page: DocPage; width: number; zoom: number }) {
+  const text = width - page.margin_left_mm - page.margin_right_mm;
+  const marks: Array<{ at: number; label: string | undefined; major: boolean }> = [];
+  for (let mm = -Math.floor(page.margin_left_mm / 5) * 5; mm <= text + page.margin_right_mm; mm += 5) {
+    const at = page.margin_left_mm + mm;
+    if (at < 0 || at > width) continue;
+    const cm = mm / 10;
+    marks.push({ at, major: mm % 10 === 0, label: mm % 10 === 0 && mm !== 0 ? String(Math.abs(cm)) : undefined });
+  }
+  return (
+    <div className="word-ruler" aria-hidden style={{ width: `${width}mm`, zoom: zoom / 100 }}>
+      <div className="word-ruler__margin" style={{ left: 0, width: `${page.margin_left_mm}mm` }} />
+      <div className="word-ruler__margin" style={{ right: 0, width: `${page.margin_right_mm}mm` }} />
+      {marks.map((m) => (
+        <span key={m.at} className={`word-ruler__tick${m.major ? " word-ruler__tick--major" : ""}`} style={{ left: `${m.at}mm` }}>
+          {m.label && <span className="word-ruler__label">{m.label}</span>}
+        </span>
+      ))}
     </div>
   );
 }

@@ -284,3 +284,43 @@ export function replaceAll(state: EditorState, dispatch: (tr: Transaction) => vo
   dispatch(tr);
   return matches.length;
 }
+
+export type CaseMode = "upper" | "lower" | "sentence" | "title";
+
+/** Transforme la casse du texte sélectionné en conservant la mise en forme de chaque portion. */
+export function changeCase(mode: CaseMode): Command {
+  return (state, dispatch) => {
+    const { from, to, empty } = state.selection;
+    if (empty) return false;
+    if (dispatch) {
+      const tr = state.tr;
+      const edits: Array<{ start: number; end: number; text: string; marks: readonly import("prosemirror-model").Mark[] }> = [];
+      state.doc.nodesBetween(from, to, (node, pos) => {
+        if (!node.isText || !node.text) return true;
+        const start = Math.max(from, pos);
+        const end = Math.min(to, pos + node.nodeSize);
+        const original = node.text.slice(start - pos, end - pos);
+        // Caractère précédent (dans le paragraphe) pour savoir si l'on commence un mot ou une phrase.
+        const $start = state.doc.resolve(start);
+        let before = state.doc.textBetween($start.start(), start, "\n", "\n");
+        let text = "";
+        for (const ch of original) {
+          const prev = before.trimEnd();
+          const startsWord = before === "" || /[\s(«"'’\-–—/]$/.test(before);
+          const startsSentence = prev === "" || /[.!?…]$/.test(prev);
+          const upper = mode === "upper" || (mode === "title" && startsWord) || (mode === "sentence" && startsSentence && /\p{L}/u.test(ch));
+          const next = upper ? ch.toLocaleUpperCase() : ch.toLocaleLowerCase();
+          text += next;
+          before += ch;
+        }
+        if (text !== original) edits.push({ start, end, text, marks: node.marks });
+        return false;
+      });
+      for (const e of edits.reverse()) tr.replaceWith(e.start, e.end, schema.text(e.text, e.marks));
+      // La sélection couvre toujours le texte transformé (sa longueur peut changer : « ß » → « SS »).
+      tr.setSelection(TextSelection.create(tr.doc, from, tr.mapping.map(to)));
+      dispatch(tr);
+    }
+    return true;
+  };
+}

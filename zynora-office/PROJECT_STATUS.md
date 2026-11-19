@@ -48,6 +48,8 @@ favoris, récents, recherche, corbeille avec restauration), détection d'arrêt 
   Insertion, Mise en page, Révision, Affichage, chaque bouton fonctionnel et enregistré
   (détail : COMPATIBILITY.md), barre d'état, impression, sauvegarde automatique et récupération.
 - Word activé dans la navigation, l'accueil et la bibliothèque.
+- **Ruban** à la disposition habituelle (grands boutons, groupes sur deux lignes), règle, modes
+  d'affichage et curseur de zoom ; « Modifier la casse ».
 - **Images** : lues dans les DOCX (dont ceux de LibreOffice), insérées depuis un fichier,
   redimensionnées en mm, réécrites en PNG ; décodage borné en Rust.
 
@@ -108,7 +110,7 @@ favoris, récents, recherche, corbeille avec restauration), détection d'arrêt 
 | Rust `zynora-document-engine` | ✅ 10 / 10 (+ 1 / 1 croisé LibreOffice) |
 | Rust `zynora-desktop` | ✅ 7 / 7 |
 | Vitest design system | ✅ 11 / 11 |
-| Vitest application (dont 12 Sheets, 11 ruban, 16 Word) | ✅ 61 / 61 |
+| Vitest application (dont 12 Sheets, 11 ruban, 18 Word) | ✅ 63 / 63 |
 | node:test scripts | ✅ 2 / 2 |
 | TypeScript strict, `cargo fmt`, `clippy -D warnings` | ✅ |
 | Licences | ✅ 533 / 533 |

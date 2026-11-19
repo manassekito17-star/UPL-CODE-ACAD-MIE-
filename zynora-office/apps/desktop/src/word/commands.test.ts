@@ -63,3 +63,21 @@ describe("commandes de ZYNORA Word", () => {
     expect(stepFontSize(8, -1)).toBe(7);
   });
 });
+
+describe("modifier la casse", () => {
+  const sel = (s: EditorState) => s.apply(s.tr.setSelection(TextSelection.create(s.doc, 1, s.doc.content.size - 1)));
+  const bold = schema.marks.bold.create();
+  const doc = () => EditorState.create({ doc: schema.nodes.doc.create(null, [schema.nodes.paragraph.create(null, [schema.text("bonjour le "), schema.text("MONDE", [bold]), schema.text(". encore ici")])]) });
+
+  it("majuscules, minuscules, phrase et mots, mise en forme conservée", async () => {
+    const { changeCase } = await import("./commands");
+    const apply = (mode: Parameters<typeof changeCase>[0]) => run(sel(doc()), changeCase(mode)).doc;
+    expect(apply("upper").textContent).toBe("BONJOUR LE MONDE. ENCORE ICI");
+    expect(apply("lower").textContent).toBe("bonjour le monde. encore ici");
+    expect(apply("sentence").textContent).toBe("Bonjour le monde. Encore ici");
+    expect(apply("title").textContent).toBe("Bonjour Le Monde. Encore Ici");
+    const marked = apply("lower").firstChild!.child(1);
+    expect(marked.text).toBe("monde");
+    expect(marked.marks.map((m) => m.type.name)).toEqual(["bold"]);
+  });
+});

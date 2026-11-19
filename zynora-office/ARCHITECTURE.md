@@ -119,6 +119,10 @@ Disposition reprise des conventions des tableurs (ruban à onglets, zone de nom,
 onglets de feuilles, barre d'état), **avec l'identité ZYNORA** (icônes Lucide, couleurs, typographie).
 Une reproduction à l'identique de l'interface, des icônes ou des marques de Microsoft n'est pas
 faite (droits de propriété intellectuelle ; exigence du cahier des charges).
+Le ruban suit la disposition commune aux suites bureautiques (Word, LibreOffice, WPS, OnlyOffice) :
+grands boutons (Coller, Insérer, Marges…), groupes sur deux lignes, bouton d'ouverture du
+dialogue complet d'un groupe (seulement quand ce dialogue existe), règle et barre d'état avec
+modes d'affichage et curseur de zoom pour le traitement de texte (`src/ribbon/controls.tsx`).
 
 ### D14 — Version smartphone : Tauri 2 mobile
 Même application (interface React adaptative + cœur Rust) compilée pour Android et iOS. Sur

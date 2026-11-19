@@ -74,6 +74,21 @@ describe("ZYNORA Word", () => {
     expect(table && "rows" in table ? table.rows.map((r) => r.length) : []).toEqual([2, 2]);
   });
 
+  it("casse, mode Web, curseur de zoom et règle de la barre d'état", async () => {
+    const api = await openLetter();
+    fireEvent.click(tool("Sélectionner tout"));
+    await menu("Modifier la casse", "MAJUSCULES");
+    await waitFor(() => expect(editor().textContent).toContain("BONJOUR LE MONDE"));
+    expect(document.querySelector(".word-ruler")).toBeTruthy();
+    fireEvent.click(tool("Web (pleine largeur)"));
+    expect(document.querySelector(".word--web")).toBeTruthy();
+    expect(document.querySelector(".word-ruler")).toBeNull();
+    fireEvent.change(screen.getByRole("slider", { name: "Zoom" }), { target: { value: "150" } });
+    expect(screen.getByText("Zoom 150 %")).toBeTruthy();
+    fireEvent.click(tool("Enregistrer"));
+    await waitFor(() => expect(saved(api)?.blocks[0]).toMatchObject({ runs: [{ text: "BONJOUR LE MONDE" }] }));
+  });
+
   it("remplace toutes les occurrences en une seule opération annulable", async () => {
     await openLetter();
     fireEvent.click(tool("Remplacer (Ctrl+H)"));

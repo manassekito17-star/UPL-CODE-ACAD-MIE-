@@ -60,7 +60,7 @@ fichiers réels.**
 | Onglet | Groupe | Contenu (chaque bouton est fonctionnel et enregistré dans le DOCX) |
 |---|---|---|
 | Accueil | Presse-papiers | Coller (texte), couper, copier, reproduire la mise en forme |
-| | Police | Police, taille, agrandir/réduire, gras, italique, souligné, barré, indice, exposant, couleur, surlignage (15 couleurs DOCX), effacer la mise en forme |
+| | Police | Police, taille, agrandir/réduire, modifier la casse (phrase, minuscules, MAJUSCULES, 1re lettre des mots), gras, italique, souligné, barré, indice, exposant, couleur, surlignage (15 couleurs DOCX), effacer la mise en forme |
 | | Paragraphe | Puces, numérotation (9 niveaux), retraits, alignements (gauche, centre, droite, justifié), interligne, marques de paragraphe |
 | | Styles | Normal, Titre, Titre 1 à 3, Citation |
 | | Modification | Rechercher, remplacer (un par un ou tout), sélectionner tout |
@@ -75,7 +75,8 @@ fichiers réels.**
 | Affichage | Zoom, Afficher, Impression | Zoom 50–200 %, largeur de page, marques de mise en forme, impression aux dimensions et marges du document |
 
 Barre de titre : annuler/rétablir, enregistrer, enregistrer une copie (.docx ou .txt), exporter en
-texte brut. Barre d'état : mots, caractères, zoom. Sauvegarde automatique toutes les 30 s
+texte brut. Règle en centimètres (marges grisées). Barre d'état : mots, caractères, modes
+d'affichage Page et Web (pleine largeur), curseur de zoom 50–200 %. Sauvegarde automatique toutes les 30 s
 (copie de récupération) et confirmation avant de fermer sans enregistrer.
 
 **Éléments DOCX non pris en charge** (signalés à l'ouverture ; l'original n'est jamais remplacé) :

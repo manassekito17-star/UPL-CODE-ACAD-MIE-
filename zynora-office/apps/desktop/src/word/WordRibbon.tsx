@@ -5,10 +5,12 @@ import {
   AlignRight,
   Baseline,
   Bold,
+  CaseSensitive,
   CalendarClock,
   ClipboardPaste,
   Copy,
   Eraser,
+  File,
   FileText,
   Highlighter,
   ImagePlus,
@@ -22,6 +24,8 @@ import {
   Omega,
   Paintbrush,
   Pilcrow,
+  RectangleHorizontal,
+  RectangleVertical,
   Plus,
   Printer,
   Replace,
@@ -29,6 +33,7 @@ import {
   Search,
   SeparatorHorizontal,
   SpellCheck,
+  SquareDashed,
   Strikethrough,
   Subscript,
   Superscript,
@@ -43,9 +48,9 @@ import {
 import type { EditorState } from "prosemirror-state";
 
 import type { DocPage } from "../ipc";
-import { Check, ColorTool, Group, Menu, Select, Tool } from "../ribbon/controls";
+import { Check, ColorTool, Group, Menu, Row, Rows, Select, Tool } from "../ribbon/controls";
 import { FONTS } from "../sheets/ribbon-text";
-import { FONT_SIZES, markActive, markAttr, selectedParagraphs } from "./commands";
+import { FONT_SIZES, markActive, markAttr, selectedParagraphs, type CaseMode } from "./commands";
 import { HIGHLIGHT_COLORS, schema } from "./schema";
 import { LINE_SPACINGS, MARGIN_PRESETS, PAGE_SIZES, PARAGRAPH_SPACINGS, STYLES, type WordText } from "./word-text";
 
@@ -66,6 +71,7 @@ export interface WordActions {
   color: (value: string) => void;
   highlight: (value: string | null) => void;
   clear: () => void;
+  changeCase: (mode: CaseMode) => void;
   list: (kind: "bullet" | "ordered") => void;
   indent: (delta: 1 | -1) => void;
   paragraph: (attrs: Record<string, unknown>) => void;
@@ -131,73 +137,95 @@ export function WordRibbon({ w, tab, onTab, state, actions: a, language }: Props
         {tab === "home" && (
           <>
             <Group label={w("group.clipboard")}>
-              <Tool label={w("paste")} icon={<ClipboardPaste size={18} />} onClick={() => a.clipboard("paste")} />
-              <Tool label={w("cut")} icon={<Scissors size={16} />} onClick={() => a.clipboard("cut")} />
-              <Tool label={w("copy")} icon={<Copy size={16} />} onClick={() => a.clipboard("copy")} />
-              <Tool label={w("painter")} icon={<Paintbrush size={16} />} pressed={a.painterActive} onClick={a.painter} />
+              <Tool big label={w("paste")} icon={<ClipboardPaste />} onClick={() => a.clipboard("paste")} />
+              <Rows>
+                <Tool label={w("cut")} icon={<Scissors size={16} />} onClick={() => a.clipboard("cut")} />
+                <Tool label={w("copy")} icon={<Copy size={16} />} onClick={() => a.clipboard("copy")} />
+                <Tool label={w("painter")} icon={<Paintbrush size={16} />} pressed={a.painterActive} onClick={a.painter} />
+              </Rows>
             </Group>
             <Group label={w("group.font")}>
-              <Select label={w("fontName")} value={font} options={FONTS.map((f) => ({ value: f, label: f }))} onChange={a.font} wide />
-              <Select label={w("fontSize")} value={String(size)} options={FONT_SIZES.map((s) => ({ value: String(s), label: String(s).replace(".", language === "fr" ? "," : ".") }))} onChange={(v) => a.size(Number(v))} />
-              <Tool label={w("grow")} icon={<Plus size={14} />} onClick={() => a.sizeStep(1)} />
-              <Tool label={w("shrink")} icon={<Minus size={14} />} onClick={() => a.sizeStep(-1)} />
-              <Tool label={w("bold")} icon={<Bold size={16} />} pressed={markActive(state, M.bold)} onClick={() => a.toggle("bold")} />
-              <Tool label={w("italic")} icon={<Italic size={16} />} pressed={markActive(state, M.italic)} onClick={() => a.toggle("italic")} />
-              <Tool label={w("underline")} icon={<Underline size={16} />} pressed={markActive(state, M.underline)} onClick={() => a.toggle("underline")} />
-              <Tool label={w("strike")} icon={<Strikethrough size={16} />} pressed={markActive(state, M.strike)} onClick={() => a.toggle("strike")} />
-              <Tool label={w("subscript")} icon={<Subscript size={16} />} pressed={script === "subscript"} onClick={() => a.script("subscript")} />
-              <Tool label={w("superscript")} icon={<Superscript size={16} />} pressed={script === "superscript"} onClick={() => a.script("superscript")} />
-              <ColorTool label={w("color")} icon={<Baseline size={16} />} value={color} onPick={a.color} />
-              <Menu
-                label={w("highlight")}
-                icon={<Highlighter size={16} />}
-                items={[
-                  { label: w("highlight.none"), run: () => a.highlight(null) },
-                  ...Object.keys(HIGHLIGHT_COLORS).map((name) => ({ label: name, run: () => a.highlight(name) })),
-                ]}
-              />
-              <Tool label={w("clear")} icon={<Eraser size={16} />} onClick={a.clear} />
+              <Rows>
+                <Row>
+                  <Select label={w("fontName")} value={font} options={FONTS.map((f) => ({ value: f, label: f }))} onChange={a.font} wide />
+                  <Select label={w("fontSize")} value={String(size)} options={FONT_SIZES.map((s) => ({ value: String(s), label: String(s).replace(".", language === "fr" ? "," : ".") }))} onChange={(v) => a.size(Number(v))} />
+                  <Tool label={w("grow")} icon={<Plus size={14} />} onClick={() => a.sizeStep(1)} />
+                  <Tool label={w("shrink")} icon={<Minus size={14} />} onClick={() => a.sizeStep(-1)} />
+                  <Menu
+                    label={w("case")}
+                    icon={<CaseSensitive size={16} />}
+                    items={[
+                      { label: w("case.sentence"), run: () => a.changeCase("sentence") },
+                      { label: w("case.lower"), run: () => a.changeCase("lower") },
+                      { label: w("case.upper"), run: () => a.changeCase("upper") },
+                      { label: w("case.title"), run: () => a.changeCase("title") },
+                    ]}
+                  />
+                  <Tool label={w("clear")} icon={<Eraser size={16} />} onClick={a.clear} />
+                </Row>
+                <Row>
+                  <Tool label={w("bold")} icon={<Bold size={16} />} pressed={markActive(state, M.bold)} onClick={() => a.toggle("bold")} />
+                  <Tool label={w("italic")} icon={<Italic size={16} />} pressed={markActive(state, M.italic)} onClick={() => a.toggle("italic")} />
+                  <Tool label={w("underline")} icon={<Underline size={16} />} pressed={markActive(state, M.underline)} onClick={() => a.toggle("underline")} />
+                  <Tool label={w("strike")} icon={<Strikethrough size={16} />} pressed={markActive(state, M.strike)} onClick={() => a.toggle("strike")} />
+                  <Tool label={w("subscript")} icon={<Subscript size={16} />} pressed={script === "subscript"} onClick={() => a.script("subscript")} />
+                  <Tool label={w("superscript")} icon={<Superscript size={16} />} pressed={script === "superscript"} onClick={() => a.script("superscript")} />
+                  <Menu
+                    label={w("highlight")}
+                    icon={<Highlighter size={16} />}
+                    items={[
+                      { label: w("highlight.none"), run: () => a.highlight(null) },
+                      ...Object.keys(HIGHLIGHT_COLORS).map((name) => ({ label: highlightName(name, language), run: () => a.highlight(name) })),
+                    ]}
+                  />
+                  <ColorTool label={w("color")} icon={<Baseline size={16} />} value={color} onPick={a.color} />
+                </Row>
+              </Rows>
             </Group>
-            <Group label={w("group.paragraph")}>
-              <Tool label={w("bullets")} icon={<List size={16} />} pressed={para?.list === "bullet"} onClick={() => a.list("bullet")} />
-              <Tool label={w("numbering")} icon={<ListOrdered size={16} />} pressed={para?.list === "ordered"} onClick={() => a.list("ordered")} />
-              <Tool label={w("outdent")} icon={<IndentDecrease size={16} />} onClick={() => a.indent(-1)} />
-              <Tool label={w("indent")} icon={<IndentIncrease size={16} />} onClick={() => a.indent(1)} />
-              <Tool label={w("left")} icon={<AlignLeft size={16} />} pressed={align("left")} onClick={() => a.paragraph({ align: "left" })} />
-              <Tool label={w("center")} icon={<AlignCenter size={16} />} pressed={align("center")} onClick={() => a.paragraph({ align: "center" })} />
-              <Tool label={w("right")} icon={<AlignRight size={16} />} pressed={align("right")} onClick={() => a.paragraph({ align: "right" })} />
-              <Tool label={w("justify")} icon={<AlignJustify size={16} />} pressed={align("justify")} onClick={() => a.paragraph({ align: "justify" })} />
-              <Menu
-                label={w("lineSpacing")}
-                icon={<WrapText size={16} />}
-                items={[
-                  ...LINE_SPACINGS.map((v) => ({ label: `${para?.lineSpacing === v ? "✓ " : ""}${v.toLocaleString(locale)}`, run: () => a.paragraph({ lineSpacing: v }) })),
-                  { label: w("spacing.default"), run: () => a.paragraph({ lineSpacing: null }) },
-                  { label: w("paragraphDialog"), run: () => a.open("paragraph") },
-                ]}
-              />
-              <Tool label={w("marks")} icon={<Pilcrow size={16} />} pressed={a.marks} onClick={a.toggleMarks} />
+            <Group label={w("group.paragraph")} onLaunch={() => a.open("paragraph")} launchLabel={w("paragraphDialog")}>
+              <Rows>
+                <Row>
+                  <Tool label={w("bullets")} icon={<List size={16} />} pressed={para?.list === "bullet"} onClick={() => a.list("bullet")} />
+                  <Tool label={w("numbering")} icon={<ListOrdered size={16} />} pressed={para?.list === "ordered"} onClick={() => a.list("ordered")} />
+                  <Tool label={w("outdent")} icon={<IndentDecrease size={16} />} onClick={() => a.indent(-1)} />
+                  <Tool label={w("indent")} icon={<IndentIncrease size={16} />} onClick={() => a.indent(1)} />
+                  <Tool label={w("marks")} icon={<Pilcrow size={16} />} pressed={a.marks} onClick={a.toggleMarks} />
+                </Row>
+                <Row>
+                  <Tool label={w("left")} icon={<AlignLeft size={16} />} pressed={align("left")} onClick={() => a.paragraph({ align: "left" })} />
+                  <Tool label={w("center")} icon={<AlignCenter size={16} />} pressed={align("center")} onClick={() => a.paragraph({ align: "center" })} />
+                  <Tool label={w("right")} icon={<AlignRight size={16} />} pressed={align("right")} onClick={() => a.paragraph({ align: "right" })} />
+                  <Tool label={w("justify")} icon={<AlignJustify size={16} />} pressed={align("justify")} onClick={() => a.paragraph({ align: "justify" })} />
+                  <Menu
+                    label={w("lineSpacing")}
+                    icon={<WrapText size={16} />}
+                    items={[
+                      ...LINE_SPACINGS.map((v) => ({ label: `${para?.lineSpacing === v ? "✓ " : ""}${v.toLocaleString(locale)}`, run: () => a.paragraph({ lineSpacing: v }) })),
+                      { label: w("spacing.default"), run: () => a.paragraph({ lineSpacing: null }) },
+                      { label: w("paragraphDialog"), run: () => a.open("paragraph") },
+                    ]}
+                  />
+                </Row>
+              </Rows>
             </Group>
             <Group label={w("group.styles")}>
               <div className="word-styles" role="listbox" aria-label={w("group.styles")}>
                 {STYLES.map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    role="option"
-                    aria-selected={para?.style === s}
-                    className={`word-style word-style--${s}`}
-                    onClick={() => a.paragraph({ style: s })}
-                  >
-                    {w(`style.${s}`)}
+                  <button key={s} type="button" role="option" aria-selected={para?.style === s} className={`word-style word-style--${s}`} onClick={() => a.paragraph({ style: s })}>
+                    <span className="word-style__sample" aria-hidden>
+                      AaBbCc
+                    </span>
+                    <span className="word-style__name">{w(`style.${s}`)}</span>
                   </button>
                 ))}
               </div>
             </Group>
             <Group label={w("group.editing")}>
-              <Tool label={w("find")} icon={<Search size={16} />} onClick={() => a.open("find")} />
-              <Tool label={w("replace")} icon={<Replace size={16} />} onClick={() => a.open("replace")} />
-              <Tool label={w("selectAll")} icon={<TextSelect size={16} />} onClick={a.selectAll} />
+              <Rows>
+                <Tool label={w("find")} icon={<Search size={16} />} wide onClick={() => a.open("find")} />
+                <Tool label={w("replace")} icon={<Replace size={16} />} wide onClick={() => a.open("replace")} />
+                <Tool label={w("selectAll")} icon={<TextSelect size={16} />} wide onClick={a.selectAll} />
+              </Rows>
             </Group>
           </>
         )}
@@ -256,10 +284,11 @@ export function WordRibbon({ w, tab, onTab, state, actions: a, language }: Props
 
         {tab === "layout" && (
           <>
-            <Group label={w("group.page")}>
+            <Group label={w("group.page")} onLaunch={() => a.open("margins")} launchLabel={w("margins.custom")}>
               <Menu
                 label={w("margins")}
-                text
+                big
+                icon={<SquareDashed />}
                 items={[
                   ...MARGIN_PRESETS.map((m) => ({
                     label: w(m.key),
@@ -270,7 +299,8 @@ export function WordRibbon({ w, tab, onTab, state, actions: a, language }: Props
               />
               <Menu
                 label={w("orientation")}
-                text
+                big
+                icon={a.pageInfo.orientation === "portrait" ? <RectangleVertical /> : <RectangleHorizontal />}
                 items={[
                   { label: `${a.pageInfo.orientation === "portrait" ? "✓ " : ""}${w("portrait")}`, run: () => a.page({ orientation: "portrait" }) },
                   { label: `${a.pageInfo.orientation === "landscape" ? "✓ " : ""}${w("landscape")}`, run: () => a.page({ orientation: "landscape" }) },
@@ -278,7 +308,8 @@ export function WordRibbon({ w, tab, onTab, state, actions: a, language }: Props
               />
               <Menu
                 label={`${w("size")}${sizeLabel ? ` : ${sizeLabel.label.split(" ")[0]}` : ""}`}
-                text
+                big
+                icon={<File />}
                 items={PAGE_SIZES.map((s) => ({ label: s.label, run: () => a.page({ width_mm: s.width, height_mm: s.height }) }))}
               />
             </Group>
@@ -336,4 +367,27 @@ export function WordRibbon({ w, tab, onTab, state, actions: a, language }: Props
       </div>
     </div>
   );
+}
+
+const HIGHLIGHT_FR: Record<string, string> = {
+  yellow: "Jaune",
+  green: "Vert vif",
+  cyan: "Turquoise",
+  magenta: "Rose",
+  blue: "Bleu",
+  red: "Rouge",
+  darkBlue: "Bleu foncé",
+  darkCyan: "Sarcelle",
+  darkGreen: "Vert",
+  darkMagenta: "Violet",
+  darkRed: "Rouge foncé",
+  darkYellow: "Jaune foncé",
+  darkGray: "Gris 50 %",
+  lightGray: "Gris 25 %",
+  black: "Noir",
+};
+
+function highlightName(name: string, language: "fr" | "en"): string {
+  if (language === "fr") return HIGHLIGHT_FR[name] ?? name;
+  return name.replace(/([A-Z])/g, " $1").replace(/^./, (c) => c.toUpperCase());
 }

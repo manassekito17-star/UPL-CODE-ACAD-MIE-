@@ -1,15 +1,35 @@
 // Contrôles de ruban partagés par ZYNORA Sheets et ZYNORA Word (accessibles au clavier).
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, MoveDownRight } from "lucide-react";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
-export function Group({ label, children }: { label: string; children: ReactNode }) {
+/**
+ * Groupe du ruban : outils au-dessus, nom en dessous. `onLaunch` ajoute le bouton qui ouvre le
+ * dialogue complet du groupe (uniquement quand ce dialogue existe réellement).
+ */
+export function Group({ label, children, onLaunch, launchLabel }: { label: string; children: ReactNode; onLaunch?: () => void; launchLabel?: string }) {
   return (
     <div className="ribbon__group" role="group" aria-label={label}>
       <div className="ribbon__tools">{children}</div>
-      <div className="ribbon__label">{label}</div>
+      <div className="ribbon__label">
+        <span>{label}</span>
+        {onLaunch && (
+          <button type="button" className="ribbon__launcher" aria-label={launchLabel ?? label} title={launchLabel ?? label} onClick={onLaunch}>
+            <MoveDownRight size={10} aria-hidden />
+          </button>
+        )}
+      </div>
     </div>
   );
+}
+
+/** Outils disposés sur plusieurs lignes dans un même groupe (disposition habituelle des rubans). */
+export function Rows({ children }: { children: ReactNode }) {
+  return <div className="ribbon__rows">{children}</div>;
+}
+
+export function Row({ children }: { children: ReactNode }) {
+  return <div className="ribbon__row">{children}</div>;
 }
 
 export function Tool({
@@ -19,6 +39,8 @@ export function Tool({
   pressed,
   disabled,
   wide,
+  big,
+  text,
 }: {
   label: string;
   icon?: ReactNode;
@@ -26,19 +48,24 @@ export function Tool({
   pressed?: boolean;
   disabled?: boolean;
   wide?: boolean;
+  /** Libellé affiché, plus court que le nom accessible (`label`, aussi en infobulle). */
+  text?: string;
+  /** Grand bouton : icône au-dessus du libellé, sur toute la hauteur du groupe. */
+  big?: boolean;
 }) {
+  if (big) wide = true;
   return (
     <button
       type="button"
-      className={`tool${wide ? " tool--wide" : ""}`}
-      aria-label={wide ? undefined : label}
+      className={`tool${big ? " tool--big" : wide ? " tool--wide" : ""}`}
+      aria-label={wide && !text ? undefined : label}
       title={label}
       aria-pressed={pressed === undefined ? undefined : pressed}
       disabled={disabled}
       onClick={onClick}
     >
       {icon && <span aria-hidden>{icon}</span>}
-      {wide && <span>{label}</span>}
+      {wide && <span>{text ?? label}</span>}
     </button>
   );
 }
@@ -110,7 +137,8 @@ export interface MenuItem {
  * Menu déroulant accessible (bouton « menu », flèches, Échap, clic extérieur). La liste est
  * rendue au-dessus de la page, sous son bouton : le ruban, qui défile, ne peut pas la rogner.
  */
-export function Menu({ label, icon, items, text }: { label: string; icon?: ReactNode; items: MenuItem[]; text?: boolean }) {
+export function Menu({ label, icon, items, text, big, shortLabel }: { label: string; icon?: ReactNode; items: MenuItem[]; text?: boolean; big?: boolean; shortLabel?: string }) {
+  if (big) text = true;
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState({ top: 0, left: 0 });
   const root = useRef<HTMLDivElement>(null);
@@ -163,16 +191,16 @@ export function Menu({ label, icon, items, text }: { label: string; icon?: React
       <button
         ref={button}
         type="button"
-        className={`tool${text ? " tool--wide" : ""}`}
+        className={`tool${big ? " tool--big" : text ? " tool--wide" : ""}`}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
-        aria-label={text ? undefined : label}
+        aria-label={text && !shortLabel ? undefined : label}
         title={label}
         onClick={toggle}
       >
         {icon && <span aria-hidden>{icon}</span>}
-        {text && <span>{label}</span>}
+        {text && <span>{shortLabel ?? label}</span>}
         <ChevronDown size={12} aria-hidden />
       </button>
       {open &&

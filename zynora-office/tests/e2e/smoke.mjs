@@ -76,7 +76,17 @@ async function openSession() {
     close: () => s("DELETE", ""),
     exec: (script) => s("POST", "/execute/sync", { script, args: [] }),
     find,
-    click: async (xpath) => s("POST", `/element/${await find(xpath)}/click`, {}),
+    // Un élément peut être redessiné entre sa recherche et le clic (« stale element ») : nouvel essai.
+    click: async (xpath) => {
+      for (let attempt = 0; ; attempt++) {
+        try {
+          return await s("POST", `/element/${await find(xpath)}/click`, {});
+        } catch (error) {
+          if (attempt >= 3 || !String(error.message).includes("stale element")) throw error;
+          await sleep(200);
+        }
+      }
+    },
     type: async (xpath, text) => {
       const element = await find(xpath);
       await s("POST", `/element/${element}/clear`, {});
@@ -236,6 +246,8 @@ try {
   // --- ZYNORA Word : saisie, mise en forme, enregistrement DOCX, copie en texte brut ---
   const editorText = () => app.exec("return document.querySelector('.word-editor')?.textContent ?? null");
   await app.click(navItem("Accueil"));
+  // Attendre la liste des documents récents : son chargement déplace les cartes de l'accueil.
+  await app.waitText("//div[h2[text()='Récemment ajoutés ou ouverts']]//li//span[contains(., 'Classeur.xlsx')]", "documents récents");
   await app.click("//section//button[normalize-space()='Nouveau document']");
   await waitFor(async () => (await app.exec("return document.querySelector('h1')?.textContent")) === "Document.docx", "ouverture du nouveau document");
   assert.ok(existsSync(join(library, "Document.docx")), "le nouveau document est créé dans la bibliothèque");
@@ -244,7 +256,7 @@ try {
   step("un nouveau document est créé et le texte saisi s'affiche");
 
   await app.click(button("Sélectionner tout"));
-  await app.click("//button[@role='option' and normalize-space()='Titre 1']");
+  await app.click("//button[@role='option' and .//span[normalize-space()='Titre 1']]");
   await app.click(button("Gras (Ctrl+G)"));
   await waitFor(async () => (await app.exec("return document.querySelector('.word-editor h1 strong')?.textContent")) === "Rapport annuel", "titre en gras");
   await app.click("//button[@role='tab' and normalize-space()='Mise en page']");
