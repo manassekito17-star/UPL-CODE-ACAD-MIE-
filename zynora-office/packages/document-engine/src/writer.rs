@@ -42,7 +42,15 @@ fn styles(docx: dx::Docx) -> dx::Docx {
                 _ => 2,
             })
     };
-    docx.add_style(dx::Style::new("Normal", dx::StyleType::Paragraph).name("Normal").q_format(true))
+    // Style « Normal » identique à l'affichage de l'éditeur (apps/desktop/src/word/word.css).
+    docx.add_style(
+        dx::Style::new("Normal", dx::StyleType::Paragraph)
+            .name("Normal")
+            .q_format(true)
+            .size(22)
+            .fonts(dx::RunFonts::new().ascii("Calibri").hi_ansi("Calibri").cs("Calibri"))
+            .line_spacing(dx::LineSpacing::new().after(160).line(259).line_rule(dx::LineSpacingType::Auto)),
+    )
         .add_style(
             dx::Style::new("Title", dx::StyleType::Paragraph)
                 .name("Title")

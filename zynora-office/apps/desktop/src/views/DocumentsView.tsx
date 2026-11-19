@@ -1,5 +1,5 @@
 import { Button, Dialog, IconButton, TextField, useToasts } from "@zynora/design-system";
-import { ChevronRight, FolderPlus, Pencil, Search, Sheet, Star, Trash2, Upload } from "lucide-react";
+import { ChevronRight, FileText, FolderPlus, Pencil, Search, Sheet, Star, Trash2, Upload } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 
 import { errorText, useApp } from "../context";
@@ -14,7 +14,7 @@ interface Props {
 }
 
 export function DocumentsView({ path, onNavigate }: Props) {
-  const { api, t, language, openWorkbook, createWorkbook } = useApp();
+  const { api, t, language, openWorkbook, createWorkbook, openText, createText } = useApp();
   const toast = useToasts();
   const [entries, setEntries] = useState<EntryView[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -108,6 +108,9 @@ export function DocumentsView({ path, onNavigate }: Props) {
           <Button icon={<Sheet size={16} aria-hidden />} onClick={() => void createWorkbook(path)} disabled={searching}>
             {t("sheets.new")}
           </Button>
+          <Button icon={<FileText size={16} aria-hidden />} onClick={() => void createText(path)} disabled={searching}>
+            {t("word.new")}
+          </Button>
           <Button icon={<FolderPlus size={16} aria-hidden />} onClick={() => setNewFolderOpen(true)} disabled={searching}>
             {t("docs.newFolder")}
           </Button>
@@ -180,8 +183,13 @@ export function DocumentsView({ path, onNavigate }: Props) {
                         <button type="button" className="link" aria-label={t("docs.open", { name: entry.name })} onClick={() => { setQuery(""); onNavigate(entry.path); }}>
                           {entry.name}
                         </button>
-                      ) : entry.kind === "spreadsheet" ? (
-                        <button type="button" className="link" aria-label={t("docs.open", { name: entry.name })} onClick={() => void openWorkbook(entry.path)}>
+                      ) : entry.kind === "spreadsheet" || entry.kind === "text" ? (
+                        <button
+                          type="button"
+                          className="link"
+                          aria-label={t("docs.open", { name: entry.name })}
+                          onClick={() => void (entry.kind === "text" ? openText(entry.path) : openWorkbook(entry.path))}
+                        >
                           {entry.name}
                         </button>
                       ) : (

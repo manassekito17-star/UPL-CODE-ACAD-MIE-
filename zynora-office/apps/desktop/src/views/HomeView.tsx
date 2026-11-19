@@ -2,7 +2,7 @@ import { Badge, Button, Card, IconButton } from "@zynora/design-system";
 import { AlertTriangle, FileText, FolderOpen, LifeBuoy, Presentation, Sheet, Upload } from "lucide-react";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 
-import { errorText, useApp } from "../context";
+import { errorText, isTextPath, useApp } from "../context";
 import { parentPath } from "../format";
 import type { AppInfo, Dashboard, EntryView, RecoveryRecord } from "../ipc";
 import { EntryIcon } from "./EntryIcon";
@@ -27,7 +27,7 @@ interface Props {
 }
 
 export function HomeView({ info, onLocate }: Props) {
-  const { api, t, openWorkbook, createWorkbook, openRecovery } = useApp();
+  const { api, t, createWorkbook, createText, openRecovery } = useApp();
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
   const [recoveries, setRecoveries] = useState<RecoveryRecord[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -84,7 +84,7 @@ export function HomeView({ info, onLocate }: Props) {
             <ul className="doc-list">
               {recoveries.map((r) => (
                 <li key={r.path}>
-                  <EntryIcon kind="spreadsheet" />
+                  <EntryIcon kind={isTextPath(r.path) ? "text" : "spreadsheet"} />
                   <span className="doc-list__name">{r.path}</span>
                   <Button size="sm" variant="primary" onClick={() => void openRecovery(r.path)}>
                     {t("recovery.open")}
@@ -119,6 +119,10 @@ export function HomeView({ info, onLocate }: Props) {
               <Button variant="primary" size="sm" icon={<Sheet size={14} aria-hidden />} onClick={() => void createWorkbook("")}>
                 {t("sheets.new")}
               </Button>
+            ) : m.key === "word" ? (
+              <Button variant="primary" size="sm" icon={<FileText size={14} aria-hidden />} onClick={() => void createText("")}>
+                {t("word.new")}
+              </Button>
             ) : (
               <Badge tone="warning">{t("status.phase", { n: m.phase })}</Badge>
             )}
@@ -149,7 +153,7 @@ export function HomeView({ info, onLocate }: Props) {
 }
 
 function DocumentList({ title, empty, items, onLocate }: { title: string; empty: string; items: EntryView[] | undefined; onLocate: (folder: string) => void }) {
-  const { t, openWorkbook } = useApp();
+  const { t, openWorkbook, openText } = useApp();
   return (
     <Card>
       <h2>{title}</h2>
@@ -160,8 +164,8 @@ function DocumentList({ title, empty, items, onLocate }: { title: string; empty:
             <li key={item.path}>
               <EntryIcon kind={item.kind} />
               <span className="doc-list__name">
-                {item.kind === "spreadsheet" ? (
-                  <button type="button" className="link" onClick={() => void openWorkbook(item.path)}>
+                {item.kind === "spreadsheet" || item.kind === "text" ? (
+                  <button type="button" className="link" onClick={() => void (item.kind === "text" ? openText(item.path) : openWorkbook(item.path))}>
                     {item.name}
                   </button>
                 ) : (

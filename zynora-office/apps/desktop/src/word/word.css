@@ -1,0 +1,114 @@
+/* ZYNORA Word — page blanche aux dimensions du document sur fond neutre, styles identiques à
+   ceux écrits dans le fichier DOCX (packages/document-engine/src/writer.rs). */
+.word { display: flex; flex-direction: column; height: 100%; min-height: 0; background: var(--z-bg); --accent: var(--z-word); --accent-soft: var(--z-word-soft); }
+.word__app { background: var(--z-word-soft); }
+.word__notice { margin: 0; padding: var(--z-space-2) var(--z-space-3); font-size: var(--z-text-sm); color: var(--z-text); background: color-mix(in srgb, var(--z-warning) 14%, var(--z-surface)); border-bottom: 1px solid var(--z-border); }
+.word__canvas { flex: 1; min-height: 0; overflow: auto; padding: var(--z-space-5) var(--z-space-4); background: var(--z-surface-2); }
+.word__page { box-sizing: border-box; margin: 0 auto; background: #fff; color: #000; box-shadow: 0 1px 3px rgb(0 0 0 / 0.18), 0 6px 24px rgb(0 0 0 / 0.08); }
+.word__host { min-height: 100%; }
+.word__footer { gap: var(--z-space-4); justify-content: flex-start; font-size: var(--z-text-xs); color: var(--z-text-muted); }
+.word__footer-note { flex: 1; text-align: right; }
+
+/* Galerie de styles du ruban */
+.word-styles { display: flex; gap: 2px; }
+.word-style { min-width: 64px; height: 34px; padding: 0 var(--z-space-2); border: 1px solid var(--z-border); border-radius: var(--z-radius-sm); background: var(--z-surface); color: var(--z-text); cursor: pointer; font-size: 12px; white-space: nowrap; }
+.word-style:hover { background: var(--z-surface-hover); }
+.word-style[aria-selected="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.word-style:focus-visible { outline: 2px solid var(--z-focus); outline-offset: 1px; }
+.word-style--title { font-size: 15px; }
+.word-style--heading1 { color: #1f3864; font-weight: 700; }
+.word-style--heading2, .word-style--heading3 { color: #2f5496; font-weight: 700; }
+.word-style--quote { font-style: italic; }
+
+/* Contenu du document (couleurs du papier, quel que soit le thème de l'application) */
+.word-editor { outline: none; min-height: 100%; font-family: Calibri, Carlito, "Segoe UI", Arial, sans-serif; font-size: 11pt; line-height: 1.24; color: #000; caret-color: #000; }
+.word-editor ::selection { background: #b4d7ff; }
+.word-editor .wp { margin: 0 0 8pt; padding: 0; font-size: inherit; font-weight: inherit; }
+.word-editor .wp--title { font-size: 28pt; line-height: 1.1; margin-bottom: 8pt; }
+.word-editor .wp--heading1, .word-editor .wp--heading2, .word-editor .wp--heading3 { font-weight: 700; margin: 12pt 0 4pt; }
+.word-editor .wp--heading1 { font-size: 16pt; color: #1f3864; }
+.word-editor .wp--heading2 { font-size: 13pt; color: #2f5496; }
+.word-editor .wp--heading3 { font-size: 12pt; color: #2f5496; }
+.word-editor .wp--quote { font-style: italic; color: #404040; margin-left: 15.24mm; margin-right: 15.24mm; border: 0; }
+.word-editor a { color: #0563c1; text-decoration: underline; cursor: text; }
+.word-editor mark { color: inherit; }
+.word-editor sup, .word-editor sub { font-size: 0.65em; line-height: 0; }
+
+/* Listes « à plat » (comme dans le format DOCX) : retrait par niveau et numérotation par compteurs. */
+.word-editor { counter-reset: l0 l1 l2 l3 l4 l5 l6 l7 l8; }
+.word-editor [data-list] { position: relative; }
+.word-editor [data-list]::before { position: absolute; width: 6.35mm; margin-left: -6.35mm; text-align: left; }
+.word-editor [data-list][data-level="0"] { padding-left: 12.7mm; }
+.word-editor [data-list][data-level="1"] { padding-left: 25.4mm; }
+.word-editor [data-list][data-level="2"] { padding-left: 38.1mm; }
+.word-editor [data-list][data-level="3"] { padding-left: 50.8mm; }
+.word-editor [data-list][data-level="4"] { padding-left: 63.5mm; }
+.word-editor [data-list][data-level="5"] { padding-left: 76.2mm; }
+.word-editor [data-list][data-level="6"] { padding-left: 88.9mm; }
+.word-editor [data-list][data-level="7"] { padding-left: 101.6mm; }
+.word-editor [data-list][data-level="8"] { padding-left: 114.3mm; }
+.word-editor [data-list][data-level]::before { left: auto; }
+.word-editor [data-list="bullet"]::before { content: "•"; }
+.word-editor [data-list="bullet"][data-level="1"]::before, .word-editor [data-list="bullet"][data-level="4"]::before, .word-editor [data-list="bullet"][data-level="7"]::before { content: "◦"; }
+.word-editor [data-list="bullet"][data-level="2"]::before, .word-editor [data-list="bullet"][data-level="5"]::before, .word-editor [data-list="bullet"][data-level="8"]::before { content: "▪"; }
+/* Un paragraphe hors liste (ou un tableau, un saut de page) termine la numérotation en cours. */
+.word-editor .wp:not([data-list]), .word-editor hr, .word-editor .tableWrapper { counter-reset: l0 l1 l2 l3 l4 l5 l6 l7 l8; }
+.word-editor [data-list="ordered"][data-level="0"] { counter-increment: l0; counter-reset: l1 l2 l3 l4 l5 l6 l7 l8; }
+.word-editor [data-list="ordered"][data-level="1"] { counter-increment: l1; counter-reset: l2 l3 l4 l5 l6 l7 l8; }
+.word-editor [data-list="ordered"][data-level="2"] { counter-increment: l2; counter-reset: l3 l4 l5 l6 l7 l8; }
+.word-editor [data-list="ordered"][data-level="3"] { counter-increment: l3; counter-reset: l4 l5 l6 l7 l8; }
+.word-editor [data-list="ordered"][data-level="4"] { counter-increment: l4; counter-reset: l5 l6 l7 l8; }
+.word-editor [data-list="ordered"][data-level="5"] { counter-increment: l5; counter-reset: l6 l7 l8; }
+.word-editor [data-list="ordered"][data-level="6"] { counter-increment: l6; counter-reset: l7 l8; }
+.word-editor [data-list="ordered"][data-level="7"] { counter-increment: l7; counter-reset: l8; }
+.word-editor [data-list="ordered"][data-level="8"] { counter-increment: l8; }
+.word-editor [data-list="ordered"][data-level="0"]::before { content: counter(l0) "."; }
+.word-editor [data-list="ordered"][data-level="1"]::before { content: counter(l1) "."; }
+.word-editor [data-list="ordered"][data-level="2"]::before { content: counter(l2) "."; }
+.word-editor [data-list="ordered"][data-level="3"]::before { content: counter(l3) "."; }
+.word-editor [data-list="ordered"][data-level="4"]::before { content: counter(l4) "."; }
+.word-editor [data-list="ordered"][data-level="5"]::before { content: counter(l5) "."; }
+.word-editor [data-list="ordered"][data-level="6"]::before { content: counter(l6) "."; }
+.word-editor [data-list="ordered"][data-level="7"]::before { content: counter(l7) "."; }
+.word-editor [data-list="ordered"][data-level="8"]::before { content: counter(l8) "."; }
+
+/* Tableaux (bordures simples, largeurs égales : ce qui est écrit dans le fichier) */
+.word-editor table { border-collapse: collapse; width: 100%; table-layout: fixed; margin: 0 0 8pt; }
+.word-editor td, .word-editor th { border: 1px solid #000; padding: 0 1.9mm; vertical-align: top; }
+.word-editor td .wp, .word-editor th .wp { margin-bottom: 0; }
+
+/* Saut de page : séparation visible à l'écran, vraie page à l'impression */
+.word-editor hr.wp-page-break { border: 0; border-top: 1px dashed #9aa3b5; margin: 12pt 0; height: 0; overflow: visible; position: relative; }
+.word-editor hr.wp-page-break::after { content: "Saut de page"; position: absolute; left: 50%; top: -0.75em; transform: translateX(-50%); padding: 0 6px; background: #fff; color: #6b7280; font-size: 9pt; }
+:lang(en) .word-editor hr.wp-page-break::after { content: "Page break"; }
+.word-editor hr.ProseMirror-selectednode { outline: 2px solid #4c3fd1; }
+
+/* Marques de mise en forme */
+.word--marks .word-editor .wp::after { content: "¶"; color: #8a8fa0; margin-left: 2px; }
+.word--painter .word-editor { cursor: copy; }
+
+@media (max-width: 720px) {
+  .word { padding-top: env(safe-area-inset-top); }
+  .word__canvas { padding: var(--z-space-2) 0; }
+  .word__page { width: auto !important; min-height: 0 !important; padding: 6mm !important; box-shadow: none; zoom: 1 !important; }
+  .word-editor { font-size: 16px; } /* évite le zoom automatique d'iOS */
+  .word__footer-note { display: none; }
+  .word__footer { padding-bottom: env(safe-area-inset-bottom); }
+}
+
+/* Impression : seul le contenu du document, aux marges du document (@page). */
+@media print {
+  body * { visibility: hidden; }
+  .word__page, .word__page * { visibility: visible; }
+  .word__page { position: absolute; inset: 0 auto auto 0; width: auto !important; min-height: 0 !important; padding: 0 !important; box-shadow: none; zoom: 1 !important; }
+  .word__canvas { overflow: visible; padding: 0; }
+  .word-editor hr.wp-page-break { break-after: page; border: 0; margin: 0; }
+  .word-editor hr.wp-page-break::after { content: none; }
+  .word--marks .word-editor .wp::after { content: none; }
+}
+
+.dialog-form--grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--z-space-3); }
+.word-stats { display: grid; gap: var(--z-space-2); margin: 0; }
+.word-stats div { display: flex; justify-content: space-between; gap: var(--z-space-4); }
+.word-stats dt { color: var(--z-text-muted); }
+.word-stats dd { margin: 0; font-weight: 650; font-variant-numeric: tabular-nums; }

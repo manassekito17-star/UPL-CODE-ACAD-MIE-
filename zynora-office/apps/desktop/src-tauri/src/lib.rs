@@ -15,6 +15,7 @@ use zynora_file_manager::FileError;
 
 mod library;
 mod sheets;
+mod word;
 
 pub(crate) struct AppState {
     /// Base locale, ou message d'erreur si elle n'a pas pu être ouverte au démarrage :
@@ -58,6 +59,23 @@ impl From<DatabaseError> for CommandError {
 impl From<FileError> for CommandError {
     fn from(error: FileError) -> Self {
         Self::new(error.to_string())
+    }
+}
+
+/// Impression du contenu affiché. Sur macOS, `window.print()` n'est pas disponible dans la
+/// WebView : le dialogue natif est ouvert ici. Renvoie `false` quand l'interface doit appeler
+/// `window.print()` elle-même (Windows, Linux).
+#[tauri::command]
+fn print_webview(webview: tauri::Webview) -> Result<bool, CommandError> {
+    #[cfg(all(desktop, target_os = "macos"))]
+    {
+        webview.print().map_err(|_| CommandError::new("impression impossible"))?;
+        return Ok(true);
+    }
+    #[cfg(not(all(desktop, target_os = "macos")))]
+    {
+        let _ = webview;
+        Ok(false)
     }
 }
 
@@ -195,6 +213,13 @@ pub fn run() {
             sheets::list_recoveries,
             sheets::sheets_open_recovery,
             sheets::discard_recovery_command,
+            word::word_open,
+            word::word_create,
+            word::word_save,
+            word::word_save_copy,
+            word::word_autosave,
+            word::word_open_recovery,
+            print_webview,
         ])
         .build(tauri::generate_context!());
 

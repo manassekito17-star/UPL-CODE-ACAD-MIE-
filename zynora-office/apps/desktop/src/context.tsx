@@ -11,8 +11,12 @@ export interface AppContextValue {
   openWorkbook: (path: string) => Promise<void>;
   /** Crée un classeur vide dans un dossier de la bibliothèque et l'ouvre. */
   createWorkbook: (folder: string) => Promise<void>;
-  /** Rouvre un classeur depuis sa copie de récupération. */
+  /** Rouvre un document (classeur ou texte) depuis sa copie de récupération. */
   openRecovery: (path: string) => Promise<void>;
+  /** Ouvre un document texte (DOCX, TXT) dans ZYNORA Word. */
+  openText: (path: string) => Promise<void>;
+  /** Crée un document texte vide dans un dossier de la bibliothèque et l'ouvre. */
+  createText: (folder: string) => Promise<void>;
 }
 
 export const AppContext = createContext<AppContextValue | null>(null);
@@ -27,4 +31,9 @@ export function useApp(): AppContextValue {
 export function errorText(error: unknown, t: Translate): string {
   const message = error instanceof Error ? error.message : String(error);
   return message === "not_in_tauri" ? t("error.not_in_tauri") : message;
+}
+
+/** Document texte ouvert dans ZYNORA Word (selon l'extension). */
+export function isTextPath(path: string): boolean {
+  return /\.(docx|txt|odt)$/i.test(path);
 }

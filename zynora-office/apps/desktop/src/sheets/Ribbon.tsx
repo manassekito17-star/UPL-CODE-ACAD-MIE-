@@ -9,7 +9,6 @@ import {
   ArrowDownZA,
   Bold,
   Calculator,
-  ChevronDown,
   ClipboardPaste,
   Copy,
   Eraser,
@@ -35,9 +34,8 @@ import {
   Underline,
   WrapText,
 } from "lucide-react";
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { createPortal } from "react-dom";
 
+import { Check, ColorTool, Group, Menu, Select, Tool } from "../ribbon/controls";
 import type { CellStyle, FormatOp, StyleChange } from "../ipc";
 import { FONT_SIZES, FONTS, NUMBER_FORMATS, type RibbonKey, type RibbonText } from "./ribbon-text";
 
@@ -299,203 +297,6 @@ export function Ribbon({ r, tab, onTab, cell, actions: a, categories }: Props) {
           </Group>
         )}
       </div>
-    </div>
-  );
-}
-
-function Group({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="ribbon__group" role="group" aria-label={label}>
-      <div className="ribbon__tools">{children}</div>
-      <div className="ribbon__label">{label}</div>
-    </div>
-  );
-}
-
-export function Tool({
-  label,
-  icon,
-  onClick,
-  pressed,
-  disabled,
-  wide,
-}: {
-  label: string;
-  icon?: ReactNode;
-  onClick: () => void;
-  pressed?: boolean;
-  disabled?: boolean;
-  wide?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      className={`tool${wide ? " tool--wide" : ""}`}
-      aria-label={wide ? undefined : label}
-      title={label}
-      aria-pressed={pressed === undefined ? undefined : pressed}
-      disabled={disabled}
-      onClick={onClick}
-    >
-      {icon && <span aria-hidden>{icon}</span>}
-      {wide && <span>{label}</span>}
-    </button>
-  );
-}
-
-function ColorTool({ label, icon, value, onPick }: { label: string; icon: ReactNode; value: string; onPick: (color: string) => void }) {
-  return (
-    <label className="tool tool--color" title={label}>
-      <span aria-hidden>{icon}</span>
-      <span className="tool__swatch" style={{ background: value }} aria-hidden />
-      <input type="color" aria-label={label} value={value} onChange={(e) => onPick(e.target.value)} />
-    </label>
-  );
-}
-
-function Select({
-  label,
-  value,
-  options,
-  onChange,
-  wide,
-  placeholder,
-}: {
-  label: string;
-  value: string;
-  options: Array<{ value: string; label: string }>;
-  onChange: (value: string) => void;
-  wide?: boolean;
-  placeholder?: string;
-}) {
-  const id = useId();
-  const known = options.some((o) => o.value === value);
-  return (
-    <>
-      <label className="z-visually-hidden" htmlFor={id}>
-        {label}
-      </label>
-      <select id={id} className={`ribbon__select${wide ? " ribbon__select--wide" : ""}`} title={label} value={known ? value : ""} onChange={(e) => e.target.value && onChange(e.target.value)}>
-        {!known && (
-          <option value="" disabled>
-            {placeholder ?? value}
-          </option>
-        )}
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-    </>
-  );
-}
-
-function Check({ label, checked, onChange }: { label: string; checked: boolean; onChange: () => void }) {
-  return (
-    <label className="ribbon__check">
-      <input type="checkbox" checked={checked} onChange={onChange} />
-      {label}
-    </label>
-  );
-}
-
-interface MenuItem {
-  label: string;
-  run: () => void;
-  disabled?: boolean;
-}
-
-/**
- * Menu déroulant accessible (bouton « menu », flèches, Échap, clic extérieur). La liste est
- * rendue au-dessus de la page, sous son bouton : le ruban, qui défile, ne peut pas la rogner.
- */
-export function Menu({ label, icon, items, text }: { label: string; icon?: ReactNode; items: MenuItem[]; text?: boolean }) {
-  const [open, setOpen] = useState(false);
-  const [position, setPosition] = useState({ top: 0, left: 0 });
-  const root = useRef<HTMLDivElement>(null);
-  const list = useRef<HTMLDivElement>(null);
-  const button = useRef<HTMLButtonElement>(null);
-  const menuId = useId();
-
-  useEffect(() => {
-    if (!open) return;
-    list.current?.querySelector<HTMLButtonElement>("[role=menuitem]:not(:disabled)")?.focus();
-    const onDown = (e: MouseEvent) => {
-      const target = e.target as Node;
-      if (!root.current?.contains(target) && !list.current?.contains(target)) setOpen(false);
-    };
-    const close = () => setOpen(false);
-    document.addEventListener("mousedown", onDown);
-    window.addEventListener("resize", close);
-    return () => {
-      document.removeEventListener("mousedown", onDown);
-      window.removeEventListener("resize", close);
-    };
-  }, [open]);
-
-  function toggle() {
-    const rect = button.current?.getBoundingClientRect();
-    if (rect) {
-      // Le menu reste dans la fenêtre, même près du bord droit.
-      const left = Math.max(8, Math.min(rect.left, window.innerWidth - 240));
-      setPosition({ top: rect.bottom + 4, left });
-    }
-    setOpen((o) => !o);
-  }
-
-  function onKey(event: React.KeyboardEvent<HTMLDivElement>) {
-    const entries = Array.from(list.current?.querySelectorAll<HTMLButtonElement>("[role=menuitem]:not(:disabled)") ?? []);
-    const index = entries.indexOf(document.activeElement as HTMLButtonElement);
-    if (event.key === "Escape") {
-      event.preventDefault();
-      setOpen(false);
-      button.current?.focus();
-    } else if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-      event.preventDefault();
-      const step = event.key === "ArrowDown" ? 1 : -1;
-      entries[(index + step + entries.length) % entries.length]?.focus();
-    }
-  }
-
-  return (
-    <div className="menu" ref={root}>
-      <button
-        ref={button}
-        type="button"
-        className={`tool${text ? " tool--wide" : ""}`}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-controls={open ? menuId : undefined}
-        aria-label={text ? undefined : label}
-        title={label}
-        onClick={toggle}
-      >
-        {icon && <span aria-hidden>{icon}</span>}
-        {text && <span>{label}</span>}
-        <ChevronDown size={12} aria-hidden />
-      </button>
-      {open &&
-        createPortal(
-        <div ref={list} className="menu__list" role="menu" id={menuId} aria-label={label} style={position} onKeyDown={onKey}>
-          {items.map((item) => (
-            <button
-              key={item.label}
-              type="button"
-              role="menuitem"
-              disabled={item.disabled}
-              className="menu__item"
-              onClick={() => {
-                setOpen(false);
-                item.run();
-              }}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>,
-          document.body,
-        )}
     </div>
   );
 }

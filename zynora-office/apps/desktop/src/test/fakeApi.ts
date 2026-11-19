@@ -11,6 +11,8 @@ import {
   type AuditEvent,
   type BookState,
   type CellStyle,
+  type DocModel,
+  type DocumentInfo,
   type Entry,
   type EntryKind,
   type ImportOutcome,
@@ -29,6 +31,10 @@ interface Options {
   /** Résultats affichés pour des formules données (le faux backend ne calcule rien). */
   formulaResults?: Record<string, string>;
   recoveries?: RecoveryRecord[];
+  /** Éléments non conservés signalés à l'ouverture de certains documents texte. */
+  lost?: Record<string, string[]>;
+  /** Contenu initial de documents texte. */
+  documents?: Record<string, DocModel>;
 }
 
 function kindOf(name: string): EntryKind {
@@ -79,6 +85,21 @@ export function fakeApi(options: Options = {}) {
     sheets: [...sheets],
     state: { ...book },
     recovered,
+  });
+
+  const docs = new Map<string, DocModel>(Object.entries(options.documents ?? {}));
+  const autosaved = new Map<string, DocModel>();
+  const emptyDoc = (): DocModel => ({
+    page: { orientation: "portrait", width_mm: 210, height_mm: 297, margin_top_mm: 25, margin_right_mm: 25, margin_bottom_mm: 25, margin_left_mm: 25 },
+    blocks: [{ type: "paragraph", style: "normal", align: "left", runs: [] }],
+  });
+  const docInfo = (path: string): DocumentInfo => ({
+    path,
+    name: path.split("/").pop() ?? path,
+    format: path.toLowerCase().endsWith(".txt") ? "txt" : "docx",
+    document: structuredClone(docs.get(path) ?? emptyDoc()),
+    lost: options.lost?.[path] ?? [],
+    recovered: false,
   });
 
   const view = (e: Entry) => ({ ...e, favorite: favorites.has(e.path) });
@@ -269,6 +290,37 @@ export function fakeApi(options: Options = {}) {
       recoveries = recoveries.filter((r) => r.path !== path);
       return null;
     }),
+    wordOpen: vi.fn(async (path: string) => {
+      if (!entries.has(path)) throw new IpcError("élément introuvable");
+      return docInfo(path);
+    }),
+    wordCreate: vi.fn(async (folder: string) => {
+      const path = folder ? `${folder}/Document.docx` : "Document.docx";
+      add(path, "text");
+      return docInfo(path);
+    }),
+    wordSave: vi.fn(async (path: string, document: DocModel) => {
+      const lost = options.lost?.[path] ?? [];
+      if (lost.length) throw new IpcError(`Ce document contient des éléments que ZYNORA ne sait pas encore conserver (${lost.join(", ")}). Pour ne pas les perdre, l'original n'est pas remplacé : utilisez « Enregistrer une copie ».`);
+      docs.set(path, structuredClone(document));
+      recoveries = recoveries.filter((r) => r.path !== path);
+      return null;
+    }),
+    wordSaveCopy: vi.fn(async (path: string, name: string, document: DocModel) => {
+      const folder = parent(path);
+      let target = folder ? `${folder}/${name}` : name;
+      for (let n = 2; entries.has(target); n++) target = target.replace(/( \(\d+\))?(\.\w+)$/, ` (${n})$2`);
+      add(target, "text");
+      docs.set(target, structuredClone(document));
+      return docInfo(target);
+    }),
+    wordAutosave: vi.fn(async (path: string, document: DocModel) => {
+      autosaved.set(path, structuredClone(document));
+      recoveries = [{ path, file: "x.zdoc.json", saved_at_ms: Date.now() }, ...recoveries.filter((r) => r.path !== path)];
+      return null;
+    }),
+    wordOpenRecovery: vi.fn(async (path: string) => ({ ...docInfo(path), document: autosaved.get(path) ?? emptyDoc(), recovered: true })),
+    printWebview: vi.fn(async () => false),
   };
   return api;
 }

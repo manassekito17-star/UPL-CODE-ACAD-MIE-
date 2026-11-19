@@ -1,6 +1,6 @@
 /* ZYNORA Sheets — disposition familière des tableurs (ruban, barre de formule, grille,
    onglets de feuilles, barre d'état), avec l'identité ZYNORA (accent Lagune). */
-.sheets { display: flex; flex-direction: column; height: 100%; min-height: 0; background: var(--z-bg); --accent: var(--z-sheets); }
+.sheets { display: flex; flex-direction: column; height: 100%; min-height: 0; background: var(--z-bg); --accent: var(--z-sheets); --accent-soft: var(--z-sheets-soft); }
 
 .sheets__titlebar { display: flex; align-items: center; gap: var(--z-space-2); padding: var(--z-space-2) var(--z-space-3); background: var(--z-surface); border-bottom: 1px solid var(--z-border); }
 .sheets__app { display: inline-flex; align-items: center; gap: 4px; padding: 2px var(--z-space-2); border-radius: 999px; background: var(--z-sheets-soft); color: var(--accent); font-size: var(--z-text-xs); font-weight: 700; }
@@ -24,7 +24,7 @@
 
 .tool { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: var(--z-space-1); min-width: 30px; height: 30px; padding: 0 6px; border: 1px solid transparent; border-radius: var(--z-radius-sm); background: transparent; color: var(--z-text); font: inherit; font-size: var(--z-text-sm); cursor: pointer; white-space: nowrap; }
 .tool:hover:not(:disabled) { background: var(--z-surface-hover); }
-.tool[aria-pressed="true"] { background: var(--z-sheets-soft); border-color: var(--accent); color: var(--accent); }
+.tool[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
 .tool:disabled { opacity: 0.45; cursor: default; }
 .tool:focus-visible, .tool:focus-within { outline: 2px solid var(--z-focus); outline-offset: 1px; }
 .tool--wide { padding: 0 var(--z-space-3); }

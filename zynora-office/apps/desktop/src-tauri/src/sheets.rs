@@ -528,12 +528,12 @@ pub(crate) fn sheets_paste(
     })
 }
 
-fn recovery_dir(state: &AppState) -> PathBuf {
+pub(crate) fn recovery_dir(state: &AppState) -> PathBuf {
     state.data_dir.join("recovery")
 }
 
 /// Nom de fichier de récupération stable pour un document (empreinte FNV-1a, sans chemin).
-fn recovery_name(library: &str, path: &str) -> String {
+pub(crate) fn recovery_name(library: &str, path: &str) -> String {
     let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
     for byte in library.bytes().chain([0]).chain(path.bytes()) {
         hash ^= u64::from(byte);
@@ -542,7 +542,7 @@ fn recovery_name(library: &str, path: &str) -> String {
     format!("{hash:016x}.xlsx")
 }
 
-fn discard_recovery(state: &AppState, library: &str, path: &str) -> CommandResult<()> {
+pub(crate) fn discard_recovery(state: &AppState, library: &str, path: &str) -> CommandResult<()> {
     if let Some(file) = state.db()?.take_recovery(library, path)? {
         let _ = fs::remove_file(recovery_dir(state).join(file));
     }

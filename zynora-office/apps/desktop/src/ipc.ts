@@ -237,6 +237,57 @@ async function call<T>(command: string, args?: Record<string, unknown>): Promise
   }
 }
 
+// --- ZYNORA Word (modèle du moteur packages/document-engine) ---
+export type DocParagraphStyle = "normal" | "title" | "heading1" | "heading2" | "heading3" | "quote";
+export type DocAlign = "left" | "center" | "right" | "justify";
+export interface DocRun {
+  text: string;
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+  strike?: boolean;
+  color?: string;
+  highlight?: string;
+  script?: "superscript" | "subscript";
+  size_pt?: number;
+  font?: string;
+  link?: string;
+}
+export interface DocParagraph {
+  style?: DocParagraphStyle;
+  align?: DocAlign;
+  list?: { kind: "bullet" | "ordered"; level: number };
+  indent_left_mm?: number;
+  first_line_mm?: number;
+  space_before_pt?: number;
+  space_after_pt?: number;
+  line_spacing?: number;
+  runs: DocRun[];
+}
+export type DocBlock = ({ type: "paragraph" } & DocParagraph) | { type: "table"; rows: Array<Array<{ paragraphs: DocParagraph[] }>> } | { type: "page_break" };
+export interface DocPage {
+  orientation: "portrait" | "landscape";
+  width_mm: number;
+  height_mm: number;
+  margin_top_mm: number;
+  margin_right_mm: number;
+  margin_bottom_mm: number;
+  margin_left_mm: number;
+}
+export interface DocModel {
+  page: DocPage;
+  blocks: DocBlock[];
+}
+export interface DocumentInfo {
+  path: string;
+  name: string;
+  format: "docx" | "txt";
+  document: DocModel;
+  /** Éléments du fichier que ZYNORA ne sait pas réécrire : l'original ne peut pas être remplacé. */
+  lost: string[];
+  recovered: boolean;
+}
+
 export const api = {
   appInfo: () => call<AppInfo>("app_info"),
   getSettings: () => call<Settings>("get_settings"),
@@ -293,6 +344,14 @@ export const api = {
   sheetsClose: (id: number, discard: boolean) => call<boolean>("sheets_close", { id, discard }),
   listRecoveries: () => call<RecoveryRecord[]>("list_recoveries"),
   sheetsOpenRecovery: (path: string) => call<WorkbookInfo>("sheets_open_recovery", { path }),
+  wordOpen: (path: string) => call<DocumentInfo>("word_open", { path }),
+  wordCreate: (folder: string) => call<DocumentInfo>("word_create", { folder }),
+  wordSave: (path: string, document: DocModel) => call<null>("word_save", { path, document }),
+  wordSaveCopy: (path: string, name: string, document: DocModel) => call<DocumentInfo>("word_save_copy", { path, name, document }),
+  wordAutosave: (path: string, document: DocModel) => call<null>("word_autosave", { path, document }),
+  wordOpenRecovery: (path: string) => call<DocumentInfo>("word_open_recovery", { path }),
+  /** `true` : dialogue d'impression natif ouvert ; `false` : appeler window.print(). */
+  printWebview: () => call<boolean>("print_webview"),
   discardRecovery: (path: string) => call<null>("discard_recovery_command", { path }),
 };
 

@@ -2,14 +2,15 @@ import { Badge, Button, NavItem, ToastProvider, ZynoraMark, applyTheme, useToast
 import { FolderOpen, Home, Settings as SettingsIcon, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 
-import { AppContext, errorText, useApp } from "./context";
 import { translator } from "./i18n";
-import { api as defaultApi, type Api, type AppInfo, type Language, type SettingChange, type Settings, type WorkbookInfo } from "./ipc";
+import { AppContext, errorText, isTextPath, useApp } from "./context";
+import { api as defaultApi, type Api, type AppInfo, type DocumentInfo, type Language, type SettingChange, type Settings, type WorkbookInfo } from "./ipc";
 import { SheetsEditor } from "./sheets/SheetsEditor";
 import { DocumentsView } from "./views/DocumentsView";
 import { HomeView, MODULES } from "./views/HomeView";
 import { SettingsView } from "./views/SettingsView";
 import { TrashView } from "./views/TrashView";
+import { WordEditor } from "./word/WordEditor";
 
 type View = "home" | "documents" | "trash" | "settings";
 
@@ -26,6 +27,7 @@ export function App({ api = defaultApi }: { api?: Api }) {
   const language: Language = settings?.language ?? "fr";
   const t = useMemo(() => translator(language), [language]);
   const [book, setBook] = useState<WorkbookInfo | null>(null);
+  const [textDoc, setTextDoc] = useState<DocumentInfo | null>(null);
 
   const load = useCallback(async () => {
     setError(null);
@@ -77,13 +79,23 @@ export function App({ api = defaultApi }: { api?: Api }) {
 
   return (
     <ToastProvider closeLabel={t("dialog.close")}>
-      <Workspace api={api} t={t} language={language} onBook={setBook}>
+      <Workspace api={api} t={t} language={language} onBook={setBook} onText={setTextDoc}>
         {book ? (
           <SheetsEditor
             key={book.id}
             book={book}
             onClose={() => {
               setBook(null);
+              setLibraryRevision((r) => r + 1);
+            }}
+          />
+        ) : textDoc ? (
+          <WordEditor
+            key={textDoc.path}
+            doc={textDoc}
+            onReplace={setTextDoc}
+            onClose={() => {
+              setTextDoc(null);
               setLibraryRevision((r) => r + 1);
             }}
           />
@@ -111,6 +123,8 @@ export function App({ api = defaultApi }: { api?: Api }) {
               {MODULES.map((m) =>
                 m.key === "sheets" ? (
                   <SheetsNavItem key={m.key} icon={m.icon} label={t("app.sheets")} folder={view === "documents" ? folder : ""} />
+                ) : m.key === "word" ? (
+                  <WordNavItem key={m.key} icon={m.icon} label={t("app.word")} folder={view === "documents" ? folder : ""} />
                 ) : (
                   <NavItem
                     key={m.key}
@@ -173,25 +187,29 @@ function Workspace({
   t,
   language,
   onBook,
+  onText,
   children,
 }: {
   api: Api;
   t: ReturnType<typeof translator>;
   language: Language;
   onBook: (book: WorkbookInfo) => void;
+  onText: (doc: DocumentInfo) => void;
   children: ReactNode;
 }) {
   const toast = useToasts();
-  const guard = useCallback(
-    async (open: () => Promise<WorkbookInfo>) => {
+  const attempt = useCallback(
+    async <T,>(open: () => Promise<T>, show: (value: T) => void) => {
       try {
-        onBook(await open());
+        show(await open());
       } catch (e) {
         toast({ tone: "error", message: errorText(e, t) });
       }
     },
-    [onBook, t, toast],
+    [t, toast],
   );
+  const guard = useCallback((open: () => Promise<WorkbookInfo>) => attempt(open, onBook), [attempt, onBook]);
+  const text = useCallback((open: () => Promise<DocumentInfo>) => attempt(open, onText), [attempt, onText]);
   const context = useMemo(
     () => ({
       api,
@@ -199,9 +217,11 @@ function Workspace({
       language,
       openWorkbook: (path: string) => guard(() => api.sheetsOpen(path)),
       createWorkbook: (folder: string) => guard(() => api.sheetsCreate(folder)),
-      openRecovery: (path: string) => guard(() => api.sheetsOpenRecovery(path)),
+      openRecovery: (path: string) => (isTextPath(path) ? text(() => api.wordOpenRecovery(path)) : guard(() => api.sheetsOpenRecovery(path))),
+      openText: (path: string) => text(() => api.wordOpen(path)),
+      createText: (folder: string) => text(() => api.wordCreate(folder)),
     }),
-    [api, t, language, guard],
+    [api, t, language, guard, text],
   );
   return <AppContext.Provider value={context}>{children}</AppContext.Provider>;
 }
@@ -209,4 +229,9 @@ function Workspace({
 function SheetsNavItem({ icon, label, folder }: { icon: ReactNode; label: string; folder: string }) {
   const { createWorkbook, t } = useApp();
   return <NavItem icon={icon} label={label} title={t("sheets.new")} onSelect={() => void createWorkbook(folder)} />;
+}
+
+function WordNavItem({ icon, label, folder }: { icon: ReactNode; label: string; folder: string }) {
+  const { createText, t } = useApp();
+  return <NavItem icon={icon} label={label} title={t("word.new")} onSelect={() => void createText(folder)} />;
 }

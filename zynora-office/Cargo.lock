@@ -5173,6 +5173,7 @@ dependencies = [
  "tauri-plugin-dialog",
  "tempfile",
  "zynora-database",
+ "zynora-document-engine",
  "zynora-file-manager",
  "zynora-spreadsheet-engine",
 ]
