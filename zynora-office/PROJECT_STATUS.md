@@ -39,7 +39,7 @@ favoris, récents, recherche, corbeille avec restauration), détection d'arrêt 
 - Page `/zynora-office` sur le site ZENTECH (PR n° 50, à fusionner) et version GitHub
   « zynora-office-preview » publiée automatiquement après réussite de la CI.
 
-### Phase 3 — ZYNORA Word (première version, validée sur Linux)
+### Phase 3 — ZYNORA Word (première version, validée sur Linux, Windows, macOS et Android)
 - **Moteur** `packages/document-engine` (docx-rs, MIT) : modèle de document, lecture et écriture
   DOCX, texte brut ; tout élément que ZYNORA ne sait pas réécrire est **relevé**.
 - **Aucune perte silencieuse** : un document dont la lecture a relevé des éléments non conservés
@@ -50,8 +50,9 @@ favoris, récents, recherche, corbeille avec restauration), détection d'arrêt 
 - Word activé dans la navigation, l'accueil et la bibliothèque.
 
 ## En cours
-- Exécution de la CI sur Windows, macOS et Android avec Word (Linux validé en local, y compris
-  bout en bout).
+- Rien en cours d'exécution : CI n° 24 (commit 3012132) verte sur les 5 jobs — Linux (dont tests
+  croisés LibreOffice XLSX/DOCX, paquets et bout en bout 25/25), Windows, macOS, Android — et
+  version « zynora-office-preview » republiée avec Word.
 
 ## Restant
 - **Sheets** : affichage des cellules fusionnées dans la grille, bordures, tri, filtres,
@@ -73,6 +74,10 @@ favoris, récents, recherche, corbeille avec restauration), détection d'arrêt 
   lecture directe du DOM.
 
 ## Erreurs corrigées pendant la phase 3
+- CI : typage du site sans types Node (échec Windows/Linux/macOS, run n° 18) ; test du ruban
+  Sheets dépendant d'un chargement asynchrone (intermittent, run n° 23). Pannes externes
+  constatées (archives Ubuntu 503, Maven Central 429) : nouvelles tentatives apt ajoutées,
+  jobs relancés, aucun test désactivé.
 - Listes à puces affichées numérotées par LibreOffice : identifiant de numérotation en conflit
   avec celui que docx-rs déclare déjà → identifiants dédiés (détecté par le test croisé).
 - Profil release en `panic = "abort"` : une panique d'un lecteur aurait fermé l'application →
@@ -108,7 +113,8 @@ favoris, récents, recherche, corbeille avec restauration), détection d'arrêt 
 | Bout en bout (binaire compilé, vrai disque, vrais moteurs) | ✅ 25 / 25 vérifications |
 | Interface téléphone (émulation iPhone 13) | ✅ vérifiée visuellement |
 | Compilation Rust Android arm64 | ✅ |
-| APK Android | ✅ CI (run n° 16) |
+| APK Android | ✅ CI (run n° 24) |
+| CI complète (Linux, Windows, macOS, Android, publication) | ✅ run n° 24 |
 
 **Tests échoués actuellement : aucun en local.**
 
@@ -124,7 +130,6 @@ favoris, récents, recherche, corbeille avec restauration), détection d'arrêt 
 6. Licence de ZYNORA OFFICE : non choisie.
 
 ## Prochaine tâche
-1. Confirmer la CI (Windows, macOS, Android) avec Word.
-2. Word : images (lecture, affichage, réécriture), pagination à l'écran, en-têtes et pieds de page,
+1. Word : images (lecture, affichage, réécriture), pagination à l'écran, en-têtes et pieds de page,
    export PDF ; corpus de documents Microsoft Word.
-3. En parallèle : fin de Sheets (fusions affichées, filtres, graphiques) et import mobile.
+2. En parallèle : fin de Sheets (fusions affichées, filtres, graphiques) et import mobile.
