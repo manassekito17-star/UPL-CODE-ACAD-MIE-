@@ -18,6 +18,12 @@ use ironcalc::base::{ClipboardData, Model, UserModel};
 use serde::{Deserialize, Serialize};
 
 mod csv;
+mod ops;
+
+pub use ops::{
+    BorderLine, BorderPreset, DefinedName, FUNCTIONS, FindOptions, Found, FunctionInfo, adjust_decimals,
+    toggle_thousands,
+};
 
 /// Limites de la grille (identiques à Excel).
 pub const MAX_ROWS: i32 = 1_048_576;
@@ -41,7 +47,7 @@ pub enum SheetError {
 
 pub type Result<T> = std::result::Result<T, SheetError>;
 
-fn engine(error: String) -> SheetError {
+pub(crate) fn engine(error: String) -> SheetError {
     SheetError::Engine(error)
 }
 
@@ -88,6 +94,34 @@ pub enum Align {
     Right,
 }
 
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum VAlign {
+    Top,
+    Center,
+    #[default]
+    Bottom,
+}
+
+/// Bordure d'un côté : style CSS prêt à afficher (« 1px solid #000000 »).
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+pub struct BordersView {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub top: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub right: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bottom: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub left: Option<String>,
+}
+
+impl BordersView {
+    fn is_empty(&self) -> bool {
+        self.top.is_none() && self.right.is_none() && self.bottom.is_none() && self.left.is_none()
+    }
+}
+
 /// Style d'une cellule tel qu'affiché par la grille. Couleurs en `#rrggbb`.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
 pub struct CellStyleView {
@@ -108,6 +142,17 @@ pub struct CellStyleView {
     /// Alignement choisi explicitement par l'utilisateur (sinon : alignement par défaut du type).
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     pub align_set: bool,
+    pub v_align: VAlign,
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub wrap: bool,
+    /// Taille de police en points, si différente de la taille par défaut.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub font_size: Option<i32>,
+    /// Police, si différente de la police par défaut.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub font_name: Option<String>,
+    #[serde(skip_serializing_if = "BordersView::is_empty")]
+    pub borders: BordersView,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -145,7 +190,7 @@ impl CellRange {
     pub fn cell(sheet: u32, row: i32, column: i32) -> Self {
         Self { sheet, top: row, left: column, bottom: row, right: column }
     }
-    fn validate(&self) -> Result<()> {
+    pub(crate) fn validate(&self) -> Result<()> {
         let ok = self.top >= 1
             && self.left >= 1
             && self.bottom >= self.top
@@ -154,10 +199,10 @@ impl CellRange {
             && self.right <= MAX_COLUMNS;
         if ok { Ok(()) } else { Err(SheetError::InvalidRange) }
     }
-    fn cells(&self) -> i64 {
+    pub(crate) fn cells(&self) -> i64 {
         i64::from(self.bottom - self.top + 1) * i64::from(self.right - self.left + 1)
     }
-    fn area(&self) -> Area {
+    pub(crate) fn area(&self) -> Area {
         Area {
             sheet: self.sheet,
             row: self.top,
@@ -180,6 +225,13 @@ pub enum StyleChange {
     FontColor(String),
     Fill(String),
     Align(Align),
+    /// Taille de police en points.
+    FontSize(i32),
+    /// Augmente (+) ou diminue (−) la taille de police.
+    FontSizeDelta(i32),
+    VerticalAlign(VAlign),
+    /// Renvoyer à la ligne automatiquement.
+    Wrap(bool),
     /// Format de nombre en syntaxe Excel **canonique** (« 0.00 », « 0% », « dd/mm/yyyy »…) ;
     /// l'affichage suit la langue du classeur (« 12,00 » en français).
     NumberFormat(String),
@@ -215,7 +267,7 @@ struct RawClipboard {
 }
 
 pub struct Workbook {
-    model: UserModel<'static>,
+    pub(crate) model: UserModel<'static>,
     language: FormulaLanguage,
 }
 
@@ -356,6 +408,18 @@ impl Workbook {
                 .into(),
             ),
             StyleChange::NumberFormat(f) => ("num_fmt", f.clone()),
+            StyleChange::FontSize(size) => ("font.size", (*size).clamp(1, 409).to_string()),
+            StyleChange::FontSizeDelta(delta) => ("font.size_delta", (*delta).clamp(-100, 100).to_string()),
+            StyleChange::VerticalAlign(v) => (
+                "alignment.vertical",
+                match v {
+                    VAlign::Top => "top",
+                    VAlign::Center => "center",
+                    VAlign::Bottom => "bottom",
+                }
+                .into(),
+            ),
+            StyleChange::Wrap(w) => ("alignment.wrap_text", bool_text(*w).into()),
         };
         self.model.update_range_style(&range.area(), path, &value).map_err(engine)
     }
@@ -421,6 +485,12 @@ impl Workbook {
 
     /// Cellules affichables d'une plage (la partie visible de la grille).
     pub fn range(&self, range: CellRange) -> Result<RangeView> {
+        self.range_view(range, false)
+    }
+
+    /// Comme [`Workbook::range`] ; avec `show_formulas`, les formules saisies remplacent leurs
+    /// résultats (« Afficher les formules »).
+    pub fn range_view(&self, range: CellRange, show_formulas: bool) -> Result<RangeView> {
         range.validate()?;
         if range.cells() > MAX_RANGE_CELLS {
             return Err(SheetError::InvalidRange);
@@ -428,7 +498,8 @@ impl Workbook {
         let sheet = range.sheet;
         let mut cells = Vec::new();
         for (row, column) in self.stored_cells_in(range)? {
-            let text = self.display(sheet, row, column)?;
+            let content = if show_formulas { self.content(sheet, row, column)? } else { String::new() };
+            let text = if content.starts_with('=') { content } else { self.display(sheet, row, column)? };
             let style = self.style_view(sheet, row, column)?;
             if text.is_empty() && style == CellStyleView::default() {
                 continue;
@@ -447,12 +518,12 @@ impl Workbook {
     }
 
     /// Coordonnées des cellules stockées d'une feuille (le moteur ne stocke que les cellules utilisées).
-    fn stored_cells(&self, sheet: u32) -> Result<Vec<(i32, i32)>> {
+    pub(crate) fn stored_cells(&self, sheet: u32) -> Result<Vec<(i32, i32)>> {
         let worksheet = self.model.get_model().workbook.worksheet(sheet).map_err(engine)?;
         Ok(worksheet.sheet_data.cells().map(|(row, column, _)| (row, column)).collect())
     }
 
-    fn stored_cells_in(&self, range: CellRange) -> Result<Vec<(i32, i32)>> {
+    pub(crate) fn stored_cells_in(&self, range: CellRange) -> Result<Vec<(i32, i32)>> {
         Ok(self
             .stored_cells(range.sheet)?
             .into_iter()
@@ -485,6 +556,30 @@ impl Workbook {
             },
         };
         let font_color = color(&style.font.color).filter(|c| c != "#000000");
+        let default_style = ironcalc::base::types::Style::default();
+        let border = |item: &Option<ironcalc::base::types::BorderItem>| {
+            item.as_ref().map(|b| {
+                let (width, kind) = match b.style {
+                    ironcalc::base::types::BorderStyle::Medium | ironcalc::base::types::BorderStyle::MediumDashed => {
+                        (2, "solid")
+                    }
+                    ironcalc::base::types::BorderStyle::Thick => (3, "solid"),
+                    ironcalc::base::types::BorderStyle::Double => (3, "double"),
+                    ironcalc::base::types::BorderStyle::Dotted => (1, "dotted"),
+                    _ => (1, "solid"),
+                };
+                let c = match &b.color {
+                    Color::None => "#000000".to_owned(),
+                    other => self.model.resolve_color(other).to_lowercase(),
+                };
+                format!("{width}px {kind} {c}")
+            })
+        };
+        let v_align = match style.alignment.as_ref().map(|a| &a.vertical) {
+            Some(ironcalc::base::types::VerticalAlignment::Top) => VAlign::Top,
+            Some(ironcalc::base::types::VerticalAlignment::Center) => VAlign::Center,
+            _ => VAlign::Bottom,
+        };
         Ok(CellStyleView {
             bold: style.font.b,
             italic: style.font.i,
@@ -494,6 +589,16 @@ impl Workbook {
             fill: color(&style.fill.color),
             align,
             align_set,
+            v_align,
+            wrap: style.alignment.as_ref().is_some_and(|a| a.wrap_text),
+            font_size: (style.font.sz != default_style.font.sz).then_some(style.font.sz),
+            font_name: (style.font.name != default_style.font.name).then(|| style.font.name.clone()),
+            borders: BordersView {
+                top: border(&style.border.top),
+                right: border(&style.border.right),
+                bottom: border(&style.border.bottom),
+                left: border(&style.border.left),
+            },
         })
     }
 
@@ -546,7 +651,7 @@ impl Workbook {
         self.model.paste_csv_string(&target.area(), text).map_err(engine)
     }
 
-    fn select(&mut self, range: CellRange) -> Result<()> {
+    pub(crate) fn select(&mut self, range: CellRange) -> Result<()> {
         self.model.set_selected_sheet(range.sheet).map_err(engine)?;
         self.model.set_selected_cell(range.top, range.left).map_err(engine)?;
         self.model.set_selected_range(range.top, range.left, range.bottom, range.right).map_err(engine)

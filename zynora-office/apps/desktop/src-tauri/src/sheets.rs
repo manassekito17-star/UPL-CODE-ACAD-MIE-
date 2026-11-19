@@ -16,7 +16,9 @@ use tauri::State;
 use zynora_database::{Language, RecoveryRecord};
 use zynora_file_manager::{Entry, Library, write_atomic};
 use zynora_spreadsheet_engine::{
-    CellRange, Copied, FormulaLanguage, RangeView, SelectionStats, SheetError, SheetInfo, StyleChange, Workbook,
+    BorderLine, BorderPreset, CellRange, Copied, DefinedName, FUNCTIONS, FindOptions, FormulaLanguage, Found,
+    FunctionInfo, RangeView, SelectionStats, SheetError, SheetInfo, StyleChange, Workbook, adjust_decimals,
+    toggle_thousands,
 };
 
 use crate::library::open_library;
@@ -198,8 +200,13 @@ pub(crate) struct CellContent {
 }
 
 #[tauri::command]
-pub(crate) fn sheets_range(state: State<'_, AppState>, id: u32, range: CellRange) -> CommandResult<RangeView> {
-    with(&state, id, |book| Ok(book.workbook.range(range)?))
+pub(crate) fn sheets_range(
+    state: State<'_, AppState>,
+    id: u32,
+    range: CellRange,
+    show_formulas: Option<bool>,
+) -> CommandResult<RangeView> {
+    with(&state, id, |book| Ok(book.workbook.range_view(range, show_formulas.unwrap_or(false))?))
 }
 
 #[tauri::command]
@@ -280,6 +287,161 @@ pub(crate) fn sheets_structure(
         Structure::Unmerge { range } => wb.unmerge(range),
         Structure::ColumnWidth { sheet, column, width } => wb.set_column_width(sheet, column, width),
     })
+}
+
+/// Mises en forme de l'onglet Accueil qui ne sont pas un simple attribut de style.
+#[derive(Debug, Deserialize)]
+#[serde(tag = "op", rename_all = "snake_case")]
+pub(crate) enum FormatOp {
+    /// « Reproduire la mise en forme » depuis `source`.
+    CopyStyles {
+        source: CellRange,
+    },
+    FontName {
+        name: String,
+    },
+    Borders {
+        preset: BorderPreset,
+        line: BorderLine,
+        color: String,
+    },
+    /// Ajoute (+1) ou retire (−1) une décimale, à partir du format de la cellule active.
+    Decimals {
+        delta: i32,
+    },
+    Thousands,
+    ClearFormats,
+    ClearAll,
+}
+
+#[tauri::command]
+pub(crate) fn sheets_format(
+    state: State<'_, AppState>,
+    id: u32,
+    range: CellRange,
+    change: FormatOp,
+) -> CommandResult<EditResult<()>> {
+    edit(&state, id, |wb| match change {
+        FormatOp::FontName { name } => wb.set_font_name(range, &name),
+        FormatOp::CopyStyles { source } => wb.copy_styles(source, range),
+        FormatOp::Borders { preset, line, color } => wb.set_borders(range, preset, line, &color),
+        FormatOp::Decimals { delta } => {
+            let format = adjust_decimals(&wb.number_format(range.sheet, range.top, range.left)?, delta.clamp(-1, 1));
+            wb.apply_style(range, &StyleChange::NumberFormat(format))
+        }
+        FormatOp::Thousands => {
+            let format = toggle_thousands(&wb.number_format(range.sheet, range.top, range.left)?);
+            wb.apply_style(range, &StyleChange::NumberFormat(format))
+        }
+        FormatOp::ClearFormats => wb.clear_formats(range),
+        FormatOp::ClearAll => wb.clear_all(range),
+    })
+}
+
+/// Onglet Données.
+#[derive(Debug, Deserialize)]
+#[serde(tag = "op", rename_all = "snake_case")]
+pub(crate) enum DataOp {
+    Sort { range: CellRange, key: i32, ascending: bool, header: bool },
+    RemoveDuplicates { range: CellRange, header: bool },
+}
+
+/// Renvoie le nombre de doublons supprimés (0 pour un tri).
+#[tauri::command]
+pub(crate) fn sheets_data(state: State<'_, AppState>, id: u32, change: DataOp) -> CommandResult<EditResult<usize>> {
+    edit(&state, id, |wb| match change {
+        DataOp::Sort { range, key, ascending, header } => wb.sort(range, key, ascending, header).map(|()| 0),
+        DataOp::RemoveDuplicates { range, header } => wb.remove_duplicates(range, header),
+    })
+}
+
+#[tauri::command]
+pub(crate) fn sheets_find(
+    state: State<'_, AppState>,
+    id: u32,
+    sheet: u32,
+    text: String,
+    options: FindOptions,
+) -> CommandResult<Vec<Found>> {
+    if text.chars().count() > 255 {
+        return Err(CommandError::new("texte recherché trop long"));
+    }
+    with(&state, id, |book| Ok(book.workbook.find(sheet, &text, options)?))
+}
+
+#[tauri::command]
+pub(crate) fn sheets_replace(
+    state: State<'_, AppState>,
+    id: u32,
+    sheet: u32,
+    text: String,
+    replacement: String,
+    match_case: bool,
+) -> CommandResult<EditResult<usize>> {
+    if text.is_empty() || text.chars().count() > 255 || replacement.chars().count() > 255 {
+        return Err(CommandError::new("texte de remplacement invalide"));
+    }
+    edit(&state, id, |wb| wb.replace_all(sheet, &text, &replacement, match_case))
+}
+
+#[tauri::command]
+pub(crate) fn sheets_gridlines(
+    state: State<'_, AppState>,
+    id: u32,
+    sheet: u32,
+    show: Option<bool>,
+) -> CommandResult<bool> {
+    with(&state, id, |book| {
+        if let Some(show) = show {
+            book.workbook.set_gridlines(sheet, show)?;
+            book.dirty = true;
+            book.unsnapshotted = true;
+        }
+        Ok(book.workbook.gridlines(sheet)?)
+    })
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(tag = "op", rename_all = "snake_case")]
+pub(crate) enum NameOp {
+    List,
+    Add { name: String, scope: Option<u32>, formula: String },
+    Delete { name: String, scope: Option<u32> },
+}
+
+#[tauri::command]
+pub(crate) fn sheets_names(
+    state: State<'_, AppState>,
+    id: u32,
+    change: NameOp,
+) -> CommandResult<EditResult<Vec<DefinedName>>> {
+    match change {
+        NameOp::List => {
+            with(&state, id, |book| Ok(EditResult { value: book.workbook.defined_names(), state: book_state(book) }))
+        }
+        NameOp::Add { name, scope, formula } => edit(&state, id, |wb| {
+            wb.add_defined_name(&name, scope, &formula)?;
+            Ok(wb.defined_names())
+        }),
+        NameOp::Delete { name, scope } => edit(&state, id, |wb| {
+            wb.delete_defined_name(&name, scope)?;
+            Ok(wb.defined_names())
+        }),
+    }
+}
+
+#[tauri::command]
+pub(crate) fn sheets_recalculate(state: State<'_, AppState>, id: u32) -> CommandResult<()> {
+    with(&state, id, |book| {
+        book.workbook.recalculate();
+        Ok(())
+    })
+}
+
+/// Catalogue de « Insérer une fonction » (chaque nom est vérifié par les tests du moteur).
+#[tauri::command]
+pub(crate) fn sheets_functions() -> Vec<FunctionInfo> {
+    FUNCTIONS.to_vec()
 }
 
 #[derive(Debug, Deserialize)]

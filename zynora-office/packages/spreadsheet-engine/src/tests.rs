@@ -319,3 +319,230 @@ fn ouvre_un_xlsx_produit_par_libreoffice() {
     assert_eq!(show(&wb, 0, "A3"), "46");
     let _ = std::fs::remove_dir_all(dir);
 }
+
+// --- Onglet Accueil complet, Données, Édition, Formules, Affichage ---------------------------
+
+#[test]
+fn police_alignement_vertical_renvoi_et_bordures_sont_conserves_en_xlsx() {
+    let mut wb = fr();
+    set(&mut wb, 0, "A1", "titre");
+    let a1 = CellRange::cell(0, 1, 1);
+    wb.apply_style(a1, &StyleChange::FontSize(18)).expect("taille");
+    wb.apply_style(a1, &StyleChange::FontSizeDelta(2)).expect("agrandir");
+    wb.apply_style(a1, &StyleChange::VerticalAlign(VAlign::Top)).expect("haut");
+    wb.apply_style(a1, &StyleChange::Wrap(true)).expect("renvoi");
+    wb.set_font_name(a1, "Georgia").expect("police");
+    wb.set_borders(
+        CellRange { sheet: 0, top: 1, left: 1, bottom: 2, right: 2 },
+        BorderPreset::Outer,
+        BorderLine::Medium,
+        "#c00000",
+    )
+    .expect("bordures");
+
+    let check = |wb: &Workbook| {
+        let view = wb.range(CellRange { sheet: 0, top: 1, left: 1, bottom: 2, right: 2 }).expect("plage");
+        let a1 = view.cells.iter().find(|c| (c.row, c.column) == (1, 1)).expect("A1");
+        assert_eq!(a1.style.font_size, Some(20));
+        assert_eq!(a1.style.font_name.as_deref(), Some("Georgia"));
+        assert_eq!(a1.style.v_align, VAlign::Top);
+        assert!(a1.style.wrap);
+        assert_eq!(a1.style.borders.top.as_deref(), Some("2px solid #c00000"));
+        assert_eq!(a1.style.borders.left.as_deref(), Some("2px solid #c00000"));
+        assert_eq!(a1.style.borders.right, None, "bordure extérieure seulement");
+        let b2 = view.cells.iter().find(|c| (c.row, c.column) == (2, 2)).expect("B2");
+        assert!(b2.style.borders.bottom.is_some() && b2.style.borders.right.is_some());
+    };
+    check(&wb);
+    let reopened = Workbook::from_xlsx(&wb.to_xlsx().expect("export"), "x", FormulaLanguage::Fr).expect("réouverture");
+    check(&reopened);
+
+    wb.set_borders(
+        CellRange { sheet: 0, top: 1, left: 1, bottom: 2, right: 2 },
+        BorderPreset::None,
+        BorderLine::Thin,
+        "",
+    )
+    .expect("aucune");
+    assert_eq!(wb.range(a1).expect("plage").cells[0].style.borders, BordersView::default());
+    assert!(wb.set_font_name(a1, "").is_err());
+}
+
+#[test]
+fn decimales_et_separateur_de_milliers() {
+    assert_eq!(adjust_decimals("general", 1), "0.0");
+    assert_eq!(adjust_decimals("0", 2), "0.00");
+    assert_eq!(adjust_decimals("0.00", -1), "0.0");
+    assert_eq!(adjust_decimals("0.0", -1), "0");
+    assert_eq!(adjust_decimals("#,##0.00 \"€\"", 1), "#,##0.000 \"€\"");
+    assert_eq!(adjust_decimals("0.00%", -2), "0%");
+    assert_eq!(toggle_thousands("0.00"), "#,##0.00");
+    assert_eq!(toggle_thousands("#,##0.00"), "0.00");
+    assert_eq!(toggle_thousands("general"), "#,##0");
+
+    let mut wb = fr();
+    set(&mut wb, 0, "A1", "1234,5");
+    let a1 = CellRange::cell(0, 1, 1);
+    let fmt = toggle_thousands(&adjust_decimals(&wb.number_format(0, 1, 1).expect("format"), 2));
+    wb.apply_style(a1, &StyleChange::NumberFormat(fmt)).expect("format");
+    assert_eq!(show(&wb, 0, "A1").replace(['\u{202f}', '\u{a0}'], " "), "1 234,50");
+}
+
+#[test]
+fn effacer_les_formats_ou_tout() {
+    let mut wb = fr();
+    set(&mut wb, 0, "A1", "5");
+    let a1 = CellRange::cell(0, 1, 1);
+    wb.apply_style(a1, &StyleChange::Bold(true)).expect("gras");
+    wb.clear_formats(a1).expect("formats");
+    assert_eq!(show(&wb, 0, "A1"), "5");
+    assert!(!wb.range(a1).expect("plage").cells[0].style.bold);
+    wb.apply_style(a1, &StyleChange::Bold(true)).expect("gras");
+    wb.clear_all(a1).expect("tout");
+    assert!(wb.range(a1).expect("plage").cells.is_empty());
+}
+
+#[test]
+fn tri_croissant_decroissant_avec_entete_et_styles() {
+    let mut wb = fr();
+    for (cell, v) in [
+        ("A1", "Nom"),
+        ("B1", "Note"),
+        ("A2", "Élodie"),
+        ("B2", "14"),
+        ("A3", "bruno"),
+        ("B3", "9"),
+        ("A4", "Alice"),
+        ("B4", "17"),
+        ("A5", ""),
+        ("B5", ""),
+        ("A6", "Zoé"),
+        ("B6", "12"),
+    ] {
+        if !v.is_empty() {
+            set(&mut wb, 0, cell, v);
+        }
+    }
+    wb.apply_style(CellRange::cell(0, 4, 1), &StyleChange::Bold(true)).expect("gras d'Alice");
+    let range = CellRange { sheet: 0, top: 1, left: 1, bottom: 6, right: 2 };
+
+    wb.sort(range, 2, false, true).expect("tri par note décroissante");
+    let column = |wb: &Workbook, c: &str| (1..=6).map(|r| show(wb, 0, &format!("{c}{r}"))).collect::<Vec<_>>();
+    assert_eq!(column(&wb, "A"), ["Nom", "Alice", "Élodie", "Zoé", "bruno", ""]);
+    assert_eq!(column(&wb, "B"), ["Note", "17", "14", "12", "9", ""]);
+    assert!(wb.range(CellRange::cell(0, 2, 1)).expect("plage").cells[0].style.bold, "la mise en forme suit la ligne");
+
+    wb.sort(range, 1, true, true).expect("tri par nom");
+    assert_eq!(
+        column(&wb, "A"),
+        ["Nom", "Alice", "bruno", "Élodie", "Zoé", ""],
+        "sans casse ni accents, vides à la fin"
+    );
+
+    wb.undo().expect("annuler");
+    assert_eq!(column(&wb, "A"), ["Nom", "Alice", "Élodie", "Zoé", "bruno", ""], "une seule étape d'annulation");
+
+    set(&mut wb, 0, "C2", "=B2*2");
+    assert!(
+        wb.sort(CellRange { sheet: 0, top: 1, left: 1, bottom: 6, right: 3 }, 1, true, true).is_err(),
+        "formules refusées"
+    );
+    assert!(wb.sort(range, 5, true, true).is_err(), "colonne hors plage");
+}
+
+#[test]
+fn supprime_les_doublons() {
+    let mut wb = fr();
+    for (cell, v) in [("A1", "Ville"), ("A2", "Paris"), ("A3", "Lyon"), ("A4", "paris"), ("A5", "Lyon"), ("A6", "Nice")]
+    {
+        set(&mut wb, 0, cell, v);
+    }
+    let range = CellRange { sheet: 0, top: 1, left: 1, bottom: 6, right: 1 };
+    assert_eq!(wb.remove_duplicates(range, true).expect("doublons"), 2);
+    assert_eq!(
+        (1..=6).map(|r| show(&wb, 0, &format!("A{r}"))).collect::<Vec<_>>(),
+        ["Ville", "Paris", "Lyon", "Nice", "", ""]
+    );
+    assert_eq!(wb.remove_duplicates(range, true).expect("aucun"), 0);
+}
+
+#[test]
+fn rechercher_et_remplacer() {
+    let mut wb = fr();
+    for (cell, v) in [("A1", "Total ventes"), ("B2", "total"), ("C3", "=SOMME(A5:A6)"), ("A5", "4"), ("A6", "6")] {
+        set(&mut wb, 0, cell, v);
+    }
+    let opts = |match_case, whole_cell, in_formulas| FindOptions { match_case, whole_cell, in_formulas };
+    let hits = wb.find(0, "total", opts(false, false, false)).expect("recherche");
+    assert_eq!(hits, [Found { row: 1, column: 1 }, Found { row: 2, column: 2 }]);
+    assert_eq!(wb.find(0, "total", opts(true, false, false)).expect("casse").len(), 1);
+    assert_eq!(wb.find(0, "total", opts(false, true, false)).expect("entière").len(), 1);
+    assert_eq!(
+        wb.find(0, "10", opts(false, true, false)).expect("valeur").len(),
+        1,
+        "cherche dans les valeurs calculées"
+    );
+    assert_eq!(wb.find(0, "SOMME", opts(false, false, true)).expect("formules").len(), 1);
+
+    assert_eq!(wb.replace_all(0, "total", "Somme", false).expect("remplacement"), 2);
+    assert_eq!(show(&wb, 0, "A1"), "Somme ventes");
+    assert_eq!(wb.replace_all(0, "A6", "A5", true).expect("dans une formule"), 1);
+    assert_eq!(show(&wb, 0, "C3"), "4");
+}
+
+#[test]
+fn quadrillage_et_noms_definis() {
+    let mut wb = fr();
+    assert!(wb.gridlines(0).expect("quadrillage"));
+    wb.set_gridlines(0, false).expect("masquer");
+    assert!(!wb.gridlines(0).expect("quadrillage"));
+    let reopened = Workbook::from_xlsx(&wb.to_xlsx().expect("export"), "x", FormulaLanguage::Fr).expect("réouverture");
+    assert!(!reopened.gridlines(0).expect("conservé"));
+
+    set(&mut wb, 0, "B1", "0,2");
+    wb.add_defined_name("TauxTVA", None, "=Feuil1!$B$1").expect("nom");
+    set(&mut wb, 0, "A1", "=100*TauxTVA");
+    assert_eq!(show(&wb, 0, "A1"), "20");
+    assert_eq!(wb.defined_names().iter().map(|n| n.name.as_str()).collect::<Vec<_>>(), ["TauxTVA"]);
+    assert!(wb.add_defined_name("A1", None, "=1").is_err(), "un nom ne peut pas ressembler à une référence");
+    wb.delete_defined_name("TauxTVA", None).expect("suppression");
+    assert!(wb.defined_names().is_empty());
+}
+
+#[test]
+fn chaque_fonction_du_catalogue_est_reconnue_par_le_moteur() {
+    for (language, pick) in [(FormulaLanguage::Fr, true), (FormulaLanguage::En, false)] {
+        let mut wb = Workbook::new("catalogue", language).expect("classeur");
+        for (i, info) in FUNCTIONS.iter().enumerate() {
+            let name = if pick { info.fr } else { info.en };
+            let row = i as i32 + 1;
+            wb.set_input(0, row, 1, &format!("={name}()")).expect("saisie");
+            let display = wb.display(0, row, 1).expect("valeur");
+            assert!(!display.starts_with("#NOM") && !display.starts_with("#NAME"), "{name} inconnue ({display})");
+            assert_eq!(
+                wb.content(0, row, 1).expect("contenu"),
+                format!("={name}()"),
+                "{name} relue dans la même langue"
+            );
+        }
+    }
+    assert!(FUNCTIONS.len() >= 70);
+}
+
+#[test]
+fn reproduire_la_mise_en_forme_et_afficher_les_formules() {
+    let mut wb = fr();
+    set(&mut wb, 0, "A1", "1");
+    set(&mut wb, 0, "A2", "=A1*2");
+    wb.apply_style(CellRange::cell(0, 1, 1), &StyleChange::Bold(true)).expect("gras");
+    wb.apply_style(CellRange::cell(0, 1, 1), &StyleChange::Fill("#ffff00".into())).expect("fond");
+    wb.copy_styles(CellRange::cell(0, 1, 1), CellRange { sheet: 0, top: 1, left: 2, bottom: 2, right: 3 })
+        .expect("reproduire");
+    let view = wb.range(CellRange { sheet: 0, top: 1, left: 2, bottom: 2, right: 3 }).expect("plage");
+    assert_eq!(view.cells.len(), 4);
+    assert!(view.cells.iter().all(|c| c.style.bold && c.style.fill.as_deref() == Some("#ffff00")));
+    assert_eq!(show(&wb, 0, "A1"), "1", "les valeurs ne sont pas touchées");
+
+    let formulas = wb.range_view(CellRange { sheet: 0, top: 1, left: 1, bottom: 2, right: 1 }, true).expect("formules");
+    assert_eq!(formulas.cells.iter().map(|c| c.text.as_str()).collect::<Vec<_>>(), ["1", "=A1*2"]);
+}
