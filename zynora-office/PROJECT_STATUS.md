@@ -1,97 +1,100 @@
 # État du projet — ZYNORA OFFICE
 
-_Mise à jour : 19/11/2026 — phase 1 (ZYNORA Core) terminée et validée sur Linux, Windows et macOS._
+_Mise à jour : 19/11/2026 — phase 2 (ZYNORA Sheets) : cœur livré ; version smartphone : en cours._
 
 ## Terminé (et testé)
 
-### Phase 0 — Fondations
-- Monorepo pnpm + Cargo isolé dans `zynora-office/`, exclu du lint et du typage de ZENTECH.
-- Application Tauri 2 + React + TypeScript strict, fenêtre sans aucune permission système.
-- Design system ZYNORA (thèmes clair/sombre/système, contrastes AA calculés), FR/EN.
-- Base SQLite à migrations, journal des opérations sensibles, briques de sécurité des imports.
-- CI Linux / Windows / macOS **au vert sur les trois systèmes** (exécution n° 2, après la correction
-  d'un test de chemins qui échouait sous Windows : voir « Erreurs corrigées »). Installateurs
-  produits : DEB, RPM, AppImage, MSI, EXE, DMG (non signés).
+### Phases 0 et 1 — Fondations et ZYNORA Core (validées sur Linux, Windows et macOS)
+Application Tauri 2 sans permission système pour l'interface, design system, base SQLite à
+migrations, sécurité des imports, bibliothèque de documents (import validé, dossiers, renommage,
+favoris, récents, recherche, corbeille avec restauration), détection d'arrêt brutal.
 
-### Phase 1 — ZYNORA Core
-- **Bibliothèque de documents** (`packages/file-manager`) : dossier par défaut `Documents/ZYNORA`,
-  modifiable par le dialogue natif ; parcours des dossiers, fil d'Ariane.
-- **Import validé** : dialogue natif ouvert par le cœur Rust ; copie dans un fichier temporaire,
-  contrôles de sécurité **sur la copie**, apparition atomique sous un nom libre (« nom (2) ») ;
-  refus détaillé (macros, contenu déguisé, DTD XML, archive piégée, type non pris en charge).
-- **Dossiers** : création ; **renommage** sans écrasement ni changement d'extension.
-- **Corbeille interne** : rien n'est supprimé directement ; annulation immédiate depuis la
-  notification ; restauration (dossier d'origine recréé si besoin, nom libre en cas de conflit) ;
-  suppression définitive et « Vider la corbeille » uniquement après confirmation.
-- **Favoris** et **documents récents** (base locale, migration v1 → v2 testée sans perte).
-- **Recherche** dans toute la bibliothèque, insensible à la casse et aux accents, bornée.
-- **Écriture atomique** (`write_atomic`) prête pour l'enregistrement des documents.
-- **Détection d'arrêt brutal** (verrou de session) et avertissement au démarrage.
-- **Démarrage dégradé** : si la base locale est inutilisable, l'application s'ouvre et affiche
-  l'erreur au lieu de se fermer (limite connue de la phase 0, résolue).
-- **Notifications** et **fenêtres modales** accessibles dans le design system.
+### Phase 2 — ZYNORA Sheets
+- **Moteur IronCalc validé par prototype**, puis intégré (`packages/spreadsheet-engine`).
+- **Interface de tableur** aux conventions familières, identité ZYNORA : ruban (Accueil,
+  Insertion, Disposition), zone de nom, barre de formule, grille virtualisée, onglets de feuilles,
+  barre d'état (somme, moyenne, nombre de la sélection).
+- Formules calculées par le moteur (fonctions en français), références relatives, absolues et
+  entre feuilles, erreurs de calcul, recalcul des dépendances.
+- Mise en forme : gras, italique, souligné, barré, couleur du texte et du fond, alignements,
+  formats de nombre (standard, nombre, pourcentage, monétaire, date), fusion (enregistrée).
+- Lignes et colonnes (insertion, suppression), feuilles (ajout, renommage, suppression),
+  copier/couper/coller (formules ajustées), annuler/rétablir, somme automatique, raccourcis.
+- XLSX (ouverture revalidée, enregistrement atomique, nouveau classeur) ; CSV (import, export).
+- **Sauvegarde automatique et récupération** (reportées de la phase 1) : copie toutes les 30 s
+  hors du document, proposée au démarrage ; confirmation avant de fermer sans enregistrer.
+
+### Version smartphone (en cours)
+- Interface adaptative vérifiée en émulation iPhone 13 : navigation en bas d'écran, zones sûres,
+  ruban défilant, colonnes secondaires masquées, aucune largeur excédentaire.
+- Cœur Rust adapté (point d'entrée mobile, bibliothèque dans l'espace privé de l'application,
+  choix de dossier désactivé, import non pris en charge signalé explicitement).
+- Le cœur Rust **compile pour Android arm64** ; projet Android Tauri généré et versionné ;
+  job CI « Android » ajouté pour assembler l'APK de test.
 
 ## En cours
-- Rien : la phase 1 est validée sur les trois systèmes. En attente du feu vert pour la phase 2.
+- Exécution de la CI : Linux, Windows, macOS et **premier APK Android** (l'assemblage local de
+  l'APK a été bloqué par les limites de débit de Maven Central depuis le conteneur de développement).
 
 ## Restant
-Voir [ROADMAP.md](ROADMAP.md). Prochaine phase : **Sheets (phase 2)**.
+- **Sheets** : affichage des cellules fusionnées dans la grille, bordures, tri, filtres,
+  graphiques, impression et export PDF, corpus de fichiers produits par **Microsoft Excel**
+  (2010 → 365), hauteurs de ligne personnalisées à l'écran, réconciliation de la corbeille.
+- **Smartphone** : import depuis le stockage du téléphone (adresses `content://`), tests sur
+  émulateur Android, édition tactile avancée (sélection par glissement), **iOS** (Mac + Xcode +
+  compte Apple Developer), APK signé pour la distribution.
+- Phases suivantes : **Word** (phase 3), Slides (phase 4), fonctions avancées, IA, synchronisation,
+  publication signée (voir ROADMAP.md).
 
-Reporté explicitement de la phase 1 à la phase 2 : **sauvegarde automatique et points de
-récupération du contenu des documents**. Ils dépendent d'un éditeur qui produit ce contenu ;
-l'infrastructure nécessaire (écriture atomique, détection d'incident, base locale) est en place.
-
-## Erreurs corrigées pendant ces phases
-- Entrées d'archive à chemin absolu acceptées (bibliothèque `zip`) → refusées (phase 0).
-- `resolve_within` : le confinement n'était vérifié qu'après l'existence. Sous Windows, un chemin
-  relatif au lecteur était refusé « par hasard » ; partout, l'écriture à travers un **lien
-  symbolique cassé** pointant hors du dossier autorisé était possible → corrigé, testé.
-- Interface : le champ de renommage prenait le focus avant d'être rempli (présélection perdue) → corrigé, testé.
-- CI phase 1 (exécution n° 4) : Windows et macOS au vert, Linux en échec au lint : la CI utilisait
-  une version de Rust plus récente que le poste local, qui signale un import de test inutilisé.
-  Import corrigé, et **version de Rust figée** (`rust-toolchain.toml`, 1.97.0) en local comme en CI.
+## Erreurs corrigées pendant la phase 2
+- Formats de nombre : syntaxe canonique Excel (« 0.00 ») ; l'affichage suit la langue.
+- Boutons d'alignement affichés comme enfoncés pour l'alignement par défaut des nombres.
+- Tests LibreOffice en parallèle : profil utilisateur partagé → un profil par test.
+- Test de bout en bout : la recherche XPath par `text()` n'est pas fiable sous WebKitWebDriver →
+  lecture directe du DOM.
 
 ## Erreurs et limites connues
-- Aucun éditeur disponible : les documents sont gérés (classer, renommer, importer…) mais pas
-  encore ouverts. L'interface l'indique (« l'édition arrive en phase N »).
-- Si l'application est arrêtée entre le déplacement d'un élément vers la corbeille et son
-  inscription en base, l'élément reste dans `.zynora/corbeille` sans apparaître dans la liste
-  (aucune perte, mais restauration manuelle). Réconciliation prévue en phase 2.
-- Les dialogues natifs ne sont pas pilotables par WebDriver : l'import par dialogue est couvert
-  par les tests Rust (logique d'import) et les tests d'interface, pas par l'e2e.
-- Installateurs non signés (SmartScreen / Gatekeeper). Pas d'e2e sur macOS (pas de WebDriver WKWebView).
-- Emplacement provisoire dans le dépôt ZENTECH ; licence de ZYNORA non choisie.
+- Cellules fusionnées : la fusion est enregistrée dans le fichier mais la grille ne l'affiche pas
+  encore comme une seule cellule.
+- ODS non pris en charge par le moteur (message explicite) ; CSV : première feuille seulement.
+- Sur téléphone, l'import depuis le stockage n'est pas encore possible (refus explicite).
+- Si l'application s'arrête au milieu d'une mise à la corbeille, l'élément reste dans
+  `.zynora/corbeille` sans apparaître dans la liste (aucune perte).
+- Installateurs non signés ; pas d'e2e sur macOS ni sur Android pour l'instant.
 
 ## Tests
 
 | Suite | Résultat (Linux, 19/11/2026) |
 |---|---|
 | Rust `zynora-security` | ✅ 13 / 13 |
-| Rust `zynora-database` | ✅ 12 / 12 |
-| Rust `zynora-file-manager` | ✅ 12 / 12 |
-| Rust `zynora-desktop` | ✅ 1 / 1 |
+| Rust `zynora-database` | ✅ 13 / 13 |
+| Rust `zynora-file-manager` | ✅ 13 / 13 |
+| Rust `zynora-spreadsheet-engine` | ✅ 15 / 15 (+ 2 / 2 croisés LibreOffice) |
+| Rust `zynora-desktop` | ✅ 3 / 3 |
 | Vitest design system | ✅ 11 / 11 |
-| Vitest application | ✅ 19 / 19 |
+| Vitest application (dont 12 Sheets, 3 références) | ✅ 34 / 34 |
 | node:test scripts | ✅ 2 / 2 |
 | TypeScript strict, `cargo fmt`, `clippy -D warnings` | ✅ |
-| Licences | ✅ 450 / 450 |
-| `pnpm audit` (production) | ✅ aucune vulnérabilité connue |
-| Bout en bout (binaire compilé, vrai disque) | ✅ 15 / 15 vérifications |
-| CI phase 0 (exécution n° 2) | ✅ Linux · ✅ Windows · ✅ macOS |
-| CI phase 1 (exécution n° 5) | ✅ Linux (dont bout en bout) · ✅ Windows · ✅ macOS — installateurs DEB, RPM, AppImage, MSI, EXE, DMG produits |
+| Licences | ✅ 472 / 472 |
+| Bout en bout (binaire compilé, vrai disque, vrai moteur) | ✅ 19 / 19 vérifications |
+| Interface téléphone (émulation iPhone 13) | ✅ vérifiée visuellement |
+| Compilation Rust Android arm64 | ✅ |
+| APK Android | ⏳ CI |
 
 **Tests échoués actuellement : aucun en local.**
 
-## Décisions prises par défaut (modifiables)
+## Décisions prises (modifiables)
 1. Emplacement : dossier isolé du dépôt actuel (dépôt dédié recommandé).
-2. ONLYOFFICE écarté (AGPL + logo obligatoire) ; IronCalc retenu pour Sheets.
+2. ONLYOFFICE écarté (AGPL + logo obligatoire) ; **IronCalc validé et intégré**.
 3. Ordre : Sheets (phase 2) avant Word (phase 3).
-4. Corbeille **interne à la bibliothèque** (et non celle du système) : identique sur les trois
-   systèmes, consultable et restaurable depuis ZYNORA, testable.
-5. Licence de ZYNORA OFFICE : non choisie.
+4. Interface « familière » des tableurs **sans copie** de l'interface, des icônes ou des marques
+   de Microsoft (demande « ressembler à 100 % » adaptée : voir ARCHITECTURE.md, D13).
+5. Version smartphone avec Tauri 2 mobile (même code) ; iOS nécessite un Mac.
+6. Licence de ZYNORA OFFICE : non choisie.
 
 ## Prochaine tâche
-**Phase 2 — ZYNORA Sheets**, en commençant par le prototype de validation d'IronCalc
-(ARCHITECTURE.md, D3) : fidélité XLSX sur un corpus réel, couverture des fonctions usuelles
-(SOMME, MOYENNE, SI, RECHERCHEV…), recalcul de 100 000 cellules, licences des dépendances.
-Si le prototype échoue, une architecture alternative sera proposée avant toute intégration.
+1. Confirmer la CI (dont l'APK Android) et corriger si nécessaire.
+2. **Phase 3 — ZYNORA Word** : prototype de validation ProseMirror + pagination + lecture/écriture
+   DOCX (ARCHITECTURE.md, D4), avec la même méthode que pour Sheets (prototype mesuré avant
+   intégration).
+3. En parallèle : fin de Sheets (fusions affichées, bordures, tri/filtres) et import mobile.
