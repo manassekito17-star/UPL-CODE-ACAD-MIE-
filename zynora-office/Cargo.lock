@@ -5220,3 +5220,13 @@ dependencies = [
  "serde_json",
  "thiserror 2.0.21",
 ]
+
+[[package]]
+name = "zynora-wasm"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+ "wasm-bindgen",
+ "zynora-document-engine",
+ "zynora-spreadsheet-engine",
+]
