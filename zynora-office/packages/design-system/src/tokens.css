@@ -1,0 +1,96 @@
+/*
+ * ZYNORA — jetons de design.
+ * Identité : « papier chaud » en clair, « nuit d'encre » en sombre, accent Iris.
+ * Chaque module a sa couleur : Word = Iris, Sheets = Lagune, Slides = Corail.
+ * Contrastes calculés (WCAG 2.2, AA ≥ 4,5:1 pour le texte) : voir docs/DESIGN.md.
+ */
+:root {
+  color-scheme: light;
+  --z-font-sans: "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, "SF Pro Text", Ubuntu, Cantarell, "Noto Sans", sans-serif;
+  --z-font-mono: ui-monospace, "Cascadia Code", "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+
+  --z-text-xs: 0.75rem;
+  --z-text-sm: 0.8125rem;
+  --z-text-md: 0.875rem;
+  --z-text-lg: 1rem;
+  --z-text-xl: 1.25rem;
+  --z-text-2xl: 1.75rem;
+
+  --z-space-1: 4px;
+  --z-space-2: 8px;
+  --z-space-3: 12px;
+  --z-space-4: 16px;
+  --z-space-5: 24px;
+  --z-space-6: 32px;
+  --z-space-7: 48px;
+
+  --z-radius-sm: 6px;
+  --z-radius-md: 10px;
+  --z-radius-lg: 16px;
+
+  --z-duration: 140ms;
+  --z-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+
+  --z-bg: #f6f5f2;
+  --z-surface: #ffffff;
+  --z-surface-2: #efede8;
+  --z-surface-hover: #e8e5de;
+  --z-border: #dedad2;
+  --z-border-strong: #c7c2b7;
+  --z-text: #1b1830;
+  --z-text-muted: #5e5a6e;
+  --z-primary: #4c3fd1;
+  --z-primary-hover: #3f33b8;
+  --z-on-primary: #ffffff;
+  --z-primary-soft: #e9e6fb;
+  --z-focus: #4c3fd1;
+  --z-danger: #b42318;
+  --z-on-danger: #ffffff;
+  --z-success: #1f7a4d;
+  --z-warning: #9a5b00;
+  --z-favorite: #a36500;
+  --z-shadow: 0 1px 2px rgb(27 24 48 / 6%), 0 4px 16px rgb(27 24 48 / 6%);
+
+  --z-word: #4c3fd1;
+  --z-sheets: #0a6b65;
+  --z-slides: #b03a31;
+  --z-word-soft: #e9e6fb;
+  --z-sheets-soft: #dcf1ef;
+  --z-slides-soft: #fbe5e3;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --z-bg: #0f0e17;
+  --z-surface: #18162a;
+  --z-surface-2: #211e36;
+  --z-surface-hover: #2a2643;
+  --z-border: #2f2b48;
+  --z-border-strong: #433d63;
+  --z-text: #eceaf6;
+  --z-text-muted: #a4a0ba;
+  --z-primary: #8f84ff;
+  --z-primary-hover: #a59cff;
+  --z-on-primary: #0f0e17;
+  --z-primary-soft: #2a2550;
+  --z-focus: #a59cff;
+  --z-danger: #ff8a7f;
+  --z-on-danger: #0f0e17;
+  --z-success: #5fd39a;
+  --z-warning: #f2b45a;
+  --z-favorite: #f5b942;
+  --z-shadow: 0 1px 2px rgb(0 0 0 / 40%), 0 6px 20px rgb(0 0 0 / 35%);
+
+  --z-word: #9d93ff;
+  --z-sheets: #3cc7bd;
+  --z-slides: #ff8579;
+  --z-word-soft: #262150;
+  --z-sheets-soft: #12332f;
+  --z-slides-soft: #3a1c1a;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --z-duration: 0ms;
+  }
+}

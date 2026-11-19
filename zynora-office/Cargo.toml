@@ -1,0 +1,42 @@
+[workspace]
+resolver = "3"
+members = [
+  "apps/desktop/src-tauri",
+  "packages/security",
+  "packages/database",
+  "packages/file-manager",
+  "packages/spreadsheet-engine",
+  "packages/document-engine",
+  "packages/wasm",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+
+[workspace.dependencies]
+zynora-security = { path = "packages/security" }
+zynora-database = { path = "packages/database" }
+zynora-file-manager = { path = "packages/file-manager" }
+zynora-spreadsheet-engine = { path = "packages/spreadsheet-engine" }
+zynora-document-engine = { path = "packages/document-engine" }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1"
+thiserror = "2.0.21"
+tempfile = "3.27.0"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+unwrap_used = "warn"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+# « unwind » : une panique d'une bibliothèque de lecture (fichier piégé) devient une erreur
+# rattrapée (catch_unwind) au lieu de fermer l'application. Voir ARCHITECTURE.md, D15.
+panic = "unwind"
+strip = true

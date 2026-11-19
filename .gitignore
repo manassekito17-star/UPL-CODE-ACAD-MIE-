@@ -44,3 +44,10 @@ next-env.d.ts
 /playwright-report/
 /supabase/.temp/
 e2e/.auth/
+
+# ZYNORA OFFICE (projet indépendant dans zynora-office/)
+/zynora-office/node_modules
+/zynora-office/**/node_modules
+/zynora-office/target
+/zynora-office/apps/desktop/dist
+/zynora-office/apps/desktop/src-tauri/gen/schemas

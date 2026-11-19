@@ -145,6 +145,18 @@ export function InstallApps() {
         ))}
       </div>
 
+      <Card className="flex flex-wrap items-center gap-4 p-5" data-testid="appli-zynora">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/icons/zynora-office.png" alt="Icône ZYNORA Office" width={64} height={64} className="h-16 w-16 rounded-2xl shadow-md" />
+        <div className="min-w-0 flex-1">
+          <h2 className="text-lg font-bold text-nuit-900">ZYNORA Office</h2>
+          <p className="text-sm text-gris-700">La suite bureautique à installer sur ordinateur (Windows, macOS, Linux) ou Android : tableur ZYNORA Sheets, utilisable sans Internet.</p>
+        </div>
+        <Link href="/zynora-office" className="rounded-lg bg-electrique-600 px-4 py-2.5 text-center text-sm font-semibold text-white">
+          Télécharger ZYNORA Office
+        </Link>
+      </Card>
+
       <Card className="p-5 text-sm text-gris-700">
         <h2 className="mb-2 font-bold text-nuit-900">Bon à savoir</h2>
         <ul className="list-disc space-y-1 pl-5">

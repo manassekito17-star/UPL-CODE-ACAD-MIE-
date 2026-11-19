@@ -1,0 +1,28 @@
+{
+  "name": "zynora-office",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @zynora/desktop tauri dev",
+    "build": "pnpm --filter @zynora/desktop tauri build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test && node --test scripts/*.test.mjs",
+    "test:rust": "cargo test --workspace",
+    "lint:rust": "cargo fmt --all --check && cargo clippy --workspace --all-targets -- -D warnings",
+    "check": "pnpm typecheck && pnpm test && pnpm test:rust && pnpm lint:rust && pnpm check:licenses",
+    "test:e2e": "xvfb-run -a node tests/e2e/smoke.mjs",
+    "check:licenses": "node scripts/check-licenses.mjs"
+  },
+  "devDependencies": {
+    "@testing-library/react": "16.3.3",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "jsdom": "31.0.1",
+    "typescript": "5.9.3",
+    "vitest": "5.1.1"
+  }
+}

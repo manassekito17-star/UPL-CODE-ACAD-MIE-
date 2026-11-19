@@ -18,6 +18,7 @@ const PUBLIC_PATHS = new Set([
   "/confidentialite",
   "/conditions",
   "/telecharger",
+  "/zynora-office",
   "/avis-important",
   "/compte-suspendu",
   "/acces-refuse",

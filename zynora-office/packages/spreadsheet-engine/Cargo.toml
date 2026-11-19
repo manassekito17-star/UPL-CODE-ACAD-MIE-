@@ -1,0 +1,16 @@
+[package]
+name = "zynora-spreadsheet-engine"
+description = "Moteur de tableur de ZYNORA OFFICE : classeurs, formules, XLSX et CSV, adossé à IronCalc."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+ironcalc = "0.9.1"
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+
+[lints]
+workspace = true

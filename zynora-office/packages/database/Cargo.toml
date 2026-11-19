@@ -1,0 +1,19 @@
+[package]
+name = "zynora-database"
+description = "Stockage local SQLite de ZYNORA OFFICE (paramètres, journal, puis documents récents et récupération)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+rusqlite = { version = "0.43.0", features = ["bundled"] }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true

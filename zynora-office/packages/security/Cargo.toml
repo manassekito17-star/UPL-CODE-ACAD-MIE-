@@ -1,0 +1,18 @@
+[package]
+name = "zynora-security"
+description = "Validation des chemins, des noms de fichiers et des fichiers importés pour ZYNORA OFFICE."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+thiserror.workspace = true
+serde.workspace = true
+zip = { version = "9.7.0", default-features = false, features = ["deflate"] }
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true

@@ -1,0 +1,6 @@
+# Version de Rust figée : mêmes résultats de compilation et de lint en local et en CI.
+# À mettre à jour volontairement (puis corriger les nouveaux avertissements).
+[toolchain]
+channel = "1.97.0"
+components = ["clippy", "rustfmt"]
+profile = "minimal"

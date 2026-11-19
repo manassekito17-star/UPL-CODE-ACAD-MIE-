@@ -3,7 +3,7 @@ import { isPublicPath } from "./proxy";
 
 describe("connexion obligatoire : pages publiques", () => {
   it("laisse publiques l'accueil, la connexion, les pages légales, les API et les fichiers techniques", () => {
-    for (const p of ["/", "/connexion", "/inscription", "/mot-de-passe-oublie", "/confidentialite", "/conditions", "/auth/callback", "/api/sante", "/certificats/abc", "/sw.js", "/ide.webmanifest", "/workers/python-worker.mjs", "/opengraph-image"]) {
+    for (const p of ["/", "/connexion", "/inscription", "/mot-de-passe-oublie", "/confidentialite", "/conditions", "/zynora-office", "/auth/callback", "/api/sante", "/certificats/abc", "/sw.js", "/ide.webmanifest", "/workers/python-worker.mjs", "/opengraph-image"]) {
       expect(isPublicPath(p), p).toBe(true);
     }
   });

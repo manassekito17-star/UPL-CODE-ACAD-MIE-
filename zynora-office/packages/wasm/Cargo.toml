@@ -1,0 +1,20 @@
+[package]
+name = "zynora-wasm"
+description = "Moteurs ZYNORA (tableur, documents) exposés au navigateur en WebAssembly."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# Version déjà présente dans Cargo.lock (dépendance de Tauri) : aucune nouvelle bibliothèque.
+wasm-bindgen = "=0.2.130"
+serde_json.workspace = true
+zynora-document-engine.workspace = true
+zynora-spreadsheet-engine.workspace = true
+
+[lints]
+workspace = true
