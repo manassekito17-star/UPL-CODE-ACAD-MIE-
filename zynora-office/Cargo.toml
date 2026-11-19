@@ -5,6 +5,7 @@ members = [
   "packages/security",
   "packages/database",
   "packages/file-manager",
+  "packages/spreadsheet-engine",
 ]
 
 [workspace.package]
@@ -16,6 +17,7 @@ rust-version = "1.85"
 zynora-security = { path = "packages/security" }
 zynora-database = { path = "packages/database" }
 zynora-file-manager = { path = "packages/file-manager" }
+zynora-spreadsheet-engine = { path = "packages/spreadsheet-engine" }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1"
 thiserror = "2.0.21"

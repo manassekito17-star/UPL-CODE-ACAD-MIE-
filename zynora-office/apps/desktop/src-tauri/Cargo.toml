@@ -19,6 +19,7 @@ serde.workspace = true
 serde_json.workspace = true
 zynora-database.workspace = true
 zynora-file-manager.workspace = true
+zynora-spreadsheet-engine.workspace = true
 tauri-plugin-dialog = "2.8.4"
 
 [dev-dependencies]

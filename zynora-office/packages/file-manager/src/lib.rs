@@ -283,6 +283,56 @@ impl Library {
         self.describe(&target)?.ok_or(FileError::NotFound)
     }
 
+    /// Lit un document de la bibliothèque **et le revalide** : il a pu être déposé ou modifié
+    /// par un autre logiciel depuis son import.
+    pub fn read_document(&self, relative: &str) -> Result<(Vec<u8>, String)> {
+        let path = self.resolve_existing(relative)?;
+        let name = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+        let extension = extension_of(&name).map(str::to_lowercase).ok_or(FileError::Unsupported)?;
+        kind_for_extension(&extension).ok_or(FileError::Unsupported)?;
+        let meta = fs::symlink_metadata(&path)?;
+        if !meta.is_file() {
+            return Err(FileError::Unsupported);
+        }
+        if meta.len() > MAX_IMPORT_BYTES {
+            return Err(FileError::TooLarge);
+        }
+        let mut bytes = Vec::with_capacity(meta.len() as usize);
+        File::open(&path)?.take(MAX_IMPORT_BYTES + 1).read_to_end(&mut bytes)?;
+        if bytes.len() as u64 > MAX_IMPORT_BYTES {
+            return Err(FileError::TooLarge);
+        }
+        validate_bytes(&bytes, &extension)?;
+        Ok((bytes, extension))
+    }
+
+    /// Enregistre un document existant (remplacement atomique, jamais à moitié écrit).
+    pub fn save_document(&self, relative: &str, bytes: &[u8]) -> Result<Entry> {
+        let path = self.resolve_existing(relative)?;
+        if !fs::symlink_metadata(&path)?.is_file() {
+            return Err(FileError::Unsupported);
+        }
+        write_atomic(&path, bytes)?;
+        self.describe(&path)?.ok_or(FileError::NotFound)
+    }
+
+    /// Crée un nouveau document sous un nom libre (« Classeur (2).xlsx »…).
+    pub fn create_document(&self, relative_dir: &str, name: &str, bytes: &[u8]) -> Result<Entry> {
+        zynora_security::validate_file_name(name)?;
+        reject_hidden(name)?;
+        let extension = extension_of(name).map(str::to_lowercase).ok_or(FileError::Unsupported)?;
+        kind_for_extension(&extension).ok_or(FileError::Unsupported)?;
+        let dir = self.resolve_existing(relative_dir)?;
+        let target = unique_destination(&dir, name)?;
+        // Nom libre réservé de façon atomique, puis contenu écrit de façon atomique.
+        File::options().write(true).create_new(true).open(&target)?;
+        if let Err(error) = write_atomic(&target, bytes) {
+            let _ = fs::remove_file(&target);
+            return Err(error);
+        }
+        self.describe(&target)?.ok_or(FileError::NotFound)
+    }
+
     fn trash_root(&self) -> PathBuf {
         self.root.join(INTERNAL_DIR).join(TRASH_DIR)
     }
@@ -428,13 +478,17 @@ fn copy_capped(source: &Path, dest: &Path) -> Result<()> {
 
 /// Validation de sécurité d'un document : format réel, conteneur sain, paquet cohérent.
 fn validate_document(path: &Path, extension: &str) -> Result<()> {
-    let mut head = Vec::with_capacity(8192);
-    File::open(path)?.take(8192).read_to_end(&mut head)?;
-    check_extension_matches(extension, &head)?;
-    if detect_format(&head) != DetectedFormat::Zip {
+    validate_bytes(&fs::read(path)?, extension)
+}
+
+/// Validation de sécurité sur des octets déjà en mémoire (aucune relecture du disque).
+pub fn validate_bytes(bytes: &[u8], extension: &str) -> Result<()> {
+    let head = &bytes[..bytes.len().min(8192)];
+    check_extension_matches(extension, head)?;
+    if detect_format(head) != DetectedFormat::Zip {
         return Ok(());
     }
-    let report = zynora_security::inspect_archive(File::open(path)?, ArchiveLimits::default())?;
+    let report = zynora_security::inspect_archive(io::Cursor::new(bytes), ArchiveLimits::default())?;
     if report.has_macros {
         return Err(FileError::MacrosRefused);
     }

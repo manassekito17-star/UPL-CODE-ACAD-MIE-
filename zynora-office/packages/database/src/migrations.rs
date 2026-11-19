@@ -38,6 +38,14 @@ pub(crate) const MIGRATIONS: &[&str] = &[
         deleted_at_ms INTEGER NOT NULL
      ) STRICT;
      CREATE INDEX trash_by_library ON trash (library, deleted_at_ms DESC);",
+    // 3 — Phase 2 : points de récupération (copie de sauvegarde automatique d'un document en cours d'édition).
+    "CREATE TABLE recovery (
+        library TEXT NOT NULL,
+        path TEXT NOT NULL,
+        file TEXT NOT NULL,
+        saved_at_ms INTEGER NOT NULL,
+        PRIMARY KEY (library, path)
+     ) STRICT;",
 ];
 
 pub const LATEST_VERSION: u32 = MIGRATIONS.len() as u32;

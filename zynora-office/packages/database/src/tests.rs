@@ -4,7 +4,7 @@ use super::*;
 fn cree_le_schema_et_donne_des_parametres_par_defaut() {
     let db = Database::open_in_memory().expect("base");
     assert_eq!(db.schema_version().expect("version"), LATEST_VERSION);
-    assert_eq!(LATEST_VERSION, 2);
+    assert_eq!(LATEST_VERSION, 3);
     assert_eq!(db.settings().expect("paramètres"), Settings { theme: Theme::System, language: Language::Fr });
 }
 
@@ -32,7 +32,7 @@ fn les_parametres_survivent_a_la_reouverture() {
     }
     let db = Database::open(&path).expect("réouverture");
     assert_eq!(db.schema_version().expect("version"), LATEST_VERSION);
-    assert_eq!(LATEST_VERSION, 2);
+    assert_eq!(LATEST_VERSION, 3);
     assert_eq!(db.settings().expect("paramètres").theme, Theme::Light);
 }
 
@@ -94,7 +94,7 @@ fn une_base_v1_existante_passe_en_v2_sans_perte() {
         tx.commit().expect("commit");
     }
     let mut db = Database::open(&path).expect("migration");
-    assert_eq!(db.schema_version().expect("version"), 2);
+    assert_eq!(db.schema_version().expect("version"), LATEST_VERSION);
     assert_eq!(db.settings().expect("paramètres").theme, Theme::Dark);
     db.touch_document("/lib", "a.docx", "a.docx", "text").expect("nouvelle table utilisable");
 }

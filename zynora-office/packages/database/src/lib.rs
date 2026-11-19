@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 mod documents;
 mod migrations;
 
-pub use documents::{DocumentRecord, TrashRecord};
+pub use documents::{DocumentRecord, RecoveryRecord, TrashRecord};
 
 pub use migrations::LATEST_VERSION;
 

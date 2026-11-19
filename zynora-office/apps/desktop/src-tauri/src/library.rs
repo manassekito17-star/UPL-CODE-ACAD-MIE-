@@ -51,7 +51,7 @@ pub(crate) struct ImportOutcome {
 }
 
 /// Bibliothèque courante et sa clé en base (chemin canonique).
-fn open_library(state: &AppState) -> CommandResult<(Library, String)> {
+pub(crate) fn open_library(state: &AppState) -> CommandResult<(Library, String)> {
     let configured = state.db()?.library_path()?;
     let root = configured.map(PathBuf::from).unwrap_or_else(|| state.default_library.clone());
     let library = Library::open(&root)?;
@@ -287,6 +287,7 @@ mod tests {
             data_dir: dir.path().join("data"),
             default_library: dir.path().join("ZYNORA"),
             previous_session_interrupted: false,
+            workbooks: crate::sheets::Workbooks::default(),
         };
         let (library, key) = open_library(&state).expect("bibliothèque");
         let outcome = import_paths(&state, &library, &key, "", &[bad, ok]);

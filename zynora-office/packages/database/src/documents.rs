@@ -25,6 +25,15 @@ pub struct TrashRecord {
     pub deleted_at_ms: i64,
 }
 
+/// Copie de récupération d'un document dont les modifications n'étaient pas enregistrées.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct RecoveryRecord {
+    pub path: String,
+    /// Nom du fichier de récupération dans le dossier de données de l'application.
+    pub file: String,
+    pub saved_at_ms: i64,
+}
+
 /// Condition « ce chemin, ou un élément qu'il contient » sans LIKE (les noms peuvent contenir % ou _).
 const PATH_OR_DESCENDANT: &str = "(path = ?2 OR substr(path, 1, length(?2) + 1) = ?2 || '/')";
 
@@ -171,6 +180,40 @@ impl Database {
     }
 }
 
+impl Database {
+    pub fn set_recovery(&mut self, library: &str, path: &str, file: &str) -> Result<()> {
+        self.conn.execute(
+            "INSERT INTO recovery (library, path, file, saved_at_ms) VALUES (?1, ?2, ?3, ?4)
+             ON CONFLICT(library, path) DO UPDATE SET file = excluded.file, saved_at_ms = excluded.saved_at_ms",
+            params![library, path, file, now_ms()],
+        )?;
+        Ok(())
+    }
+
+    pub fn recoveries(&self, library: &str) -> Result<Vec<RecoveryRecord>> {
+        let mut stmt = self
+            .conn
+            .prepare("SELECT path, file, saved_at_ms FROM recovery WHERE library = ?1 ORDER BY saved_at_ms DESC")?;
+        let rows = stmt.query_map([library], |r| {
+            Ok(RecoveryRecord { path: r.get(0)?, file: r.get(1)?, saved_at_ms: r.get(2)? })
+        })?;
+        Ok(rows.collect::<std::result::Result<_, _>>()?)
+    }
+
+    /// Retire le point de récupération d'un document et renvoie son fichier, à supprimer.
+    pub fn take_recovery(&mut self, library: &str, path: &str) -> Result<Option<String>> {
+        let tx = self.conn.transaction()?;
+        let file: Option<String> = tx
+            .query_row("SELECT file FROM recovery WHERE library = ?1 AND path = ?2", params![library, path], |r| {
+                r.get(0)
+            })
+            .optional()?;
+        tx.execute("DELETE FROM recovery WHERE library = ?1 AND path = ?2", params![library, path])?;
+        tx.commit()?;
+        Ok(file)
+    }
+}
+
 fn row_to_trash(row: &rusqlite::Row<'_>) -> rusqlite::Result<TrashRecord> {
     Ok(TrashRecord {
         id: row.get(0)?,
@@ -197,6 +240,20 @@ mod tests {
             size: 10,
             deleted_at_ms: 1,
         }
+    }
+
+    #[test]
+    fn points_de_recuperation_par_document() {
+        let mut db = Database::open_in_memory().expect("base");
+        db.set_recovery(LIB, "a.xlsx", "r1.xlsx").expect("ajout");
+        db.set_recovery(LIB, "a.xlsx", "r2.xlsx").expect("mise à jour");
+        db.set_recovery("/autre", "b.xlsx", "r3.xlsx").expect("autre bibliothèque");
+        let list = db.recoveries(LIB).expect("liste");
+        assert_eq!(list.len(), 1);
+        assert_eq!((list[0].path.as_str(), list[0].file.as_str()), ("a.xlsx", "r2.xlsx"));
+        assert_eq!(db.take_recovery(LIB, "a.xlsx").expect("retrait").as_deref(), Some("r2.xlsx"));
+        assert_eq!(db.take_recovery(LIB, "a.xlsx").expect("retrait"), None);
+        assert!(db.recoveries(LIB).expect("liste").is_empty());
     }
 
     #[test]

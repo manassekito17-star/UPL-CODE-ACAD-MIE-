@@ -14,6 +14,7 @@ use zynora_database::{AuditEvent, Database, DatabaseError, SettingChange, Settin
 use zynora_file_manager::FileError;
 
 mod library;
+mod sheets;
 
 pub(crate) struct AppState {
     /// Base locale, ou message d'erreur si elle n'a pas pu être ouverte au démarrage :
@@ -22,6 +23,7 @@ pub(crate) struct AppState {
     data_dir: PathBuf,
     default_library: PathBuf,
     previous_session_interrupted: bool,
+    workbooks: sheets::Workbooks,
 }
 
 impl AppState {
@@ -125,7 +127,13 @@ fn open_state(app: &tauri::App) -> Result<AppState, Box<dyn std::error::Error>> 
         .unwrap_or_else(|_| data_dir.clone())
         .join("ZYNORA");
 
-    Ok(AppState { db, data_dir, default_library, previous_session_interrupted })
+    Ok(AppState {
+        db,
+        data_dir,
+        default_library,
+        previous_session_interrupted,
+        workbooks: sheets::Workbooks::default(),
+    })
 }
 
 pub fn run() {
@@ -155,6 +163,25 @@ pub fn run() {
             library::restore_trash,
             library::purge_trash,
             library::empty_trash,
+            sheets::sheets_open,
+            sheets::sheets_create,
+            sheets::sheets_range,
+            sheets::sheets_cell,
+            sheets::sheets_stats,
+            sheets::sheets_set_input,
+            sheets::sheets_clear,
+            sheets::sheets_style,
+            sheets::sheets_structure,
+            sheets::sheets_sheet,
+            sheets::sheets_history,
+            sheets::sheets_copy,
+            sheets::sheets_paste,
+            sheets::sheets_save,
+            sheets::sheets_autosave,
+            sheets::sheets_close,
+            sheets::list_recoveries,
+            sheets::sheets_open_recovery,
+            sheets::discard_recovery_command,
         ])
         .build(tauri::generate_context!());
 

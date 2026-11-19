@@ -276,3 +276,25 @@ fn ne_suit_pas_les_liens_symboliques_de_la_bibliotheque() {
     assert!(f.lib.list("lien-dossier").is_err());
     assert!(f.lib.search("secret", 10).expect("recherche").is_empty());
 }
+
+#[test]
+fn lit_revalide_enregistre_et_cree_des_documents() {
+    let f = fixture();
+    let created = f.lib.create_document("", "Classeur.xlsx", &docx()).expect("création");
+    assert_eq!(created.name, "Classeur.xlsx");
+    assert_eq!(f.lib.create_document("", "Classeur.xlsx", &docx()).expect("seconde").name, "Classeur (2).xlsx");
+    assert!(f.lib.create_document("", "x.exe", b"MZ").is_err());
+
+    let (bytes, ext) = f.lib.read_document("Classeur.xlsx").expect("lecture");
+    assert_eq!((bytes, ext.as_str()), (docx(), "xlsx"));
+    let saved =
+        f.lib.save_document("Classeur.xlsx", &zip_bytes(&[("[Content_Types].xml", b"<v2/>")])).expect("enregistrement");
+    assert_eq!(saved.path, "Classeur.xlsx");
+    assert!(no_temp_files(f.lib.root()));
+
+    // Un fichier remplacé hors de ZYNORA par un contenu piégé est refusé à l'ouverture.
+    put(f.lib.root(), "piege.xlsx", &zip_bytes(&[("[Content_Types].xml", b"<T/>"), ("xl/vbaProject.bin", b"\x00")]));
+    assert!(matches!(f.lib.read_document("piege.xlsx"), Err(FileError::MacrosRefused)));
+    assert!(matches!(f.lib.read_document("../x.xlsx"), Err(FileError::Security(_))));
+    assert!(matches!(f.lib.save_document("absent.xlsx", b"x"), Err(FileError::NotFound)));
+}
