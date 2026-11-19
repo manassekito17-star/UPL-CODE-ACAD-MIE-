@@ -45,8 +45,10 @@
   --z-primary-soft: #e9e6fb;
   --z-focus: #4c3fd1;
   --z-danger: #b42318;
+  --z-on-danger: #ffffff;
   --z-success: #1f7a4d;
   --z-warning: #9a5b00;
+  --z-favorite: #a36500;
   --z-shadow: 0 1px 2px rgb(27 24 48 / 6%), 0 4px 16px rgb(27 24 48 / 6%);
 
   --z-word: #4c3fd1;
@@ -73,8 +75,10 @@
   --z-primary-soft: #2a2550;
   --z-focus: #a59cff;
   --z-danger: #ff8a7f;
+  --z-on-danger: #0f0e17;
   --z-success: #5fd39a;
   --z-warning: #f2b45a;
+  --z-favorite: #f5b942;
   --z-shadow: 0 1px 2px rgb(0 0 0 / 40%), 0 6px 20px rgb(0 0 0 / 35%);
 
   --z-word: #9d93ff;

@@ -14,16 +14,23 @@
 
 ## Niveaux
 
-1. **Unitaires Rust** — sécurité (noms, chemins, liens symboliques, formats, archives : traversée,
+1. **Unitaires Rust** — bibliothèque (liste, recherche sans accents, dossiers, renommage sans
+   écrasement, import validé et refus sans trace, corbeille et restauration avec conflits, purge
+   confinée, écriture atomique, liens symboliques ignorés), import par lot, migration v1 → v2,
+   sécurité (noms, chemins, liens symboliques, formats, archives : traversée,
    DTD, bombes, doublons, macros) et base (migrations, persistance, refus d'une base plus récente,
    valeur corrompue signalée, journal borné, rejet des modifications non typées).
 2. **Interface (Vitest + jsdom)** — composants accessibles (rôles ARIA, clavier), application avec un
    faux backend en mémoire qui **reproduit le contrat** des commandes Rust : chargement, erreurs et
    nouvelle tentative, échec d'enregistrement (l'ancien paramètre est conservé), langues, raccourci.
    Le faux backend sert uniquement à isoler l'interface ; le comportement réel est couvert par l'e2e.
-3. **Bout en bout** (`tests/e2e/smoke.mjs`) — vrai binaire, vraie WebView, vraie base SQLite dans un
-   dossier temporaire : accueil, informations venant de Rust, changement de thème, journal, création
-   de la base, **conservation après relance**. Captures facultatives : `ZYNORA_E2E_SCREENSHOTS=dossier`.
+3. **Bout en bout** (`tests/e2e/smoke.mjs`) — vrai binaire, vraie WebView, vraie base SQLite et
+   vrai disque, dans un dossier temporaire (dossier « Documents » de test via XDG user-dirs) :
+   parcours de la bibliothèque, création de dossier, renommage, favori, corbeille, restauration,
+   suppression définitive après confirmation (vérifiées **sur le disque**), thème, journal ; puis
+   relance après un **arrêt brutal simulé** : avertissement affiché, données intactes.
+   Captures facultatives : `ZYNORA_E2E_SCREENSHOTS=dossier`. Les dialogues natifs (import, choix
+   du dossier) ne sont pas pilotables par WebDriver : leur logique est testée en Rust.
 
 ## Prérequis e2e (Linux)
 ```bash
@@ -35,7 +42,7 @@ macOS n'a pas de pilote WebDriver pour WKWebView : l'e2e y sera remplacé par de
 d'intégration et des vérifications manuelles documentées.
 
 ## À venir
-- Phase 1 : tests de récupération après arrêt brutal (processus tué pendant l'écriture).
+- Phase 2 : processus réellement tué pendant une écriture de document (récupération du contenu).
 - Phase 2+ : corpus de fichiers réels (voir COMPATIBILITY.md), cycles d'aller-retour, valeurs de
   référence des formules, tests de performance (temps d'ouverture, recalcul de 100 000 cellules),
   fuzzing des analyseurs (`cargo fuzz`).

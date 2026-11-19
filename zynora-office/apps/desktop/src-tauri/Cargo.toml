@@ -18,6 +18,11 @@ tauri = { version = "2.12.7", features = [] }
 serde.workspace = true
 serde_json.workspace = true
 zynora-database.workspace = true
+zynora-file-manager.workspace = true
+tauri-plugin-dialog = "2.8.4"
+
+[dev-dependencies]
+tempfile.workspace = true
 
 [lints]
 workspace = true

@@ -1,0 +1,19 @@
+[package]
+name = "zynora-file-manager"
+description = "Bibliothèque de documents de ZYNORA OFFICE : dossiers, import validé, renommage, corbeille, écriture atomique."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+serde.workspace = true
+thiserror.workspace = true
+zynora-security.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+zip = { version = "9.7.0", default-features = false, features = ["deflate"] }
+
+[lints]
+workspace = true

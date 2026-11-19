@@ -11,7 +11,10 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use rusqlite::{Connection, OptionalExtension, Transaction, params};
 use serde::{Deserialize, Serialize};
 
+mod documents;
 mod migrations;
+
+pub use documents::{DocumentRecord, TrashRecord};
 
 pub use migrations::LATEST_VERSION;
 
@@ -96,7 +99,7 @@ pub struct AuditEvent {
 pub const AUDIT_LOG_CAPACITY: i64 = 10_000;
 
 pub struct Database {
-    conn: Connection,
+    pub(crate) conn: Connection,
 }
 
 impl Database {
@@ -175,13 +178,13 @@ impl Database {
     }
 }
 
-fn insert_event(tx: &Transaction<'_>, action: &str, detail: &str) -> Result<()> {
+pub(crate) fn insert_event(tx: &Transaction<'_>, action: &str, detail: &str) -> Result<()> {
     tx.execute("INSERT INTO audit_log (at_ms, action, detail) VALUES (?1, ?2, ?3)", params![now_ms(), action, detail])?;
     tx.execute("DELETE FROM audit_log WHERE id <= (SELECT MAX(id) FROM audit_log) - ?1", [AUDIT_LOG_CAPACITY])?;
     Ok(())
 }
 
-fn now_ms() -> i64 {
+pub(crate) fn now_ms() -> i64 {
     SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as i64).unwrap_or(0)
 }
 

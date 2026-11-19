@@ -4,6 +4,7 @@ members = [
   "apps/desktop/src-tauri",
   "packages/security",
   "packages/database",
+  "packages/file-manager",
 ]
 
 [workspace.package]
@@ -15,6 +16,7 @@ rust-version = "1.85"
 [workspace.dependencies]
 zynora-security = { path = "packages/security" }
 zynora-database = { path = "packages/database" }
+zynora-file-manager = { path = "packages/file-manager" }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1"
 thiserror = "2.0.21"

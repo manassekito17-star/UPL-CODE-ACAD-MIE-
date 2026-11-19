@@ -4,6 +4,7 @@ use super::*;
 fn cree_le_schema_et_donne_des_parametres_par_defaut() {
     let db = Database::open_in_memory().expect("base");
     assert_eq!(db.schema_version().expect("version"), LATEST_VERSION);
+    assert_eq!(LATEST_VERSION, 2);
     assert_eq!(db.settings().expect("paramètres"), Settings { theme: Theme::System, language: Language::Fr });
 }
 
@@ -31,6 +32,7 @@ fn les_parametres_survivent_a_la_reouverture() {
     }
     let db = Database::open(&path).expect("réouverture");
     assert_eq!(db.schema_version().expect("version"), LATEST_VERSION);
+    assert_eq!(LATEST_VERSION, 2);
     assert_eq!(db.settings().expect("paramètres").theme, Theme::Light);
 }
 
@@ -76,4 +78,23 @@ fn les_modifications_venant_de_l_interface_sont_typees() {
     assert_eq!(change, SettingChange::Theme(Theme::Dark));
     assert!(serde_json::from_str::<SettingChange>(r#"{"key":"theme","value":"violet"}"#).is_err());
     assert!(serde_json::from_str::<SettingChange>(r#"{"key":"admin","value":true}"#).is_err());
+}
+
+#[test]
+fn une_base_v1_existante_passe_en_v2_sans_perte() {
+    let dir = tempfile::tempdir().expect("dossier");
+    let path = dir.path().join("zynora.db");
+    {
+        // Base telle que créée par la version 0.1.0 (schéma 1 uniquement).
+        let mut conn = Connection::open(&path).expect("sqlite");
+        let tx = conn.transaction().expect("transaction");
+        tx.execute_batch(migrations::MIGRATIONS[0]).expect("schéma v1");
+        tx.execute("INSERT INTO settings VALUES ('theme', '\"dark\"', 1)", []).expect("paramètre");
+        tx.pragma_update(None, "user_version", 1).expect("version");
+        tx.commit().expect("commit");
+    }
+    let mut db = Database::open(&path).expect("migration");
+    assert_eq!(db.schema_version().expect("version"), 2);
+    assert_eq!(db.settings().expect("paramètres").theme, Theme::Dark);
+    db.touch_document("/lib", "a.docx", "a.docx", "text").expect("nouvelle table utilisable");
 }

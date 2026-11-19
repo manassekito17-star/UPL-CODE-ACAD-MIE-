@@ -10,11 +10,11 @@ Ne pas ouvrir de ticket public. Contacter le mainteneur du dépôt en privé (on
 3. **Chaîne d'approvisionnement** : dépendance ou mise à jour piégée.
 4. **Perte de données** : écrasement, plantage, base corrompue.
 
-## Protections en place (phase 0)
+## Protections en place (phases 0 et 1)
 
 | Menace | Protection | Où | Testé |
 |---|---|---|---|
-| Interface compromise | Fenêtre **sans aucune permission Tauri** ; seules 4 commandes applicatives typées ; CSP stricte (`script-src 'self'`, pas d'`eval`, pas de ressources distantes) ; `freezePrototype` | `src-tauri/capabilities`, `tauri.conf.json` | e2e |
+| Interface compromise | Fenêtre **sans aucune permission Tauri** ; seules 18 commandes applicatives typées (liste : ARCHITECTURE.md §3) ; CSP stricte (`script-src 'self'`, pas d'`eval`, pas de ressources distantes) ; `freezePrototype` | `src-tauri/capabilities`, `tauri.conf.json` | e2e |
 | Injection via IPC | Arguments désérialisés en énumérations fermées ; clé ou valeur inconnue rejetée ; limites bornées | `packages/database`, `src-tauri/src/lib.rs` | unitaire |
 | Injection SQL | Requêtes paramétrées uniquement | `packages/database` | revue |
 | Traversée de chemin | `resolve_within` : normalisation, refus des `..` hors racine, des chemins absolus externes et des liens symboliques sortants | `packages/security/src/paths.rs` | unitaire |
@@ -25,13 +25,21 @@ Ne pas ouvrir de ticket public. Contacter le mainteneur du dépôt en privé (on
 | XXE / « billion laughs » | Toute DTD ou déclaration d'entité dans une partie XML/`.rels` est refusée | `archive.rs` | unitaire |
 | Macros | Détectées (VBA, Basic) et signalées ; **jamais exécutées** ; extensions à macros (`.docm`…) non acceptées | `archive.rs`, `format.rs` | unitaire |
 | Base d'une version plus récente | Refus d'ouverture (pas de corruption par migration descendante) | `packages/database` | unitaire |
+| Choix de fichiers par l'interface | Les dialogues natifs sont ouverts **par Rust** ; l'interface ne transmet que des chemins relatifs à la bibliothèque, revalidés à chaque commande ; le dossier interne `.zynora` est inaccessible | `src-tauri/src/library.rs`, `file-manager` | unitaire, e2e |
+| Contrôle puis utilisation (TOCTOU) à l'import | Copie bornée (512 Mo) vers un fichier temporaire, validation **de la copie**, renommage atomique ; fichier temporaire supprimé en cas de refus | `file-manager` | unitaire |
+| Contenu incohérent | `.docx` qui contient un paquet ODF (et inversement), type MIME ODF qui ne correspond pas à l'extension : refusés | `file-manager` | unitaire |
+| Écrasement | Création, renommage, import et restauration ne remplacent jamais un fichier existant | `file-manager` | unitaire, e2e |
+| Suppression accidentelle | Corbeille interne ; annulation immédiate ; suppression définitive seulement après confirmation explicite (bouton sûr focalisé par défaut) | `file-manager`, interface | unitaire, interface, e2e |
+| Identifiants de corbeille piégés | Format strict (hexadécimal et tirets) ; chemin d'origine restreint à des composants ordinaires | `file-manager` | unitaire |
+| Liens symboliques | Jamais suivis dans la bibliothèque (ni listés, ni cherchés) ; écriture à travers un lien cassé refusée | `security`, `file-manager` | unitaire |
+| Fichier à moitié écrit | `write_atomic` : fichier temporaire, `fsync`, renommage, `fsync` du dossier | `file-manager` | unitaire |
 | Journalisation | Opérations sensibles enregistrées localement (jamais le contenu des documents), journal borné à 10 000 entrées | `packages/database` | unitaire, e2e |
-| Licences et dépendances | Contrôle automatique de 446 dépendances ; `pnpm audit` ; versions exactes ; `Cargo.lock` et `pnpm-lock.yaml` versionnés | `scripts/check-licenses.mjs`, CI | CI |
+| Licences et dépendances | Contrôle automatique de 450 dépendances ; `pnpm audit` ; versions exactes ; `Cargo.lock` et `pnpm-lock.yaml` versionnés | `scripts/check-licenses.mjs`, CI | CI |
 | Secrets | Aucun secret dans le dépôt ni l'interface ; signature et clés de mise à jour prévues dans les secrets GitHub | — | revue |
 
 ## Prévu
-- **Phase 1** : toutes les ouvertures/enregistrements passent par `security` ; écriture atomique
-  (fichier temporaire + renommage) ; corbeille au lieu de suppression ; points de récupération.
+- **Phase 2** : points de récupération du contenu en cours d'édition ; réconciliation de la
+  corbeille après un arrêt survenu en pleine opération.
 - **Phase 2+** : analyseurs XML avec limites de profondeur et de taille ; images décodées en Rust
   avec limites de dimensions ; liens hypertextes ouverts seulement après confirmation.
 - **Publication** : mises à jour signées (minisign, clé publique dans l'application, clé privée

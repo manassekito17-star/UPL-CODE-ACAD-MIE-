@@ -10,9 +10,10 @@
 ┌─────────────────────────────────────── Cœur Rust ─────────────────────────────────────────────┐
 │  apps/desktop/src-tauri   commandes, état, cycle de vie                                       │
 │  packages/security        noms/chemins sûrs, format réel, inspection ZIP/XML                   │
-│  packages/database        SQLite : migrations, paramètres, journal                             │
+│  packages/database        SQLite : migrations, paramètres, journal, récents, favoris, corbeille│
+│  packages/file-manager    bibliothèque : import validé, dossiers, corbeille, écriture atomique │
 │  À venir : spreadsheet-engine (IronCalc) · document-engine · presentation-engine ·            │
-│            export-engine (PDF) · file-manager · ai-assistant (optionnel)                       │
+│            export-engine (PDF) · ai-assistant (optionnel)                                      │
 └───────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -78,6 +79,22 @@ dont la mise en page est à construire. Ordre modifiable sur décision du porteu
 Dossier isolé `zynora-office/` du dépôt existant, faute de dépôt dédié dans cette session. Exclu
 du lint et du typage de ZENTECH ; CI séparée filtrée par chemin. Déplaçable sans modification.
 
+### D11 — Bibliothèque de documents et corbeille interne (phase 1)
+- Les documents vivent dans un dossier ordinaire (`Documents/ZYNORA` par défaut), lisible par
+  n'importe quel autre logiciel. Tous les chemins échangés avec l'interface sont **relatifs** à ce
+  dossier et revalidés à chaque appel.
+- Le dossier est choisi **uniquement par dialogue natif** ouvert par Rust : l'interface ne peut pas
+  désigner un chemin arbitraire.
+- Corbeille **interne** (`.zynora/corbeille/<id>/`) plutôt que celle du système : comportement
+  identique sur les trois systèmes, restauration depuis ZYNORA, tests automatisés possibles.
+- Import en trois temps : copie bornée vers un fichier temporaire caché → validation de la copie
+  (aucune fenêtre entre contrôle et utilisation) → renommage atomique vers un nom libre.
+
+### D12 — Démarrage dégradé
+Si la base locale ne s'ouvre pas, l'application démarre quand même et chaque commande renvoie le
+message d'erreur, affiché par l'interface. Un verrou de session (`session.lock`) détecte un arrêt
+brutal de la session précédente.
+
 ## 3. Échanges entre composants (contrat IPC)
 
 | Commande | Entrée | Sortie | Effet |
@@ -86,10 +103,24 @@ du lint et du typage de ZENTECH ; CI séparée filtrée par chemin. Déplaçable
 | `get_settings` | — | `{theme, language}` | lecture SQLite |
 | `update_setting` | `{change: {key, value}}` (énumération fermée) | paramètres à jour | écriture + journal (une transaction) |
 | `recent_events` | `{limit}` (borné à 1..200) | événements du journal | lecture |
+| `library_info` | — | `{path, is_default}` | lecture |
+| `choose_library` | — (dialogue natif) | `{path, is_default}` ou `null` | écriture + journal |
+| `dashboard` | — | `{recent, favorites}` (documents encore présents) | lecture |
+| `list_folder` | `{path}` relatif | éléments + état favori | lecture disque |
+| `search_documents` | `{query}` (≤ 200 caractères) | ≤ 200 éléments | lecture disque bornée |
+| `create_folder` | `{parent, name}` | élément | disque + journal |
+| `rename_entry` | `{path, newName}` | élément | disque + base + journal |
+| `import_documents` | `{folder}` (dialogue natif) | `{cancelled, imported, rejected}` | disque + base + journal |
+| `set_favorite` | `{path, favorite}` | booléen | base |
+| `trash_entry` | `{path}` | élément de corbeille | disque + base + journal |
+| `list_trash` | — | éléments de corbeille | lecture |
+| `restore_trash` | `{id}` | élément restauré | disque + base + journal |
+| `purge_trash` / `empty_trash` | `{id}` / — | — / nombre | **suppression définitive** + journal |
 
 Règles : arguments désérialisés en types Rust fermés (une clé ou valeur inconnue est rejetée par
 serde) ; erreurs renvoyées sous forme `{message}` lisible, sans trace interne ; la fenêtre n'a
-**aucune permission Tauri** (`capabilities/default.json` vide).
+**aucune permission Tauri** (`capabilities/default.json` vide) ; le plugin de dialogues est
+utilisé exclusivement depuis Rust.
 
 ## 4. Évolutivité prévue
 - Grandes feuilles : moteur côté Rust, grille virtualisée (seules les cellules visibles sont rendues).

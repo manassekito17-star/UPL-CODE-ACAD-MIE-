@@ -4,30 +4,32 @@ Légende : ✅ pris en charge et **testé** · 🟡 partiel (limites listées) �
 🔒 refusé volontairement (sécurité). **Aucune case ne passe à ✅ sans test automatisé sur des
 fichiers réels.**
 
-## Formats — phase 0
+## Formats — phase 1
 
-| Format | Ouvrir | Modifier | Enregistrer | Remarque |
-|---|---|---|---|---|
-| DOCX | ❌ | ❌ | ❌ | Phase 3. Contrôles de sécurité du conteneur prêts (✅ testés) |
-| ODT | ❌ | ❌ | ❌ | Phase 3 |
-| XLSX | ❌ | ❌ | ❌ | Phase 2 |
-| ODS | ❌ | ❌ | ❌ | Phase 2 |
-| CSV | ❌ | ❌ | ❌ | Phase 2 |
-| PPTX | ❌ | ❌ | ❌ | Phase 4 |
-| ODP | ❌ | ❌ | ❌ | Phase 4 |
-| PDF | — | — | ❌ | Export prévu phases 2–4 |
-| TXT | ❌ | ❌ | ❌ | Phase 3 |
-| DOCM, XLSM, PPTM | 🔒 | 🔒 | 🔒 | Formats à macros refusés |
-| DOC, XLS, PPT (OLE) | ❌ | ❌ | ❌ | Anciens formats binaires ; détectés et signalés |
-| Office chiffré | ❌ | ❌ | ❌ | Détecté (conteneur OLE) et signalé clairement |
+« Importer » = contrôlé puis rangé dans la bibliothèque (✅ testé) ; l'**édition** reste à venir.
 
-## Plateformes — phase 0
+| Format | Importer | Ouvrir | Modifier | Enregistrer | Remarque |
+|---|---|---|---|---|---|
+| DOCX | ✅ | ❌ | ❌ | ❌ | Phase 3. Contrôles de sécurité du conteneur prêts (✅ testés) |
+| ODT | ✅ | ❌ | ❌ | ❌ | Phase 3 |
+| XLSX | ✅ | ❌ | ❌ | ❌ | Phase 2 |
+| ODS | ✅ | ❌ | ❌ | ❌ | Phase 2 |
+| CSV | ✅ | ❌ | ❌ | ❌ | Phase 2 |
+| PPTX | ✅ | ❌ | ❌ | ❌ | Phase 4 |
+| ODP | ✅ | ❌ | ❌ | ❌ | Phase 4 |
+| PDF | ✅ | — | — | ❌ | Export prévu phases 2–4 |
+| TXT | ✅ | ❌ | ❌ | ❌ | Phase 3 |
+| DOCM, XLSM, PPTM | 🔒 | 🔒 | 🔒 | 🔒 | Formats à macros refusés |
+| DOC, XLS, PPT (OLE) | ❌ | ❌ | ❌ | ❌ | Anciens formats binaires ; détectés et signalés |
+| Office chiffré | ❌ | ❌ | ❌ | ❌ | Détecté (conteneur OLE) et signalé clairement |
+
+## Plateformes — phase 1
 
 | Plateforme | Compilation | Tests unitaires | Bout en bout | Installateur |
 |---|---|---|---|---|
 | Linux x86_64 (Ubuntu 24.04) | ✅ | ✅ | ✅ | ✅ DEB, RPM, AppImage (non signés) |
-| Windows 10/11 x86_64 | ⏳ CI | ⏳ CI | ❌ (prévu) | ⏳ MSI, EXE (non signés) |
-| macOS (Apple Silicon) | ⏳ CI | ⏳ CI | ❌ (WebDriver non disponible pour WKWebView) | ⏳ DMG (non signé) |
+| Windows 10/11 x86_64 | ✅ CI | ❌ → corrigé, à confirmer | ❌ (prévu) | ⏳ MSI, EXE (non signés) |
+| macOS (Apple Silicon) | ✅ CI | ✅ CI | ❌ (WebDriver non disponible pour WKWebView) | ✅ DMG (non signé) |
 
 ⏳ = configuré dans la CI, résultat à confirmer au premier passage.
 

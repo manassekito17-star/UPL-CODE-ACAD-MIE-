@@ -40,4 +40,9 @@ Tous ≥ 4,5:1 (AA texte normal).
 ## Composants disponibles
 `Button` (primary, secondary, ghost ; md, sm) · `Card` · `Badge` (neutral, info, success, warning) ·
 `SegmentedControl` (groupe radio ARIA, flèches) · `NavItem` (`aria-current`) · `ZynoraMark` ·
-`applyTheme` / `resolveTheme`.
+`applyTheme` / `resolveTheme` · `Dialog` (modal, focus confiné, Échap, focus rendu ; `alertdialog`
+pour les confirmations destructrices) · `TextField` (étiquette et erreur reliées) · `IconButton`
+(nom accessible obligatoire) · `ToastProvider` / `useToasts` (région `aria-live`, action « Annuler »).
+
+Contrastes ajoutés en phase 1 : texte sur bouton danger 6,6 (clair) / 8,4 (sombre) ; étoile de
+favori (élément graphique, seuil 3:1) 4,8 sur surface et 3,8 au survol (clair), 10,0 (sombre).

@@ -4,7 +4,7 @@ function cx(...parts: Array<string | false | undefined>): string {
   return parts.filter(Boolean).join(" ");
 }
 
-export type ButtonVariant = "primary" | "secondary" | "ghost";
+export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
@@ -130,5 +130,19 @@ export function ZynoraMark({ size = 28, title = "ZYNORA" }: { size?: number; tit
       <path d="M18 18h28L26 40h20" fill="none" stroke="#8F84FF" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M18 46h28" fill="none" stroke="#F2A541" strokeWidth="6" strokeLinecap="round" />
     </svg>
+  );
+}
+
+export interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  /** Nom accessible (obligatoire : le bouton n'a pas de texte visible). */
+  label: string;
+  children: ReactNode;
+}
+
+export function IconButton({ label, className, children, type, ...rest }: IconButtonProps) {
+  return (
+    <button type={type ?? "button"} className={cx("z-icon-button", className)} aria-label={label} title={label} {...rest}>
+      {children}
+    </button>
   );
 }

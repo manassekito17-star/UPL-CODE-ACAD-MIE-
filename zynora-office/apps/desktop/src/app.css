@@ -107,3 +107,52 @@ p { margin: var(--z-space-1) 0 0; }
   .main { padding: var(--z-space-5); }
   .journal li { grid-template-columns: 1fr; gap: 0; }
 }
+
+/* --- Phase 1 : bibliothèque ------------------------------------------- */
+.page__header--row { flex-direction: row; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: var(--z-space-4); }
+.toolbar { display: flex; gap: var(--z-space-2); flex-wrap: wrap; }
+.empty { padding: var(--z-space-6); text-align: center; color: var(--z-text-muted); border: 1px dashed var(--z-border-strong); border-radius: var(--z-radius-md); }
+
+.search { position: relative; max-width: 420px; }
+.search__icon { position: absolute; left: 10px; top: 9px; color: var(--z-text-muted); pointer-events: none; }
+.search .z-field__input { width: 100%; padding-left: 34px; }
+
+.breadcrumb { display: flex; align-items: center; flex-wrap: wrap; gap: var(--z-space-1); color: var(--z-text-muted); }
+.breadcrumb__item { display: inline-flex; align-items: center; gap: var(--z-space-1); }
+.breadcrumb button { border: 0; background: none; padding: 2px var(--z-space-1); border-radius: 4px; color: var(--z-text-muted); font: inherit; cursor: pointer; }
+.breadcrumb button:hover { color: var(--z-text); background: var(--z-surface-hover); }
+.breadcrumb button[aria-current] { color: var(--z-text); font-weight: 600; }
+
+.files { width: 100%; border-collapse: collapse; background: var(--z-surface); border: 1px solid var(--z-border); border-radius: var(--z-radius-md); overflow: hidden; }
+.files th { text-align: left; font-size: var(--z-text-xs); font-weight: 600; color: var(--z-text-muted); text-transform: uppercase; letter-spacing: 0.04em; padding: var(--z-space-2) var(--z-space-3); border-bottom: 1px solid var(--z-border); background: var(--z-surface-2); }
+.files td { padding: var(--z-space-2) var(--z-space-3); border-bottom: 1px solid var(--z-border); vertical-align: middle; }
+.files tbody tr:last-child td { border-bottom: 0; }
+.files tbody tr:hover { background: var(--z-surface-hover); }
+.files .num { text-align: right; font-variant-numeric: tabular-nums; }
+.files__name { display: inline-flex; align-items: center; gap: var(--z-space-2); min-width: 0; }
+.row-actions { display: inline-flex; justify-content: flex-end; gap: 2px; width: 100%; }
+.link { border: 0; background: none; padding: 0; color: var(--z-text); font: inherit; font-weight: 600; cursor: pointer; text-align: left; }
+.link:hover { color: var(--z-primary); text-decoration: underline; }
+.link:focus-visible { outline: 2px solid var(--z-focus); outline-offset: 2px; border-radius: 2px; }
+
+.entry-icon { flex: none; color: var(--z-text-muted); }
+.entry-icon--folder { color: var(--z-warning); }
+.entry-icon--text { color: var(--z-word); }
+.entry-icon--spreadsheet { color: var(--z-sheets); }
+.entry-icon--presentation { color: var(--z-slides); }
+
+.doc-list { list-style: none; margin: var(--z-space-3) 0 0; padding: 0; }
+.doc-list li { display: flex; align-items: center; gap: var(--z-space-3); padding: var(--z-space-2) 0; border-top: 1px solid var(--z-border); }
+.doc-list__name { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+.doc-list__name .muted { font-size: var(--z-text-xs); }
+
+.notice { display: flex; align-items: flex-start; gap: var(--z-space-3); padding: var(--z-space-4); border: 1px solid var(--z-warning); border-radius: var(--z-radius-md); background: var(--z-surface); color: var(--z-warning); }
+.notice > div { flex: 1; color: var(--z-text); }
+
+.rejected { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--z-space-2); max-height: 260px; overflow: auto; }
+.rejected li { display: flex; flex-direction: column; padding: var(--z-space-2) var(--z-space-3); border-radius: var(--z-radius-sm); background: var(--z-surface-2); }
+.rejected span { color: var(--z-text-muted); font-size: var(--z-text-sm); }
+
+.setting__text { min-width: 0; flex: 1; }
+.path { margin-top: var(--z-space-2); display: flex; align-items: center; gap: var(--z-space-2); flex-wrap: wrap; }
+.path code { font-family: var(--z-font-mono); font-size: var(--z-text-sm); background: var(--z-surface-2); padding: 2px var(--z-space-2); border-radius: 4px; overflow-wrap: anywhere; }
