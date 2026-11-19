@@ -110,7 +110,8 @@ describe("Ruban de ZYNORA Sheets", () => {
   it("Formules : menus de la bibliothèque par catégorie et gestionnaire de noms", async () => {
     const { api } = await open();
     tab("Formules");
-    menu("Logique");
+    // Les catégories viennent du catalogue de fonctions, chargé de façon asynchrone.
+    fireEvent.click(await screen.findByRole("button", { name: "Logique" }));
     item("SI");
     expect((screen.getByLabelText("A1") as HTMLInputElement).value).toBe("=SI(");
     fireEvent.keyDown(screen.getByLabelText("A1"), { key: "Escape" });
