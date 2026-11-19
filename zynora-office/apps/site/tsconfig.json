@@ -1,7 +1,7 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "types": [],
+    "types": ["node"],
     "allowJs": false,
     "plugins": [{ "name": "next" }],
     "noEmit": true,
