@@ -156,9 +156,11 @@ jobs:
           workspaces: zynora-office
       - run: pnpm install --frozen-lockfile
       - name: Compilation de l'APK (arm64)
-        env:
-          NDK_HOME: ${{ env.ANDROID_NDK_LATEST_HOME }}
-        run: pnpm --filter @zynora/desktop tauri android build --debug --apk --target aarch64 --ci
+        run: |
+          # NDK figé (même version que celle validée en développement).
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;27.2.12479018" > /dev/null
+          export NDK_HOME="$ANDROID_HOME/ndk/27.2.12479018"
+          pnpm --filter @zynora/desktop tauri android build --debug --apk --target aarch64 --ci
       - uses: actions/upload-artifact@v4
         with:
           name: zynora-office-android
