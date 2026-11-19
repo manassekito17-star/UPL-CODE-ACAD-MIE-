@@ -28,10 +28,10 @@ fichiers réels.**
 | Plateforme | Compilation | Tests unitaires | Bout en bout | Installateur |
 |---|---|---|---|---|
 | Linux x86_64 (Ubuntu 24.04) | ✅ | ✅ | ✅ | ✅ DEB, RPM, AppImage (non signés) |
-| Windows 10/11 x86_64 | ✅ CI | ❌ → corrigé, à confirmer | ❌ (prévu) | ⏳ MSI, EXE (non signés) |
+| Windows 10/11 x86_64 | ✅ CI | ✅ CI | ❌ (prévu) | ✅ MSI, EXE (non signés) |
 | macOS (Apple Silicon) | ✅ CI | ✅ CI | ❌ (WebDriver non disponible pour WKWebView) | ✅ DMG (non signé) |
 
-⏳ = configuré dans la CI, résultat à confirmer au premier passage.
+Résultats de la CI phase 0 (exécution n° 2). Ceux de la phase 1 sont suivis dans PROJECT_STATUS.md.
 
 ## Corpus de test prévu
 `tests/fixtures/` recevra des fichiers réels produits par Microsoft Office 2010, 2016, 2019, 2021,

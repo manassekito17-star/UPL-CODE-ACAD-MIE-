@@ -9,8 +9,9 @@ _Mise à jour : 19/11/2026 — fin de la phase 1 (ZYNORA Core)._
 - Application Tauri 2 + React + TypeScript strict, fenêtre sans aucune permission système.
 - Design system ZYNORA (thèmes clair/sombre/système, contrastes AA calculés), FR/EN.
 - Base SQLite à migrations, journal des opérations sensibles, briques de sécurité des imports.
-- CI Linux / Windows / macOS. Sur l'exécution de la phase 0 : Linux et macOS au vert (DMG produit).
-  Windows en échec sur un test de chemins, **corrigé** (voir « Erreurs corrigées ») et poussé.
+- CI Linux / Windows / macOS **au vert sur les trois systèmes** (exécution n° 2, après la correction
+  d'un test de chemins qui échouait sous Windows : voir « Erreurs corrigées »). Installateurs
+  produits : DEB, RPM, AppImage, MSI, EXE, DMG (non signés).
 
 ### Phase 1 — ZYNORA Core
 - **Bibliothèque de documents** (`packages/file-manager`) : dossier par défaut `Documents/ZYNORA`,
@@ -31,7 +32,7 @@ _Mise à jour : 19/11/2026 — fin de la phase 1 (ZYNORA Core)._
 - **Notifications** et **fenêtres modales** accessibles dans le design system.
 
 ## En cours
-- Premier passage de la CI Windows après correction ; premier passage de la CI phase 1.
+- Premier passage de la CI de la phase 1 sur les trois systèmes (exécution n° 3).
 
 ## Restant
 Voir [ROADMAP.md](ROADMAP.md). Prochaine phase : **Sheets (phase 2)**.
@@ -73,7 +74,8 @@ l'infrastructure nécessaire (écriture atomique, détection d'incident, base lo
 | Licences | ✅ 450 / 450 |
 | `pnpm audit` (production) | ✅ aucune vulnérabilité connue |
 | Bout en bout (binaire compilé, vrai disque) | ✅ 15 / 15 vérifications |
-| CI phase 0 | Linux ✅ · macOS ✅ · Windows ❌ → corrigé, à confirmer |
+| CI phase 0 (exécution n° 2) | ✅ Linux · ✅ Windows · ✅ macOS |
+| CI phase 1 (exécution n° 3) | ⏳ en cours |
 
 **Tests échoués actuellement : aucun en local.**
 
