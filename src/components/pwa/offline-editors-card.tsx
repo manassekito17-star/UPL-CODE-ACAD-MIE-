@@ -82,6 +82,9 @@ export function OfflineEditorsCard() {
           Mettre à jour
         </button>
       </div>
+      <a href="/guide" className="mt-3 inline-block text-xs font-semibold text-electrique-600 hover:underline">
+        Guide des éditeurs : comment écrire et exécuter son code →
+      </a>
       <p className="mt-3 text-xs text-gris-500">Sur iPhone, l&apos;application ajoutée à l&apos;écran d&apos;accueil garde sa propre copie : ouvrez-la une fois avec Internet en étant connecté.</p>
     </div>
   );

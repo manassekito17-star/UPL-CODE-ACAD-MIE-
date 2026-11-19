@@ -17,6 +17,7 @@ const PUBLIC_LINKS = [
   { href: "/flow", label: "Flow Studio" },
   { href: "/flow/classique", label: "Interface LARP" },
   { href: "/professeur-ia", label: "Professeur IA" },
+  { href: "/guide", label: "Guide" },
   { href: "/telecharger", label: "📲 Télécharger" },
 ];
 
