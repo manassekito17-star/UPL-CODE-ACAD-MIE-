@@ -1,6 +1,6 @@
 # État du projet — ZYNORA OFFICE
 
-_Mise à jour : 19/11/2026 — fin de la phase 1 (ZYNORA Core)._
+_Mise à jour : 19/11/2026 — phase 1 (ZYNORA Core) terminée et validée sur Linux, Windows et macOS._
 
 ## Terminé (et testé)
 
@@ -32,7 +32,7 @@ _Mise à jour : 19/11/2026 — fin de la phase 1 (ZYNORA Core)._
 - **Notifications** et **fenêtres modales** accessibles dans le design system.
 
 ## En cours
-- Nouvelle exécution de la CI de la phase 1 après correction du lint Linux.
+- Rien : la phase 1 est validée sur les trois systèmes. En attente du feu vert pour la phase 2.
 
 ## Restant
 Voir [ROADMAP.md](ROADMAP.md). Prochaine phase : **Sheets (phase 2)**.
@@ -78,7 +78,7 @@ l'infrastructure nécessaire (écriture atomique, détection d'incident, base lo
 | `pnpm audit` (production) | ✅ aucune vulnérabilité connue |
 | Bout en bout (binaire compilé, vrai disque) | ✅ 15 / 15 vérifications |
 | CI phase 0 (exécution n° 2) | ✅ Linux · ✅ Windows · ✅ macOS |
-| CI phase 1 (exécution n° 4) | ✅ Windows · ✅ macOS · ❌ Linux (lint) → corrigé, nouvelle exécution en cours |
+| CI phase 1 (exécution n° 5) | ✅ Linux (dont bout en bout) · ✅ Windows · ✅ macOS — installateurs DEB, RPM, AppImage, MSI, EXE, DMG produits |
 
 **Tests échoués actuellement : aucun en local.**
 
