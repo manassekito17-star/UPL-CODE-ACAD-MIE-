@@ -282,8 +282,11 @@ impl Workbook {
     /// Ouvre un classeur XLSX. Le fichier doit avoir été validé par `zynora-security` avant.
     pub fn from_xlsx(bytes: &[u8], name: &str, language: FormulaLanguage) -> Result<Self> {
         let (locale, lang) = language.ids();
-        let workbook = ironcalc::import::load_from_xlsx_bytes(bytes, name, locale, DEFAULT_TIMEZONE)
-            .map_err(|e| SheetError::Read(e.to_string()))?;
+        // Une panique du lecteur (fichier piégé ou inattendu) devient une erreur (ARCHITECTURE.md, D15).
+        let workbook =
+            std::panic::catch_unwind(|| ironcalc::import::load_from_xlsx_bytes(bytes, name, locale, DEFAULT_TIMEZONE))
+                .map_err(|_| SheetError::Read("structure XLSX non prise en charge".into()))?
+                .map_err(|e| SheetError::Read(e.to_string()))?;
         let model = Model::from_workbook(workbook, lang).map_err(SheetError::Read)?;
         Ok(Self { model: UserModel::from_model(model), language })
     }

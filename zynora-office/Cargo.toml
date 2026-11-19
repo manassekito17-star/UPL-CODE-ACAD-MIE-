@@ -6,6 +6,7 @@ members = [
   "packages/database",
   "packages/file-manager",
   "packages/spreadsheet-engine",
+  "packages/document-engine",
 ]
 
 [workspace.package]
@@ -18,6 +19,7 @@ zynora-security = { path = "packages/security" }
 zynora-database = { path = "packages/database" }
 zynora-file-manager = { path = "packages/file-manager" }
 zynora-spreadsheet-engine = { path = "packages/spreadsheet-engine" }
+zynora-document-engine = { path = "packages/document-engine" }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1"
 thiserror = "2.0.21"
@@ -33,5 +35,7 @@ unwrap_used = "warn"
 codegen-units = 1
 lto = true
 opt-level = "s"
-panic = "abort"
+# « unwind » : une panique d'une bibliothèque de lecture (fichier piégé) devient une erreur
+# rattrapée (catch_unwind) au lieu de fermer l'application. Voir ARCHITECTURE.md, D15.
+panic = "unwind"
 strip = true

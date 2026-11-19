@@ -1,0 +1,16 @@
+[package]
+name = "zynora-document-engine"
+description = "Moteur de documents de ZYNORA OFFICE : modèle, lecture et écriture DOCX (docx-rs), texte brut."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+docx-rs = "=0.4.22"
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+
+[lints]
+workspace = true
