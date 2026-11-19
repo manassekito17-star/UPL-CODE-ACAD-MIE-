@@ -109,9 +109,14 @@ async function sendPrecache(urls: string[]): Promise<{ ok: number; total: number
   const reg = await navigator.serviceWorker.ready;
   const worker = reg.active;
   if (!worker) throw new Error("Service hors ligne indisponible.");
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const channel = new MessageChannel();
-    channel.port1.onmessage = (e) => resolve({ ok: e.data.ok, total: e.data.total });
+    // Le service worker peut être remplacé pendant l'envoi (mise à jour) : pas d'attente sans fin.
+    const timer = setTimeout(() => reject(new Error("Le service hors ligne n'a pas répondu.")), 120_000);
+    channel.port1.onmessage = (e) => {
+      clearTimeout(timer);
+      resolve({ ok: e.data.ok, total: e.data.total });
+    };
     worker.postMessage({ type: "precache", urls }, [channel.port2]);
   });
 }
@@ -279,7 +284,21 @@ export async function autoPrepareOffline(loggedIn: boolean, opts: { force?: bool
 }
 
 const FILES_KEY = "upl:hors-ligne:fichiers";
+const FILES_COUNT_KEY = "upl:hors-ligne:fichiers:nb";
 let filesRunning = false;
+
+export type SavedFilesState = { status: "inactif" | "en-cours" | "pret" | "erreur"; count: number };
+export const FILES_EVENT = "upl:hors-ligne:fichiers";
+const emitFiles = (detail: SavedFilesState) => window.dispatchEvent(new CustomEvent<SavedFilesState>(FILES_EVENT, { detail }));
+
+/** Nombre de fichiers sauvegardés gardés sur l'appareil lors de la dernière mise à jour. */
+export function savedFilesCount(): number {
+  try {
+    return Number(localStorage.getItem(FILES_COUNT_KEY) ?? 0) || 0;
+  } catch {
+    return 0;
+  }
+}
 
 /**
  * Garde sur l'appareil les fichiers sauvegardés du compte, pour les regarder et les ouvrir sans
@@ -295,30 +314,28 @@ export async function keepSavedFilesOffline(loggedIn: boolean, opts: { force?: b
     return;
   }
   filesRunning = true;
+  emitFiles({ status: "en-cours", count: savedFilesCount() });
   try {
     await navigator.serviceWorker.ready;
     // Lecture par le service worker : chaque liste est gardée au passage (copie « hors ligne »).
     const list = async <T,>(url: string, key: string): Promise<T[]> => {
-      try {
-        const res = await fetch(url, { cache: "no-store" });
-        if (!res.ok || isOfflineCopy(res)) return [];
-        return (((await res.json()) as Record<string, T[]>)[key] ?? []) as T[];
-      } catch {
-        return [];
-      }
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) throw new Error(`${url} : ${res.status}`);
+      if (isOfflineCopy(res)) throw new Error("Pas de connexion Internet.");
+      return (((await res.json()) as Record<string, T[]>)[key] ?? []) as T[];
     };
     type Row = { id: string };
-    const programs = await list<Row>("/api/programs", "programs");
-    const projects = await list<Row>("/api/projects", "projects");
-    const larp = await list<Row>("/api/projects?type=larp", "projects");
-    await sendPrecache([
-      ...programs.slice(0, 30).map((p) => `/editeur?programme=${p.id}`),
-      ...projects.slice(0, 20).map((p) => `/ide?projet=${p.id}`),
-      ...larp.slice(0, 20).map((p) => `/api/projects/${p.id}`),
-    ]);
+    const programs = (await list<Row>("/api/programs", "programs")).slice(0, 30);
+    const projects = (await list<Row>("/api/projects", "projects")).slice(0, 20);
+    const larp = (await list<Row>("/api/projects?type=larp", "projects")).slice(0, 20);
+    const urls = [...programs.map((p) => `/editeur?programme=${p.id}`), ...projects.map((p) => `/ide?projet=${p.id}`), ...larp.map((p) => `/api/projects/${p.id}`)];
+    const r = urls.length ? await sendPrecache(urls) : { ok: 0, total: 0 };
     localStorage.setItem(FILES_KEY, String(Date.now()));
+    localStorage.setItem(FILES_COUNT_KEY, String(r.ok));
+    emitFiles({ status: "pret", count: r.ok });
   } catch {
-    /* nouvel essai à la prochaine visite */
+    // Nouvel essai à la prochaine visite (ou avec le bouton « Mettre à jour »).
+    emitFiles({ status: "erreur", count: savedFilesCount() });
   } finally {
     filesRunning = false;
   }

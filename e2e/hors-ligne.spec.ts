@@ -177,8 +177,11 @@ test("tableau de bord : « Garder les éditeurs sur cet appareil », puis édite
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title, language: "pseudocode", files: [{ name: "algorithme.algo", content: 'ALGORITHME Garde\nDEBUT\n  ECRIRE("fichier garde")\nFIN' }], stdin: "" }),
     });
-    return ((await res.json()) as { id: string }).id;
-  }, titre);
+    return { status: res.status, body: (await res.json()) as { id?: string; error?: string } };
+  }, titre).then((r) => {
+    expect(r.status, JSON.stringify(r.body)).toBe(200);
+    return r.body.id!;
+  });
   const card = page.getByTestId("carte-hors-ligne");
   await expect(card).toBeVisible();
   await card.getByRole("button", { name: "Garder les éditeurs sur cet appareil" }).click();
@@ -186,7 +189,12 @@ test("tableau de bord : « Garder les éditeurs sur cet appareil », puis édite
   await expect(card.locator('[data-pret="oui"]')).toHaveCount(5, { timeout: 200_000 });
   await expect(card).toContainText("ils s'ouvrent même sans connexion");
   expect(await page.evaluate(() => localStorage.getItem("upl:hors-ligne:auto:v6"))).toBeTruthy();
-  // Fichiers sauvegardés du compte gardés aussi (liste et programme).
+  // Fichiers sauvegardés du compte gardés aussi (liste et programme) ; le bouton « Mettre à jour » les garde de nouveau.
+  const fichiersGardes = card.getByTestId("fichiers-gardes");
+  // (Le bouton est inactif tant que l'enregistrement automatique lancé après les éditeurs est en cours.)
+  await fichiersGardes.getByRole("button", { name: "Mettre à jour" }).click({ timeout: 120_000 });
+  await expect(fichiersGardes).toHaveAttribute("data-etat", "pret", { timeout: 120_000 });
+  await expect(fichiersGardes).toContainText(/[1-9]\d* gardés? sur cet appareil/);
   await expect.poll(() => page.evaluate(async (id) => Boolean((await caches.match(`/editeur?programme=${id}`)) && (await caches.match("/api/programs"))), programId), { timeout: 60_000 }).toBe(true);
   await context.setOffline(true);
   // Page qui demande Internet : la page « Pas de connexion » propose les éditeurs gardés.
