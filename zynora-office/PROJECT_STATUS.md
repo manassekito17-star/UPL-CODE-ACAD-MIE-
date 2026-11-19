@@ -32,7 +32,7 @@ _Mise à jour : 19/11/2026 — fin de la phase 1 (ZYNORA Core)._
 - **Notifications** et **fenêtres modales** accessibles dans le design system.
 
 ## En cours
-- Premier passage de la CI de la phase 1 sur les trois systèmes (exécution n° 3).
+- Nouvelle exécution de la CI de la phase 1 après correction du lint Linux.
 
 ## Restant
 Voir [ROADMAP.md](ROADMAP.md). Prochaine phase : **Sheets (phase 2)**.
@@ -47,6 +47,9 @@ l'infrastructure nécessaire (écriture atomique, détection d'incident, base lo
   relatif au lecteur était refusé « par hasard » ; partout, l'écriture à travers un **lien
   symbolique cassé** pointant hors du dossier autorisé était possible → corrigé, testé.
 - Interface : le champ de renommage prenait le focus avant d'être rempli (présélection perdue) → corrigé, testé.
+- CI phase 1 (exécution n° 4) : Windows et macOS au vert, Linux en échec au lint : la CI utilisait
+  une version de Rust plus récente que le poste local, qui signale un import de test inutilisé.
+  Import corrigé, et **version de Rust figée** (`rust-toolchain.toml`, 1.97.0) en local comme en CI.
 
 ## Erreurs et limites connues
 - Aucun éditeur disponible : les documents sont gérés (classer, renommer, importer…) mais pas
@@ -75,7 +78,7 @@ l'infrastructure nécessaire (écriture atomique, détection d'incident, base lo
 | `pnpm audit` (production) | ✅ aucune vulnérabilité connue |
 | Bout en bout (binaire compilé, vrai disque) | ✅ 15 / 15 vérifications |
 | CI phase 0 (exécution n° 2) | ✅ Linux · ✅ Windows · ✅ macOS |
-| CI phase 1 (exécution n° 3) | ⏳ en cours |
+| CI phase 1 (exécution n° 4) | ✅ Windows · ✅ macOS · ❌ Linux (lint) → corrigé, nouvelle exécution en cours |
 
 **Tests échoués actuellement : aucun en local.**
 

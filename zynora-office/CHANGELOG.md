@@ -24,6 +24,8 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; versions : S
 - Confinement des chemins vérifié avant leur existence : correction de l'échec de la CI Windows
   et de l'écriture possible à travers un lien symbolique cassé.
 - Fenêtre de renommage : le nom est présélectionné (sans l'extension) dès l'ouverture.
+- Version de Rust figée (`rust-toolchain.toml`, CI alignée) : le lint ne dépend plus de la
+  version installée sur la machine.
 
 ### Ajouté — Phase 0 : fondations
 - Espace de travail pnpm + Cargo, isolé dans `zynora-office/`.

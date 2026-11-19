@@ -149,7 +149,7 @@ fn contains_doctype(head: &[u8]) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use std::io::{Cursor, Write};
+    use std::io::Cursor;
 
     use zip::CompressionMethod;
     use zip::write::{SimpleFileOptions, ZipWriter};
@@ -164,7 +164,7 @@ mod tests {
                 writer.add_directory(*name, options).expect("dossier");
             } else {
                 writer.start_file(*name, options).expect("entrée");
-                writer.write_all(data).expect("écriture");
+                std::io::Write::write_all(&mut writer, data).expect("écriture");
             }
         }
         let mut cursor = writer.finish().expect("archive");

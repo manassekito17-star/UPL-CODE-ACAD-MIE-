@@ -1,4 +1,4 @@
-use std::io::{Cursor, Write as _};
+use std::io::Cursor;
 
 use zip::write::{SimpleFileOptions, ZipWriter};
 
@@ -23,7 +23,7 @@ fn zip_bytes(entries: &[(&str, &[u8])]) -> Vec<u8> {
     let mut writer = ZipWriter::new(Cursor::new(Vec::new()));
     for (name, data) in entries {
         writer.start_file(*name, SimpleFileOptions::default()).expect("entrée");
-        writer.write_all(data).expect("écriture");
+        std::io::Write::write_all(&mut writer, data).expect("écriture");
     }
     writer.finish().expect("archive").into_inner()
 }

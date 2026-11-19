@@ -9,7 +9,8 @@ pnpm build && pnpm test:e2e   # si l'interface ou les commandes changent (Linux)
 ## Conventions
 - **Langue** : documentation, messages d'interface et noms de tests en français ; identifiants de
   code en anglais. Toute chaîne d'interface passe par `apps/desktop/src/i18n.ts` (FR et EN).
-- **Rust** : `unsafe` interdit ; pas d'`unwrap()` hors tests ; erreurs typées (`thiserror`) avec
+- **Rust** : version figée par `rust-toolchain.toml` (même version en CI, à mettre à jour
+  volontairement) ; `unsafe` interdit ; pas d'`unwrap()` hors tests ; erreurs typées (`thiserror`) avec
   messages lisibles par l'utilisateur.
 - **TypeScript** : mode strict ; pas de `any`.
 - **IPC** : toute nouvelle commande prend des arguments typés fermés, est documentée dans
