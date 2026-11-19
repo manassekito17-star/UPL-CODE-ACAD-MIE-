@@ -14,8 +14,8 @@ import { useApp } from "../context";
 import type { CellRange, CellView } from "../ipc";
 import { columnName, MAX_COLUMNS, MAX_ROWS, type Cell } from "./refs";
 
-const ROW_HEADER = 48;
-const COLUMN_HEADER = 24;
+const ROW_HEADER_SIZE = 48;
+const COLUMN_HEADER_SIZE = 24;
 const BUFFER_ROWS = 10;
 const BUFFER_COLUMNS = 4;
 const INITIAL_ROWS = 1000;
@@ -37,8 +37,13 @@ interface Props {
   focusCell: Cell;
   editing: string | null;
   label: string;
+  gridlines: boolean;
+  headings: boolean;
+  showFormulas: boolean;
   onSelect: (anchor: Cell, focus?: Cell) => void;
   onExtend: (cell: Cell) => void;
+  /** Fin d'une sélection à la souris (relâchement) : sert à « Reproduire la mise en forme ». */
+  onSelectionEnd: (range: CellRange) => void;
   onEdit: () => void;
   onEditChange: (value: string) => void;
   onEditorKey: (event: KeyboardEvent<HTMLInputElement>) => void;
@@ -54,7 +59,13 @@ interface Props {
  */
 export const Grid = forwardRef<GridHandle, Props>(function Grid(props, ref) {
   const { api } = useApp();
-  const { id, sheet, revision, selection, focusCell, editing, label, onSelect, onExtend, onEdit, onEditChange, onEditorKey, onKeyDown, onActiveCell, onError } = props;
+  const { id, sheet, revision, selection, focusCell, editing, label, gridlines, headings, showFormulas } = props;
+  const { onSelect, onExtend, onSelectionEnd, onEdit, onEditChange, onEditorKey, onKeyDown, onActiveCell, onError } = props;
+  // En-têtes masqués (« Affichage → En-têtes ») : largeur et hauteur nulles.
+  const ROW_HEADER = headings ? ROW_HEADER_SIZE : 0;
+  const COLUMN_HEADER = headings ? COLUMN_HEADER_SIZE : 0;
+  const selectionRef = useRef(selection);
+  selectionRef.current = selection;
   const scroller = useRef<HTMLDivElement>(null);
   const layer = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
@@ -110,7 +121,7 @@ export const Grid = forwardRef<GridHandle, Props>(function Grid(props, ref) {
   useEffect(() => {
     let active = true;
     api
-      .sheetsRange(id, { sheet, ...visible })
+      .sheetsRange(id, { sheet, ...visible }, showFormulas)
       .then((view) => {
         if (!active) return;
         setCells(new Map(view.cells.map((c) => [`${c.row}:${c.column}`, c])));
@@ -119,7 +130,7 @@ export const Grid = forwardRef<GridHandle, Props>(function Grid(props, ref) {
     return () => {
       active = false;
     };
-  }, [api, id, sheet, visible, revision, onError]);
+  }, [api, id, sheet, visible, revision, showFormulas, onError]);
 
   useEffect(() => {
     onActiveCell(cells.get(`${focusCell.row}:${focusCell.column}`) ?? null);
@@ -182,7 +193,7 @@ export const Grid = forwardRef<GridHandle, Props>(function Grid(props, ref) {
         return count;
       },
     }),
-    [cells, extent, offsets, rowHeight],
+    [cells, extent, offsets, rowHeight, ROW_HEADER, COLUMN_HEADER],
   );
 
   function onMouseDown(event: ReactMouseEvent<HTMLDivElement>) {
@@ -194,6 +205,10 @@ export const Grid = forwardRef<GridHandle, Props>(function Grid(props, ref) {
     scroller.current?.focus();
     const move = (e: MouseEvent) => dragging.current && onExtend(cellAt(e));
     const up = () => {
+      if (dragging.current) {
+        // La sélection est mise à jour de façon asynchrone : on lit la dernière valeur au tour suivant.
+        setTimeout(() => onSelectionEnd(selectionRef.current), 0);
+      }
       dragging.current = false;
       window_.removeEventListener("mousemove", move);
       window_.removeEventListener("mouseup", up);
@@ -216,7 +231,7 @@ export const Grid = forwardRef<GridHandle, Props>(function Grid(props, ref) {
   return (
     <div
       ref={scroller}
-      className="grid"
+      className={`grid${gridlines ? "" : " grid--no-lines"}`}
       tabIndex={0}
       role="grid"
       aria-label={label}
@@ -227,6 +242,7 @@ export const Grid = forwardRef<GridHandle, Props>(function Grid(props, ref) {
       onKeyDown={onKeyDown}
     >
       <div style={{ width: totalWidth + ROW_HEADER, height: totalHeight + COLUMN_HEADER, position: "relative" }}>
+        {headings && (
         <div className="grid__col-headers" style={{ width: totalWidth + ROW_HEADER, height: COLUMN_HEADER }}>
           <div className="grid__corner" style={{ width: ROW_HEADER, height: COLUMN_HEADER }} />
           {columns.map((c) => (
@@ -243,6 +259,8 @@ export const Grid = forwardRef<GridHandle, Props>(function Grid(props, ref) {
             </div>
           ))}
         </div>
+        )}
+        {headings && (
         <div className="grid__row-headers" style={{ width: ROW_HEADER, height: totalHeight }}>
           {rows.map((r) => (
             <div
@@ -258,6 +276,7 @@ export const Grid = forwardRef<GridHandle, Props>(function Grid(props, ref) {
             </div>
           ))}
         </div>
+        )}
         <div
           ref={layer}
           className="grid__cells"
@@ -277,7 +296,7 @@ export const Grid = forwardRef<GridHandle, Props>(function Grid(props, ref) {
                   aria-rowindex={r}
                   aria-colindex={c}
                   aria-selected={r >= selection.top && r <= selection.bottom && c >= selection.left && c <= selection.right}
-                  className={`grid__cell grid__cell--${s?.align ?? "general"}`}
+                  className={`grid__cell grid__cell--${s?.align ?? "general"} grid__cell--v-${s?.v_align ?? "bottom"}${s?.wrap ? " grid__cell--wrap" : ""}`}
                   style={{
                     top: (r - 1) * rowHeight,
                     left: offsets[c - 1] ?? 0,
@@ -288,6 +307,12 @@ export const Grid = forwardRef<GridHandle, Props>(function Grid(props, ref) {
                     textDecoration: [s?.underline && "underline", s?.strike && "line-through"].filter(Boolean).join(" ") || undefined,
                     color: s?.color,
                     background: s?.fill,
+                    fontSize: s?.font_size ? `${s.font_size}pt` : undefined,
+                    fontFamily: s?.font_name ? `"${s.font_name}", var(--z-font-sans)` : undefined,
+                    borderTop: s?.borders?.top,
+                    borderLeft: s?.borders?.left,
+                    ...(s?.borders?.right ? { borderRight: s.borders.right } : {}),
+                    ...(s?.borders?.bottom ? { borderBottom: s.borders.bottom } : {}),
                   }}
                 >
                   {view?.text}

@@ -63,6 +63,8 @@ export function fakeApi(options: Options = {}) {
   let book: BookState = { dirty: false, can_undo: false, can_redo: false };
   const undo: Array<Map<string, string>> = [];
   let recoveries = [...(options.recoveries ?? [])];
+  let gridlines = true;
+  let names: Array<{ name: string; scope: number | null; formula: string }> = [];
   const key = (sheet: number, row: number, column: number) => `${sheet}:${row}:${column}`;
   const display = (input: string) => (input.startsWith("=") ? (options.formulaResults?.[input] ?? "#FAUX-BACKEND") : input);
   const changed = () => {
@@ -210,6 +212,32 @@ export function fakeApi(options: Options = {}) {
       return changed();
     }),
     sheetsStructure: vi.fn(async () => changed()),
+    sheetsFormat: vi.fn(async () => changed()),
+    sheetsData: vi.fn(async (_id, change) => ({ value: change.op === "remove_duplicates" ? 2 : 0, state: changed().state })),
+    sheetsFind: vi.fn(async (_id, sheet, text) => {
+      const hits = [];
+      for (const [k, input] of inputs) {
+        const [s = 0, row = 0, column = 0] = k.split(":").map(Number);
+        if (s === sheet && display(input).toLowerCase().includes(text.toLowerCase())) hits.push({ row, column });
+      }
+      return hits.sort((a, b) => a.row - b.row || a.column - b.column);
+    }),
+    sheetsReplace: vi.fn(async () => ({ value: 1, state: changed().state })),
+    sheetsGridlines: vi.fn(async (_id, _sheet, show) => {
+      if (show !== undefined) gridlines = show;
+      return gridlines;
+    }),
+    sheetsNames: vi.fn(async (_id, change) => {
+      if (change.op === "add") names = [...names, { name: change.name, scope: change.scope, formula: change.formula }];
+      if (change.op === "delete") names = names.filter((n) => n.name !== change.name);
+      return { value: [...names], state: { ...book } };
+    }),
+    sheetsRecalculate: vi.fn(async () => null),
+    sheetsFunctions: vi.fn(async () => [
+      { fr: "SOMME", en: "SUM", category: "Math et trigo", syntax_fr: "SOMME(nombre1; …)", description: "Additionne les nombres." },
+      { fr: "MOYENNE", en: "AVERAGE", category: "Statistiques", syntax_fr: "MOYENNE(nombre1; …)", description: "Moyenne arithmétique." },
+      { fr: "SI", en: "IF", category: "Logique", syntax_fr: "SI(test; vrai; faux)", description: "Renvoie une valeur selon une condition." },
+    ]),
     sheetsSheet: vi.fn(async (_id, change) => {
       if (change.op === "add") sheets = [...sheets, { index: sheets.length, name: `Feuil${sheets.length + 1}`, visible: true }];
       if (change.op === "rename") sheets = sheets.map((s) => (s.index === change.sheet ? { ...s, name: change.name } : s));

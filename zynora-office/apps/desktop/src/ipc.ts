@@ -88,7 +88,53 @@ export interface CellStyle {
   align: Align;
   /** Alignement choisi explicitement (sinon alignement par défaut du type de valeur). */
   align_set?: boolean;
+  v_align?: VAlign;
+  wrap?: boolean;
+  font_size?: number;
+  font_name?: string;
+  /** Bordures prêtes à afficher (« 2px solid #c00000 »). */
+  borders?: { top?: string; right?: string; bottom?: string; left?: string };
 }
+
+export type VAlign = "top" | "center" | "bottom";
+export type BorderPreset = "all" | "outer" | "inner" | "top" | "bottom" | "left" | "right" | "none";
+export type BorderLine = "thin" | "medium" | "thick" | "double" | "dotted";
+
+export type FormatOp =
+  | { op: "font_name"; name: string }
+  | { op: "copy_styles"; source: CellRange }
+  | { op: "borders"; preset: BorderPreset; line: BorderLine; color: string }
+  | { op: "decimals"; delta: 1 | -1 }
+  | { op: "thousands" | "clear_formats" | "clear_all" };
+
+export type DataOp =
+  | { op: "sort"; range: CellRange; key: number; ascending: boolean; header: boolean }
+  | { op: "remove_duplicates"; range: CellRange; header: boolean };
+
+export interface FindOptions {
+  match_case: boolean;
+  whole_cell: boolean;
+  in_formulas: boolean;
+}
+
+export interface FunctionInfo {
+  fr: string;
+  en: string;
+  category: string;
+  syntax_fr: string;
+  description: string;
+}
+
+export interface DefinedName {
+  name: string;
+  scope: number | null;
+  formula: string;
+}
+
+export type NameOp =
+  | { op: "list" }
+  | { op: "add"; name: string; scope: number | null; formula: string }
+  | { op: "delete"; name: string; scope: number | null };
 
 export interface CellView {
   row: number;
@@ -145,7 +191,10 @@ export interface SelectionStats {
 export type StyleChange =
   | { kind: "bold" | "italic" | "underline" | "strike"; value: boolean }
   | { kind: "font_color" | "fill" | "number_format"; value: string }
-  | { kind: "align"; value: Align };
+  | { kind: "align"; value: Align }
+  | { kind: "font_size" | "font_size_delta"; value: number }
+  | { kind: "vertical_align"; value: VAlign }
+  | { kind: "wrap"; value: boolean };
 
 export type Structure =
   | { op: "insert_rows" | "delete_rows" | "insert_columns" | "delete_columns"; sheet: number; at: number; count: number }
@@ -213,7 +262,7 @@ export const api = {
 
   sheetsOpen: (path: string) => call<WorkbookInfo>("sheets_open", { path }),
   sheetsCreate: (folder: string) => call<WorkbookInfo>("sheets_create", { folder }),
-  sheetsRange: (id: number, range: CellRange) => call<RangeView>("sheets_range", { id, range }),
+  sheetsRange: (id: number, range: CellRange, showFormulas = false) => call<RangeView>("sheets_range", { id, range, showFormulas }),
   sheetsCell: (id: number, sheet: number, row: number, column: number) =>
     call<{ content: string; display: string }>("sheets_cell", { id, sheet, row, column }),
   sheetsStats: (id: number, range: CellRange) => call<SelectionStats>("sheets_stats", { id, range }),
@@ -222,6 +271,17 @@ export const api = {
   sheetsClear: (id: number, range: CellRange) => call<EditResult<null>>("sheets_clear", { id, range }),
   sheetsStyle: (id: number, range: CellRange, change: StyleChange) => call<EditResult<null>>("sheets_style", { id, range, change }),
   sheetsStructure: (id: number, change: Structure) => call<EditResult<null>>("sheets_structure", { id, change }),
+  sheetsFormat: (id: number, range: CellRange, change: FormatOp) => call<EditResult<null>>("sheets_format", { id, range, change }),
+  sheetsData: (id: number, change: DataOp) => call<EditResult<number>>("sheets_data", { id, change }),
+  sheetsFind: (id: number, sheet: number, text: string, options: FindOptions) =>
+    call<Array<{ row: number; column: number }>>("sheets_find", { id, sheet, text, options }),
+  sheetsReplace: (id: number, sheet: number, text: string, replacement: string, matchCase: boolean) =>
+    call<EditResult<number>>("sheets_replace", { id, sheet, text, replacement, matchCase }),
+  /** Lit le quadrillage, ou le modifie si `show` est donné. */
+  sheetsGridlines: (id: number, sheet: number, show?: boolean) => call<boolean>("sheets_gridlines", { id, sheet, show: show ?? null }),
+  sheetsNames: (id: number, change: NameOp) => call<EditResult<DefinedName[]>>("sheets_names", { id, change }),
+  sheetsRecalculate: (id: number) => call<null>("sheets_recalculate", { id }),
+  sheetsFunctions: () => call<FunctionInfo[]>("sheets_functions"),
   sheetsSheet: (id: number, change: SheetOp) => call<EditResult<SheetInfo[]>>("sheets_sheet", { id, change }),
   sheetsHistory: (id: number, redo: boolean) => call<EditResult<SheetInfo[]>>("sheets_history", { id, redo }),
   sheetsCopy: (id: number, range: CellRange, cut: boolean) => call<string>("sheets_copy", { id, range, cut }),

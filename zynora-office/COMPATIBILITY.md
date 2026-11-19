@@ -32,6 +32,17 @@ fichiers réels.**
 | Erreurs (#DIV/0!, #NOM?, références circulaires) | ✅ | |
 | Plusieurs feuilles (ajout, renommage, suppression) | ✅ | |
 | Mise en forme : gras, italique, souligné, barré, couleurs, alignement | ✅ | |
+| Police (nom), taille, agrandir/réduire, alignement vertical, renvoi à la ligne | ✅ | Conservés en XLSX (test) |
+| Bordures (8 modèles : toutes, extérieures, intérieures, haut, bas, gauche, droite, aucune ; trait fin, épais, double) | ✅ | Conservées en XLSX (test) |
+| Décimales (+/−), séparateur de milliers, formats monétaire, comptabilité, dates, heure, %, scientifique | ✅ | Format « Texte » non proposé (le moteur tronque l'affichage) |
+| Reproduire la mise en forme, effacer tout / formats / contenu | ✅ | |
+| Rechercher, remplacer, atteindre | ✅ | Valeurs ou formules, casse, cellule entière |
+| Tri (croissant, décroissant, personnalisé avec en-têtes) | ✅ | Une étape d'annulation ; **plages contenant des formules refusées** (message) |
+| Supprimer les doublons | ✅ | Même limite pour les formules |
+| Insérer une fonction (75 fonctions, recherche, catégories), bibliothèque par catégorie | ✅ | Chaque nom vérifié par le moteur en français et en anglais |
+| Noms définis (gestionnaire), afficher les formules, calculer maintenant | ✅ | |
+| Affichage : quadrillage (enregistré), en-têtes, barre de formule | ✅ | |
+| Symboles | ✅ | |
 | Formats de nombre (standard, nombre, %, €, date) | ✅ | |
 | Fusion de cellules | 🟡 | Fusion enregistrée dans le fichier ; **affichage fusionné dans la grille à venir** |
 | Insérer / supprimer lignes et colonnes | ✅ | |
@@ -41,7 +52,7 @@ fichiers réels.**
 | Sauvegarde automatique et récupération | ✅ | Copie toutes les 30 s hors du document, proposée au démarrage |
 | Grandes feuilles | ✅ | 100 000 lignes de formules : 0,6 s ; recalcul 38 ms (prototype) |
 | Hauteurs de ligne personnalisées | 🟡 | Conservées dans le fichier ; affichées à la hauteur standard |
-| Bordures, tri, filtres, graphiques, mise en forme conditionnelle, tableaux croisés | ❌ | Suite de la phase 2 / phase 5 |
+| Filtres, graphiques, mise en forme conditionnelle, tableaux, tableaux croisés, liens hypertexte, commentaires, protection, figer les volets, zoom | ❌ | Onglets « Mise en page » et « Révision » absents tant que leurs fonctions ne sont pas réelles |
 | Impression, export PDF | ❌ | Moteur PDF à choisir (ARCHITECTURE.md, D6) |
 
 ## Plateformes — phase 2

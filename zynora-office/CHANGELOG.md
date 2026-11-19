@@ -4,6 +4,19 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; versions : S
 
 ## [Non publié]
 
+### Ajouté — Ruban complet de ZYNORA Sheets
+- Onglets **Accueil** (Presse-papiers, Police, Alignement, Nombre, Cellules, Édition), **Insertion**,
+  **Formules** (insérer une fonction, bibliothèque par catégorie, noms définis, afficher les formules,
+  calculer maintenant), **Données** (tri, tri personnalisé, doublons) et **Affichage** (quadrillage,
+  en-têtes, barre de formule). Chaque commande visible agit réellement sur le classeur.
+- Raccourcis : Ctrl+F (rechercher), Ctrl+H (remplacer), Ctrl+G (atteindre), Maj+F3 (insérer une fonction).
+- Page ZENTECH `/zynora-office` et version GitHub « zynora-office-preview » publiée par la CI.
+
+### Corrigé — Ruban
+- Les menus du ruban étaient rognés par le panneau défilant (choix inaccessibles) : affichés au-dessus de la page.
+- Noms accessibles en double (« Police », « Barre de formule ») rendus uniques.
+- Délai des attentes asynchrones des tests porté à 3 s (instabilité sous charge).
+
 ### Ajouté — Phase 2 : ZYNORA Sheets et version smartphone
 - Prototype IronCalc validé (fonctions françaises, erreurs, 100 000 lignes en 0,6 s, 3 cycles XLSX,
   relecture croisée par LibreOffice) puis intégré : `packages/spreadsheet-engine`.

@@ -196,6 +196,23 @@ try {
   await app.click(button("Gras"));
   await waitFor(async () => (await app.exec("return getComputedStyle(document.getElementById('cell-3-1')).fontWeight")) === "700", "gras appliqué");
   step("la barre de formule montre la formule ; le gras est appliqué");
+  // Onglet Données : tri décroissant de A1:A2 (sélection par la zone de nom), calcul conservé.
+  await app.type("//input[@id='name-box']", "A1:A2" + ENTER);
+  await app.click("//button[@role='tab' and normalize-space()='Données']");
+  await app.click(button("Trier de Z à A"));
+  await waitCell(1, 1, "32,5", "tri décroissant");
+  await waitCell(2, 1, "10", "tri décroissant (2)");
+  await waitCell(3, 1, "42,5", "somme inchangée après tri");
+  step("le tri de l'onglet Données réordonne les valeurs (moteur réel)");
+
+  // Onglet Accueil : bordures sur A3.
+  await app.click("//button[@role='tab' and normalize-space()='Accueil']");
+  await app.click(cell(3, 1));
+  await app.click("//button[@aria-label='Bordures']");
+  await app.click("//button[@role='menuitem' and normalize-space()='Toutes les bordures']");
+  await waitFor(async () => (await app.exec("return getComputedStyle(document.getElementById('cell-3-1')).borderTopWidth")) === "1px", "bordure affichée");
+  step("les bordures du groupe Police sont appliquées et affichées");
+
   await app.screenshot("6-sheets");
 
   await app.click("//header//button[normalize-space()='Enregistrer']");

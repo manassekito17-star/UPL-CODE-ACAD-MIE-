@@ -1,6 +1,6 @@
 # État du projet — ZYNORA OFFICE
 
-_Mise à jour : 19/11/2026 — phase 2 (ZYNORA Sheets) : cœur livré ; version smartphone : en cours._
+_Mise à jour : 19/11/2026 — Sheets : ruban complet (5 onglets) ; page de téléchargement ZENTECH ; PR n° 50._
 
 ## Terminé (et testé)
 
@@ -31,6 +31,13 @@ favoris, récents, recherche, corbeille avec restauration), détection d'arrêt 
   choix de dossier désactivé, import non pris en charge signalé explicitement).
 - Le cœur Rust **compile pour Android arm64** ; projet Android Tauri généré et versionné ;
   job CI « Android » ajouté pour assembler l'APK de test.
+
+### Ruban complet de Sheets et publication
+- 5 onglets réels : Accueil (6 groupes), Insertion, Formules, Données, Affichage (détail dans
+  COMPATIBILITY.md). Onglets « Mise en page » et « Révision » volontairement absents tant que
+  l'impression, les commentaires et la protection ne sont pas implémentés.
+- Page `/zynora-office` sur le site ZENTECH (PR n° 50, à fusionner) et version GitHub
+  « zynora-office-preview » publiée automatiquement après réussite de la CI.
 
 ## En cours
 - Exécution de la CI : Linux, Windows, macOS et **premier APK Android** (l'assemblage local de
@@ -69,14 +76,14 @@ favoris, récents, recherche, corbeille avec restauration), détection d'arrêt 
 | Rust `zynora-security` | ✅ 13 / 13 |
 | Rust `zynora-database` | ✅ 13 / 13 |
 | Rust `zynora-file-manager` | ✅ 13 / 13 |
-| Rust `zynora-spreadsheet-engine` | ✅ 15 / 15 (+ 2 / 2 croisés LibreOffice) |
+| Rust `zynora-spreadsheet-engine` | ✅ 24 / 24 (+ 2 / 2 croisés LibreOffice) |
 | Rust `zynora-desktop` | ✅ 3 / 3 |
 | Vitest design system | ✅ 11 / 11 |
-| Vitest application (dont 12 Sheets, 3 références) | ✅ 34 / 34 |
+| Vitest application (dont 12 Sheets, 11 ruban, 3 références) | ✅ 45 / 45 |
 | node:test scripts | ✅ 2 / 2 |
 | TypeScript strict, `cargo fmt`, `clippy -D warnings` | ✅ |
 | Licences | ✅ 472 / 472 |
-| Bout en bout (binaire compilé, vrai disque, vrai moteur) | ✅ 19 / 19 vérifications |
+| Bout en bout (binaire compilé, vrai disque, vrai moteur) | ✅ 21 / 21 vérifications |
 | Interface téléphone (émulation iPhone 13) | ✅ vérifiée visuellement |
 | Compilation Rust Android arm64 | ✅ |
 | APK Android | ⏳ CI |
