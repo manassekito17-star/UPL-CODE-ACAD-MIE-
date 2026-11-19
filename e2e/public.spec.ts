@@ -22,3 +22,21 @@ test("une page inconnue renvoie 404", async ({ page }) => {
   const r = await page.goto("/formations/parcours-inexistant");
   expect(r?.status()).toBe(404);
 });
+
+test("guide des éditeurs : instructions et lien d'ouverture pour chaque éditeur", async ({ page }) => {
+  await page.goto("/guide");
+  await expect(page.getByRole("heading", { level: 1, name: "Guide des éditeurs" })).toBeVisible();
+  for (const [id, href] of [
+    ["zentech-algo", "/editeur"],
+    ["zentech-algo-classique", "/flow/classique"],
+    ["zentech-ide", "/ide"],
+    ["flow-studio", "/flow"],
+    ["laboratoire", "/laboratoire"],
+  ]) {
+    const card = page.getByTestId(`guide-${id}`);
+    await expect(card.getByRole("listitem").first()).toBeVisible();
+    await expect(card.locator("pre")).not.toBeEmpty();
+    await expect(card.getByRole("link", { name: /^Ouvrir/ })).toHaveAttribute("href", href);
+  }
+  await expect(page.getByTestId("guide-sans-internet")).toContainText("Mes fichiers sauvegardés");
+});

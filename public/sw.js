@@ -105,6 +105,38 @@ async function cacheFirst(cacheName, request, event) {
 const esc = (t) => t.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
 /** Page « Pas de connexion Internet » : propose les éditeurs déjà gardés sur l'appareil. */
+/** Fichiers sauvegardés du compte gardés sur l'appareil (ceux qu'on peut ouvrir sans Internet). */
+async function savedFiles() {
+  const data = await caches.open(DATA);
+  const pages = await caches.open(PAGES);
+  const read = async (key, field) => {
+    const r = await data.match(key);
+    if (!r) return [];
+    try {
+      const list = (await r.json())[field];
+      return Array.isArray(list) ? list : [];
+    } catch {
+      return [];
+    }
+  };
+  const rows = [];
+  for (const p of await read("/api/programs", "programs"))
+    if (await pages.match(`/editeur?programme=${p.id}`)) rows.push({ href: `/editeur?programme=${p.id}`, name: p.title || "Sans titre", tool: "ZENTECH Algo", date: p.updated_at });
+  for (const p of await read("/api/projects", "projects"))
+    if (await pages.match(`/ide?projet=${p.id}`)) rows.push({ href: `/ide?projet=${p.id}`, name: p.name || "Sans titre", tool: "ZENTECH IDE", date: p.updated_at });
+  for (const p of await read("/api/projects?type=larp", "projects"))
+    if (await data.match(`/api/projects/${p.id}`)) rows.push({ href: `/flow/classique?projet=${p.id}`, name: p.name || "Sans titre", tool: "Interface LARP", date: p.updated_at });
+  return rows.sort((a, b) => String(b.date ?? "").localeCompare(String(a.date ?? "")));
+}
+
+const shortDate = (d) => {
+  try {
+    return new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+  } catch {
+    return "";
+  }
+};
+
 async function offlineHtml() {
   const cache = await caches.open(PAGES);
   const rows = await Promise.all(EDITORS.map(async (e) => ({ ...e, ready: Boolean(await cache.match(e.path)) })));
@@ -115,11 +147,17 @@ async function offlineHtml() {
   const later = missing.length
     ? `<p style="margin-top:18px;font-size:13px">Pas encore sur cet appareil : ${missing.map((r) => esc(r.name)).join(", ")}.<br>Avec Internet, ouvrez votre tableau de bord ZENTECH (connecté à votre compte) et touchez « Garder les éditeurs sur cet appareil ». Sur iPhone, faites-le dans l'application de l'écran d'accueil si vous l'utilisez : elle garde sa propre copie.</p>`
     : "";
+  const saved = await savedFiles().catch(() => []);
+  const fileLink = (f) =>
+    `<a href="${esc(f.href)}" data-fichier style="display:flex;justify-content:space-between;gap:8px;margin:6px 0;padding:10px 12px;border-radius:10px;background:#2a2d33;color:#fff;text-decoration:none;text-align:left"><span><b>${esc(f.name)}</b><br><small style="color:#aab4c3">${esc(f.tool)}</small></span><small style="color:#aab4c3;white-space:nowrap">${esc(f.date ? shortDate(f.date) : "")}</small></a>`;
+  const files = saved.length
+    ? `<p style="margin:22px 0 6px;color:#fff;font-size:16px;text-align:left">Mes fichiers sauvegardés (${saved.length})</p><div data-testid="fichiers-hors-ligne">${saved.map(fileLink).join("")}</div>`
+    : "";
   return `<!doctype html><html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Hors connexion</title>
 <body style="margin:0;font-family:system-ui,sans-serif;background:#181818;color:#ccc;display:grid;place-items:center;min-height:100vh;text-align:center;padding:16px;box-sizing:border-box">
 <div style="width:100%;max-width:380px"><p style="font-size:20px;color:#fff;margin-bottom:4px">Pas de connexion Internet</p>
 <p>${ready.length ? "Cette page demande Internet. Ces éditeurs fonctionnent sans connexion :" : "Cette page demande Internet. Aucun éditeur n'est encore gardé sur cet appareil."}</p>
-${ready.map(link).join("")}${later}</div></body></html>`;
+${ready.map(link).join("")}${files}${later}</div></body></html>`;
 }
 
 async function page(request) {

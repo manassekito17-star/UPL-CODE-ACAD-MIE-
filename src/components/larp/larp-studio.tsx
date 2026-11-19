@@ -610,6 +610,21 @@ export function LarpStudio() {
     setSync(p.cloud ? "saved" : "local");
     setMessages([{ text: `Projet « ${p.name} » ouvert${p.cloud ? " depuis votre compte" : ""}.`, kind: "info" }]);
   };
+  // « /flow/classique?projet=… » (page « Pas de connexion Internet », liens) : ouvre ce projet du compte,
+  // aussi sans Internet grâce à la copie gardée sur le téléphone.
+  const openedFromUrl = useRef(false);
+  useEffect(() => {
+    if (openedFromUrl.current) return;
+    openedFromUrl.current = true;
+    const id = new URLSearchParams(window.location.search).get("projet");
+    if (!id || !/^[0-9a-f-]{36}$/.test(id)) return;
+    window.history.replaceState(null, "", window.location.pathname);
+    void loadCloud(id).then((r) => {
+      if (r.ok) openProject({ ...r.project, cloud: r.info });
+      else addMsg({ text: r.message, kind: "err" });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   /** Envoie le projet dans le compte (création ou nouvelle révision). */
   const cloudSave = async (p: LarpProject, opts: { force?: boolean; quiet?: boolean } = {}) => {
     const mark = edits.current;
