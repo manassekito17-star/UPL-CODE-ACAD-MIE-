@@ -4,6 +4,11 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; versions : S
 
 ## [Non publié]
 
+### Ajouté — Site dédié
+- `apps/site` : site ZYNORA Office (accueil, fonctionnalités, téléchargements selon l'appareil),
+  Next.js 16 compilé avec Turbopack, export statique, thème sombre automatique ; publication sur
+  GitHub Pages par `.github/workflows/zynora-site.yml`.
+
 ### Ajouté — Ruban complet de ZYNORA Sheets
 - Onglets **Accueil** (Presse-papiers, Police, Alignement, Nombre, Cellules, Édition), **Insertion**,
   **Formules** (insérer une fonction, bibliothèque par catégorie, noms définis, afficher les formules,

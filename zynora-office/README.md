@@ -43,6 +43,7 @@ zynora-office/
   packages/database/       Base locale SQLite : migrations, paramètres, journal, récents, favoris, corbeille (Rust)
   packages/file-manager/   Bibliothèque de documents : import validé, dossiers, corbeille, écriture atomique (Rust)
   packages/spreadsheet-engine/  Tableur adossé à IronCalc : formules, XLSX, CSV, styles, feuilles (Rust)
+  apps/site/               Site vitrine et de téléchargement (Next.js + Turbopack, export statique, GitHub Pages)
   tests/e2e/               Tests de bout en bout sur l'application compilée (WebDriver)
   scripts/                 Installation, contrôle des licences
 ```

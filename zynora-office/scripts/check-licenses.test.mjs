@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { spdxAllowed } from "./check-licenses.mjs";
+import { isException, spdxAllowed } from "./check-licenses.mjs";
 
 test("accepte les licences permissives et les choix multiples", () => {
   for (const ok of ["MIT", "MIT OR Apache-2.0", "(MIT OR Apache-2.0) AND Unicode-3.0", "Apache-2.0 WITH LLVM-exception", "MIT/Apache-2.0", "MPL-2.0", "Apache-2.0 OR GPL-3.0"]) {
@@ -15,4 +15,11 @@ test("refuse le copyleft fort, les licences commerciales et les expressions inco
   }
   assert.throws(() => spdxAllowed("(MIT"));
   assert.throws(() => spdxAllowed("MIT Apache-2.0"));
+});
+
+test("les exceptions sont nominatives et ne couvrent rien d'autre", () => {
+  assert.equal(isException("@img/sharp-libvips-linux-x64"), true);
+  for (const other of ["sharp", "@img/sharp-linux-x64", "libvips", "@img/other", "ironcalc"]) {
+    assert.equal(isException(other), false, other);
+  }
 });

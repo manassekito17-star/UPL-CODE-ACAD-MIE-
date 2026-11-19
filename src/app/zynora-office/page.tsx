@@ -52,6 +52,10 @@ export default function ZynoraOfficePage() {
             <a href={RELEASE_URL} className="font-semibold text-electrique-600 underline" rel="noopener">
               page de la version GitHub
             </a>
+            . ZYNORA Office a aussi son propre site :{" "}
+            <a href="https://manassekito17-star.github.io/UPL-CODE-ACAD-MIE-/" className="font-semibold text-electrique-600 underline" rel="noopener">
+              manassekito17-star.github.io/UPL-CODE-ACAD-MIE-
+            </a>
             .
           </p>
         </section>

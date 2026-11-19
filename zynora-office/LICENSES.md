@@ -10,6 +10,11 @@ Autorisées : MIT, MIT-0, Apache-2.0 (y compris `WITH LLVM-exception`), BSD-2/3-
 0BSD, BSL-1.0, Unlicense, CC0-1.0, Unicode-3.0, Unicode-DFS-2016, CDLA-Permissive-2.0, et MPL-2.0
 (copyleft limité aux fichiers modifiés de la bibliothèque).
 
+Exception nominative (jamais livrée) : `@img/sharp-libvips-*` (LGPL-3.0), dépendance
+facultative de Next.js pour l'optimisation d'images, désactivée dans le site (`images.unoptimized`) ;
+le site exporté ne contient que HTML, CSS et le JavaScript de Next.js et React (MIT). L'application
+de bureau n'utilise pas Next.js. `caniuse-lite` (CC-BY-4.0, données de compilation) est accepté.
+
 Refusées : GPL, LGPL (liaison statique en Rust), AGPL, SSPL, BUSL, « Commons Clause », licences
 inconnues ou absentes. Une expression `A OR B` est acceptée si une option est autorisée.
 

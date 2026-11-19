@@ -1,0 +1,59 @@
+name: Site ZYNORA Office
+
+# Site statique (Next.js + Turbopack, export HTML) publié sur GitHub Pages.
+# Prérequis unique : Paramètres du dépôt → Pages → Source : « GitHub Actions ».
+on:
+  push:
+    branches: [main]
+    paths:
+      - "zynora-office/apps/site/**"
+      - "zynora-office/packages/design-system/src/tokens.css"
+      - ".github/workflows/zynora-site.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: zynora-site
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: zynora-office
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: zynora-office/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: zynora-office/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - name: Compilation Turbopack et vérifications du site
+        env:
+          # Site de projet GitHub Pages : servi sous /<nom du dépôt>.
+          ZYNORA_BASE_PATH: /${{ github.event.repository.name }}
+        run: pnpm --filter @zynora/site test
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: zynora-office/apps/site/out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
