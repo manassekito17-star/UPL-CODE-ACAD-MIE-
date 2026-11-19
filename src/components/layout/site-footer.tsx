@@ -22,6 +22,7 @@ export function SiteFooter() {
             <li><Link href="/flow/classique" className="hover:text-cyan-accent">Interface classique (compatible LARP)</Link></li>
             <li><Link href="/professeur-ia" className="hover:text-cyan-accent">Professeur IA</Link></li>
             <li><Link href="/telecharger" className="hover:text-cyan-accent">Télécharger l&apos;application</Link></li>
+            <li><Link href="/zynora-office" className="hover:text-cyan-accent">ZYNORA Office (suite bureautique)</Link></li>
           </ul>
         </div>
         <div>

@@ -17,6 +17,7 @@ const PUBLIC_LINKS = [
   { href: "/flow", label: "Flow Studio" },
   { href: "/flow/classique", label: "Interface LARP" },
   { href: "/professeur-ia", label: "Professeur IA" },
+  { href: "/zynora-office", label: "ZYNORA Office" },
   { href: "/telecharger", label: "📲 Télécharger" },
 ];
 

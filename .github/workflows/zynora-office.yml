@@ -166,3 +166,51 @@ jobs:
           name: zynora-office-android
           path: zynora-office/apps/desktop/src-tauri/gen/android/app/build/outputs/apk/**/*.apk
           retention-days: 14
+
+  # Publication des installateurs dans une version GitHub « aperçu », téléchargeable depuis la
+  # page ZYNORA OFFICE du site. Uniquement si TOUTES les compilations et tous les tests ont réussi.
+  release:
+    name: Publication des installateurs (version « aperçu »)
+    needs: [linux, desktop, android]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/claude/dazzling-babbage-7kluja')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artefacts
+      - name: Noms de fichiers stables et empreintes SHA-256
+        working-directory: .
+        run: |
+          set -euo pipefail
+          mkdir publication
+          pick() { find artefacts -type f -name "$1" | head -n 1; }
+          cp "$(pick '*.msi')" "publication/ZYNORA-Office-Windows-x64.msi"
+          cp "$(pick '*-setup.exe')" "publication/ZYNORA-Office-Windows-x64-setup.exe"
+          cp "$(pick '*.dmg')" "publication/ZYNORA-Office-macOS-AppleSilicon.dmg"
+          cp "$(pick '*.AppImage')" "publication/ZYNORA-Office-Linux-x86_64.AppImage"
+          cp "$(pick '*.deb')" "publication/ZYNORA-Office-Linux-amd64.deb"
+          cp "$(pick '*.rpm')" "publication/ZYNORA-Office-Linux-x86_64.rpm"
+          cp "$(pick '*.apk')" "publication/ZYNORA-Office-Android-arm64-test.apk"
+          (cd publication && sha256sum * > SHA256SUMS.txt)
+          ls -la publication
+      - name: Version GitHub « zynora-office-preview »
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          cat > notes.md <<NOTES
+          Version d'aperçu de ZYNORA OFFICE, compilée et testée automatiquement (commit ${GITHUB_SHA::7}).
+
+          - Installateurs **non signés** : Windows (SmartScreen) et macOS (Gatekeeper) afficheront un avertissement.
+          - APK Android de **test** (signature de débogage) : à installer en autorisant les sources inconnues.
+          - Vérifiez les fichiers avec SHA256SUMS.txt.
+          NOTES
+          gh release delete zynora-office-preview --cleanup-tag --yes || true
+          gh release create zynora-office-preview publication/* \
+            --prerelease --target "$GITHUB_SHA" \
+            --title "ZYNORA OFFICE — aperçu" --notes-file notes.md
