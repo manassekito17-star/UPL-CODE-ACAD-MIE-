@@ -67,17 +67,32 @@ pub fn resolve_within(root: &Path, candidate: &Path) -> Result<PathBuf> {
         }
     }
 
-    // Puis vérification sur le disque : un lien symbolique peut pointer hors de la racine.
-    let resolved = if normalized.exists() {
-        normalized.canonicalize().map_err(|_| SecurityError::PathUnavailable)?
-    } else {
-        let name = normalized.file_name().ok_or(SecurityError::PathEscapesRoot)?.to_owned();
-        validate_file_name(&name.to_string_lossy())?;
-        let parent = normalized.parent().ok_or(SecurityError::PathEscapesRoot)?;
-        parent.canonicalize().map_err(|_| SecurityError::PathUnavailable)?.join(name)
-    };
+    // Confinement d'abord, existence ensuite. Le plus long ancêtre présent sur le disque est
+    // rendu canonique (liens symboliques résolus), puis on lui rattache la partie absente, qui
+    // ne contient plus de `..`. Un lien symbolique cassé compte comme présent : sa résolution
+    // échoue au lieu de laisser écrire à travers lui.
+    let mut present = normalized.as_path();
+    let mut absent = Vec::new();
+    while present.symlink_metadata().is_err() {
+        absent.push(present.file_name().ok_or(SecurityError::PathEscapesRoot)?);
+        present = present.parent().ok_or(SecurityError::PathEscapesRoot)?;
+    }
+    let mut resolved = present.canonicalize().map_err(|_| SecurityError::PathUnavailable)?;
+    for part in absent.iter().rev() {
+        resolved.push(part);
+    }
+    if !resolved.starts_with(&root) {
+        return Err(SecurityError::PathEscapesRoot);
+    }
 
-    if resolved.starts_with(&root) { Ok(resolved) } else { Err(SecurityError::PathEscapesRoot) }
+    match absent.as_slice() {
+        [] => Ok(resolved),
+        [name] => {
+            validate_file_name(&name.to_string_lossy())?;
+            Ok(resolved)
+        }
+        _ => Err(SecurityError::PathUnavailable),
+    }
 }
 
 #[cfg(test)]
@@ -146,5 +161,17 @@ mod tests {
         let dir = tempfile::tempdir().expect("racine");
         std::os::unix::fs::symlink(outside.path(), dir.path().join("lien")).expect("symlink");
         assert_eq!(resolve_within(dir.path(), Path::new("lien/secret.txt")), Err(SecurityError::PathEscapesRoot));
+        // Fichier encore absent derrière le lien : refusé aussi (confinement avant existence).
+        assert_eq!(resolve_within(dir.path(), Path::new("lien/nouveau.docx")), Err(SecurityError::PathEscapesRoot));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn refuse_d_ecrire_a_travers_un_lien_symbolique_casse() {
+        let outside = tempfile::tempdir().expect("dossier externe");
+        let dir = tempfile::tempdir().expect("racine");
+        std::os::unix::fs::symlink(outside.path().join("cible-absente.docx"), dir.path().join("piege.docx"))
+            .expect("symlink");
+        assert!(resolve_within(dir.path(), Path::new("piege.docx")).is_err());
     }
 }
