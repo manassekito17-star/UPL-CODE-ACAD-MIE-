@@ -59,8 +59,12 @@
   recherche à cheval sur plusieurs mises en forme, remplacement, saut de page), et éditeur complet
   (ruban, enregistrement de ce qui est affiché, tableaux, mise en page, liens dangereux refusés,
   copie imposée, confirmation de fermeture, récupération).
+- Images : aller-retour PNG exact, JPEG converti en PNG à taille conservée, fichiers piégés ou
+  tronqués refusés, type incohérent refusé ; LibreOffice affiche nos images et elles survivent à
+  son réenregistrement ; insertion et redimensionnement dans l'éditeur.
 - Bout en bout : nouveau document, saisie, Titre 1 + gras, paysage, enregistrement DOCX,
-  réouverture identique, export en texte brut vérifié sur le disque.
+  réouverture identique, export en texte brut vérifié sur le disque ; DOCX produit par
+  LibreOffice ouvert avec son image affichée et la cellule fusionnée signalée.
 
 ## Téléphone
 - Interface vérifiée en émulation iPhone 13 (Playwright) : navigation en bas, aucune largeur

@@ -5,6 +5,7 @@
 //! [`Loaded::lost`] afin que l'interface n'écrase jamais l'original sans le dire (enregistrement
 //! d'une copie imposé).
 
+mod image;
 mod model;
 mod reader;
 mod writer;
@@ -12,6 +13,7 @@ mod writer;
 #[cfg(test)]
 mod tests;
 
+pub use image::{ImageData, MAX_IMAGE_BYTES, prepare_image};
 pub use model::*;
 
 /// Taille maximale d'un document décompressé accepté (garde-fou mémoire).
@@ -142,6 +144,9 @@ impl Paragraph {
             }
             if r.font.as_deref().is_some_and(|f| f.is_empty() || f.len() > 64 || f.chars().any(char::is_control)) {
                 return Err(DocError::Invalid("police".into()));
+            }
+            if let Some(image) = &r.image {
+                image.validate()?;
             }
         }
         Ok(())

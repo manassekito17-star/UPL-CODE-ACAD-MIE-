@@ -4,6 +4,12 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; versions : S
 
 ## [Non publié]
 
+### Ajouté — Images dans ZYNORA Word
+- Images des DOCX lues, affichées et réécrites (PNG ; JPEG et GIF convertis), y compris celles
+  produites par LibreOffice ; les images flottantes sont placées dans le texte (signalé).
+- Insertion d'une image depuis un fichier (dialogue natif ouvert par Rust, format vérifié, taille
+  bornée) et dialogue « Taille de l'image » (mm, proportions conservées).
+
 ### Ajouté — Phase 3 : ZYNORA Word (première version)
 - `packages/document-engine` : modèle de document, lecture et écriture DOCX (docx-rs), texte
   brut, **relevé des éléments non conservés** (images, notes, champs, en-têtes…).

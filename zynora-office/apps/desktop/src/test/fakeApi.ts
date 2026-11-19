@@ -321,6 +321,13 @@ export function fakeApi(options: Options = {}) {
     }),
     wordOpenRecovery: vi.fn(async (path: string) => ({ ...docInfo(path), document: autosaved.get(path) ?? emptyDoc(), recovered: true })),
     printWebview: vi.fn(async () => false),
+    // Image PNG 1×1 réelle ; le vrai cœur Rust valide le fichier et calcule la taille.
+    wordPickImage: vi.fn(async (maxWidthMm: number) => ({
+      mime: "image/png" as const,
+      data: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVQI12P4z8AAAAMBAQAY3Y2wAAAAAElFTkSuQmCC",
+      width_mm: Math.min(40, maxWidthMm),
+      height_mm: Math.min(40, maxWidthMm),
+    })),
   };
   return api;
 }

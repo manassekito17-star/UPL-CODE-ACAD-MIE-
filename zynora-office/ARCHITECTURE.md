@@ -63,7 +63,9 @@ Notes d'origine :
 - **Édition** : ProseMirror (MIT) dans l'interface. Le schéma (`apps/desktop/src/word/schema.ts`)
   reflète exactement le modèle du moteur Rust : paragraphes « à plat » (style, alignement, liste
   et niveau, retraits, espacements, interligne), marques (gras, italique, souligné, barré,
-  exposant/indice, couleur, surlignage, taille, police, lien), tableaux simples, sauts de page.
+  exposant/indice, couleur, surlignage, taille, police, lien), images dans le texte, tableaux
+  simples, sauts de page. Les images voyagent en base64 dans le modèle ; elles sont décodées en
+  Rust avec des limites (32 Mo, 16 384 px de côté) et écrites en PNG.
   Les listes sont à plat comme dans le format DOCX : la numérotation est rendue par des compteurs CSS.
 - **Fichiers** : `packages/document-engine` lit et écrit le DOCX avec docx-rs 0.4.22 (MIT ; ses
   champs étant privés, la lecture parcourt sa représentation JSON). Le texte brut est géré à part.
@@ -174,6 +176,7 @@ brutal de la session précédente.
 | `word_save` | `{path, document}` (modèle revalidé : dimensions, couleurs, liens http/https/mailto) | — | **écriture atomique** ; refusée si le fichier sur le disque contient des éléments non conservés |
 | `word_save_copy` | `{path, name, document}` (.docx ou .txt) | nouveau document | création sans écrasement (nom libre choisi) |
 | `word_autosave`, `word_open_recovery` | `{path, document}` / `{path}` | — / document | copie de récupération JSON (dossier de l'application) |
+| `word_pick_image` | `{maxWidthMm}` (dialogue natif ouvert par Rust) | image validée (base64, taille en mm) ou `null` | lecture bornée (32 Mo), format réel vérifié |
 | `print_webview` | — | dialogue natif ouvert ? | impression (macOS) ; ailleurs `window.print()` |
 
 Règles : arguments désérialisés en types Rust fermés (une clé ou valeur inconnue est rejetée par

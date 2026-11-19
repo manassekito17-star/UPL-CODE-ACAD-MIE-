@@ -66,6 +66,7 @@ fichiers réels.**
 | | Modification | Rechercher, remplacer (un par un ou tout), sélectionner tout |
 | Insertion | Pages | Saut de page, saut de ligne |
 | | Tableaux | Insertion (2×2 à 100×20), lignes et colonnes (ajout, suppression), suppression du tableau |
+| | Illustrations | Image depuis un fichier (PNG, JPEG, GIF ; dialogue natif, contrôle du format réel), taille en mm avec proportions conservées. Images des DOCX ouvertes et réécrites (JPEG/GIF enregistrés en PNG) |
 | | Liens | Lien web ou adresse électronique (autres schémas refusés), suppression du lien |
 | | Texte, Symboles | Date et heure (3 formats), 40 symboles |
 | Mise en page | Mise en page | Marges (4 préréglages + personnalisées), orientation, taille (A4, A5, A3, Letter, Legal) |
@@ -78,7 +79,8 @@ texte brut. Barre d'état : mots, caractères, zoom. Sauvegarde automatique tout
 (copie de récupération) et confirmation avant de fermer sans enregistrer.
 
 **Éléments DOCX non pris en charge** (signalés à l'ouverture ; l'original n'est jamais remplacé) :
-images et dessins, en-têtes et pieds de page, notes de bas de page et de fin, champs (numéros de
+dessins, formes et images vectorielles (EMF, WMF), position des images flottantes (elles sont
+placées dans le texte), en-têtes et pieds de page, notes de bas de page et de fin, champs (numéros de
 page, dates automatiques, renvois), commentaires, modifications suivies, table des matières,
 cellules fusionnées et couleurs de cellule, tableaux imbriqués, colonnes de texte, sections
 multiples, taquets de tabulation, styles personnalisés (convertis en Normal), titres de niveau 4+,

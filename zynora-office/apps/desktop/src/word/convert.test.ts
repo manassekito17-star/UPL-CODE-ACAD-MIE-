@@ -36,6 +36,16 @@ const model: DocModel = {
       ],
     },
     { type: "paragraph", style: "normal", align: "left", list: { kind: "bullet", level: 1 }, runs: [{ text: "puce" }] },
+    {
+      type: "paragraph",
+      style: "normal",
+      align: "center",
+      runs: [
+        { text: "", image: { mime: "image/png", data: "iVBORw0KGgo=", width_mm: 40, height_mm: 20 } },
+        { text: "", image: { mime: "image/png", data: "iVBORw0KGgo=", width_mm: 40, height_mm: 20 }, link: "https://exemple.fr" },
+        { text: "légende" },
+      ],
+    },
     { type: "page_break" },
     {
       type: "table",
@@ -55,8 +65,8 @@ describe("conversion modèle ↔ ProseMirror", () => {
 
   it("compte les mots et caractères", () => {
     const counts = countWords(toProseMirror(model));
-    expect(counts.words).toBe(9);
-    expect(counts.paragraphs).toBe(4);
+    expect(counts.words).toBe(10);
+    expect(counts.paragraphs).toBe(5);
   });
 
   it("produit toujours un document éditable", () => {

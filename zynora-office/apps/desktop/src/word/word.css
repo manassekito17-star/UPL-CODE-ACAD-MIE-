@@ -32,6 +32,8 @@
 .word-editor .wp--quote { font-style: italic; color: #404040; margin-left: 15.24mm; margin-right: 15.24mm; border: 0; }
 .word-editor a { color: #0563c1; text-decoration: underline; cursor: text; }
 .word-editor mark { color: inherit; }
+.word-editor img[data-zimage] { max-width: 100%; height: auto; vertical-align: bottom; }
+.word-editor img.ProseMirror-selectednode { outline: 2px solid #4c3fd1; outline-offset: 1px; }
 .word-editor sup, .word-editor sub { font-size: 0.65em; line-height: 0; }
 
 /* Listes « à plat » (comme dans le format DOCX) : retrait par niveau et numérotation par compteurs. */

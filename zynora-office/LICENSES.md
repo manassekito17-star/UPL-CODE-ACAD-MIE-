@@ -20,7 +20,7 @@ inconnues ou absentes. Une expression `A OR B` est acceptée si une option est a
 
 Contrôle automatique : `pnpm check:licenses` (`scripts/check-licenses.mjs`) vérifie **toutes** les crates
 Rust (y compris celles propres à Windows et macOS) et les paquets npm de production. Résultat au
-19/11/2026 : **531 dépendances, toutes autorisées**.
+19/11/2026 : **533 dépendances, toutes autorisées**.
 
 ## Dépendances directes
 

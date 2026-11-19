@@ -6,6 +6,8 @@
 import { Schema, type DOMOutputSpec, type Mark, type Node as PMNode } from "prosemirror-model";
 import { tableNodes } from "prosemirror-tables";
 
+export const IMAGE_TYPES = ["image/png", "image/jpeg", "image/gif"];
+
 export type ParagraphStyle = "normal" | "title" | "heading1" | "heading2" | "heading3" | "quote";
 export type Align = "left" | "center" | "right" | "justify";
 export type ListKind = "bullet" | "ordered";
@@ -122,6 +124,42 @@ export const schema = new Schema({
     table_cell: tableCell,
     table_header: tableHeader,
     text: { group: "inline" },
+    image: {
+      inline: true,
+      group: "inline",
+      atom: true,
+      draggable: true,
+      attrs: { mime: {}, data: {}, width: {}, height: {} },
+      // Seules les images produites par ZYNORA sont reconnues au collage : jamais de ressource distante.
+      parseDOM: [
+        {
+          tag: "img[data-zimage]",
+          getAttrs: (d) => {
+            const el = d as HTMLElement;
+            const mime = el.getAttribute("data-mime") ?? "";
+            const src = el.getAttribute("src") ?? "";
+            const prefix = `data:${mime};base64,`;
+            const width = num(el.getAttribute("data-width"));
+            const height = num(el.getAttribute("data-height"));
+            if (!IMAGE_TYPES.includes(mime) || !src.startsWith(prefix) || !width || !height) return false;
+            return { mime, data: src.slice(prefix.length), width, height };
+          },
+        },
+      ],
+      toDOM: (node) => [
+        "img",
+        {
+          "data-zimage": "",
+          "data-mime": node.attrs.mime,
+          "data-width": String(node.attrs.width),
+          "data-height": String(node.attrs.height),
+          src: `data:${node.attrs.mime};base64,${node.attrs.data}`,
+          alt: "",
+          // Largeur réelle ; proportions conservées si l'image est ramenée à la largeur du texte.
+          style: `width:${node.attrs.width}mm;aspect-ratio:${node.attrs.width} / ${node.attrs.height}`,
+        },
+      ],
+    },
     hard_break: {
       inline: true,
       group: "inline",

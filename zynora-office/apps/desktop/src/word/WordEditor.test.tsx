@@ -102,6 +102,27 @@ describe("ZYNORA Word", () => {
     await waitFor(() => expect(editor().querySelector("a")?.getAttribute("href")).toBe("https://exemple.fr"));
   });
 
+  it("insère une image choisie par le cœur Rust, la redimensionne et l'enregistre", async () => {
+    const api = await openLetter();
+    fireEvent.click(screen.getByRole("tab", { name: "Insertion" }));
+    expect((tool("Taille de l'image…") as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(tool("Image"));
+    await waitFor(() => expect(editor().querySelector("img[data-zimage]")).toBeTruthy());
+    expect(api.wordPickImage).toHaveBeenCalledWith(160);
+    // L'image insérée est sélectionnée : sa taille se règle en millimètres, proportions conservées.
+    await waitFor(() => expect((tool("Taille de l'image…") as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(tool("Taille de l'image…"));
+    const dialog = await screen.findByRole("dialog", { name: "Taille de l'image" });
+    fireEvent.change(within(dialog).getByLabelText("Largeur (mm)"), { target: { value: "25" } });
+    expect((within(dialog).getByLabelText("Hauteur (mm)") as HTMLInputElement).value).toBe("25");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Appliquer" }));
+    await waitFor(() => expect(editor().querySelector("img[data-zimage]")?.getAttribute("data-width")).toBe("25"));
+    fireEvent.click(tool("Enregistrer"));
+    await waitFor(() => expect(api.wordSave).toHaveBeenCalled());
+    const runs = (saved(api)?.blocks[0] as { runs: Array<{ image?: { width_mm: number; height_mm: number } }> }).runs;
+    expect(runs.find((r) => r.image)?.image).toMatchObject({ width_mm: 25, height_mm: 25 });
+  });
+
   it("un document avec des éléments non conservés n'est jamais écrasé : copie imposée", async () => {
     const api = await openLetter({ lost: { "lettre.docx": ["images et dessins"] } });
     expect(screen.getByRole("note").textContent).toContain("images et dessins");

@@ -11,6 +11,7 @@ import {
   Eraser,
   FileText,
   Highlighter,
+  ImagePlus,
   IndentDecrease,
   IndentIncrease,
   Italic,
@@ -49,7 +50,7 @@ import { HIGHLIGHT_COLORS, schema } from "./schema";
 import { LINE_SPACINGS, MARGIN_PRESETS, PAGE_SIZES, PARAGRAPH_SPACINGS, STYLES, type WordText } from "./word-text";
 
 export type WordTab = "home" | "insert" | "layout" | "review" | "view";
-export type WordDialogKind = "find" | "replace" | "link" | "symbol" | "table" | "margins" | "paragraph" | "wordCount" | "saveCopy";
+export type WordDialogKind = "find" | "replace" | "link" | "symbol" | "table" | "margins" | "paragraph" | "wordCount" | "saveCopy" | "image";
 const TABS: WordTab[] = ["home", "insert", "layout", "review", "view"];
 const M = schema.marks;
 
@@ -74,6 +75,8 @@ export interface WordActions {
   lineBreak: () => void;
   table: (op: "insert2x2" | "insert3x3" | "insert4x4" | "rowBefore" | "rowAfter" | "colBefore" | "colAfter" | "deleteRow" | "deleteCol" | "delete") => void;
   inTable: boolean;
+  insertImage: () => void;
+  imageSelected: boolean;
   unlink: () => void;
   insertDate: (format: "short" | "long" | "time") => void;
   page: (change: Partial<DocPage>) => void;
@@ -204,6 +207,10 @@ export function WordRibbon({ w, tab, onTab, state, actions: a, language }: Props
             <Group label={w("group.pages")}>
               <Tool label={w("pageBreak")} icon={<SeparatorHorizontal size={16} />} onClick={a.pageBreak} wide />
               <Tool label={w("lineBreak")} icon={<WrapText size={16} />} onClick={a.lineBreak} />
+            </Group>
+            <Group label={w("group.illustrations")}>
+              <Tool label={w("image")} icon={<ImagePlus size={16} />} wide onClick={a.insertImage} />
+              <Tool label={w("imageSize")} wide disabled={!a.imageSelected} onClick={() => a.open("image")} />
             </Group>
             <Group label={w("group.tables")}>
               <Menu

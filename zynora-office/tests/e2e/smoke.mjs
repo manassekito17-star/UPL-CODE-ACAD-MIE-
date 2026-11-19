@@ -30,6 +30,8 @@ writeFileSync(join(dataHome, "user-dirs.dirs"), `XDG_DOCUMENTS_DIR="${documents}
 mkdirSync(join(library, "Clients"), { recursive: true });
 writeFileSync(join(library, "budget.csv"), "poste;montant\nloyer;800\n");
 writeFileSync(join(library, "Clients", "devis.xlsx"), "PK\u0003\u0004");
+// Document réel produit par LibreOffice : titre, image, listes, cellule fusionnée.
+writeFileSync(join(library, "Clients", "rapport-lo.docx"), readFileSync(join(root, "packages/document-engine/tests/fixtures/libreoffice-riche.docx")));
 
 const driver = spawn("tauri-driver", ["--port", String(PORT)], {
   env: { ...process.env, XDG_DATA_HOME: dataHome, XDG_CONFIG_HOME: dataHome },
@@ -260,6 +262,22 @@ try {
   await waitFor(async () => (await app.exec("return document.querySelector('.word-editor h1 strong')?.textContent")) === "Rapport annuel", "titre après réouverture");
   assert.equal(await app.exec("return document.querySelector('.word__page').style.width"), "297mm");
   step("le document enregistré en DOCX se rouvre avec son style, son gras et sa mise en page");
+
+  // Document produit par LibreOffice : l'image est affichée ; la cellule fusionnée est signalée
+  // et l'original ne peut pas être remplacé.
+  await app.click(button("Retour à la bibliothèque"));
+  await app.click(navItem("Documents"));
+  await app.click(button("Ouvrir Clients"));
+  await app.click(button("Ouvrir rapport-lo.docx"));
+  await waitFor(async () => (await app.exec("return document.querySelector('.word-editor img[data-zimage]')?.naturalWidth ?? 0")) > 0, "image affichée");
+  assert.match(await app.exec("return document.querySelector('.word__notice')?.textContent ?? ''"), /cellules de tableau fusionnées/);
+  assert.equal(await app.exec("return document.querySelector('header button.z-button--primary')?.disabled"), true);
+  step("un DOCX de LibreOffice s'ouvre avec son image ; ce qui serait perdu est signalé, l'original protégé");
+  await app.screenshot("8-word-image");
+  await app.click(button("Retour à la bibliothèque"));
+  await app.click(navItem("Documents"));
+  await app.click(button("Ouvrir Document.docx"));
+  await waitFor(async () => (await app.exec("return document.querySelector('.word-editor h1')?.textContent")) === "Rapport annuel", "retour au document");
 
   await app.click(button("Exporter en texte brut (.txt)"));
   await waitFor(() => existsSync(join(library, "Document.txt")), "export texte sur le disque");

@@ -5,7 +5,7 @@ import { dropCursor } from "prosemirror-dropcursor";
 import { gapCursor } from "prosemirror-gapcursor";
 import { history, redo, redoDepth, undo, undoDepth } from "prosemirror-history";
 import type { Mark } from "prosemirror-model";
-import { AllSelection, EditorState, type Command, type Transaction } from "prosemirror-state";
+import { AllSelection, EditorState, NodeSelection, type Command, type Transaction } from "prosemirror-state";
 import { addColumnAfter, addColumnBefore, addRowAfter, addRowBefore, deleteColumn, deleteRow, deleteTable, isInTable, tableEditing } from "prosemirror-tables";
 import { EditorView } from "prosemirror-view";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -261,6 +261,25 @@ export function WordEditor({ doc, onClose, onReplace }: Props) {
     if (!document.execCommand(kind)) notify(w("copyFailed"), "info");
   }
 
+  /** Le fichier est choisi dans le dialogue natif et validé par le cœur Rust. */
+  async function insertImage() {
+    try {
+      const image = await api.wordPickImage(pageBox(pageRef.current).width - pageRef.current.margin_left_mm - pageRef.current.margin_right_mm);
+      if (!image) return;
+      exec((s, d) => {
+        const node = schema.nodes.image.create({ mime: image.mime, data: image.data, width: image.width_mm, height: image.height_mm });
+        const tr = s.tr.replaceSelectionWith(node);
+        // L'image insérée reste sélectionnée (prête à être redimensionnée).
+        const at = tr.selection.from - 1;
+        if (tr.doc.nodeAt(at)?.type === schema.nodes.image) tr.setSelection(NodeSelection.create(tr.doc, at));
+        d?.(tr.scrollIntoView());
+        return true;
+      });
+    } catch (error) {
+      fail(error);
+    }
+  }
+
   function setZoom(value: number | "page") {
     if (value === "page") {
       const available = (canvas.current?.clientWidth ?? 900) - 48;
@@ -312,6 +331,8 @@ export function WordEditor({ doc, onClose, onReplace }: Props) {
     lineBreak: () => exec(insertHardBreak),
     table: (op) => exec(tableOp[op]!),
     inTable: state ? isInTable(state) : false,
+    insertImage: () => void insertImage(),
+    imageSelected: !!state && state.selection instanceof NodeSelection && state.selection.node.type.name === "image",
     unlink: () =>
       exec((s, d) => {
         const { from, to, $from } = s.selection;

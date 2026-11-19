@@ -157,6 +157,9 @@ pub struct Run {
     /// Lien hypertexte externe (http, https, mailto).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub link: Option<String>,
+    /// Image placée dans le texte (le texte de la portion est alors vide).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub image: Option<crate::image::ImageData>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]

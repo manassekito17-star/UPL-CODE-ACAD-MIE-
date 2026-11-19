@@ -24,6 +24,10 @@ function paragraphNode(p: DocParagraph): PMNode {
   const inline: PMNode[] = [];
   for (const run of p.runs ?? []) {
     const marks = marksFor(run);
+    if (run.image) {
+      const { mime, data, width_mm, height_mm } = run.image;
+      inline.push(schema.nodes.image.create({ mime, data, width: width_mm, height: height_mm }, null, marks));
+    }
     run.text.split("\n").forEach((part, i) => {
       if (i > 0) inline.push(schema.nodes.hard_break.create());
       if (part) inline.push(schema.text(part, marks));
@@ -103,11 +107,16 @@ function paragraphModel(node: PMNode): DocParagraph {
   const a = node.attrs;
   const runs: DocRun[] = [];
   node.forEach((child) => {
+    if (child.type.name === "image") {
+      const a = child.attrs;
+      runs.push({ ...runFor("", child.marks), image: { mime: a.mime, data: a.data, width_mm: a.width, height_mm: a.height } });
+      return;
+    }
     const run = child.isText ? runFor(child.text ?? "", child.marks) : child.type.name === "hard_break" ? runFor("\n", child.marks) : null;
     if (!run) return;
     const last = runs[runs.length - 1];
     // Un retour à la ligne s'accole au texte qui le précède (comme dans le moteur).
-    if (last && (sameFormat(last, run) || run.text === "\n")) last.text += run.text;
+    if (last && !last.image && (sameFormat(last, run) || run.text === "\n")) last.text += run.text;
     else runs.push(run);
   });
   const p: DocParagraph = { style: a.style, align: a.align, runs };

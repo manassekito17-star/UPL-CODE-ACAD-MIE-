@@ -48,6 +48,8 @@ favoris, récents, recherche, corbeille avec restauration), détection d'arrêt 
   Insertion, Mise en page, Révision, Affichage, chaque bouton fonctionnel et enregistré
   (détail : COMPATIBILITY.md), barre d'état, impression, sauvegarde automatique et récupération.
 - Word activé dans la navigation, l'accueil et la bibliothèque.
+- **Images** : lues dans les DOCX (dont ceux de LibreOffice), insérées depuis un fichier,
+  redimensionnées en mm, réécrites en PNG ; décodage borné en Rust.
 
 ## En cours
 - Rien en cours d'exécution : CI n° 24 (commit 3012132) verte sur les 5 jobs — Linux (dont tests
@@ -61,7 +63,7 @@ favoris, récents, recherche, corbeille avec restauration), détection d'arrêt 
 - **Smartphone** : import depuis le stockage du téléphone (adresses `content://`), tests sur
   émulateur Android, édition tactile avancée (sélection par glissement), **iOS** (Mac + Xcode +
   compte Apple Developer), APK signé pour la distribution.
-- **Word** : images, pagination automatique à l'écran, en-têtes et pieds de page, notes, table des
+- **Word** : pagination automatique à l'écran, en-têtes et pieds de page, notes, table des
   matières, cellules fusionnées, ODT, export PDF, corpus de fichiers produits par **Microsoft Word**.
 - Phases suivantes : Slides (phase 4), fonctions avancées, IA, synchronisation, publication
   signée (voir ROADMAP.md).
@@ -103,14 +105,14 @@ favoris, récents, recherche, corbeille avec restauration), détection d'arrêt 
 | Rust `zynora-database` | ✅ 13 / 13 |
 | Rust `zynora-file-manager` | ✅ 13 / 13 |
 | Rust `zynora-spreadsheet-engine` | ✅ 24 / 24 (+ 2 / 2 croisés LibreOffice) |
-| Rust `zynora-document-engine` | ✅ 8 / 8 (+ 1 / 1 croisé LibreOffice) |
-| Rust `zynora-desktop` | ✅ 6 / 6 |
+| Rust `zynora-document-engine` | ✅ 10 / 10 (+ 1 / 1 croisé LibreOffice) |
+| Rust `zynora-desktop` | ✅ 7 / 7 |
 | Vitest design system | ✅ 11 / 11 |
-| Vitest application (dont 12 Sheets, 11 ruban, 15 Word) | ✅ 60 / 60 |
+| Vitest application (dont 12 Sheets, 11 ruban, 16 Word) | ✅ 61 / 61 |
 | node:test scripts | ✅ 2 / 2 |
 | TypeScript strict, `cargo fmt`, `clippy -D warnings` | ✅ |
-| Licences | ✅ 531 / 531 |
-| Bout en bout (binaire compilé, vrai disque, vrais moteurs) | ✅ 25 / 25 vérifications |
+| Licences | ✅ 533 / 533 |
+| Bout en bout (binaire compilé, vrai disque, vrais moteurs) | ✅ 26 / 26 vérifications |
 | Interface téléphone (émulation iPhone 13) | ✅ vérifiée visuellement |
 | Compilation Rust Android arm64 | ✅ |
 | APK Android | ✅ CI (run n° 24) |
@@ -130,6 +132,6 @@ favoris, récents, recherche, corbeille avec restauration), détection d'arrêt 
 6. Licence de ZYNORA OFFICE : non choisie.
 
 ## Prochaine tâche
-1. Word : images (lecture, affichage, réécriture), pagination à l'écran, en-têtes et pieds de page,
+1. Word : pagination à l'écran, en-têtes et pieds de page,
    export PDF ; corpus de documents Microsoft Word.
 2. En parallèle : fin de Sheets (fusions affichées, filtres, graphiques) et import mobile.

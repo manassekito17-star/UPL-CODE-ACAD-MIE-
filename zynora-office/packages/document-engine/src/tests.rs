@@ -127,9 +127,68 @@ fn lit_un_docx_produit_par_libreoffice() {
     assert_eq!(p.runs.last().and_then(|r| r.link.as_deref()), Some("https://a.fr/"));
     assert!(doc.blocks.iter().any(|b| matches!(b, Block::Paragraph(p) if p.style == ParagraphStyle::Quote)));
     assert!(doc.blocks.iter().any(|b| matches!(b, Block::Paragraph(p) if p.indent_left_mm == 20.0)));
-    // L'image et la cellule fusionnée sont signalées : l'original ne sera pas écrasé.
-    assert!(loaded.lost.contains(&"images et dessins".to_owned()), "{:?}", loaded.lost);
+    // L'image est lue (PNG, taille d'origine) ; la cellule fusionnée est signalée.
+    let image = p.runs.iter().find_map(|r| r.image.as_ref()).expect("image lue");
+    assert_eq!(image.mime, "image/png");
+    assert!((image.width_mm - 5.3).abs() < 0.2, "{}", image.width_mm);
+    assert!(!loaded.lost.iter().any(|l| l.contains("image")), "{:?}", loaded.lost);
     assert!(loaded.lost.contains(&"cellules de tableau fusionnées".to_owned()), "{:?}", loaded.lost);
+}
+
+fn encoded(format: ::image::ImageFormat, w: u32, h: u32) -> Vec<u8> {
+    let img = ::image::RgbImage::from_fn(w, h, |x, y| ::image::Rgb([(x * 7) as u8, (y * 5) as u8, 128]));
+    let mut out = std::io::Cursor::new(Vec::new());
+    ::image::DynamicImage::ImageRgb8(img).write_to(&mut out, format).expect("encodage");
+    out.into_inner()
+}
+
+fn with_image(img: ImageData) -> Document {
+    Document {
+        page: Page::default(),
+        blocks: vec![Block::Paragraph(Paragraph {
+            runs: vec![run("Avant "), Run { image: Some(img), ..Run::default() }, run(" après")],
+            ..Paragraph::default()
+        })],
+    }
+}
+
+#[test]
+fn images_png_aller_retour_et_jpeg_converti() {
+    let png = prepare_image(&encoded(::image::ImageFormat::Png, 96, 48), 160.0).expect("png");
+    assert_eq!((png.width_mm, png.height_mm), (25.4, 12.7), "96 px à 96 ppp = 25,4 mm");
+    let doc = with_image(png);
+    let loaded = from_docx(&to_docx(&doc).expect("écriture")).expect("lecture");
+    assert!(loaded.lost.is_empty(), "{:?}", loaded.lost);
+    assert_eq!(loaded.document, doc);
+
+    // Le JPEG est écrit en PNG (format accepté par tous les traitements de texte), taille conservée.
+    let mut jpeg = prepare_image(&encoded(::image::ImageFormat::Jpeg, 400, 200), 50.0).expect("jpeg");
+    assert_eq!(jpeg.mime, "image/jpeg");
+    assert_eq!((jpeg.width_mm, jpeg.height_mm), (50.0, 25.0), "ramenée à la largeur maximale");
+    jpeg.width_mm = 80.0;
+    jpeg.height_mm = 40.0;
+    let loaded = from_docx(&to_docx(&with_image(jpeg)).expect("écriture")).expect("lecture");
+    let Block::Paragraph(p) = &loaded.document.blocks[0] else { panic!("paragraphe") };
+    let img = p.runs[1].image.as_ref().expect("image");
+    assert_eq!((img.mime.as_str(), img.width_mm, img.height_mm), ("image/png", 80.0, 40.0));
+    assert_eq!(loaded.document.plain_text(), "Avant  après\n");
+}
+
+#[test]
+fn images_refusees_si_invalides() {
+    assert!(prepare_image(b"pas une image", 100.0).is_err());
+    assert!(prepare_image(b"\x89PNG\r\n\x1a\nabimee", 100.0).is_err(), "PNG tronqué");
+    let mut gif = encoded(::image::ImageFormat::Gif, 4, 4);
+    assert_eq!(prepare_image(&gif, 100.0).expect("gif").mime, "image/gif");
+    gif.truncate(12);
+    assert!(prepare_image(&gif, 100.0).is_err());
+    // Données forgées par l'interface : type annoncé incohérent, taille absurde.
+    let mut img = prepare_image(&encoded(::image::ImageFormat::Png, 8, 8), 100.0).expect("png");
+    img.mime = "image/jpeg".into();
+    assert!(matches!(to_docx(&with_image(img.clone())), Err(DocError::Invalid(_))));
+    img.mime = "image/png".into();
+    img.width_mm = f64::INFINITY;
+    assert!(matches!(to_docx(&with_image(img)), Err(DocError::Invalid(_))));
 }
 
 #[test]
@@ -200,7 +259,13 @@ fn libreoffice_relit_nos_documents() {
     let dir = std::env::temp_dir().join(format!("zynora-lo-doc-{}", std::process::id()));
     std::fs::create_dir_all(&dir).expect("dossier");
     let docx = dir.join("rapport.docx");
-    std::fs::write(&docx, to_docx(&sample()).expect("écriture")).expect("fichier");
+    let mut doc = sample();
+    let logo = prepare_image(&encoded(::image::ImageFormat::Png, 64, 32), 160.0).expect("image");
+    doc.blocks.push(Block::Paragraph(Paragraph {
+        runs: vec![Run { image: Some(logo), ..Run::default() }],
+        ..Paragraph::default()
+    }));
+    std::fs::write(&docx, to_docx(&doc).expect("écriture")).expect("fichier");
     soffice(&dir, "html", &docx);
     let html = std::fs::read_to_string(dir.join("rapport.html")).expect("html");
     // LibreOffice coupe les lignes longues : espaces normalisés.
@@ -232,5 +297,16 @@ fn libreoffice_relit_nos_documents() {
     let text = loaded.document.plain_text();
     assert!(text.contains("Rapport annuel\nIntroduction\n"), "{text}");
     assert!(text.contains("• Puce A\n  • Sous-puce\n1. Premier\n2. Deuxième\n"), "{text}");
+    let images: Vec<_> = loaded
+        .document
+        .blocks
+        .iter()
+        .filter_map(|b| match b {
+            Block::Paragraph(p) => p.runs.iter().find_map(|r| r.image.clone()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(images.len(), 1, "l'image survit au réenregistrement par LibreOffice");
+    assert!((images[0].width_mm - 16.9).abs() < 0.3, "{}", images[0].width_mm);
     let _ = std::fs::remove_dir_all(dir);
 }

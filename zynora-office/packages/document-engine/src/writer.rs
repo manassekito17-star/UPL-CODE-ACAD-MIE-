@@ -138,8 +138,13 @@ impl Lists {
     }
 }
 
-fn run(r: &Run) -> dx::Run {
+fn run(r: &Run) -> Result<dx::Run, DocError> {
     let mut out = dx::Run::new();
+    if let Some(image) = &r.image {
+        let (png, w, h) = image.to_png()?;
+        let emu = |mm: f64| (mm * crate::image::EMU_PER_MM).round() as u32;
+        out = out.add_image(dx::Pic::new_with_dimensions(png, w, h).size(emu(image.width_mm), emu(image.height_mm)));
+    }
     for (i, part) in r.text.split('\n').enumerate() {
         if i > 0 {
             out = out.add_break(dx::BreakType::TextWrapping);
@@ -186,10 +191,10 @@ fn run(r: &Run) -> dx::Run {
     if r.link.is_some() {
         out = out.style("Hyperlink");
     }
-    out
+    Ok(out)
 }
 
-fn paragraph(p: &Paragraph, lists: &mut Lists) -> dx::Paragraph {
+fn paragraph(p: &Paragraph, lists: &mut Lists) -> Result<dx::Paragraph, DocError> {
     let mut out = dx::Paragraph::new();
     if let Some(id) = style_id(p.style) {
         out = out.style(id);
@@ -231,50 +236,43 @@ fn paragraph(p: &Paragraph, lists: &mut Lists) -> dx::Paragraph {
             Some(url) => {
                 let mut link = dx::Hyperlink::new(url, dx::HyperlinkType::External);
                 while i < p.runs.len() && p.runs[i].link.as_deref() == Some(url.as_str()) {
-                    link = link.add_run(run(&p.runs[i]));
+                    link = link.add_run(run(&p.runs[i])?);
                     i += 1;
                 }
                 out = out.add_hyperlink(link);
             }
             None => {
-                out = out.add_run(run(&p.runs[i]));
+                out = out.add_run(run(&p.runs[i])?);
                 i += 1;
             }
         }
     }
-    out
+    Ok(out)
 }
 
-fn table(t: &model::Table, text_width: f64, lists: &mut Lists) -> dx::Table {
+fn table(t: &model::Table, text_width: f64, lists: &mut Lists) -> Result<dx::Table, DocError> {
     let columns = t.rows.iter().map(Vec::len).max().unwrap_or(1).max(1);
     let col_width = (twips(text_width) / columns as i32).max(1) as usize;
-    let rows = t
-        .rows
-        .iter()
-        .map(|row| {
-            let mut cells: Vec<dx::TableCell> = row
-                .iter()
-                .map(|c| {
-                    let mut cell = dx::TableCell::new().width(col_width, dx::WidthType::Dxa);
-                    if c.paragraphs.is_empty() {
-                        cell = cell.add_paragraph(dx::Paragraph::new());
-                    }
-                    for p in &c.paragraphs {
-                        cell = cell.add_paragraph(paragraph(p, lists));
-                    }
-                    cell
-                })
-                .collect();
-            while cells.len() < columns {
-                cells.push(
-                    dx::TableCell::new().width(col_width, dx::WidthType::Dxa).add_paragraph(dx::Paragraph::new()),
-                );
+    let mut rows = Vec::with_capacity(t.rows.len());
+    for row in &t.rows {
+        let mut cells = Vec::with_capacity(columns);
+        for c in row {
+            let mut cell = dx::TableCell::new().width(col_width, dx::WidthType::Dxa);
+            if c.paragraphs.is_empty() {
+                cell = cell.add_paragraph(dx::Paragraph::new());
             }
-            lists.current = None;
-            dx::TableRow::new(cells)
-        })
-        .collect();
-    dx::Table::new(rows).set_grid(vec![col_width; columns]).width(col_width * columns, dx::WidthType::Dxa)
+            for p in &c.paragraphs {
+                cell = cell.add_paragraph(paragraph(p, lists)?);
+            }
+            cells.push(cell);
+        }
+        while cells.len() < columns {
+            cells.push(dx::TableCell::new().width(col_width, dx::WidthType::Dxa).add_paragraph(dx::Paragraph::new()));
+        }
+        lists.current = None;
+        rows.push(dx::TableRow::new(cells));
+    }
+    Ok(dx::Table::new(rows).set_grid(vec![col_width; columns]).width(col_width * columns, dx::WidthType::Dxa))
 }
 
 pub(crate) fn write(doc: &Document) -> Result<Vec<u8>, DocError> {
@@ -302,7 +300,7 @@ pub(crate) fn write(doc: &Document) -> Result<Vec<u8>, DocError> {
     for block in &doc.blocks {
         match block {
             Block::Paragraph(p) => {
-                let mut para = paragraph(p, &mut lists);
+                let mut para = paragraph(p, &mut lists)?;
                 if std::mem::take(&mut pending_break) {
                     para = para.page_break_before(true);
                 }
@@ -314,7 +312,7 @@ pub(crate) fn write(doc: &Document) -> Result<Vec<u8>, DocError> {
                         docx.add_paragraph(dx::Paragraph::new().add_run(dx::Run::new().add_break(dx::BreakType::Page)));
                 }
                 lists.current = None;
-                docx = docx.add_table(table(t, text_width, &mut lists));
+                docx = docx.add_table(table(t, text_width, &mut lists)?);
             }
             Block::PageBreak => {
                 if pending_break {

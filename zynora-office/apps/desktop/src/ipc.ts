@@ -252,6 +252,14 @@ export interface DocRun {
   size_pt?: number;
   font?: string;
   link?: string;
+  /** Image placée dans le texte (octets en base64, validés par le cœur Rust). */
+  image?: DocImage;
+}
+export interface DocImage {
+  mime: "image/png" | "image/jpeg" | "image/gif";
+  data: string;
+  width_mm: number;
+  height_mm: number;
 }
 export interface DocParagraph {
   style?: DocParagraphStyle;
@@ -350,6 +358,8 @@ export const api = {
   wordSaveCopy: (path: string, name: string, document: DocModel) => call<DocumentInfo>("word_save_copy", { path, name, document }),
   wordAutosave: (path: string, document: DocModel) => call<null>("word_autosave", { path, document }),
   wordOpenRecovery: (path: string) => call<DocumentInfo>("word_open_recovery", { path }),
+  /** Dialogue natif de choix d'image (ouvert par Rust) ; `null` si l'utilisateur annule. */
+  wordPickImage: (maxWidthMm: number) => call<DocImage | null>("word_pick_image", { maxWidthMm }),
   /** `true` : dialogue d'impression natif ouvert ; `false` : appeler window.print(). */
   printWebview: () => call<boolean>("print_webview"),
   discardRecovery: (path: string) => call<null>("discard_recovery_command", { path }),

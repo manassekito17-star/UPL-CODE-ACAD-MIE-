@@ -219,6 +219,7 @@ pub fn run() {
             word::word_save_copy,
             word::word_autosave,
             word::word_open_recovery,
+            word::word_pick_image,
             print_webview,
         ])
         .build(tauri::generate_context!());

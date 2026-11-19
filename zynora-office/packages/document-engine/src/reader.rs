@@ -11,6 +11,8 @@ use std::collections::{BTreeSet, HashMap};
 
 struct Ctx {
     lost: BTreeSet<String>,
+    /// identifiant de relation → (octets d'origine, aperçu PNG)
+    images: HashMap<String, (Vec<u8>, Vec<u8>)>,
     /// identifiant de style → nom (« heading 1 », « Title »…)
     style_names: HashMap<String, String>,
     /// identifiant de numérotation → (abstractNum, surcharges)
@@ -41,10 +43,17 @@ fn non_empty(v: &Value) -> bool {
 }
 
 pub(crate) fn read(bytes: &[u8]) -> Result<Loaded, DocError> {
-    let docx = docx_rs::read_docx(bytes).map_err(|e| DocError::Read(e.to_string()))?;
+    let mut docx = docx_rs::read_docx(bytes).map_err(|e| DocError::Read(e.to_string()))?;
+    // Les octets des images sont retirés avant la conversion JSON (qui les recopierait en tableaux).
+    let images = std::mem::take(&mut docx.images)
+        .into_iter()
+        .map(|(id, _, original, preview)| (id, (original.0, preview.0)))
+        .collect();
+    docx.media.clear();
     let v: Value = serde_json::from_str(&docx.json()).map_err(|e| DocError::Read(e.to_string()))?;
     let mut ctx = Ctx {
         lost: BTreeSet::new(),
+        images,
         style_names: HashMap::new(),
         numberings: HashMap::new(),
         formats: HashMap::new(),
@@ -409,7 +418,31 @@ fn read_run(
                 _ => text.push('\n'),
             },
             Some("sym") => ctx.lose("symboles de police"),
-            Some("drawing") => ctx.lose("images et dessins"),
+            Some("drawing") => {
+                let drawing = &c["data"];
+                let pic = &drawing["data"];
+                let image = (drawing["type"].as_str() == Some("pic"))
+                    .then(|| pic["id"].as_str())
+                    .flatten()
+                    .and_then(|id| ctx.images.get(id))
+                    .and_then(|(original, preview)| {
+                        let emu = |i: usize| pic["size"][i].as_f64().unwrap_or(0.0) / crate::image::EMU_PER_MM;
+                        crate::image::from_docx_media(original, preview, emu(0), emu(1))
+                    });
+                match image {
+                    Some(image) => {
+                        if pic["positionType"].as_str().is_some_and(|p| p != "inline") {
+                            ctx.lose("position des images flottantes (placées dans le texte)");
+                        }
+                        if !text.is_empty() {
+                            runs.push(Run { text: std::mem::take(&mut text), ..base.clone() });
+                        }
+                        ctx.text_bytes += image.data.len();
+                        runs.push(Run { image: Some(image), ..base.clone() });
+                    }
+                    None => ctx.lose("dessins, formes et images vectorielles (EMF, WMF)"),
+                }
+            }
             Some("fieldChar" | "instrText" | "fldSimple") => ctx.lose("champs (numéros de page, dates, renvois)"),
             Some("footnoteReference" | "endnoteReference") => ctx.lose("notes de bas de page et de fin"),
             Some("commentReference") => ctx.lose("commentaires"),
@@ -432,7 +465,7 @@ fn read_run(
 fn merge_runs(runs: &mut Vec<Run>) {
     let mut out: Vec<Run> = Vec::with_capacity(runs.len());
     for r in runs.drain(..) {
-        if let Some(last) = out.last_mut() {
+        if let Some(last) = out.last_mut().filter(|l| l.image.is_none() && r.image.is_none()) {
             let same = Run { text: String::new(), ..last.clone() } == Run { text: String::new(), ..r.clone() };
             if same {
                 last.text.push_str(&r.text);

@@ -10,7 +10,9 @@ use std::fs;
 
 use serde::Serialize;
 use tauri::State;
-use zynora_document_engine::{DocError, Document, from_docx, from_txt, to_docx, to_txt};
+use zynora_document_engine::{
+    DocError, Document, ImageData, MAX_IMAGE_BYTES, from_docx, from_txt, prepare_image, to_docx, to_txt,
+};
 use zynora_file_manager::{Library, write_atomic};
 
 use crate::library::open_library;
@@ -240,6 +242,48 @@ fn open_recovery(state: &AppState, path: String) -> CommandResult<DocumentInfo> 
     info(state, &key, path, document, lost, true)
 }
 
+/// Lit une image choisie par l'utilisateur : fichier ordinaire, taille bornée, format vérifié.
+fn read_image_file(path: &std::path::Path, max_width_mm: f64) -> CommandResult<ImageData> {
+    use std::io::Read;
+    let meta = fs::symlink_metadata(path).map_err(|_| CommandError::new("image introuvable"))?;
+    if !meta.is_file() {
+        return Err(CommandError::new("ce n'est pas un fichier image"));
+    }
+    if meta.len() > MAX_IMAGE_BYTES as u64 {
+        return Err(CommandError::new("image trop volumineuse (32 Mo au plus)"));
+    }
+    let mut bytes = Vec::new();
+    fs::File::open(path)
+        .and_then(|f| f.take(MAX_IMAGE_BYTES as u64 + 1).read_to_end(&mut bytes))
+        .map_err(|_| CommandError::new("image illisible"))?;
+    Ok(prepare_image(&bytes, max_width_mm)?)
+}
+
+/// Insertion d'une image : le dialogue natif est ouvert par le cœur Rust, qui renvoie l'image
+/// validée (ou `None` si l'utilisateur annule).
+#[cfg(desktop)]
+#[tauri::command]
+pub(crate) async fn word_pick_image(app: tauri::AppHandle, max_width_mm: f64) -> CommandResult<Option<ImageData>> {
+    use tauri_plugin_dialog::DialogExt;
+    let Some(picked) = app
+        .dialog()
+        .file()
+        .set_title("Insérer une image")
+        .add_filter("Images", &["png", "jpg", "jpeg", "gif"])
+        .blocking_pick_file()
+    else {
+        return Ok(None);
+    };
+    let path = picked.into_path().map_err(|_| CommandError::new("emplacement non pris en charge"))?;
+    read_image_file(&path, max_width_mm).map(Some)
+}
+
+#[cfg(mobile)]
+#[tauri::command]
+pub(crate) async fn word_pick_image(_app: tauri::AppHandle, _max_width_mm: f64) -> CommandResult<Option<ImageData>> {
+    Err(CommandError::new("sur téléphone, l'insertion d'images depuis le stockage arrive prochainement"))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -300,7 +344,7 @@ mod tests {
         let original = include_bytes!("../../../../packages/document-engine/tests/fixtures/libreoffice-riche.docx");
         library.create_document("", "riche.docx", original).expect("import");
         let opened = open(&state, "riche.docx".into()).expect("ouverture");
-        assert!(opened.lost.iter().any(|l| l == "images et dessins"));
+        assert!(opened.lost.iter().any(|l| l == "cellules de tableau fusionnées"), "{:?}", opened.lost);
 
         let err = save(&state, "riche.docx", &opened.document).expect_err("écrasement refusé");
         assert!(err.message.contains("Enregistrer une copie"));
@@ -311,6 +355,27 @@ mod tests {
         assert_eq!(copy.path, "riche (2).docx", "nom libre choisi automatiquement");
         assert!(copy.lost.is_empty());
         save(&state, &copy.path, &copy.document).expect("la copie peut être enregistrée");
+    }
+
+    #[test]
+    fn image_choisie_validee_et_bornee() {
+        let dir = tempfile::tempdir().expect("dossier");
+        // PNG 1×1 valide (8 bits, RVB).
+        let png: &[u8] = &[
+            0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 0x0D, 0x49, 0x48, 0x44, 0x52, 0, 0, 0, 1, 0, 0, 0,
+            1, 8, 2, 0, 0, 0, 0x90, 0x77, 0x53, 0xDE, 0, 0, 0, 0x0C, 0x49, 0x44, 0x41, 0x54, 0x08, 0xD7, 0x63, 0xF8,
+            0xCF, 0xC0, 0, 0, 0x03, 0x01, 0x01, 0, 0x18, 0xDD, 0x8D, 0xB0, 0, 0, 0, 0, 0x49, 0x45, 0x4E, 0x44, 0xAE,
+            0x42, 0x60, 0x82,
+        ];
+        let file = dir.path().join("point.png");
+        fs::write(&file, png).expect("écriture");
+        let image = read_image_file(&file, 160.0).expect("image");
+        assert_eq!(image.mime, "image/png");
+        let fake = dir.path().join("faux.png");
+        fs::write(&fake, b"<script>").expect("écriture");
+        assert!(read_image_file(&fake, 160.0).is_err(), "contenu qui n'est pas une image");
+        assert!(read_image_file(dir.path(), 160.0).is_err(), "dossier");
+        assert!(read_image_file(&dir.path().join("absent.png"), 160.0).is_err());
     }
 
     #[test]

@@ -39,11 +39,12 @@ Ne pas ouvrir de ticket public. Contacter le mainteneur du dépôt en privé (on
 | Document texte avec contenu non pris en charge | La lecture DOCX relève tout élément qui ne serait pas réécrit ; `word_save` relit le fichier **sur le disque** et refuse de le remplacer s'il en contient (copie obligatoire, nom libre choisi sans écrasement) | `document-engine`, `src-tauri/src/word.rs` | unitaire, interface |
 | Liens piégés dans un document | Seuls `http`, `https` et `mailto` sont acceptés (lecture, saisie et écriture) ; `javascript:`, `file:`… refusés ; un clic dans l'éditeur n'ouvre jamais un lien | `document-engine`, `word/schema.ts` | unitaire, interface |
 | Modèle de document forgé par l'interface | `word_save` revalide le modèle : dimensions et marges bornées, couleurs hexadécimales, surlignages de la liste DOCX, tailles de police, noms de police | `document-engine` | unitaire |
+| Image piégée (document ou fichier choisi) | Format réel vérifié (PNG, JPEG, GIF) ; décodage borné (32 Mo, 16 384 px de côté, 512 Mo de mémoire) ; aucune image distante (CSP `img-src 'self' data:` ; au collage, seules les images de ZYNORA sont reconnues) ; type annoncé par l'interface revérifié | `document-engine/src/image.rs`, `word.rs`, `word/schema.ts` | unitaire, interface |
 | Lecteur tiers qui panique | Paniques de docx-rs et IronCalc rattrapées (`panic = "unwind"` + `catch_unwind`) : erreur affichée, application conservée | `document-engine`, `spreadsheet-engine` | unitaire |
 | Saisies démesurées | Cellule ≤ 32 767 caractères ; plage demandée ≤ 20 000 cellules ; CSV ≤ 2 millions de cellules ; insertions bornées | `spreadsheet-engine`, `sheets.rs` | unitaire |
 | Téléphone | Bibliothèque dans l'espace privé de l'application ; aucune permission de stockage demandée | `src-tauri/src/lib.rs` | revue |
 | Journalisation | Opérations sensibles enregistrées localement (jamais le contenu des documents), journal borné à 10 000 entrées | `packages/database` | unitaire, e2e |
-| Licences et dépendances | Contrôle automatique de 531 dépendances ; `pnpm audit` ; versions exactes ; `Cargo.lock` et `pnpm-lock.yaml` versionnés | `scripts/check-licenses.mjs`, CI | CI |
+| Licences et dépendances | Contrôle automatique de 533 dépendances ; `pnpm audit` ; versions exactes ; `Cargo.lock` et `pnpm-lock.yaml` versionnés | `scripts/check-licenses.mjs`, CI | CI |
 | Secrets | Aucun secret dans le dépôt ni l'interface ; signature et clés de mise à jour prévues dans les secrets GitHub | — | revue |
 
 ## Prévu

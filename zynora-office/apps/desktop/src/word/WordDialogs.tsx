@@ -1,5 +1,5 @@
 import { Button, Dialog, TextField } from "@zynora/design-system";
-import { TextSelection, type EditorState, type Transaction } from "prosemirror-state";
+import { NodeSelection, TextSelection, type EditorState, type Transaction } from "prosemirror-state";
 import { useMemo, useState, type FormEvent } from "react";
 
 import type { DocPage } from "../ipc";
@@ -43,6 +43,8 @@ export function WordDialog({ kind, ...c }: DialogControl & { kind: WordDialogKin
       return <WordCount {...c} />;
     case "saveCopy":
       return <SaveCopy {...c} />;
+    case "image":
+      return <ImageSize {...c} />;
   }
 }
 
@@ -352,6 +354,61 @@ function SaveCopy({ w, saveCopy, defaultCopyName, onClose }: DialogControl) {
         }}
       >
         <TextField label={w("dlg.copyName")} value={name} data-autofocus onChange={(e) => setName(e.target.value)} error={valid ? undefined : w("dlg.badName")} />
+      </form>
+    </Dialog>
+  );
+}
+
+function ImageSize({ w, state, dispatch, onClose }: DialogControl) {
+  const selected = state().selection;
+  const node = selected instanceof NodeSelection && selected.node.type.name === "image" ? selected.node : null;
+  const ratio = node ? node.attrs.height / node.attrs.width : 1;
+  const [width, setWidth] = useState(String(node?.attrs.width ?? ""));
+  const [height, setHeight] = useState(String(node?.attrs.height ?? ""));
+  const [keep, setKeep] = useState(true);
+  const wv = parseNumber(width);
+  const hv = parseNumber(height);
+  const valid = !!node && wv !== null && hv !== null && wv >= 1 && wv <= 2000 && hv >= 1 && hv <= 2000;
+  const round = (v: number) => String(Math.round(v * 10) / 10);
+  return (
+    <Dialog open title={w("imageSize").replace("…", "")} onClose={onClose} actions={<Actions w={w} onClose={onClose} submit={w("dlg.apply")} form="word-image" disabled={!valid} />}>
+      <form
+        id="word-image"
+        className="dialog-form dialog-form--grid"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!valid || !node) return;
+          const s = state();
+          const tr = s.tr.setNodeMarkup(selected.from, undefined, { ...node.attrs, width: wv, height: hv });
+          dispatch(tr.setSelection(NodeSelection.create(tr.doc, selected.from)));
+          onClose();
+        }}
+      >
+        <TextField
+          label={w("dlg.width")}
+          inputMode="decimal"
+          value={width}
+          data-autofocus
+          onChange={(e) => {
+            setWidth(e.target.value);
+            const v = parseNumber(e.target.value);
+            if (keep && v !== null) setHeight(round(v * ratio));
+          }}
+        />
+        <TextField
+          label={w("dlg.height")}
+          inputMode="decimal"
+          value={height}
+          onChange={(e) => {
+            setHeight(e.target.value);
+            const v = parseNumber(e.target.value);
+            if (keep && v !== null) setWidth(round(v / ratio));
+          }}
+        />
+        <label className="dialog-check">
+          <input type="checkbox" checked={keep} onChange={(e) => setKeep(e.target.checked)} />
+          {w("dlg.keepRatio")}
+        </label>
       </form>
     </Dialog>
   );
