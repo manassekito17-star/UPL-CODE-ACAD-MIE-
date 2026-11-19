@@ -169,6 +169,16 @@ test("tableau de bord : « Garder les éditeurs sur cet appareil », puis édite
   const { isDemoMode } = await import("./helpers");
   test.skip(await isDemoMode(page), "Supabase non configuré");
   await page.goto("/tableau-de-bord");
+  // Un programme sauvegardé dans le compte : il doit rester consultable sans Internet.
+  const titre = `Fichier gardé ${Date.now()}`;
+  const programId = await page.evaluate(async (title) => {
+    const res = await fetch("/api/programs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, language: "pseudocode", files: [{ name: "algorithme.algo", content: 'ALGORITHME Garde\nDEBUT\n  ECRIRE("fichier garde")\nFIN' }], stdin: "" }),
+    });
+    return ((await res.json()) as { id: string }).id;
+  }, titre);
   const card = page.getByTestId("carte-hors-ligne");
   await expect(card).toBeVisible();
   await card.getByRole("button", { name: "Garder les éditeurs sur cet appareil" }).click();
@@ -176,10 +186,19 @@ test("tableau de bord : « Garder les éditeurs sur cet appareil », puis édite
   await expect(card.locator('[data-pret="oui"]')).toHaveCount(5, { timeout: 200_000 });
   await expect(card).toContainText("ils s'ouvrent même sans connexion");
   expect(await page.evaluate(() => localStorage.getItem("upl:hors-ligne:auto:v6"))).toBeTruthy();
+  // Fichiers sauvegardés du compte gardés aussi (liste et programme).
+  await expect.poll(() => page.evaluate(async (id) => Boolean((await caches.match(`/editeur?programme=${id}`)) && (await caches.match("/api/programs"))), programId), { timeout: 60_000 }).toBe(true);
   await context.setOffline(true);
   // Page qui demande Internet : la page « Pas de connexion » propose les éditeurs gardés.
   await page.goto("/formations");
   await expect(page.getByText("Ces éditeurs fonctionnent sans connexion")).toBeVisible();
+  // « Mes fichiers sauvegardés » : le programme s'ouvre sans Internet, avec son contenu.
+  const fichiers = page.getByTestId("fichiers-hors-ligne");
+  await expect(fichiers.getByRole("link", { name: new RegExp(titre) })).toBeVisible();
+  await fichiers.getByRole("link", { name: new RegExp(titre) }).click();
+  await expect(page).toHaveURL(new RegExp(`programme=${programId}`));
+  await expect.poll(() => page.evaluate(() => (window as unknown as { monaco?: { editor: { getModels(): Array<{ getValue(): string }> } } }).monaco?.editor.getModels().map((m) => m.getValue()).join("\n") ?? ""), { timeout: 30_000 }).toContain("fichier garde");
+  await page.goto("/formations");
   await page.getByRole("link", { name: /Interface LARP/ }).click();
   await expect(page.getByTestId("larp-fenetre")).toBeVisible({ timeout: 30_000 });
   await page.goto("/editeur");

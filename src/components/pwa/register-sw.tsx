@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { autoPrepareOffline, registerServiceWorker } from "@/lib/offline/client";
+import { autoPrepareOffline, keepSavedFilesOffline, registerServiceWorker } from "@/lib/offline/client";
 
 /**
  * Service worker enregistré sur tout le site : la plateforme et ses éditeurs s'installent sur le
@@ -14,11 +14,12 @@ export function RegisterServiceWorker({ loggedIn = false }: { loggedIn?: boolean
     // Retour d'Internet : les éditeurs qui manquent encore sont téléchargés automatiquement.
     const onOnline = () => {
       clearTimeout(timer);
-      timer = setTimeout(() => void autoPrepareOffline(loggedIn, { resume: true }), 3000);
+      timer = setTimeout(() => void autoPrepareOffline(loggedIn, { resume: true }).then(() => keepSavedFilesOffline(loggedIn)), 3000);
     };
     void registerServiceWorker().then((reg) => {
       if (!reg) return;
-      timer = setTimeout(() => void autoPrepareOffline(loggedIn), 3000);
+      // Éditeurs d'abord, puis les fichiers sauvegardés du compte.
+      timer = setTimeout(() => void autoPrepareOffline(loggedIn).then(() => keepSavedFilesOffline(loggedIn)), 3000);
       window.addEventListener("online", onOnline);
     });
     return () => {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { autoPrepareOffline, editorsOnDevice, OFFLINE_EDITORS, OFFLINE_EVENT, offlineSupported, type OfflineState } from "@/lib/offline/client";
+import { autoPrepareOffline, editorsOnDevice, keepSavedFilesOffline, OFFLINE_EDITORS, OFFLINE_EVENT, offlineSupported, type OfflineState } from "@/lib/offline/client";
 
 /**
  * Tableau de bord : éditeurs gardés sur cet appareil pour une utilisation sans Internet,
@@ -51,7 +51,7 @@ export function OfflineEditorsCard() {
         <button
           type="button"
           disabled={busy}
-          onClick={() => void autoPrepareOffline(true, { force: true })}
+          onClick={() => void autoPrepareOffline(true, { force: true }).then(() => keepSavedFilesOffline(true, { force: true }))}
           className="mt-4 w-full rounded-lg bg-electrique-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-electrique-500 disabled:opacity-60"
         >
           {busy ? "Enregistrement…" : "Garder les éditeurs sur cet appareil"}

@@ -277,3 +277,49 @@ export async function autoPrepareOffline(loggedIn: boolean, opts: { force?: bool
     autoRunning = false;
   }
 }
+
+const FILES_KEY = "upl:hors-ligne:fichiers";
+let filesRunning = false;
+
+/**
+ * Garde sur l'appareil les fichiers sauvegardés du compte, pour les regarder et les ouvrir sans
+ * Internet : listes « Mes programmes » (ZENTECH Algo), projets de ZENTECH IDE et de l'interface LARP,
+ * puis le contenu des plus récents. Au plus toutes les 15 minutes (ou tout de suite avec `force`).
+ */
+export async function keepSavedFilesOffline(loggedIn: boolean, opts: { force?: boolean } = {}) {
+  if (!loggedIn || filesRunning || !offlineSupported() || !navigator.onLine || window !== window.top) return;
+  try {
+    if (navigator.webdriver && !opts.force && localStorage.getItem("upl:test:auto-hors-ligne") !== "1") return;
+    if (!opts.force && Date.now() - Number(localStorage.getItem(FILES_KEY) ?? 0) < 15 * 60_000) return;
+  } catch {
+    return;
+  }
+  filesRunning = true;
+  try {
+    await navigator.serviceWorker.ready;
+    // Lecture par le service worker : chaque liste est gardée au passage (copie « hors ligne »).
+    const list = async <T,>(url: string, key: string): Promise<T[]> => {
+      try {
+        const res = await fetch(url, { cache: "no-store" });
+        if (!res.ok || isOfflineCopy(res)) return [];
+        return (((await res.json()) as Record<string, T[]>)[key] ?? []) as T[];
+      } catch {
+        return [];
+      }
+    };
+    type Row = { id: string };
+    const programs = await list<Row>("/api/programs", "programs");
+    const projects = await list<Row>("/api/projects", "projects");
+    const larp = await list<Row>("/api/projects?type=larp", "projects");
+    await sendPrecache([
+      ...programs.slice(0, 30).map((p) => `/editeur?programme=${p.id}`),
+      ...projects.slice(0, 20).map((p) => `/ide?projet=${p.id}`),
+      ...larp.slice(0, 20).map((p) => `/api/projects/${p.id}`),
+    ]);
+    localStorage.setItem(FILES_KEY, String(Date.now()));
+  } catch {
+    /* nouvel essai à la prochaine visite */
+  } finally {
+    filesRunning = false;
+  }
+}
