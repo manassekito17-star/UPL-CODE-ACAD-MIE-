@@ -97,9 +97,15 @@ export const KEYWORDS = new Set([
   "FERMER",
 ]);
 
-const OPS = ["//", "!=", "<>", "<=", ">=", "==", "<", ">", "=", "+", "-", "*", "/", "%", "^", "(", ")", "[", "]", ",", ":", "!", "←", "≠", "≤", "≥", "×", "÷"];
-/** Symboles mathématiques (clavier du téléphone) : équivalents des opérateurs du langage. */
-const OP_ALIAS: Record<string, string> = { "<>": "!=", "==": "=", "←": "=", "≠": "!=", "≤": "<=", "≥": ">=", "×": "*", "÷": "/" };
+const OPS = ["//", "**", "<-", "!=", "<>", "<=", ">=", "==", "<", ">", "=", "+", "-", "*", "/", "%", "^", "&", "(", ")", "[", "]", ",", ":", "!", "←", "≠", "≤", "≥", "×", "÷"];
+/**
+ * Symboles mathématiques (clavier du téléphone) et écritures des cours : équivalents des opérateurs
+ * du langage (« <- » et « ← » : affectation ; « ** » : puissance).
+ */
+const OP_ALIAS: Record<string, string> = { "<>": "!=", "==": "=", "←": "=", "<-": "=", "**": "^", "≠": "!=", "≤": "<=", "≥": ">=", "×": "*", "÷": "/" };
+
+/** Mots des cours d'algorithmique acceptés comme synonymes des mots réservés de LARP. */
+const KW_ALIAS: Record<string, string> = { AFFICHER: "ECRIRE", SAISIR: "LIRE", ECRIS: "ECRIRE", LIS: "LIRE", FINREPETER: "", REPETE: "REPETER", JUSQUE: "JUSQUA" };
 
 const isIdStart = (c: string) => /[A-Za-z_À-ɏ]/.test(c) && c !== "×" && c !== "÷";
 const isIdChar = (c: string) => /[A-Za-z0-9_À-ɏ]/.test(c) && c !== "×" && c !== "÷";
@@ -123,6 +129,11 @@ export function tokenize(src: string): Tok[] {
 
   while (i < n) {
     const c = src[i];
+    // Commentaires des cours : « # … » partout, « // … » en début de ligne (ailleurs « // » est la division entière).
+    if (c === "#" || (c === "/" && src[i + 1] === "/" && /(^|\n)[ \t]*$/.test(src.slice(Math.max(0, i - 200), i)))) {
+      while (i < n && src[i] !== "\n") adv();
+      continue;
+    }
     // Commentaire « \\ » jusqu'à la fin de la ligne.
     if (c === "\\" && src[i + 1] === "\\") {
       while (i < n && src[i] !== "\n") adv();
@@ -207,7 +218,10 @@ export function tokenize(src: string): Tok[] {
         push({ k: "kw", v: "SI", raw: raw.slice(5) }, l, cc + 5);
         continue;
       }
-      if (KEYWORDS.has(key)) push({ k: "kw", v: key, raw }, l, cc);
+      const alias = KW_ALIAS[key];
+      if (alias === "") continue; // mot de fin facultatif (« FIN RÉPÉTER » : ignoré)
+      if (alias) push({ k: "kw", v: alias, raw }, l, cc);
+      else if (KEYWORDS.has(key)) push({ k: "kw", v: key, raw }, l, cc);
       else push({ k: "id", v: key, raw }, l, cc);
       continue;
     }
@@ -228,9 +242,36 @@ export function tokenize(src: string): Tok[] {
 /** Tolérances d'écriture : « TANT QUE », « FIN SI », « FIN TANTQUE », « FIN POUR »… */
 function merge(t: Tok[]): Tok[] {
   const r: Tok[] = [];
+  // Ligne d'une boucle POUR : « POUR i DE 1 À n PAS 2 FAIRE », « POUR i ALLANT DE 1 A n ».
+  let pourLine = -1;
+  let pourState: "var" | "debut" | "fin" | null = null;
+  const operandEnd = (x: Tok | undefined) => !!x && (x.k === "num" || x.k === "str" || x.k === "id" || (x.k === "op" && (x.v === ")" || x.v === "]")));
   for (let i = 0; i < t.length; i++) {
     const a = t[i];
     const b = t[i + 1];
+    if (a.k === "kw" && a.v === "POUR") {
+      pourLine = a.line;
+      pourState = "var";
+    } else if (a.line !== pourLine) pourState = null;
+    if (pourState && a.line === pourLine) {
+      if (a.k === "id" && a.v === "ALLANT") continue;
+      if (pourState === "var" && a.k === "kw" && a.v === "DE") {
+        r.push({ ...a, k: "op", v: "=" });
+        pourState = "debut";
+        continue;
+      }
+      if (pourState === "var" && a.k === "op" && a.v === "=") pourState = "debut";
+      if (pourState === "debut" && a.k === "id" && a.v === "A" && operandEnd(r[r.length - 1])) {
+        r.push({ ...a, k: "kw", v: "JUSQUA" });
+        pourState = "fin";
+        continue;
+      }
+      if (pourState === "debut" && a.k === "kw" && a.v === "JUSQUA") pourState = "fin";
+      if (pourState === "fin" && a.k === "id" && a.v === "PAS" && operandEnd(r[r.length - 1])) {
+        r.push({ ...a, k: "kw", v: "INCREMENT" });
+        continue;
+      }
+    }
     if (a.k === "id" && a.v === "TANT" && b && b.k === "id" && b.v === "QUE" && b.line === a.line) {
       r.push({ ...a, k: "kw", v: "TANTQUE", raw: `${a.raw} ${b.raw}` });
       i++;

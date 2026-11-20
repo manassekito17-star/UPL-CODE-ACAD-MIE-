@@ -61,6 +61,8 @@ export function inputValue(s: string): Value {
     return n >= INT_MIN && n <= INT_MAX ? { k: "i", v: n } : { k: "f", v: n };
   }
   if (/^[-+]?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?$/.test(s)) return { k: "f", v: Number(s) };
+  // Virgule décimale à la française (« 2,5 ») tapée à un LIRE.
+  if (/^[-+]?\d+,\d+$/.test(s)) return { k: "f", v: Number(s.replace(",", ".")) };
   // « VRAI » / « FAUX » tapés à un LIRE : valeurs vrai/faux (comme les mots-clés du langage),
   // pour que « SI reponse = VRAI ALORS » fonctionne.
   const b = boolWord(s);
@@ -172,6 +174,8 @@ const ARITH = new Set(["+", "-", "*", "/", "//", "%", "^"]);
 const isNumOrNull = (v: Val) => v === null || v.k === "i" || v.k === "f";
 
 export function binary(op: string, a: Val, b: Val): Value | null {
+  // « & » (concaténation des cours) : toujours du texte, même entre deux nombres.
+  if (op === "&") return str((a === null ? "" : fmt(a)) + (b === null ? "" : fmt(b)));
   // Comme LARP sur ordinateur : une variable jamais remplie (#IND) vaut 0 dans un calcul avec des
   // nombres (ex. « SOMME = SOMME + NOTE[i] » sans « SOMME = 0 » avant la boucle). L'avertissement
   // « variable indéfinie » reste affiché pour que l'étudiant voie l'oubli.
@@ -236,7 +240,14 @@ export function binary(op: string, a: Val, b: Val): Value | null {
     case "=":
     case "!=": {
       if (a === null || b === null) throw new RunError("Valeur indéfinie (#IND) dans une comparaison.");
-      const same = a.k === "c" || b.k === "c" ? equals(a, b) : compare(a, b) === 0;
+      let same: boolean;
+      try {
+        same = a.k === "c" || b.k === "c" ? equals(a, b) : compare(a, b) === 0;
+      } catch (e) {
+        // Égalité entre types différents (vrai/faux et nombre…) : simplement « pas égal », sans erreur.
+        if (e instanceof RunError && /Types incompatibles/.test(e.message)) same = false;
+        else throw e;
+      }
       return bool(op === "=" ? same : !same);
     }
     case "<":

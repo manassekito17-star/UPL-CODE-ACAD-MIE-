@@ -161,7 +161,7 @@ export function parseModule(src: string, name: string, main: boolean): ModuleAst
   };
   const addE = (): Expr => {
     let a = mulE();
-    while (isOp("+") || isOp("-")) {
+    while (isOp("+") || isOp("-") || isOp("&")) {
       const t = next();
       a = { t: "bin", op: t.v, a, b: mulE(), line: t.line };
     }
@@ -272,6 +272,11 @@ export function parseModule(src: string, name: string, main: boolean): ModuleAst
       next();
       return callExpr(true);
     }
+    // Conversions : ENTIER(x), FLOTTANT(x) / RÉEL(x), CHAÎNE(x) (mots aussi utilisés par « EST ENTIER »).
+    if (t.k === "kw" && (t.v === "ENTIER" || t.v === "FLOTTANT" || t.v === "CHAINE") && peek(1).k === "op" && peek(1).v === "(") {
+      next();
+      return { t: "call", name: t.raw, key: t.v, args: args(), explicit: false, parens: true, line: t.line };
+    }
     if (t.k === "id") {
       next();
       if (isOp("(")) return { t: "call", name: t.raw, key: t.v, args: args(), explicit: false, parens: true, line: t.line };
@@ -307,12 +312,18 @@ export function parseModule(src: string, name: string, main: boolean): ModuleAst
   };
 
   // ------------------------------------------------------------ Instructions
-  const block = (): Stmt[] => {
+  /** La ligne courante contient-elle FAIRE ? (distingue « TANTQUE … FAIRE » de la fin d'un RÉPÉTER). */
+  const lineHasFaire = () => {
+    for (let j = p; j < toks.length && toks[j].k !== "nl" && toks[j].k !== "eof"; j++) if (toks[j].k === "kw" && toks[j].v === "FAIRE") return true;
+    return false;
+  };
+  const block = (inRepeat = false): Stmt[] => {
     const list: Stmt[] = [];
     for (;;) {
       skipNl();
       const t = peek();
       if (t.k === "eof" || (t.k === "kw" && BLOCK_END.has(t.v))) return list;
+      if (inRepeat && t.k === "kw" && t.v === "TANTQUE" && !lineHasFaire()) return list;
       list.push(stmt());
     }
   };
@@ -470,8 +481,15 @@ export function parseModule(src: string, name: string, main: boolean): ModuleAst
         }
         case "REPETER": {
           next();
-          const body = block();
+          const body = block(true);
           const ct = peek();
+          // RÉPÉTER … TANTQUE condition (sans FAIRE) : on répète tant que la condition est vraie.
+          if (isKw("TANTQUE")) {
+            next();
+            const c = expr();
+            endOfStmt();
+            return { s: "rep", line, body, cond: { t: "un", op: "NON", e: c, line: ct.line }, condLine: ct.line };
+          }
           eatKw("JUSQUA", "JUSQU'À");
           const cond = expr();
           endOfStmt();
@@ -555,6 +573,30 @@ export function parseModule(src: string, name: string, main: boolean): ModuleAst
     }
     if (t.k === "id") {
       const after = peek(1);
+      // « TABLEAU T[10] » (déclaration des cours) : T devient un conteneur vide (les cases se remplissent ensuite).
+      if ((t.v === "TABLEAU" || t.v === "TAB") && after.k === "id") {
+        next();
+        const v = next();
+        if (isOp("[")) {
+          let depth = 0;
+          do {
+            if (isOp("[")) depth++;
+            if (isOp("]")) depth--;
+            next();
+          } while (depth > 0 && peek().k !== "nl" && peek().k !== "eof");
+        }
+        while (peek().k !== "nl" && peek().k !== "eof") next(); // « DE ENTIER » éventuel
+        return { s: "assign", line, target: { name: v.raw, key: v.v, idx: [], line }, e: { t: "cont", items: [] } };
+      }
+      // Déclaration dans le programme (« a, b : ENTIER ») : ignorée, comme dans LARP qui n'en a pas besoin.
+      if (after.k === "op" && (after.v === ":" || after.v === ",")) {
+        let j = p;
+        while (j < toks.length && toks[j].k !== "nl" && toks[j].k !== "eof" && !(toks[j].k === "op" && toks[j].v === ":")) j++;
+        if (toks[j]?.k === "op" && toks[j].v === ":" && toks.slice(p, j).every((x) => x.k === "id" || (x.k === "op" && x.v === ","))) {
+          while (peek().k !== "nl" && peek().k !== "eof") next();
+          return { s: "si", line, branches: [], endLine: line };
+        }
+      }
       if ((after.k === "op" && (after.v === "=" || after.v === "[")) || (after.k === "op" && after.v === "←")) {
         const target = lvalue();
         eatOp("=");
@@ -575,12 +617,57 @@ export function parseModule(src: string, name: string, main: boolean): ModuleAst
 
   // ------------------------------------------------------------ Module
   skipNl();
+  // En-tête des cours d'algorithmique avant DÉBUT (ignoré par LARP) : « ALGORITHME Nom »,
+  // sections « VARIABLES / CONSTANTES » et déclarations « a, b : ENTIER ». Les constantes
+  // (« N = 10 ») deviennent des affectations au début du programme.
+  const constants: Stmt[] = [];
+  if (main && !isKw("DEBUT")) {
+    const HEAD = new Set(["ALGORITHME", "ALGO", "PROGRAMME", "VARIABLES", "VARIABLE", "VAR", "CONSTANTES", "CONSTANTE", "CONST", "LEXIQUE", "DECLARATIONS", "TYPES", "TYPE"]);
+    const lineToks = () => {
+      const l: Tok[] = [];
+      for (let j = p; j < toks.length && toks[j].k !== "nl" && toks[j].k !== "eof"; j++) l.push(toks[j]);
+      return l;
+    };
+    const skipLine = () => {
+      while (peek().k !== "nl" && peek().k !== "eof") p++;
+      skipNl();
+    };
+    let looksLikeHeader = false;
+    for (let guard = 0; guard < 500 && peek().k !== "eof" && !isKw("DEBUT"); guard++) {
+      const l = lineToks();
+      const head = l[0];
+      if (head.k === "id" && HEAD.has(head.v)) {
+        looksLikeHeader = true;
+        // « CONSTANTE N = 10 » sur la même ligne.
+        if (l.length > 2 && l[1].k === "id" && l[2].k === "op" && l[2].v === "=") {
+          p++;
+          constants.push(stmt());
+          skipNl();
+          continue;
+        }
+        skipLine();
+        continue;
+      }
+      if (!looksLikeHeader) break;
+      if (head.k === "id" && l[1]?.k === "op" && l[1].v === "=") {
+        constants.push(stmt());
+        skipNl();
+        continue;
+      }
+      // Déclaration (« a, b : ENTIER », « T : TABLEAU[1..10] DE RÉEL »…) : ignorée.
+      if (l.some((x) => x.k === "op" && x.v === ":")) {
+        skipLine();
+        continue;
+      }
+      break;
+    }
+  }
   const first = peek();
   if (main) {
     if (!isKw("DEBUT")) throw err(isKw("ENTRER") ? "Le module principal doit commencer par DÉBUT (ENTRER est réservé aux modules auxiliaires)." : "Le module principal doit commencer par l'instruction DÉBUT.", first);
     next();
     endOfStmt();
-    const body = block();
+    const body = [...constants, ...block()];
     const end = peek();
     if (isKw("RETOURNER")) throw err("Le module principal se termine par FIN (RETOURNER est réservé aux modules auxiliaires).");
     if (!isKw("FIN")) throw err(end.k === "eof" ? "Instruction FIN manquante à la fin du module principal." : `${show(end)} inattendu ici (structure mal fermée ?).`, end);

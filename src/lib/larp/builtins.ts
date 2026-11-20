@@ -118,6 +118,27 @@ const table: Record<string, Fn> = {
     return flt((p.v as number) + r * ((q.v as number) - (p.v as number)));
   },
   ARCTANGENTE: f1("ARCTANGENTE", Math.atan),
+  ARCSINUS: f1("ARCSINUS", Math.asin),
+  ARCCOSINUS: f1("ARCCOSINUS", Math.acos),
+  TANGENTE: f1("TANGENTE", Math.tan),
+  LOGDIX: f1("LOGDIX", Math.log10),
+  // Conversions (écritures des cours) : ENTIER(x) tronque, FLOTTANT(x) / RÉEL, CHAÎNE(x) texte.
+  ENTIER: (a) => {
+    need(a, 1, "ENTIER");
+    return int(Math.trunc(toNum(a[0], "un nombre").v as number));
+  },
+  TRONQUER: (a) => {
+    need(a, 1, "TRONQUER");
+    return int(Math.trunc(toNum(a[0], "un nombre").v as number));
+  },
+  FLOTTANT: (a) => {
+    need(a, 1, "FLOTTANT");
+    return flt(toNum(a[0], "un nombre").v as number);
+  },
+  CHAINE: (a, ctx) => {
+    need(a, 1, "CHAÎNE");
+    return a[0] === null ? str("") : str(fmt(a[0], ctx.sep()));
+  },
   ARRONDIR: (a) => {
     need(a, 1, "ARRONDIR");
     const n = toNum(a[0]);
@@ -247,6 +268,15 @@ const SYN: Record<string, string> = {
   PLAN: "PLANCHER",
   POS: "POSITION",
   SIN: "SINUS",
+  TAN: "TANGENTE",
+  ARCSIN: "ARCSINUS",
+  ARCCOS: "ARCCOSINUS",
+  LOG10: "LOGDIX",
+  LN: "LOGE",
+  RACINECARREE: "RACINE",
+  RAC: "RACINE",
+  ALEATOIREENTIER: "ALEATOIRE",
+  TAILLE: "COMPTER",
 };
 
 export function builtin(key: string): Fn | undefined {
