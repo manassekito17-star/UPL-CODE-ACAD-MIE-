@@ -1,0 +1,10 @@
+:root { --fond: #fff; --texte: #1d2433; --accent: #1677ff; }
+body.sombre { --fond: #0b1220; --texte: #e8edf5; }
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, sans-serif; background: var(--fond); color: var(--texte); }
+.entete { display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; background: var(--accent); color: #fff; }
+.entete a { color: #fff; margin-right: 12px; }
+.grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+.carte { border: 1px solid #ccd; border-radius: 10px; padding: 12px; }
+.carte button { background: var(--accent); color: #fff; border: 0; padding: 6px 10px; border-radius: 6px; }
+main { padding: 20px; }

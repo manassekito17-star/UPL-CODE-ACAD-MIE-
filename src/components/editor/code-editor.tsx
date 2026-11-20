@@ -14,6 +14,12 @@ import { registerPseudocode } from "./pseudocode-language";
 export type MonacoEditor = Parameters<OnMount>[0];
 
 /** Langages pseudocode et K+, et thèmes de la plateforme (partagés par l'éditeur, le laboratoire et ZENTECH IDE). */
+interface TsDefaults {
+  setEagerModelSync(v: boolean): void;
+  getCompilerOptions(): Record<string, unknown>;
+  setCompilerOptions(o: Record<string, unknown>): void;
+}
+
 export function configureMonaco(monaco: Monaco) {
   registerPseudocode(monaco);
   registerKPlus(monaco);
@@ -24,6 +30,17 @@ export function configureMonaco(monaco: Monaco) {
     flags.__uplEmmet = true;
     emmetHTML(monaco, ["html"], { tokenizer: "standard" });
     emmetCSS(monaco, ["css"], { tokenizer: "standard" });
+  }
+  // JavaScript / TypeScript : les fichiers d'un même projet se connaissent (suggestions, aller à la
+  // définition, renommer et références d'un fichier à l'autre), comme dans VS Code.
+  const tsFlags = monaco as unknown as { __uplTs?: boolean };
+  const ts = (monaco.languages as unknown as { typescript?: { javascriptDefaults: TsDefaults; typescriptDefaults: TsDefaults; ScriptTarget: { ES2020: number } } }).typescript;
+  if (ts && !tsFlags.__uplTs) {
+    tsFlags.__uplTs = true;
+    for (const d of [ts.javascriptDefaults, ts.typescriptDefaults]) {
+      d.setEagerModelSync(true);
+      d.setCompilerOptions({ ...d.getCompilerOptions(), allowJs: true, allowNonTsExtensions: true, target: ts.ScriptTarget.ES2020, lib: ["es2020", "dom"] });
+    }
   }
   const rules = [
     { token: "keyword", foreground: "5B93FF", fontStyle: "bold" },
