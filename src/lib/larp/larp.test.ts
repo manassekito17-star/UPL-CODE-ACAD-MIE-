@@ -182,8 +182,9 @@ describe("langage classique (compatible LARP) — exemples du guide", () => {
     expect(out(code, ["900000", "Vrai"])).toBe("900000\nVrai\nBLOQUEE\n");
     // Chaîne « VRAI » dans le code comparée à une valeur vrai/faux.
     expect(out('DÉBUT\n x = "VRAI"\n SI x = VRAI ALORS\n  ÉCRIRE "oui"\n FINSI\nFIN')).toBe("oui\n");
-    // Vraie incompatibilité : message avec les deux types.
-    expect(run('DÉBUT\n x = "bonjour"\n SI x = VRAI ALORS\n  ÉCRIRE "oui"\n FINSI\nFIN').error?.message).toMatch(/chaîne de caractères et vrai\/faux/);
+    // Égalité entre types différents : simplement fausse ; ordre (<, >) impossible : message avec les deux types.
+    expect(out('DÉBUT\n x = "bonjour"\n SI x = VRAI ALORS\n  ÉCRIRE "oui"\n SINON\n  ÉCRIRE "non"\n FINSI\nFIN')).toBe("non\n");
+    expect(run('DÉBUT\n x = "bonjour"\n SI x < VRAI ALORS\n  ÉCRIRE "oui"\n FINSI\nFIN').error?.message).toMatch(/chaîne de caractères et vrai\/faux/);
   });
 
   it("variable indéfinie : #IND et avertissement", () => {

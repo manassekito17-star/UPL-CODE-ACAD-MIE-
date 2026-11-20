@@ -2000,7 +2000,10 @@ function HelpText() {
         </tbody>
       </table>
       <p>
-        Fonctions : ABSOLU, ALÉATOIRE, ARCTANGENTE, ARRONDIR, CAPACITÉ, COMPTER (LONGUEUR), COSINUS, DATE, ENCARACTÈRES, ENCHAÎNE, EXP, FINDECONTENU, FORMATER, HEURE, LOG10, LOGE, MAJUSCULES, MAXIMUM, MINIMUM, MINUSCULES, PI, PLAFOND, PLANCHER, POSITION, RACINE, SINUS, SOUSENSEMBLE.
+        Fonctions : ABSOLU, ALÉATOIRE, ARCCOSINUS, ARCSINUS, ARCTANGENTE, ARRONDIR, CAPACITÉ, CHAÎNE(x), COMPTER (LONGUEUR), COSINUS, DATE, ENCARACTÈRES, ENCHAÎNE, ENTIER(x), EXP, FINDECONTENU, FLOTTANT(x), FORMATER, HEURE, LOG10, LOGE, MAJUSCULES, MAXIMUM, MINIMUM, MINUSCULES, PI, PLAFOND, PLANCHER, POSITION, RACINE, SINUS, SOUSENSEMBLE, TANGENTE, TRONQUER.
+      </p>
+      <p>
+        Écritures des cours aussi acceptées : <b>AFFICHER</b> (= ÉCRIRE), <b>SAISIR</b> (= LIRE), <b>a &lt;- 2</b> ou <b>a ← 2</b>, <b>POUR i DE 1 À n PAS 2 FAIRE</b>, <b>RÉPÉTER … TANTQUE</b> condition, <b>FIN SI / FIN TANT QUE / FIN POUR</b>, <b>MOD</b> et <b>DIV</b>, <b>**</b> (puissance), <b>&amp;</b> (mettre bout à bout du texte), commentaires <b>{"//"}</b> et <b>#</b>, en-tête <b>ALGORITHME</b> / <b>VARIABLES</b> / <b>CONSTANTES</b> avant DÉBUT, <b>TABLEAU T[10]</b>. À un LIRE, <b>VRAI</b>/<b>FAUX</b> donnent des valeurs vrai/faux et <b>2,5</b> (virgule) un nombre. Une variable jamais remplie vaut 0 dans un calcul (avec un avertissement).
       </p>
       <p>
         Exécution : <b>F7</b> exécuter, <b>Shift+F7</b> pas-à-pas, <b>F6</b> un pas, <b>F8</b> point d&apos;arrêt (ou clic dans la marge), <b>Ctrl+F7</b> compiler. Organigramme : touchez une forme du panneau Modèles puis un « + » ; touchez deux fois un bloc pour modifier son contenu.
