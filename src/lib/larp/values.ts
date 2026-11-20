@@ -61,7 +61,17 @@ export function inputValue(s: string): Value {
     return n >= INT_MIN && n <= INT_MAX ? { k: "i", v: n } : { k: "f", v: n };
   }
   if (/^[-+]?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?$/.test(s)) return { k: "f", v: Number(s) };
+  // « VRAI » / « FAUX » tapés à un LIRE : valeurs vrai/faux (comme les mots-clés du langage),
+  // pour que « SI reponse = VRAI ALORS » fonctionne.
+  const b = boolWord(s);
+  if (b !== null) return { k: "b", v: b };
   return { k: "s", v: s };
+}
+
+/** « vrai », « VRAI », « Faux »… (espaces ignorés) → vrai/faux ; sinon null. */
+function boolWord(s: string): boolean | null {
+  const w = s.trim().toUpperCase();
+  return w === "VRAI" ? true : w === "FAUX" ? false : null;
 }
 
 export const typeName = (v: Val) =>
@@ -133,8 +143,11 @@ export function compare(a: Val, b: Val): number {
   if (a === null || b === null) throw new RunError("Valeur indéfinie (#IND) dans une comparaison.");
   if (a.k === "c" || b.k === "c") throw new RunError("Les conteneurs ne se comparent qu'avec = ou !=.");
   if (a.k === "b" || b.k === "b") {
-    if (a.k === "b" && b.k === "b") return a.v === b.v ? 0 : a.v ? 1 : -1;
-    throw new RunError("Types incompatibles dans la comparaison.");
+    // Chaîne « VRAI » / « FAUX » comparée à une valeur vrai/faux : comparée comme vrai/faux.
+    const x = a.k === "b" ? a.v : a.k === "s" ? boolWord(a.v) : null;
+    const y = b.k === "b" ? b.v : b.k === "s" ? boolWord(b.v) : null;
+    if (x !== null && y !== null) return x === y ? 0 : x ? 1 : -1;
+    throw new RunError(`Types incompatibles dans la comparaison (${typeName(a)} et ${typeName(b)}).`);
   }
   let x: Value = a;
   let y: Value = b;
