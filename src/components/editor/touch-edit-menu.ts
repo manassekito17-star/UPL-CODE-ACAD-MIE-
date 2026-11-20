@@ -22,6 +22,7 @@ interface Range {
 interface Sel extends Range {
   isEmpty(): boolean;
   containsPosition(p: Pos): boolean;
+  getStartPosition?(): Pos;
 }
 export interface MenuEditor {
   getContainerDomNode(): HTMLElement;
@@ -33,7 +34,7 @@ export interface MenuEditor {
   executeEdits(source: string, edits: Array<{ range: Range; text: string; forceMoveMarkers?: boolean }>): boolean;
   pushUndoStop(): boolean;
   focus(): void;
-  getOption?(id: number): unknown;
+  getAction?(id: string): { run(): Promise<void> } | null;
   getRawOptions?(): { readOnly?: boolean };
   onDidDispose(listener: () => void): { dispose(): void };
 }
@@ -135,6 +136,22 @@ async function copyFrom(ed: MenuEditor, cut: boolean) {
   ed.focus();
 }
 
+function runAction(ed: MenuEditor, id: string) {
+  ed.focus();
+  void ed.getAction?.(id)?.run();
+}
+
+/** Sélectionne le mot sous le curseur (ses autres occurrences sont alors surlignées). */
+function selectWord(ed: MenuEditor, at?: Pos) {
+  const model = ed.getModel() as (ReturnType<MenuEditor["getModel"]> & { getWordAtPosition?(p: Pos): { startColumn: number; endColumn: number } | null }) | null;
+  const pos = at ?? ed.getSelection()?.getStartPosition?.() ?? null;
+  const sel = ed.getSelection();
+  const p = pos ?? (sel ? { lineNumber: sel.startLineNumber, column: sel.startColumn } : null);
+  const word = p && model?.getWordAtPosition ? model.getWordAtPosition(p) : null;
+  if (p && word) ed.setSelection({ startLineNumber: p.lineNumber, startColumn: word.startColumn, endLineNumber: p.lineNumber, endColumn: word.endColumn });
+  ed.focus();
+}
+
 function showMenu(ed: MenuEditor, x: number, y: number) {
   closeMenu();
   const ro = readOnly(ed);
@@ -151,20 +168,25 @@ function showMenu(ed: MenuEditor, x: number, y: number) {
         ed.focus();
       },
     ],
+    // Commandes de VS Code, utiles au doigt : mot, occurrence suivante, définition, renommer.
+    ["mot", "Mot", () => selectWord(ed)],
+    ["suivant", "Suivant", () => runAction(ed, "editor.action.addSelectionToNextFindMatch")],
+    ["definition", "Définition", () => runAction(ed, "editor.action.revealDefinition")],
+    ...(ro ? [] : ([["renommer", "Renommer", () => runAction(ed, "editor.action.rename")]] as Array<[string, string, () => void]>)),
   ];
   const menu = document.createElement("div");
   menu.setAttribute("role", "menu");
   menu.setAttribute("aria-label", "Édition");
   menu.dataset.testid = "menu-edition-tactile";
   menu.style.cssText =
-    "position:fixed;z-index:2147483000;display:flex;background:#1c1c1e;border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.45);overflow:hidden;font:15px system-ui,-apple-system,sans-serif;visibility:hidden";
+    "position:fixed;z-index:2147483000;display:flex;flex-wrap:wrap;max-width:calc(100vw - 16px);background:#1c1c1e;border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.45);overflow:hidden;font:15px system-ui,-apple-system,sans-serif;visibility:hidden";
   for (const [id, label, run] of items) {
     const b = document.createElement("button");
     b.type = "button";
     b.textContent = label;
     b.setAttribute("role", "menuitem");
     b.dataset.action = id;
-    b.style.cssText = "padding:10px 14px;border:0;background:transparent;color:#fff;white-space:nowrap;border-right:1px solid #3a3a3c";
+    b.style.cssText = "padding:10px 13px;border:0;background:transparent;color:#fff;white-space:nowrap;border-right:1px solid #3a3a3c;border-bottom:1px solid #3a3a3c";
     // Le bouton ne prend pas le focus : l'éditeur garde le sien.
     b.addEventListener("pointerdown", (e) => e.preventDefault());
     b.addEventListener("mousedown", (e) => e.preventDefault());
@@ -229,8 +251,21 @@ export function attachTouchEditMenu(ed: MenuEditor): () => void {
       start = null;
     }
   };
+  let lastTap: { x: number; y: number; t: number } | null = null;
   const onEnd = () => {
     clear();
+    if (start && !fired) {
+      // Double toucher (deux touchers rapides au même endroit) : sélection du mot, comme un double-clic.
+      const now = Date.now();
+      const { x, y } = start;
+      if (lastTap && now - lastTap.t < 350 && Math.hypot(x - lastTap.x, y - lastTap.y) < 24) {
+        lastTap = null;
+        setTimeout(() => {
+          const pos = ed.getTargetAtClientPoint(x, y)?.position ?? undefined;
+          selectWord(ed, pos);
+        }, 0);
+      } else lastTap = { x, y, t: now };
+    }
     if (start && fired) {
       const { x, y } = start;
       // Après le traitement du geste par l'éditeur (sélection du mot éventuelle).

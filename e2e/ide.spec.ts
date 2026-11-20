@@ -422,3 +422,39 @@ test("iPhone : pas d'agrandissement automatique et clavier de programmation au-d
   // Barre du haut sous l'heure et la batterie (application de l'écran d'accueil).
   expect(style).toContain("safe-area-inset-top");
 });
+
+test.describe("clavier du téléphone ouvert", () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+
+  test("l'IDE suit la zone visible (pas d'écran qui saute) et revient en plein écran à la fermeture du clavier", async ({ page }) => {
+    // Zone visible simulée (visualViewport) : le navigateur de test n'a pas de clavier virtuel.
+    await page.addInitScript(() => {
+      const vv = new EventTarget() as EventTarget & { height: number; width: number; offsetTop: number; offsetLeft: number; scale: number; pageTop: number; pageLeft: number };
+      Object.assign(vv, { height: window.innerHeight, width: window.innerWidth, offsetTop: 0, offsetLeft: 0, scale: 1, pageTop: 0, pageLeft: 0 });
+      Object.defineProperty(window, "visualViewport", { value: vv, configurable: true });
+      (window as unknown as { __vv: typeof vv }).__vv = vv;
+    });
+    await page.goto("/ide");
+    await page.locator(".monaco-editor").first().waitFor({ timeout: 60_000 });
+    const ide = page.getByTestId("ide");
+    const set = (h: number, top: number, kind = "resize") =>
+      page.evaluate(
+        ([h, top, kind]) => {
+          const vv = (window as unknown as { __vv: EventTarget & { height: number; offsetTop: number } }).__vv;
+          vv.height = h as number;
+          vv.offsetTop = top as number;
+          vv.dispatchEvent(new Event(kind as string));
+        },
+        [h, top, kind] as const,
+      );
+    // Clavier ouvert (zone visible de 480 px, décalée de 120 px par iOS) : l'IDE occupe exactement cette zone.
+    await set(480, 120);
+    await expect.poll(async () => ide.boundingBox().then((b) => [Math.round(b!.y), Math.round(b!.height)])).toEqual([120, 480]);
+    // iOS revient en haut : l'IDE suit immédiatement.
+    await set(480, 0, "scroll");
+    await expect.poll(async () => ide.boundingBox().then((b) => Math.round(b!.y))).toBe(0);
+    // Clavier fermé : plein écran.
+    await set(844, 0);
+    await expect.poll(async () => ide.boundingBox().then((b) => Math.round(b!.height))).toBe(844);
+  });
+});

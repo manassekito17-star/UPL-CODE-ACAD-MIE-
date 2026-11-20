@@ -328,8 +328,18 @@ export async function keepSavedFilesOffline(loggedIn: boolean, opts: { force?: b
     const programs = (await list<Row>("/api/programs", "programs")).slice(0, 30);
     const projects = (await list<Row>("/api/projects", "projects")).slice(0, 20);
     const larp = (await list<Row>("/api/projects?type=larp", "projects")).slice(0, 20);
-    const urls = [...programs.map((p) => `/editeur?programme=${p.id}`), ...projects.map((p) => `/ide?projet=${p.id}`), ...larp.map((p) => `/api/projects/${p.id}`)];
-    const r = urls.length ? await sendPrecache(urls) : { ok: 0, total: 0 };
+    // Listes comprises : gardées explicitement (pas seulement au passage de la lecture ci-dessus).
+    const lists = ["/api/programs", "/api/projects", "/api/projects?type=larp"];
+    const urls = [...lists, ...programs.map((p) => `/editeur?programme=${p.id}`), ...projects.map((p) => `/ide?projet=${p.id}`), ...larp.map((p) => `/api/projects/${p.id}`)];
+    await sendPrecache(urls);
+    // Vérification : ce qui manque dans la copie de l'appareil est demandé une seconde fois.
+    const missing = async () => (await Promise.all(urls.map(async (u) => ((await caches.match(u).catch(() => undefined)) ? null : u)))).filter((u): u is string => Boolean(u));
+    let absent = await missing();
+    if (absent.length) {
+      await sendPrecache(absent);
+      absent = await missing();
+    }
+    const r = { ok: urls.length - lists.length - absent.filter((u) => !lists.includes(u)).length };
     localStorage.setItem(FILES_KEY, String(Date.now()));
     localStorage.setItem(FILES_COUNT_KEY, String(r.ok));
     emitFiles({ status: "pret", count: r.ok });

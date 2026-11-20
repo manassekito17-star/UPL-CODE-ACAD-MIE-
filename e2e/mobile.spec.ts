@@ -130,7 +130,7 @@ test("sur téléphone : appui long sur l'éditeur → menu Coller / Copier / Cou
   // Presse-papiers accessible : le texte copié ailleurs est collé directement.
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await longPress();
-  await expect(menu.getByRole("menuitem")).toHaveText(["Coller", "Copier", "Couper", "Tout"]);
+  await expect(menu.getByRole("menuitem")).toHaveText(["Coller", "Copier", "Couper", "Tout", "Mot", "Suivant", "Définition", "Renommer"]);
   await page.evaluate(() => navigator.clipboard.writeText("texte_venu_de_whatsapp"));
   await menu.getByRole("menuitem", { name: "Coller" }).click();
   await expect.poll(code).toContain("texte_venu_de_whatsapp");

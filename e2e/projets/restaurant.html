@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chez Mama – Restaurant</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="entete">
+    <h1>Chez Mama</h1>
+    <nav>
+      <a href="#menu">Menu</a>
+      <a href="#contact">Contact</a>
+      <button id="theme" type="button">Mode sombre</button>
+    </nav>
+  </header>
+  <main>
+    <section id="menu">
+      <h2>Notre menu</h2>
+      <input id="filtre" placeholder="Rechercher un plat">
+      <div id="plats" class="grille"></div>
+      <p id="total">Panier : 0 FC</p>
+    </section>
+    <section id="contact">
+      <h2>Réservation</h2>
+      <form id="formulaire">
+        <input id="nom" name="nom" placeholder="Votre nom">
+        <input id="personnes" name="personnes" type="number" min="1" placeholder="Personnes">
+        <button type="submit">Réserver</button>
+      </form>
+      <p id="message" role="status"></p>
+    </section>
+  </main>
+  <script src="js/utils.js"></script>
+  <script src="js/script.js"></script>
+</body>
+</html>

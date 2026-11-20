@@ -77,7 +77,9 @@ const GUIDES: EditorGuide[] = [
     tips: [
       "Pour lire un nombre en Python : int(input(\"…\")) — et non input(int(\"…\")).",
       "La console en bas se replie avec la flèche ▾ ou en glissant la petite barre grise vers le bas.",
-      "Appui long sur le code : menu Coller · Copier · Couper · Tout.",
+      "Appui long sur le code : menu Coller · Copier · Couper · Tout · Mot · Suivant · Définition · Renommer. Double toucher : sélectionner le mot.",
+      "Comme dans VS Code : Ctrl+P (aller au fichier), F12 (définition, même dans un autre fichier), F2 (renommer), Ctrl+D (occurrence suivante), Ctrl+/ (commenter). Liste complète : Affichage → Raccourcis clavier (Ctrl+K Ctrl+S).",
+      "Dans l'aperçu d'un site, localStorage et les formulaires fonctionnent ; console.log, console.table… s'affichent dans la console de l'IDE.",
     ],
   },
   {

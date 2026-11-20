@@ -248,6 +248,28 @@ export function EditorGroup({
               bracketPairColorization: { enabled: true },
               guides: { bracketPairs: true, indentation: true },
               padding: { top: 8 },
+              // Comme VS Code : en-têtes de blocs collés en haut, balise HTML fermante renommée avec
+              // l'ouvrante, occurrences du mot surlignées, Ctrl+clic → définition, zoom à la molette…
+              stickyScroll: { enabled: true },
+              linkedEditing: true,
+              occurrencesHighlight: "singleFile",
+              selectionHighlight: true,
+              links: true,
+              colorDecorators: true,
+              mouseWheelZoom: true,
+              smoothScrolling: true,
+              cursorBlinking: "smooth",
+              cursorSmoothCaretAnimation: "on",
+              folding: true,
+              showFoldingControls: "mouseover",
+              foldingHighlight: true,
+              renderWhitespace: "selection",
+              parameterHints: { enabled: true },
+              suggest: { preview: true, showWords: true },
+              inlayHints: { enabled: "on" },
+              dragAndDrop: true,
+              multiCursorModifier: "alt",
+              find: { seedSearchStringFromSelection: "selection", addExtraSpaceOnTop: false },
             }}
           />
         ) : (

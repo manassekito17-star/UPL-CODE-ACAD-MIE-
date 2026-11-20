@@ -46,6 +46,7 @@ import { MobileKeys, type KeyAction } from "./mobile-keys";
 import { OfflineDialog, type InstallPromptEvent } from "./offline-dialog";
 import { Icon, type IconName } from "./icons";
 import { useProject, type IdeProject, type SaveStatus } from "./use-project";
+import { QuickOpen, ShortcutsDialog } from "./quick-dialogs";
 
 type SideView = "explorateur" | "recherche" | "projets" | "versions" | "parametres";
 type BottomTab = "problemes" | "console" | "sortie" | "journal";
@@ -218,6 +219,11 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
 
   // Application installable et utilisable sans Internet (service worker, invitation d'installation, connexion).
   // « ?installer=1 » (page Télécharger l'application) : la fenêtre d'installation s'ouvre directement.
+  // Fenêtres « Aller au fichier » (Ctrl+P) et « Raccourcis clavier » (comme VS Code).
+  const [quickOpen, setQuickOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const chord = useRef(0);
+  const goToRef = useRef<((path: string, line: number, column?: number) => void) | null>(null);
   const [offlineOpen, setOfflineOpen] = useState(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).has("installer"));
   const [installEvent, setInstallEvent] = useState<InstallPromptEvent | null>(null);
   const [online, setOnline] = useState(true);
@@ -258,13 +264,42 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
   useEffect(() => {
     const v = window.visualViewport;
     if (!v || !touch) return;
-    const update = () => setViewport(Math.abs(v.height - window.innerHeight) > 80 ? { top: v.offsetTop, height: v.height } : null);
+    // iPhone : à l'ouverture du clavier, iOS fait défiler la page pour montrer la ligne en cours.
+    // L'IDE suivait ce défilement avec un temps de retard, d'où un écran qui « saute » (barre du haut
+    // cachée, touches de programmation sous le clavier). On annule ce défilement de la page et on
+    // recalcule la zone visible à chaque image, puis encore après l'animation du clavier.
+    let frame = 0;
+    const apply = () => {
+      frame = 0;
+      const open = window.innerHeight - v.height > 80;
+      if (!open) {
+        setViewport(null);
+        return;
+      }
+      if (window.scrollY !== 0) window.scrollTo(0, 0);
+      const next = { top: Math.max(0, Math.round(v.offsetTop)), height: Math.round(v.height) };
+      setViewport((old) => (old && old.top === next.top && old.height === next.height ? old : next));
+    };
+    const update = () => {
+      if (!frame) frame = requestAnimationFrame(apply);
+    };
+    const timers: Array<ReturnType<typeof setTimeout>> = [];
+    const settle = () => {
+      update();
+      for (const ms of [120, 350, 700]) timers.push(setTimeout(update, ms));
+    };
     update();
-    v.addEventListener("resize", update);
+    v.addEventListener("resize", settle);
     v.addEventListener("scroll", update);
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("focusin", settle);
     return () => {
-      v.removeEventListener("resize", update);
+      cancelAnimationFrame(frame);
+      timers.forEach(clearTimeout);
+      v.removeEventListener("resize", settle);
       v.removeEventListener("scroll", update);
+      window.removeEventListener("scroll", update);
+      window.removeEventListener("focusin", settle);
     };
   }, [touch]);
 
@@ -337,6 +372,13 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
     },
     [focusedGroup],
   );
+  /** Onglet suivant / précédent du groupe actif (Ctrl+Tab, Ctrl+Maj+Tab). */
+  const cycleTab = (dir: 1 | -1) => {
+    const g = groups[focusedGroup] ?? groups[0];
+    if (!g || g.tabs.length < 2) return;
+    const i = Math.max(0, g.tabs.indexOf(g.active ?? ""));
+    openFile(g.tabs[(i + dir + g.tabs.length) % g.tabs.length]);
+  };
   const closeTab = (groupIndex: number, path: string) => {
     if (isDirty(path) && project.id && !window.confirm(`« ${basename(path)} » contient des modifications non enregistrées. Elles restent dans le projet (brouillon) ; fermer l'onglet ?`)) return;
     setGroups((gs) => {
@@ -452,6 +494,10 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
 
   const onReady = useCallback((index: number) => (editor: MonacoEditor, monaco: Monaco) => {
     editorsRef.current.set(index, editor);
+    // Raccourcis de VS Code aussi quand le curseur est dans le code (l'éditeur garde ces touches pour lui).
+    editor.addCommand(monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK, monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS), () => setShortcutsOpen(true));
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyP, () => setQuickOpen(true));
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyP, () => void editor.getAction("editor.action.quickCommand")?.run());
     if (monacoRef.current) return;
     monacoRef.current = monaco;
     // Problèmes : diagnostics réels des analyseurs Monaco (TS/JS, CSS, JSON, HTML) et du pseudocode.
@@ -476,9 +522,45 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
     };
     monaco.editor.onDidChangeMarkers(collect);
     collect();
+    // « Aller à la définition », « Afficher les références »… vers un autre fichier du projet :
+    // le fichier s'ouvre dans un onglet, curseur sur la définition (comme VS Code).
+    const marker = `ide/${projectKey}/`;
+    const editorApi = monaco.editor as unknown as { registerEditorOpener?: (o: { openCodeEditor(source: unknown, resource: { toString(): string }, selection?: unknown): boolean }) => unknown };
+    editorApi.registerEditorOpener?.({
+      openCodeEditor: (_source, resource, selection) => {
+        const uri = resource.toString();
+        if (!uri.includes(marker)) return false;
+        const path = decodeURIComponent(uri.slice(uri.indexOf(marker) + marker.length));
+        const sel = selection as { startLineNumber?: number; startColumn?: number; lineNumber?: number; column?: number } | undefined;
+        goToRef.current?.(path, sel?.startLineNumber ?? sel?.lineNumber ?? 1, sel?.startColumn ?? sel?.column ?? 1);
+        return true;
+      },
+    });
   }, [projectKey]);
 
   const focusedEditor = () => editorsRef.current.get(focusedGroup) ?? editorsRef.current.get(0);
+  // L'éditeur annule ses calculs en cours (suggestions, survol) quand on tape : ces annulations
+  // (« Canceled ») ne sont pas des erreurs et ne doivent pas apparaître comme telles.
+  useEffect(() => {
+    const ignore = (e: PromiseRejectionEvent) => {
+      const r = e.reason as { name?: string; message?: string } | undefined;
+      if (r && (r.name === "Canceled" || r.message === "Canceled")) e.preventDefault();
+    };
+    window.addEventListener("unhandledrejection", ignore);
+    return () => window.removeEventListener("unhandledrejection", ignore);
+  }, []);
+  // Clavier ouvert ou zone visible modifiée : la ligne en cours reste visible au-dessus du clavier.
+  useEffect(() => {
+    if (!viewport) return;
+    const ed = editorsRef.current.get(focusedGroup) ?? editorsRef.current.get(0);
+    const pos = ed?.getPosition();
+    if (!ed || !pos || !ed.hasTextFocus()) return;
+    const id = requestAnimationFrame(() => {
+      ed.layout();
+      ed.revealPositionInCenterIfOutsideViewport(pos);
+    });
+    return () => cancelAnimationFrame(id);
+  }, [viewport, focusedGroup]);
   const goTo = (path: string, line: number, column = 1) => {
     openFile(path);
     // L'éditeur change de fichier au rendu suivant : on attend que le bon fichier soit affiché (1 s au plus).
@@ -487,13 +569,43 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
       const ed = focusedEditor();
       const shown = ed?.getModel() ? decodeURIComponent(ed.getModel()!.uri.toString()).endsWith(`/${path}`) : false;
       if (!shown && tries++ < 20) return void setTimeout(attempt, 50);
-      ed?.revealLineInCenter(line);
-      ed?.setPosition({ lineNumber: line, column });
-      ed?.focus();
+      if (!ed) return;
+      const place = (focus: boolean) => {
+        if (ed.getPosition()?.lineNumber !== line) {
+          ed.revealLineInCenter(line);
+          ed.setPosition({ lineNumber: line, column });
+        }
+        if (focus) ed.focus();
+      };
+      place(true);
+      // Au changement de fichier, l'éditeur restaure ensuite l'ancienne position du fichier (ligne 1) :
+      // on replace le curseur sur la ligne voulue après cette restauration… sauf si l'élève a déjà
+      // déplacé le curseur ou commencé à écrire (il ne faut jamais le ramener en arrière).
+      let userMoved = false;
+      const RESTORE_STATE = 2; // CursorChangeReason.RestoreState
+      const watch = ed.onDidChangeCursorPosition((e) => {
+        // Seule la restauration de l'ancienne position (ou notre propre placement) est corrigée :
+        // tout autre déplacement (clavier, toucher, autre commande) est respecté.
+        const ours = e.position.lineNumber === line && e.position.column === column;
+        if (e.reason !== RESTORE_STATE && !ours) userMoved = true;
+      });
+      // Jamais de reprise du focus ici : l'élève peut déjà écrire ailleurs (nom de fichier, recherche…).
+      const later = () => !userMoved && ed.hasTextFocus() && place(false);
+      setTimeout(later, 80);
+      setTimeout(() => {
+        later();
+        watch.dispose();
+      }, 250);
     };
     setTimeout(attempt, 30);
   };
+  useEffect(() => {
+    goToRef.current = goTo;
+  });
+
   const format = () => void focusedEditor()?.getAction("editor.action.formatDocument")?.run();
+  /** Zoom du texte de l'éditeur (Ctrl+= / Ctrl+- / Ctrl+0), comme VS Code. */
+  const zoom = (step: 1 | -1 | 0) => changeSettings({ fontSize: step === 0 ? 14 : Math.min(26, Math.max(10, settings.fontSize + step * 2)) });
 
   /** Charge les modules de chaque langage de l'éditeur (coloration, analyse) pour les garder hors ligne. */
   const loadLanguages = async () => {
@@ -646,8 +758,45 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
   // Raccourcis globaux
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (e.key === "F1" && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        void focusedEditor()?.getAction("editor.action.quickCommand")?.run();
+        return;
+      }
       const mod = e.ctrlKey || e.metaKey;
       if (!mod) return;
+      const key = e.key.toLowerCase();
+      // Deuxième touche d'un accord « Ctrl+K … » (Ctrl+K Ctrl+0, Ctrl+K Ctrl+S…).
+      const inChord = Boolean(chord.current) && Date.now() - chord.current < 1500;
+      if (key !== "k" && !["control", "meta", "shift", "alt"].includes(key)) chord.current = 0;
+      if (inChord && key === "s") {
+        e.preventDefault();
+        setShortcutsOpen(true);
+        return;
+      }
+      if (inChord) return; // accord de l'éditeur (replier, formater la sélection…)
+      if (key === "p" && !e.altKey) {
+        // Ctrl+P : aller au fichier ; Ctrl+Maj+P : palette de commandes.
+        e.preventDefault();
+        if (e.shiftKey) void focusedEditor()?.getAction("editor.action.quickCommand")?.run();
+        else setQuickOpen(true);
+        return;
+      }
+      if (e.key === "Tab") {
+        e.preventDefault();
+        cycleTab(e.shiftKey ? -1 : 1);
+        return;
+      }
+      if (!e.shiftKey && !e.altKey && (e.key === "=" || e.key === "+" || e.key === "-" || e.key === "0")) {
+        e.preventDefault();
+        zoom(e.key === "0" ? 0 : e.key === "-" ? -1 : 1);
+        return;
+      }
+      if (key === "k" && !e.shiftKey) {
+        // Accords « Ctrl+K puis … » gérés par l'éditeur ; Ctrl+K Ctrl+S : raccourcis clavier.
+        chord.current = Date.now();
+        return;
+      }
       if (e.key.toLowerCase() === "s") {
         e.preventDefault();
         void save();
@@ -753,7 +902,20 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
         { label: "Rechercher dans le projet", onClick: () => setSide("recherche") },
         "separateur",
         { label: "Basculer le commentaire de ligne", shortcut: "Ctrl+/", onClick: () => editorAction("editor.action.commentLine"), disabled: noFile },
+        { label: "Basculer le commentaire de bloc", shortcut: "Maj+Alt+A", onClick: () => editorAction("editor.action.blockComment"), disabled: noFile },
         { label: "Formater le document", shortcut: "Maj+Alt+F", onClick: format, disabled: !activeLang?.format },
+        { label: "Formater la sélection", shortcut: "Ctrl+K Ctrl+F", onClick: () => editorAction("editor.action.formatSelection"), disabled: !activeLang?.format },
+        "separateur",
+        { label: "Supprimer la ligne", shortcut: "Ctrl+Maj+K", onClick: () => editorAction("editor.action.deleteLines"), disabled: noFile },
+        { label: "Indenter la ligne", shortcut: "Ctrl+]", onClick: () => editorAction("editor.action.indentLines"), disabled: noFile },
+        { label: "Désindenter la ligne", shortcut: "Ctrl+[", onClick: () => editorAction("editor.action.outdentLines"), disabled: noFile },
+        { label: "Insérer une ligne en dessous", shortcut: "Ctrl+Entrée (éditeur)", onClick: () => editorAction("editor.action.insertLineAfter"), disabled: noFile },
+        { label: "Insérer une ligne au-dessus", shortcut: "Ctrl+Maj+Entrée", onClick: () => editorAction("editor.action.insertLineBefore"), disabled: noFile },
+        { label: "Joindre les lignes", onClick: () => editorAction("editor.action.joinLines"), disabled: noFile },
+        { label: "Transformer en majuscules", onClick: () => editorAction("editor.action.transformToUppercase"), disabled: noFile },
+        { label: "Transformer en minuscules", onClick: () => editorAction("editor.action.transformToLowercase"), disabled: noFile },
+        { label: "Trier les lignes (croissant)", onClick: () => editorAction("editor.action.sortLinesAscending"), disabled: noFile },
+        { label: "Supprimer les espaces en fin de ligne", shortcut: "Ctrl+K Ctrl+X", onClick: () => editorAction("editor.action.trimTrailingWhitespace"), disabled: noFile },
       ],
     },
     {
@@ -761,6 +923,8 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
       items: [
         { label: "Tout sélectionner", shortcut: "Ctrl+A", onClick: () => editorAction("editor.action.selectAll"), disabled: noFile },
         { label: "Étendre la sélection", shortcut: "Maj+Alt+→", onClick: () => editorAction("editor.action.smartSelect.expand"), disabled: noFile },
+        { label: "Réduire la sélection", shortcut: "Maj+Alt+←", onClick: () => editorAction("editor.action.smartSelect.shrink"), disabled: noFile },
+        { label: "Sélectionner la ligne", shortcut: "Ctrl+L", onClick: () => editorAction("expandLineSelection"), disabled: noFile },
         "separateur",
         { label: "Copier la ligne vers le haut", shortcut: "Maj+Alt+↑", onClick: () => editorAction("editor.action.copyLinesUpAction"), disabled: noFile },
         { label: "Copier la ligne vers le bas", shortcut: "Maj+Alt+↓", onClick: () => editorAction("editor.action.copyLinesDownAction"), disabled: noFile },
@@ -769,7 +933,11 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
         "separateur",
         { label: "Ajouter un curseur au-dessus", shortcut: "Ctrl+Alt+↑", onClick: () => editorAction("editor.action.insertCursorAbove"), disabled: noFile },
         { label: "Ajouter un curseur en dessous", shortcut: "Ctrl+Alt+↓", onClick: () => editorAction("editor.action.insertCursorBelow"), disabled: noFile },
+        { label: "Ajouter des curseurs en fin de ligne", shortcut: "Maj+Alt+I", onClick: () => editorAction("editor.action.insertCursorAtEndOfEachLineSelected"), disabled: noFile },
+        { label: "Ajouter l'occurrence suivante", shortcut: "Ctrl+D", onClick: () => editorAction("editor.action.addSelectionToNextFindMatch"), disabled: noFile },
+        { label: "Ignorer l'occurrence (passer à la suivante)", shortcut: "Ctrl+K Ctrl+D", onClick: () => editorAction("editor.action.moveSelectionToNextFindMatch"), disabled: noFile },
         { label: "Sélectionner toutes les occurrences", shortcut: "Ctrl+Maj+L", onClick: () => editorAction("editor.action.selectHighlights"), disabled: noFile },
+        { label: "Modifier toutes les occurrences du mot", shortcut: "Ctrl+F2", onClick: () => editorAction("editor.action.changeAll"), disabled: noFile },
       ],
     },
     {
@@ -788,11 +956,42 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
         { label: "Assistant IA", onClick: () => setRight((r) => (r === "ia" ? null : "ia")), checked: right === "ia" },
         { label: "Vue fractionnée", shortcut: "Ctrl+\\", onClick: toggleSplit, checked: groups.length > 1 },
         "separateur",
+        { label: "Replier", shortcut: "Ctrl+Maj+[", onClick: () => editorAction("editor.fold"), disabled: noFile },
+        { label: "Déplier", shortcut: "Ctrl+Maj+]", onClick: () => editorAction("editor.unfold"), disabled: noFile },
+        { label: "Tout replier", shortcut: "Ctrl+K Ctrl+0", onClick: () => editorAction("editor.foldAll"), disabled: noFile },
+        { label: "Tout déplier", shortcut: "Ctrl+K Ctrl+J", onClick: () => editorAction("editor.unfoldAll"), disabled: noFile },
+        "separateur",
+        { label: "Zoom avant", shortcut: "Ctrl+=", onClick: () => zoom(1) },
+        { label: "Zoom arrière", shortcut: "Ctrl+-", onClick: () => zoom(-1) },
+        { label: "Réinitialiser le zoom", shortcut: "Ctrl+0", onClick: () => zoom(0) },
+        { label: "Raccourcis clavier…", shortcut: "Ctrl+K Ctrl+S", onClick: () => setShortcutsOpen(true) },
+        "separateur",
         { label: "Minicarte", onClick: () => changeSettings({ minimap: !settings.minimap }), checked: settings.minimap },
         { label: "Retour à la ligne", onClick: () => changeSettings({ wordWrap: !settings.wordWrap }), checked: settings.wordWrap },
         { label: "Thème studio (gris)", onClick: () => changeSettings({ theme: "studio" }), checked: settings.theme === "studio" },
         { label: "Thème nuit ZENTECH", onClick: () => changeSettings({ theme: "sombre" }), checked: settings.theme === "sombre" },
         { label: "Thème clair", onClick: () => changeSettings({ theme: "clair" }), checked: settings.theme === "clair" },
+      ],
+    },
+    {
+      label: "Aller",
+      items: [
+        { label: "Aller au fichier…", shortcut: "Ctrl+P", onClick: () => setQuickOpen(true) },
+        { label: "Aller à la ligne…", shortcut: "Ctrl+G", onClick: () => editorAction("editor.action.gotoLine"), disabled: noFile },
+        { label: "Aller au symbole…", shortcut: "Ctrl+Maj+O", onClick: () => editorAction("editor.action.quickOutline"), disabled: noFile },
+        "separateur",
+        { label: "Aller à la définition", shortcut: "F12 / Ctrl+clic", onClick: () => editorAction("editor.action.revealDefinition"), disabled: noFile },
+        { label: "Voir la définition", shortcut: "Alt+F12", onClick: () => editorAction("editor.action.peekDefinition"), disabled: noFile },
+        { label: "Afficher les références", shortcut: "Maj+F12", onClick: () => editorAction("editor.action.referenceSearch.trigger"), disabled: noFile },
+        { label: "Renommer le symbole", shortcut: "F2", onClick: () => editorAction("editor.action.rename"), disabled: noFile },
+        { label: "Correction rapide…", shortcut: "Ctrl+.", onClick: () => editorAction("editor.action.quickFix"), disabled: noFile },
+        "separateur",
+        { label: "Aller au crochet correspondant", shortcut: "Ctrl+Maj+\\", onClick: () => editorAction("editor.action.jumpToBracket"), disabled: noFile },
+        { label: "Problème suivant", shortcut: "F8", onClick: () => editorAction("editor.action.marker.next"), disabled: noFile },
+        { label: "Problème précédent", shortcut: "Maj+F8", onClick: () => editorAction("editor.action.marker.prev"), disabled: noFile },
+        "separateur",
+        { label: "Onglet suivant", shortcut: "Ctrl+Tab", onClick: () => cycleTab(1), disabled: openEditors.length < 2 },
+        { label: "Onglet précédent", shortcut: "Ctrl+Maj+Tab", onClick: () => cycleTab(-1), disabled: openEditors.length < 2 },
       ],
     },
     {
@@ -1280,6 +1479,17 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
           </div>
         </div>
       )}
+      {quickOpen && (
+        <QuickOpen
+          files={project.files.map((f) => f.path)}
+          onClose={() => setQuickOpen(false)}
+          onPick={(path) => {
+            setQuickOpen(false);
+            openFile(path);
+          }}
+        />
+      )}
+      {shortcutsOpen && <ShortcutsDialog onClose={() => setShortcutsOpen(false)} />}
       <OfflineDialog open={offlineOpen} onClose={() => setOfflineOpen(false)} installEvent={installEvent} onInstalled={() => setInstallEvent(null)} online={online} loadLanguages={loadLanguages} warmPython={warmPython} warmEngines={warmEngines} warmPhpSql={warmPhpSql} />
       {touch && activePath && !(bottom && bottomMax) && <MobileKeys language={activeLang?.monaco ?? null} onAction={keyAction} />}
     </div>

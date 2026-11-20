@@ -26,16 +26,79 @@ function format(v: unknown): string {
   return String(v);
 }
 
+/** Tableau texte pour console.table (comme la console d'un navigateur). */
+function table(data: unknown, columns?: string[]): string {
+  if (typeof data !== "object" || data === null) return format(data) + "\n";
+  const rows = Object.entries(data as Record<string, unknown>);
+  const keys = columns ?? [...new Set(rows.flatMap(([, v]) => (typeof v === "object" && v !== null ? Object.keys(v as object) : ["Valeur"])))];
+  const head = ["(index)", ...keys];
+  const body = rows.map(([i, v]) => [i, ...keys.map((k) => (typeof v === "object" && v !== null ? ((v as Record<string, unknown>)[k] === undefined ? "" : format((v as Record<string, unknown>)[k])) : k === "Valeur" ? format(v) : ""))]);
+  const widths = head.map((h, c) => Math.max(h.length, ...body.map((r) => r[c].length)));
+  const line = (cells: string[]) => "│ " + cells.map((x, c) => x.padEnd(widths[c])).join(" │ ") + " │";
+  const sep = (l: string, m: string, r: string) => l + widths.map((w) => "─".repeat(w + 2)).join(m) + r;
+  return [sep("┌", "┬", "┐"), line(head), sep("├", "┼", "┤"), ...body.map(line), sep("└", "┴", "┘")].join("\n") + "\n";
+}
+
+/** Lignes ajoutées avant le code de l'élève par new Function (mesuré, car il varie selon le navigateur). */
+const LINE_OFFSET = (() => {
+  try {
+    new Function("console", "lireLigne", "prompt", `"use strict";\nreturn (() => {\nthrow new Error("x")\n})();`)();
+  } catch (x) {
+    const m = /<anonymous>:(\d+)|Function:(\d+)|:(\d+):\d+\)?$/m.exec((x as Error).stack ?? "");
+    const n = m ? Number(m[1] ?? m[2] ?? m[3]) : NaN;
+    if (n > 0) return n - 1;
+  }
+  return 4;
+})();
+
 self.onmessage = async (e: MessageEvent<{ code: string; stdin: string }>) => {
   const out: string[] = [];
   const err: string[] = [];
   const lines = e.data.stdin.replace(/\r\n?/g, "\n").split("\n");
   let pos = 0;
+  let indent = "";
+  const counts = new Map<string, number>();
+  const timers = new Map<string, number>();
+  const write = (to: string[], a: unknown[]) => to.push(indent + a.map(format).join(" ").replace(/\n/g, "\n" + indent) + "\n");
+  // Mêmes fonctions que la console d'un navigateur ou de Node.js.
   const fakeConsole = {
-    log: (...a: unknown[]) => out.push(a.map(format).join(" ") + "\n"),
-    info: (...a: unknown[]) => out.push(a.map(format).join(" ") + "\n"),
-    warn: (...a: unknown[]) => err.push(a.map(format).join(" ") + "\n"),
-    error: (...a: unknown[]) => err.push(a.map(format).join(" ") + "\n"),
+    log: (...a: unknown[]) => write(out, a),
+    info: (...a: unknown[]) => write(out, a),
+    debug: (...a: unknown[]) => write(out, a),
+    dir: (...a: unknown[]) => write(out, a),
+    warn: (...a: unknown[]) => write(err, a),
+    error: (...a: unknown[]) => write(err, a),
+    trace: (...a: unknown[]) => write(err, ["Trace :", ...a]),
+    table: (data: unknown, columns?: string[]) => out.push(table(data, columns)),
+    group: (...a: unknown[]) => {
+      if (a.length) write(out, a);
+      indent += "  ";
+    },
+    groupCollapsed: (...a: unknown[]) => {
+      if (a.length) write(out, a);
+      indent += "  ";
+    },
+    groupEnd: () => {
+      indent = indent.slice(2);
+    },
+    count: (label = "default") => {
+      const n = (counts.get(label) ?? 0) + 1;
+      counts.set(label, n);
+      write(out, [`${label}: ${n}`]);
+    },
+    countReset: (label = "default") => counts.delete(label),
+    time: (label = "default") => timers.set(label, performance.now()),
+    timeLog: (label = "default") => write(out, [`${label}: ${(performance.now() - (timers.get(label) ?? performance.now())).toFixed(3)} ms`]),
+    timeEnd: (label = "default") => {
+      write(out, [`${label}: ${(performance.now() - (timers.get(label) ?? performance.now())).toFixed(3)} ms`]);
+      timers.delete(label);
+    },
+    assert: (cond: unknown, ...a: unknown[]) => {
+      if (!cond) write(err, ["Assertion échouée :", ...(a.length ? a : ["console.assert"])]);
+    },
+    clear: () => {
+      out.length = 0;
+    },
   };
   const lireLigne = () => (pos < lines.length ? lines[pos++] : null);
   const started = performance.now();
@@ -47,8 +110,8 @@ self.onmessage = async (e: MessageEvent<{ code: string; stdin: string }>) => {
     self.postMessage({ ok: true, stdout: out.join(""), stderr: err.join(""), timeMs: Math.round(performance.now() - started) });
   } catch (x) {
     const error = x as Error;
-    const m = /<anonymous>:(\d+)/.exec(error.stack ?? "");
-    const line = m ? Number(m[1]) - 3 : undefined;
+    const m = /<anonymous>:(\d+)|Function:(\d+)/.exec(error.stack ?? "");
+    const line = m ? Number(m[1] ?? m[2]) - LINE_OFFSET : undefined;
     self.postMessage({
       ok: false,
       stdout: out.join(""),
