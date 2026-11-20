@@ -258,13 +258,42 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
   useEffect(() => {
     const v = window.visualViewport;
     if (!v || !touch) return;
-    const update = () => setViewport(Math.abs(v.height - window.innerHeight) > 80 ? { top: v.offsetTop, height: v.height } : null);
+    // iPhone : à l'ouverture du clavier, iOS fait défiler la page pour montrer la ligne en cours.
+    // L'IDE suivait ce défilement avec un temps de retard, d'où un écran qui « saute » (barre du haut
+    // cachée, touches de programmation sous le clavier). On annule ce défilement de la page et on
+    // recalcule la zone visible à chaque image, puis encore après l'animation du clavier.
+    let frame = 0;
+    const apply = () => {
+      frame = 0;
+      const open = window.innerHeight - v.height > 80;
+      if (!open) {
+        setViewport(null);
+        return;
+      }
+      if (window.scrollY !== 0) window.scrollTo(0, 0);
+      const next = { top: Math.max(0, Math.round(v.offsetTop)), height: Math.round(v.height) };
+      setViewport((old) => (old && old.top === next.top && old.height === next.height ? old : next));
+    };
+    const update = () => {
+      if (!frame) frame = requestAnimationFrame(apply);
+    };
+    const timers: Array<ReturnType<typeof setTimeout>> = [];
+    const settle = () => {
+      update();
+      for (const ms of [120, 350, 700]) timers.push(setTimeout(update, ms));
+    };
     update();
-    v.addEventListener("resize", update);
+    v.addEventListener("resize", settle);
     v.addEventListener("scroll", update);
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("focusin", settle);
     return () => {
-      v.removeEventListener("resize", update);
+      cancelAnimationFrame(frame);
+      timers.forEach(clearTimeout);
+      v.removeEventListener("resize", settle);
       v.removeEventListener("scroll", update);
+      window.removeEventListener("scroll", update);
+      window.removeEventListener("focusin", settle);
     };
   }, [touch]);
 
@@ -479,6 +508,18 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
   }, [projectKey]);
 
   const focusedEditor = () => editorsRef.current.get(focusedGroup) ?? editorsRef.current.get(0);
+  // Clavier ouvert ou zone visible modifiée : la ligne en cours reste visible au-dessus du clavier.
+  useEffect(() => {
+    if (!viewport) return;
+    const ed = editorsRef.current.get(focusedGroup) ?? editorsRef.current.get(0);
+    const pos = ed?.getPosition();
+    if (!ed || !pos || !ed.hasTextFocus()) return;
+    const id = requestAnimationFrame(() => {
+      ed.layout();
+      ed.revealPositionInCenterIfOutsideViewport(pos);
+    });
+    return () => cancelAnimationFrame(id);
+  }, [viewport, focusedGroup]);
   const goTo = (path: string, line: number, column = 1) => {
     openFile(path);
     // L'éditeur change de fichier au rendu suivant : on attend que le bon fichier soit affiché (1 s au plus).
