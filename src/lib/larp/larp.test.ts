@@ -175,6 +175,17 @@ describe("langage classique (compatible LARP) — exemples du guide", () => {
     expect(run("DÉBUT\n x = 2 * y\n ÉCRIRE x, z\nFIN").output).toBe("0 #IND\n");
   });
 
+  it("LIRE de VRAI / FAUX : valeur vrai/faux, comparable à VRAI (avec ET / OU)", () => {
+    const code = 'DÉBUT\n LIRE montant\n LIRE inhabituel\n SI montant > 500000 ET inhabituel = VRAI ALORS\n  ÉCRIRE "BLOQUEE"\n SINON SI montant > 500000 OU inhabituel = VRAI ALORS\n  ÉCRIRE "CODE"\n SINON\n  ÉCRIRE "VALIDEE"\n FINSI\nFIN';
+    expect(out(code, ["100", "VRAI"])).toBe("100\nVRAI\nCODE\n");
+    expect(out(code, ["100", "faux"])).toBe("100\nfaux\nVALIDEE\n");
+    expect(out(code, ["900000", "Vrai"])).toBe("900000\nVrai\nBLOQUEE\n");
+    // Chaîne « VRAI » dans le code comparée à une valeur vrai/faux.
+    expect(out('DÉBUT\n x = "VRAI"\n SI x = VRAI ALORS\n  ÉCRIRE "oui"\n FINSI\nFIN')).toBe("oui\n");
+    // Vraie incompatibilité : message avec les deux types.
+    expect(run('DÉBUT\n x = "bonjour"\n SI x = VRAI ALORS\n  ÉCRIRE "oui"\n FINSI\nFIN').error?.message).toMatch(/chaîne de caractères et vrai\/faux/);
+  });
+
   it("variable indéfinie : #IND et avertissement", () => {
     const r = run("DÉBUT\n ÉCRIRE z\nFIN");
     expect(r.output).toBe("#IND\n");
