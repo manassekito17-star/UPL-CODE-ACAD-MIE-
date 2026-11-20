@@ -569,17 +569,33 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
       const ed = focusedEditor();
       const shown = ed?.getModel() ? decodeURIComponent(ed.getModel()!.uri.toString()).endsWith(`/${path}`) : false;
       if (!shown && tries++ < 20) return void setTimeout(attempt, 50);
-      const place = () => {
-        if (!ed || ed.getPosition()?.lineNumber === line) return;
-        ed.revealLineInCenter(line);
-        ed.setPosition({ lineNumber: line, column });
-        ed.focus();
+      if (!ed) return;
+      const place = (focus: boolean) => {
+        if (ed.getPosition()?.lineNumber !== line) {
+          ed.revealLineInCenter(line);
+          ed.setPosition({ lineNumber: line, column });
+        }
+        if (focus) ed.focus();
       };
-      place();
+      place(true);
       // Au changement de fichier, l'éditeur restaure ensuite l'ancienne position du fichier (ligne 1) :
-      // on replace le curseur sur la ligne voulue après cette restauration.
-      setTimeout(place, 80);
-      setTimeout(place, 250);
+      // on replace le curseur sur la ligne voulue après cette restauration… sauf si l'élève a déjà
+      // déplacé le curseur ou commencé à écrire (il ne faut jamais le ramener en arrière).
+      let userMoved = false;
+      const RESTORE_STATE = 2; // CursorChangeReason.RestoreState
+      const watch = ed.onDidChangeCursorPosition((e) => {
+        // Seule la restauration de l'ancienne position (ou notre propre placement) est corrigée :
+        // tout autre déplacement (clavier, toucher, autre commande) est respecté.
+        const ours = e.position.lineNumber === line && e.position.column === column;
+        if (e.reason !== RESTORE_STATE && !ours) userMoved = true;
+      });
+      // Jamais de reprise du focus ici : l'élève peut déjà écrire ailleurs (nom de fichier, recherche…).
+      const later = () => !userMoved && ed.hasTextFocus() && place(false);
+      setTimeout(later, 80);
+      setTimeout(() => {
+        later();
+        watch.dispose();
+      }, 250);
     };
     setTimeout(attempt, 30);
   };

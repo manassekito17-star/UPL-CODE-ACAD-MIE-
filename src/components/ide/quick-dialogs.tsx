@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { basename } from "@/lib/ide/fs";
 import { FileIcon } from "./file-icon";
 
@@ -25,7 +25,22 @@ export function fuzzyScore(query: string, path: string): number {
 }
 
 /** « Aller au fichier » (Ctrl+P) : taper quelques lettres, Entrée ou toucher pour ouvrir. */
+/** Échap ferme la fenêtre, même si le curseur est resté dans l'éditeur. */
+function useEscape(onClose: () => void) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      e.preventDefault();
+      e.stopPropagation();
+      onClose();
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [onClose]);
+}
+
 export function QuickOpen({ files, onPick, onClose }: { files: string[]; onPick: (path: string) => void; onClose: () => void }) {
+  useEscape(onClose);
   const [query, setQuery] = useState("");
   const [index, setIndex] = useState(0);
   const results = useMemo(
@@ -50,8 +65,7 @@ export function QuickOpen({ files, onPick, onClose }: { files: string[]; onPick:
             setIndex(0);
           }}
           onKeyDown={(e) => {
-            if (e.key === "Escape") onClose();
-            else if (e.key === "ArrowDown") {
+            if (e.key === "ArrowDown") {
               e.preventDefault();
               setIndex((i) => Math.min(results.length - 1, i + 1));
             } else if (e.key === "ArrowUp") {
@@ -158,6 +172,7 @@ export const SHORTCUTS: Array<{ group: string; items: Array<[string, string]> }>
 
 /** Liste des raccourcis clavier (Ctrl+K Ctrl+S), avec recherche. */
 export function ShortcutsDialog({ onClose }: { onClose: () => void }) {
+  useEscape(onClose);
   const [q, setQ] = useState("");
   const query = q.trim().toLowerCase();
   return (
@@ -165,7 +180,7 @@ export function ShortcutsDialog({ onClose }: { onClose: () => void }) {
       <div role="dialog" aria-modal="true" aria-labelledby="titre-raccourcis" data-testid="ide-raccourcis" className="flex max-h-[85vh] w-full max-w-2xl flex-col rounded-lg border border-[var(--ide-border)] bg-[var(--ide-menu)] text-sm text-[var(--ide-text)] shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-2 border-b border-[var(--ide-border)] p-3">
           <h2 id="titre-raccourcis" className="text-base font-semibold">Raccourcis clavier</h2>
-          <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === "Escape" && onClose()} placeholder="Rechercher…" aria-label="Rechercher un raccourci" className="ml-auto w-40 rounded border border-[var(--ide-border)] bg-[var(--ide-input)] px-2 py-1 text-base md:text-sm" />
+          <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher…" aria-label="Rechercher un raccourci" className="ml-auto w-40 rounded border border-[var(--ide-border)] bg-[var(--ide-input)] px-2 py-1 text-base md:text-sm" />
           <button type="button" onClick={onClose} aria-label="Fermer" className="rounded px-2 py-1 text-[var(--ide-muted)] hover:bg-[var(--ide-hover)]">✕</button>
         </div>
         <div className="overflow-y-auto p-3">
