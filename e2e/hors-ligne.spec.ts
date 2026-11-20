@@ -195,7 +195,19 @@ test("tableau de bord : « Garder les éditeurs sur cet appareil », puis édite
   await fichiersGardes.getByRole("button", { name: "Mettre à jour" }).click({ timeout: 120_000 });
   await expect(fichiersGardes).toHaveAttribute("data-etat", "pret", { timeout: 120_000 });
   await expect(fichiersGardes).toContainText(/[1-9]\d* gardés? sur cet appareil/);
-  await expect.poll(() => page.evaluate(async (id) => Boolean((await caches.match(`/editeur?programme=${id}`)) && (await caches.match("/api/programs"))), programId), { timeout: 60_000 }).toBe(true);
+  // En cas d'échec, le message indique ce qui est réellement dans la copie de l'appareil.
+  await expect
+    .poll(
+      () =>
+        page.evaluate(async (id) => {
+          if ((await caches.match(`/editeur?programme=${id}`)) && (await caches.match("/api/programs"))) return "ok";
+          const keys: string[] = [];
+          for (const name of await caches.keys()) for (const r of await (await caches.open(name)).keys()) if (/\/api\/|programme=|projet=/.test(r.url)) keys.push(`${name}: ${new URL(r.url).pathname}${new URL(r.url).search}`);
+          return `programme ${id} absent ; copie : ${keys.join(" | ") || "vide"}`;
+        }, programId),
+      { timeout: 60_000 },
+    )
+    .toBe("ok");
   await context.setOffline(true);
   // Page qui demande Internet : la page « Pas de connexion » propose les éditeurs gardés.
   await page.goto("/formations");
