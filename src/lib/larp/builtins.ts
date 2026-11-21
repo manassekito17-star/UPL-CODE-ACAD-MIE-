@@ -162,7 +162,8 @@ const table: Record<string, Fn> = {
   TAILLE: (a, ctx) => {
     need(a, 1, "TAILLE");
     const c = a[0];
-    if (c === null) throw new RunError("TAILLE : valeur indéfinie.");
+    // Tableau encore vide (jamais rempli) : taille 0, la boucle ne s'exécute pas.
+    if (c === null) return int(0);
     if (c.k === "c") return int(c.v.filter((x) => x !== null).length);
     if (c.k === "i") return c;
     if (c.k === "f") return int(Math.trunc(c.v));

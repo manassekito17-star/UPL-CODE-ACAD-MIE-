@@ -38,6 +38,12 @@ test("Interface classique : exécuter (F7), saisie dans la console, erreur de co
   await page.getByTestId("zone-code").fill('DÉBUT\n  SI x > 1 ALORS\n    ÉCRIRE "x"\nFIN\n');
   await page.getByTestId("compiler").click();
   await expect(page.getByTestId("messages")).toContainText("PRINCIPAL (ligne 4) : FINSI attendu");
+  await expect(page.getByTestId("messages")).toContainText("Comment corriger : Il manque FINSI");
+
+  // Fonction mal écrite : l'éditeur propose le bon nom.
+  await page.getByTestId("zone-code").fill("DÉBUT\n  T = [1, 2]\n  ÉCRIRE LONGEUR(T)\nFIN\n");
+  await page.getByTestId("compiler").click();
+  await expect(page.getByTestId("messages")).toContainText("Vouliez-vous dire LONGUEUR");
 });
 
 test("Interface classique : barre des caractères spéciaux (tape au curseur, l'éditeur garde le focus)", async ({ page }) => {
