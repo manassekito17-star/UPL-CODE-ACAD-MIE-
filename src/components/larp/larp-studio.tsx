@@ -663,6 +663,38 @@ export function LarpStudio() {
     setSync(p.cloud ? "saved" : "local");
     setMessages([{ text: `Projet « ${p.name} » ouvert${p.cloud ? " depuis votre compte" : ""}.`, kind: "info" }]);
   };
+  // Projet du compte ouvert sur plusieurs appareils : au retour sur la page (et à l'ouverture), si le
+  // compte a une version plus récente et qu'il n'y a pas de modification en cours ici, elle est chargée.
+  // Ainsi un appareil n'écrase pas le travail fait sur l'autre.
+  const cloudId = project.cloud?.id;
+  const cloudRevision = project.cloud?.revision ?? 0;
+  useEffect(() => {
+    if (!cloudId) return;
+    let busy = false;
+    const refresh = async () => {
+      if (busy || dirty || document.visibilityState !== "visible" || !navigator.onLine || (status !== "idle" && status !== "done" && status !== "error")) return;
+      busy = true;
+      const r = await loadCloud(cloudId);
+      busy = false;
+      if (!r.ok || r.info.revision <= cloudRevision) return;
+      setProject((cur) => (cur.cloud?.id === cloudId ? { ...r.project, cloud: r.info } : cur));
+      setCurrentId((id) => {
+        const name = project.docs.find((d) => d.id === id)?.name;
+        return (r.project.docs.find((d) => d.name === name) ?? r.project.docs.find((d) => d.main)!).id;
+      });
+      setSync("saved");
+      addMsg({ text: "Version la plus récente de votre compte chargée (le projet avait été modifié sur un autre appareil).", kind: "info" });
+    };
+    void refresh();
+    document.addEventListener("visibilitychange", refresh);
+    window.addEventListener("focus", refresh);
+    return () => {
+      document.removeEventListener("visibilitychange", refresh);
+      window.removeEventListener("focus", refresh);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cloudId, cloudRevision, dirty, status]);
+
   // « /flow/classique?projet=… » (page « Pas de connexion Internet », liens) : ouvre ce projet du compte,
   // aussi sans Internet grâce à la copie gardée sur le téléphone.
   const openedFromUrl = useRef(false);

@@ -216,6 +216,23 @@ test("Interface classique : projet enregistré dans le compte, retrouvé depuis 
   await p2.keyboard.press("F7");
   await expect(p2.getByTestId("console-texte")).toContainText("Depuis le compte");
 
+  // Modification sur l'autre appareil, puis retour sur le premier : il charge la version la plus récente
+  // et enregistre ensuite sans fenêtre « modifié sur un autre appareil ».
+  await p2.getByTestId("console-texte").click();
+  await p2.getByTestId("zone-code").fill('DÉBUT\n  ÉCRIRE "Depuis l appareil 2"\nFIN\n');
+  await expect(p2.getByTestId("etat-compte")).toHaveText("☁ Dans votre compte", { timeout: 20_000 });
+  await page.bringToFront();
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  await expect(page.getByTestId("zone-code")).toHaveValue(/Depuis l appareil 2/, { timeout: 20_000 });
+  await page.getByTestId("zone-code").fill('DÉBUT\n  ÉCRIRE "Depuis l appareil 1"\nFIN\n');
+  await expect(page.getByTestId("etat-compte")).toHaveText("☁ Dans votre compte", { timeout: 20_000 });
+  await expect(page.getByTestId("dialogue-confirmation")).toHaveCount(0);
+  // L'appareil 2 n'a pas été rechargé : son enregistrement passe aussi, sans question.
+  await p2.bringToFront();
+  await p2.getByTestId("zone-code").fill('DÉBUT\n  ÉCRIRE "Encore appareil 2"\nFIN\n');
+  await expect(p2.getByTestId("etat-compte")).toHaveText("☁ Dans votre compte", { timeout: 20_000 });
+  await expect(p2.getByTestId("dialogue-confirmation")).toHaveCount(0);
+
   // Nettoyage : suppression du projet du compte.
   await p2.getByTestId("console-texte").click();
   await p2.getByTestId("menu-Fichier").click();
