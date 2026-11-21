@@ -19,7 +19,9 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { cloneWithNewIds, findNode, insertNodes, locationOf, removeNodes, type FlowLoc, type FlowNode, type FlowProgram } from "@/lib/flow/model";
 import { compileProject, Machine, NAME_RE, type RunEvent } from "@/lib/larp/interpreter";
 import { autoFix, type Change } from "@/lib/larp/autofix";
+import { HistoryDialog } from "@/components/editor/history-dialog";
 import { fixHint } from "@/lib/larp/hints";
+import { recordVersion } from "@/lib/history";
 import { KEYWORDS, LarpError, norm } from "@/lib/larp/lexer";
 import {
   deleteSaved,
@@ -194,6 +196,12 @@ export function LarpStudio() {
   /** « Corriger le code » : module réécrit avec les erreurs de syntaxe corrigées. */
   const [fixProposal, setFixProposal] = useState<{ docId: string; module: string; code: string; changes: Change[]; compiles: boolean } | null>(null);
   const [showFix, setShowFix] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  /** Historique des versions d'un module (gardé sur l'appareil). */
+  const historyKey = (name: string) => `larp:${project.cloud?.id ?? project.name}:${name}`;
+  const keepVersion = (d: LarpDoc | undefined, reason: string, code = d?.code ?? "") => {
+    if (d && d.kind === "pseudo") recordVersion(historyKey(d.name), code, reason);
+  };
   const [messages, setMessages] = useState<Msg[]>([{ text: "Prêt. Ouvrez Exécuter » Exécuter… (F7) pour lancer l'algorithme.", kind: "info" }]);
   const [showSide, setShowSide] = useState(true);
   const [showMsgs, setShowMsgs] = useState(true);
@@ -365,6 +373,7 @@ export function LarpStudio() {
 
   const compile = (): { ok: true; res: ReturnType<typeof compileProject> & { ok: true }; sources: Map<string, DocSource>; buffers: ReturnType<typeof projectSources>["buffers"] } | { ok: false } => {
     const { modules, buffers, sources } = projectSources(project);
+    keepVersion(doc, "Exécution");
     const res = compileProject(modules);
     setErrorLoc(null);
     const log: Msg[] = res.log.map((t) => ({ text: t, kind: t.startsWith("ÉCHEC") ? "err" : "info" }));
@@ -669,6 +678,7 @@ export function LarpStudio() {
     addMsg({ text: `${r.message} (copie gardée sur cet appareil)`, kind: "warn" });
   };
   const save = (name = project.name, asNew = false) => {
+    keepVersion(doc, "Enregistrement");
     const p: LarpProject = { ...project, name, cloud: asNew || name !== project.name ? undefined : project.cloud };
     setProject(p);
     if (!saveProject(p)) addMsg({ text: "Copie locale impossible : stockage du navigateur indisponible.", kind: "warn" });
@@ -738,6 +748,7 @@ export function LarpStudio() {
         { sep: true },
         { label: "Sauvegarder", accel: "Ctrl+S", action: () => (project.name === "SansTitre" ? setDialog({ t: "sauver" }) : save()) },
         { label: "Sauvegarder sous...", action: () => setDialog({ t: "sauver" }) },
+        { label: "Historique des versions...", disabled: doc.kind !== "pseudo", action: () => setHistoryOpen(true) },
         { sep: true },
         { label: "Imprimer...", accel: "Ctrl+P", action: printDoc },
         { sep: true },
@@ -1406,6 +1417,23 @@ export function LarpStudio() {
             </Win>
           )}
 
+          {historyOpen && doc.kind === "pseudo" && (
+            <HistoryDialog
+              storageKey={historyKey(doc.name)}
+              title={doc.name}
+              current={doc.code ?? ""}
+              theme="clair"
+              onClose={() => setHistoryOpen(false)}
+              onRestore={(code) => {
+                keepVersion(doc, "Avant restauration");
+                updateDoc(doc.id, { code });
+                keepVersion(doc, "Version restaurée", code);
+                setHistoryOpen(false);
+                setFixProposal(null);
+                addMsg({ text: `Version de ${doc.name} restaurée.`, kind: "info" });
+              }}
+            />
+          )}
           {showFix && fixProposal && (
             <div className="absolute inset-0 z-40" style={{ background: "rgba(0,0,0,.08)" }}>
               <Win title={`Code corrigé — ${fixProposal.module}`} onClose={() => setShowFix(false)} testId="dialogue-correction" style={{ left: (DW - 580) / 2, top: 30, width: 580, maxHeight: DH - 60 }}>
@@ -1435,6 +1463,9 @@ export function LarpStudio() {
                       testId="appliquer-correction"
                       onClick={() => {
                         const f = fixProposal;
+                        const target = project.docs.find((d) => d.id === f.docId);
+                        keepVersion(target, "Avant correction");
+                        keepVersion(target, "Correction automatique", f.code);
                         updateDoc(f.docId, { code: f.code });
                         setShowFix(false);
                         setFixProposal(null);

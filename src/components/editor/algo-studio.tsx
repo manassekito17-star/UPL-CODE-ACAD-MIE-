@@ -14,6 +14,10 @@ import { isOfflineCopy, keepForOffline } from "@/lib/offline/client";
 import { OfflineDialog, type InstallPromptEvent } from "../ide/offline-dialog";
 import { cn } from "../ui";
 import type { MonacoEditor } from "./code-editor";
+import { autoFixCode, type FixResult } from "@/lib/fix";
+import { recordVersion } from "@/lib/history";
+import { FixDialog } from "./fix-dialog";
+import { HistoryDialog } from "./history-dialog";
 import { ResultExtras, sqlConsoleText } from "./result-extras";
 import { WebPreview, type PreviewConsoleLine } from "./web-preview";
 
@@ -55,6 +59,7 @@ const PATHS = {
   terminal: "M4 5h16v14H4zM7 9l3 3-3 3M12 15h5",
   back: "M15 6l-6 6 6 6",
   folder: "M3 6h6l2 2h10v11H3z",
+  history: "M12 7v5l3 2M21 12a9 9 0 1 1-2.6-6.4M21 4v4h-4",
   phone: "M7 2h10v20H7zM11 18h2M12 6v7M9 10l3 3 3-3",
   home: "M3 12l9-8 9 8M5 10v10h14V10",
 } as const;
@@ -177,7 +182,7 @@ function keysFor(language: LanguageId): Key[] {
 }
 
 interface MenuItem {
-  id: "installer" | "nouveau" | "programmes" | "annuler" | "retablir" | "copier" | "coller" | "effacer" | "rechercher" | "remplacer" | "partager" | "telecharger" | "exemples" | "aide" | "entrainement" | "parametres";
+  id: "installer" | "nouveau" | "programmes" | "annuler" | "retablir" | "copier" | "coller" | "effacer" | "rechercher" | "remplacer" | "partager" | "telecharger" | "exemples" | "aide" | "entrainement" | "parametres" | "historique";
   icon: keyof typeof PATHS;
   label: string;
   separatorBefore?: boolean;
@@ -233,7 +238,10 @@ export function AlgoStudio({
   const [panel, setPanel] = useState(Boolean(LANGUAGES[initialLanguage].preview));
   const [drawer, setDrawer] = useState(false);
   const [menu, setMenu] = useState(false);
-  const [dialog, setDialog] = useState<null | "exemples" | "aide" | "parametres" | "coller" | "programmes">(null);
+  const [dialog, setDialog] = useState<null | "exemples" | "aide" | "parametres" | "coller" | "programmes" | "historique">(null);
+  /** « Corriger le code » proposé après une erreur. */
+  const [fixProposal, setFixProposal] = useState<FixResult | null>(null);
+  const [showFix, setShowFix] = useState(false);
   const [fontSize, setFontSize] = useState(15);
   const [pasteText, setPasteText] = useState("");
   const editorRef = useRef<MonacoEditor | null>(null);
@@ -396,7 +404,11 @@ export function AlgoStudio({
   const updateContent = (v: string) => {
     setFiles((fs) => fs.map((f, i) => (i === active ? { ...f, content: v } : f)));
     if (markers.length) setMarkers([]);
+    if (fixProposal) setFixProposal(null);
   };
+  /** Historique des versions : un par programme enregistré (ou brouillon), langage et fichier. */
+  const historyKey = `algo:${programId ?? "brouillon"}:${language}:${files[active]?.name ?? "main"}`;
+  const keepVersion = (reason: string, code = files[active]?.content ?? "") => recordVersion(historyKey, code, reason);
 
   const replaceCode = (code: string, input?: string) => {
     setFiles((fs) => fs.map((f, i) => (i === active ? { ...f, content: code } : f)));
@@ -436,6 +448,8 @@ export function AlgoStudio({
     setError(null);
     setResult(null);
     setStatus(null);
+    setFixProposal(null);
+    keepVersion("Exécution");
     const { result: r, error: e } = await runProgram(language, files, input, { programId, onStatus: setStatus, seed: seedRef.current });
     setRunning(false);
     setStatus(null);
@@ -444,6 +458,10 @@ export function AlgoStudio({
       setResult(r);
       const waitsForInput = /Aucune donnée disponible pour LIRE/i.test(r.stderr || "");
       setMarkers(r.errorLine && !waitsForInput ? [{ line: r.errorLine, message: [r.compileOutput, r.stderr].filter(Boolean).join("\n") }] : []);
+      if (r.status !== "ok" && !waitsForInput) {
+        const message = [r.compileOutput, r.stderr].filter(Boolean).join("\n");
+        setFixProposal(autoFixCode(language, files[active]?.content ?? "", { message, line: r.errorLine ?? 0 }));
+      }
     }
   };
 
@@ -595,6 +613,7 @@ export function AlgoStudio({
     const data = await res.json().catch(() => ({}));
     if (res.ok) {
       setProgramId(data.id);
+      recordVersion(`algo:${data.id}:${language}:${files[active]?.name ?? "main"}`, files[active]?.content ?? "", "Enregistrement");
       notify("Programme enregistré ✓ — retrouvez-le dans ⋮ → Mes programmes");
       if (!programId) window.history.replaceState(null, "", `/editeur?programme=${data.id}`);
     } else notify(data.error ?? "Échec de l'enregistrement.");
@@ -744,6 +763,7 @@ export function AlgoStudio({
     { id: "remplacer", icon: "replace", label: "Rechercher et remplacer" },
     { id: "partager", icon: "share", label: "Partager le code", separatorBefore: true },
     { id: "telecharger", icon: "download", label: "Télécharger" },
+    { id: "historique", icon: "history", label: "Historique des versions" },
     { id: "exemples", icon: "code", label: "Exemples", separatorBefore: true },
     { id: "aide", icon: "help", label: "Aide" },
     { id: "entrainement", icon: "training", label: "Entraînement" },
@@ -922,6 +942,36 @@ export function AlgoStudio({
             </button>
           </div>
         )}
+        {showFix && fixProposal && (
+          <FixDialog
+            fix={fixProposal}
+            title={files[active]?.name ?? "programme"}
+            onClose={() => setShowFix(false)}
+            onApply={() => {
+              keepVersion("Avant correction");
+              keepVersion("Correction automatique", fixProposal.code);
+              replaceCode(fixProposal.code);
+              setFixProposal(null);
+              setShowFix(false);
+              notify("Code corrigé ✓ — appuyez sur ▶ pour l'exécuter. Votre ancien code est dans ⋮ → Historique des versions.");
+            }}
+          />
+        )}
+        {dialog === "historique" && (
+          <HistoryDialog
+            storageKey={historyKey}
+            title={files[active]?.name ?? "programme"}
+            current={files[active]?.content ?? ""}
+            onClose={() => setDialog(null)}
+            onRestore={(code) => {
+              keepVersion("Avant restauration");
+              replaceCode(code);
+              keepVersion("Version restaurée", code);
+              setDialog(null);
+              notify("Version restaurée ✓");
+            }}
+          />
+        )}
         {toast && (
           <div className="pointer-events-auto absolute inset-x-3 top-3 z-10 rounded-md bg-[#1f1f1f] px-4 py-3 text-sm text-white shadow-xl" role="status">
             {toast}
@@ -985,6 +1035,11 @@ export function AlgoStudio({
                 {result?.stderr && !missingInput && <span className="text-red-300">{result.stdout && !result.stdout.endsWith("\n") ? "\n" : ""}{result.stderr}</span>}
                 {result?.hint && !missingInput && <span className="mt-2 block text-amber-300">💡 {result.hint}</span>}
               </pre>
+                {fixProposal && !missingInput && !running && (
+                  <button type="button" data-testid="corriger-code" onClick={() => setShowFix(true)} className="shrink-0 self-start rounded-md border border-emerald-500/60 bg-emerald-600/20 px-3 py-1.5 text-sm font-semibold text-emerald-200 hover:bg-emerald-600/40">
+                    ✨ Corriger le code ({fixProposal.changes.length} correction{fixProposal.changes.length > 1 ? "s" : ""})
+                  </button>
+                )}
                 <ResultExtras result={result} files={files} />
                 {missingInput && (
                   <form
@@ -1141,7 +1196,7 @@ export function AlgoStudio({
       )}
 
       {/* Fenêtres : exemples, aide, paramètres, coller */}
-      {dialog && (
+      {dialog && dialog !== "historique" && (
         <div className="fixed inset-0 z-[63] grid place-items-center bg-black/60 p-4" role="dialog" aria-modal aria-label={dialog}>
           <div className="flex max-h-[85dvh] w-full max-w-md flex-col overflow-hidden rounded-lg shadow-2xl" style={{ background: "#3c3f41" }}>
             <div className="flex items-center justify-between px-4 py-3">

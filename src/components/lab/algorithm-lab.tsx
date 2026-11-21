@@ -5,6 +5,10 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { generateFlowcharts } from "@/lib/pseudocode/flowchart";
 import type { TraceResult, TraceStep } from "@/lib/pseudocode";
+import { autoFixCode, type FixResult } from "@/lib/fix";
+import { recordVersion } from "@/lib/history";
+import { FixDialog } from "../editor/fix-dialog";
+import { HistoryDialog } from "../editor/history-dialog";
 import { TutorChat } from "../tutor/tutor-chat";
 import { Button, cn } from "../ui";
 
@@ -81,6 +85,10 @@ export function AlgorithmLab({ presets, initial, loggedIn }: { presets: LabPrese
   const [error, setError] = useState<string | null>(null);
   const [pendingInput, setPendingInput] = useState("");
   const [showTutor, setShowTutor] = useState(false);
+  const [fixProposal, setFixProposal] = useState<FixResult | null>(null);
+  const [showFix, setShowFix] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const historyKey = `labo:${presetId || "mon-algorithme"}`;
   const flowRef = useRef<HTMLDivElement>(null);
 
   // Ouverture depuis la page Éditeur (bouton « pas à pas ») : le code et les entrées sont transmis par la session.
@@ -118,8 +126,11 @@ export function AlgorithmLab({ presets, initial, loggedIn }: { presets: LabPrese
       setBusy(true);
       setError(null);
       setPlaying(false);
+      setFixProposal(null);
+      recordVersion(historyKey, code, "Exécution");
       try {
         const r = await computeTrace(code, input);
+        if (r.error && !MISSING_INPUT.test(r.error.message)) setFixProposal(autoFixCode("pseudocode", code, { message: r.error.message, line: r.error.line }));
         if (r.error?.kind === "syntaxe") {
           setResult(null);
           setError(`Erreur de syntaxe${r.error.line ? ` (ligne ${r.error.line})` : ""} : ${r.error.message}${r.error.hint ? ` — ${r.error.hint}` : ""}`);
@@ -134,7 +145,7 @@ export function AlgorithmLab({ presets, initial, loggedIn }: { presets: LabPrese
         setBusy(false);
       }
     },
-    [code],
+    [code, historyKey],
   );
 
   // Lecture automatique
@@ -185,6 +196,7 @@ export function AlgorithmLab({ presets, initial, loggedIn }: { presets: LabPrese
 
   const edit = (v: string) => {
     setCode(v);
+    setFixProposal(null);
     if (result) {
       setResult(null);
       setPlaying(false);
@@ -278,6 +290,45 @@ export function AlgorithmLab({ presets, initial, loggedIn }: { presets: LabPrese
             )}
           </div>
           {error && <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900" role="alert">{error}</p>}
+          <div className="flex flex-wrap gap-2">
+            {fixProposal && (error || (atEnd && result && !result.ok && !missingInput)) && (
+              <Button size="sm" onClick={() => setShowFix(true)} data-testid="corriger-code">
+                ✨ Corriger le code ({fixProposal.changes.length} correction{fixProposal.changes.length > 1 ? "s" : ""})
+              </Button>
+            )}
+            <Button size="sm" variant="secondaire" onClick={() => setHistoryOpen(true)} data-testid="ouvrir-historique">
+              🕘 Historique des versions
+            </Button>
+          </div>
+          {showFix && fixProposal && (
+            <FixDialog
+              fix={fixProposal}
+              title="algorithme"
+              onClose={() => setShowFix(false)}
+              onApply={() => {
+                recordVersion(historyKey, code, "Avant correction");
+                recordVersion(historyKey, fixProposal.code, "Correction automatique");
+                edit(fixProposal.code);
+                setError(null);
+                setShowFix(false);
+              }}
+            />
+          )}
+          {historyOpen && (
+            <HistoryDialog
+              storageKey={historyKey}
+              title="algorithme du laboratoire"
+              current={code}
+              theme="clair"
+              onClose={() => setHistoryOpen(false)}
+              onRestore={(c) => {
+                recordVersion(historyKey, code, "Avant restauration");
+                edit(c);
+                recordVersion(historyKey, c, "Version restaurée");
+                setHistoryOpen(false);
+              }}
+            />
+          )}
           {missingInput && !atEnd && (
             <p className="text-xs text-amber-800" data-testid="lab-annonce-lire">
               À l&apos;étape {trace.length}, LIRE({missingInput}) vous demandera une valeur : avancez jusque-là (⏭ pour y aller directement).
