@@ -358,7 +358,16 @@ export class Machine {
       case "index": {
         const base = yield* this.expr(e.base);
         const i = this.num(yield* this.expr(e.index));
-        if (base === null) this.err(new RunError("Accès [ ] à une valeur indéfinie (#IND)."));
+        // Comme LARP sur ordinateur : un élément qui n'existe pas (ligne de tableau manquante…) vaut #IND,
+        // avec un avertissement, au lieu d'arrêter le programme.
+        if (base === null) {
+          const k = `index:${this.top!.module.name}:${e.line}`;
+          if (!this.warned.has(k)) {
+            this.warned.add(k);
+            this.opts.warn?.(`Avertissement : accès [ ] à un élément qui n'existe pas (#IND). Vérifiez la taille du tableau.`, this.top!.module.name, e.line);
+          }
+          return null;
+        }
         if (base.k !== "c") this.err(new RunError(`Accès [ ] impossible : la valeur n'est pas un conteneur (${typeName(base)}).`));
         if (i < 1) this.err(new RunError(`Position ${i} invalide : les positions d'un conteneur commencent à 1.`));
         return base.v[i - 1] ?? null;
