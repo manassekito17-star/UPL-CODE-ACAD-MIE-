@@ -54,6 +54,7 @@ const cases: Array<[string, string, string[]]> = [
   ["puissance ^ et **", 'DEBUT\n Ecrire 2 ^ 3, 2 ** 3\nFIN', []],
   ["ET OU minuscules", 'DEBUT\n SI 1 < 2 et 2 < 3 ou faux ALORS\n  ecrire "ok"\n finsi\nFIN', []],
   ["vrai/faux minuscules", 'DEBUT\n x = vrai\n SI x ALORS\n  ecrire "ok"\n FINSI\nFIN', []],
+  ["TAILLE(5) et TAILLE(tableau)", 'DÉBUT\n  POUR i=1 jusqu\'a TAILLE(5)FAIRE\n    Lire NOTE[i]\n    FINPOUR\n    POUR i=1 jusqu\'a TAILLE (NOTE) FAIRE\n      ECRIRE NOTE[i],"I"\n      FINPOUR\nFIN', ["12", "8", "15", "9", "10"]],
   ["module EXECUTER", 'DEBUT\n EXECUTER Bonjour\nFIN', []],
 ];
 const EXPECTED: Record<string, string> = {
@@ -74,6 +75,7 @@ const EXPECTED: Record<string, string> = {
   "ENTIER()": "3\n",
   "puissance ^ et **": "8 8\n",
   "MAJUSCULES/POSITION": "ABC 2\n",
+  "TAILLE(5) et TAILLE(tableau)": "12\n8\n15\n9\n10\n12 I\n8 I\n15 I\n9 I\n10 I\n",
 };
 
 describe("écritures des cours acceptées (compatibilité LARP élargie)", () => {
