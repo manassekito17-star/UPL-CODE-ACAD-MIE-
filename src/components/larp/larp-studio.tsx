@@ -197,6 +197,8 @@ export function LarpStudio() {
   const [fixProposal, setFixProposal] = useState<{ docId: string; module: string; code: string; changes: Change[]; compiles: boolean } | null>(null);
   const [showFix, setShowFix] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  /** Avertissements de l'exécution en cours (#IND…). */
+  const warnCount = useRef(0);
   /** Historique des versions d'un module (gardé sur l'appareil). */
   const historyKey = (name: string) => `larp:${project.cloud?.id ?? project.name}:${name}`;
   const keepVersion = (d: LarpDoc | undefined, reason: string, code = d?.code ?? "") => {
@@ -301,7 +303,34 @@ export function LarpStudio() {
     setPos(null);
     syncInspect();
     addMsg({ text: "Exécution terminée.", kind: "info" });
+    // Terminé avec des avertissements (#IND…) : le menu Correction peut proposer le code corrigé.
+    if (warnCount.current > 0) addMsg(correctionTip(doc.name));
   };
+
+  /** Correction proposée pour un module (calculée seulement quand on la demande). */
+  const computeFix = (moduleName: string) => {
+    const d = docOfModule(moduleName);
+    if (!d || d.kind !== "pseudo") return null;
+    const fixed = autoFix(projectSources(project).modules, d.name);
+    return fixed ? { docId: d.id, module: d.name, ...fixed } : null;
+  };
+  /** Menu Correction » Corriger le code… */
+  const openCorrection = () => {
+    const name = errorLoc?.module && docOfModule(errorLoc.module)?.kind === "pseudo" ? errorLoc.module : doc.name;
+    if (docOfModule(name)?.kind !== "pseudo") {
+      setDialog({ t: "info", title: "Correction", text: "La correction s'applique au pseudo-code. Ouvrez un module en pseudo-code (pas un organigramme)." });
+      return;
+    }
+    const f = computeFix(name);
+    if (!f) {
+      setDialog({ t: "info", title: "Correction", text: "Aucune erreur que l'éditeur sait corriger n'a été trouvée dans ce module. Lisez le conseil 💡 sous l'erreur (menu Correction » Expliquer l'erreur)." });
+      return;
+    }
+    setFixProposal(f);
+    setShowFix(true);
+  };
+  /** Indique, sous une erreur, que le menu Correction peut réécrire le code. */
+  const correctionTip = (moduleName: string): Msg[] => (computeFix(moduleName) ? [{ text: "✨ Pour voir le code corrigé : menu Correction » Corriger le code…", kind: "hint" }] : []);
 
   /** « Comment corriger » : conseil calculé à partir du message et de la ligne fautive. */
   const hintFor = (err: LarpError) => {
@@ -319,7 +348,7 @@ export function LarpStudio() {
     setStatus("error");
     setPos(null);
     setErrorLoc({ module: err.module, line: err.line });
-    addMsg([{ text: `Erreur d'exécution - ${err.module} (ligne ${err.line}) : ${err.message}`, kind: "err", module: err.module, line: err.line }, ...(hint ? [{ text: `💡 Comment corriger : ${hint}`, kind: "hint" as const, module: err.module, line: err.line }] : [])]);
+    addMsg([{ text: `Erreur d'exécution - ${err.module} (ligne ${err.line}) : ${err.message}`, kind: "err", module: err.module, line: err.line }, ...(hint ? [{ text: `💡 Comment corriger : ${hint}`, kind: "hint" as const, module: err.module, line: err.line }] : []), ...correctionTip(err.module)]);
     goTo(err.module, err.line);
   };
 
@@ -381,9 +410,8 @@ export function LarpStudio() {
       log[log.length - 1] = { text: `Erreur - ${res.error.module} (ligne ${res.error.line}) : ${res.error.message}`, kind: "err", module: res.error.module, line: res.error.line };
       const hint = hintFor(res.error);
       if (hint) log.push({ text: `💡 Comment corriger : ${hint}`, kind: "hint", module: res.error.module, line: res.error.line });
-      const errDoc = docOfModule(res.error.module);
-      const fixed = errDoc?.kind === "pseudo" ? autoFix(modules, res.error.module) : null;
-      setFixProposal(fixed && errDoc ? { docId: errDoc.id, module: errDoc.name, ...fixed } : null);
+      log.push(...correctionTip(res.error.module));
+      setFixProposal(null);
       setMessages(log);
       setShowMsgs(true);
       setErrorLoc({ module: res.error.module, line: res.error.line });
@@ -412,10 +440,14 @@ export function LarpStudio() {
     setMenu(null);
     const c = compile();
     if (!c.ok) return;
+    warnCount.current = 0;
     const out: Seg[] = [];
     const m = new Machine(c.res.compiled, {
       out: (t, k) => out.push({ t, k }),
-      warn: (text, module, line) => addMsg({ text: `${text} (${module}, ligne ${line})`, kind: "warn", module, line }),
+      warn: (text, module, line) => {
+        warnCount.current++;
+        addMsg({ text: `${text} (${module}, ligne ${line})`, kind: "warn", module, line });
+      },
       buffers: c.buffers,
     });
     run.current = { m, gen: m.run(), sources: c.sources, auto: mode === "normal" ? "run" : "pause", out };
@@ -639,6 +671,38 @@ export function LarpStudio() {
     setSync(p.cloud ? "saved" : "local");
     setMessages([{ text: `Projet « ${p.name} » ouvert${p.cloud ? " depuis votre compte" : ""}.`, kind: "info" }]);
   };
+  // Projet du compte ouvert sur plusieurs appareils : au retour sur la page (et à l'ouverture), si le
+  // compte a une version plus récente et qu'il n'y a pas de modification en cours ici, elle est chargée.
+  // Ainsi un appareil n'écrase pas le travail fait sur l'autre.
+  const cloudId = project.cloud?.id;
+  const cloudRevision = project.cloud?.revision ?? 0;
+  useEffect(() => {
+    if (!cloudId) return;
+    let busy = false;
+    const refresh = async () => {
+      if (busy || dirty || document.visibilityState !== "visible" || !navigator.onLine || (status !== "idle" && status !== "done" && status !== "error")) return;
+      busy = true;
+      const r = await loadCloud(cloudId);
+      busy = false;
+      if (!r.ok || r.info.revision <= cloudRevision) return;
+      setProject((cur) => (cur.cloud?.id === cloudId ? { ...r.project, cloud: r.info } : cur));
+      setCurrentId((id) => {
+        const name = project.docs.find((d) => d.id === id)?.name;
+        return (r.project.docs.find((d) => d.name === name) ?? r.project.docs.find((d) => d.main)!).id;
+      });
+      setSync("saved");
+      addMsg({ text: "Version la plus récente de votre compte chargée (le projet avait été modifié sur un autre appareil).", kind: "info" });
+    };
+    void refresh();
+    document.addEventListener("visibilitychange", refresh);
+    window.addEventListener("focus", refresh);
+    return () => {
+      document.removeEventListener("visibilitychange", refresh);
+      window.removeEventListener("focus", refresh);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cloudId, cloudRevision, dirty, status]);
+
   // « /flow/classique?projet=… » (page « Pas de connexion Internet », liens) : ouvre ce projet du compte,
   // aussi sans Internet grâce à la copie gardée sur le téléphone.
   const openedFromUrl = useRef(false);
@@ -667,13 +731,16 @@ export function LarpStudio() {
       return;
     }
     setSync("error");
-    if (r.conflict) {
-      setDialog({
-        t: "confirm",
-        text: "Ce projet a été modifié sur un autre appareil. Remplacer cette version par celle de cet appareil ?",
-        yes: () => void cloudSave(p, { force: true }),
-      });
-      return;
+    if (r.conflict && !opts.force) {
+      // Version plus récente dans le compte (autre appareil ou ancienne fenêtre) : on garde celle de
+      // cet appareil sans rien demander, et l'autre version reste dans l'historique des versions.
+      if (p.cloud?.id) {
+        const other = await loadCloud(p.cloud.id);
+        if (other.ok)
+          for (const d of other.project.docs)
+            if (d.kind === "pseudo" && d.code) recordVersion(`larp:${p.cloud.id}:${d.name}`, d.code, "Version d'un autre appareil");
+      }
+      return cloudSave(p, { ...opts, force: true, quiet: true });
     }
     addMsg({ text: `${r.message} (copie gardée sur cet appareil)`, kind: "warn" });
   };
@@ -814,6 +881,14 @@ export function LarpStudio() {
         { label: "Suspendre l'exécution", accel: "Shift+F6", action: suspend, disabled: status !== "running" || runMode !== "step" },
         { sep: true },
         { label: "Point d'arrêt", accel: "F8", action: toggleBpAtCursor, disabled: doc.kind === "tampon" },
+      ],
+    },
+    {
+      name: "Correction",
+      items: [
+        { label: "Corriger le code...", disabled: isRunning, action: openCorrection },
+        { label: "Expliquer l'erreur...", action: () => setDialog({ t: "info", title: "Expliquer l'erreur", text: messages.filter((m) => m.kind === "err" || m.kind === "hint").slice(-3).map((m) => m.text).join("\n\n") || "Aucune erreur pour l'instant : exécutez le programme (F7)." }) },
+        { label: "Historique des versions...", disabled: doc.kind !== "pseudo", action: () => setHistoryOpen(true) },
       ],
     },
     {
@@ -1224,11 +1299,6 @@ export function LarpStudio() {
                     {m.text}
                   </button>
                 ))}
-                {fixProposal && (
-                  <button type="button" data-testid="corriger-code" onClick={() => setShowFix(true)} className="my-[2px] rounded border border-[#2e7d32] bg-[#e8f5e9] px-2 py-[2px] font-sans text-[12px] font-semibold text-[#1b5e20] hover:bg-[#c8e6c9]">
-                    ✨ Corriger le code ({fixProposal.changes.length} correction{fixProposal.changes.length > 1 ? "s" : ""})
-                  </button>
-                )}
               </div>
             )}
             {/* Panneau de statut */}

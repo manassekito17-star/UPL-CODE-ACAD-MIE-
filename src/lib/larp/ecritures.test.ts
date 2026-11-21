@@ -122,3 +122,13 @@ FIN`;
     expect(lines).toEqual(["Somme ligne 1 = 55.8", "Somme ligne 2 = 62.4", "Somme ligne 3 = 56.2", "Somme ligne 4 = 60.5", "Somme Colonne 1 = 42.9", "Somme Colonne 2 = 59.5", "Somme Colonne 3 = 42.1", "Somme Colonne 4 = 43.4", "Somme Colonne 5 = 47"]);
   });
 });
+
+describe("indice indéfini : #IND comme sur PC", () => {
+  it("ECRIRE T[i][j] sans boucle POUR j : affiche #IND et continue", () => {
+    const code = 'DÉBUT\n  T=[["JANVIER","FEVRIER"],["MARS","AVRIL"]]\n  POUR i=1 jusqu\'a 2 FAIRE\n    ECRIRE T[i][j]\n  FINPOUR\n  ECRIRE "fin"\nFIN';
+    const r = runProject([{ name: "PRINCIPAL", main: true, code }]);
+    expect(r.error).toBeUndefined();
+    expect(r.output).toBe("#IND\n#IND\nfin\n");
+    expect(r.warnings.join(" ")).toMatch(/indice indéfini/);
+  });
+});

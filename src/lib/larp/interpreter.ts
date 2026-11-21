@@ -357,7 +357,18 @@ export class Machine {
       }
       case "index": {
         const base = yield* this.expr(e.base);
-        const i = this.num(yield* this.expr(e.index));
+        const iv = yield* this.expr(e.index);
+        // Comme LARP sur ordinateur : un indice indéfini (variable sans valeur, ex. T[i][j] sans boucle
+        // POUR j) donne #IND, avec un avertissement, au lieu d'arrêter le programme.
+        if (iv === null) {
+          const k = `indice:${this.top!.module.name}:${e.line}`;
+          if (!this.warned.has(k)) {
+            this.warned.add(k);
+            this.opts.warn?.("Avertissement : indice indéfini (#IND) dans [ ] : la variable de l'indice n'a pas de valeur (une boucle POUR manque ?).", this.top!.module.name, e.line);
+          }
+          return null;
+        }
+        const i = this.num(iv);
         // Comme LARP sur ordinateur : un élément qui n'existe pas (ligne de tableau manquante…) vaut #IND,
         // avec un avertissement, au lieu d'arrêter le programme.
         if (base === null) {

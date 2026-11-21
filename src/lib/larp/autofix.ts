@@ -2,6 +2,7 @@ import { closest, distance } from "./hints";
 import { compileProject } from "./interpreter";
 import { KEYWORDS, norm } from "./lexer";
 import { BUILTIN_NAMES } from "./builtins";
+import { mapOutsideStrings } from "@/lib/fix/common";
 
 /**
  * « Corriger le code » : l'éditeur réécrit le module en corrigeant les erreurs de syntaxe
@@ -130,6 +131,135 @@ function fixOnce(message: string, lines: string[], idx: number, modules: string[
   return null;
 }
 
+const IDENT = /[\p{L}_][\p{L}\p{N}_]*/gu;
+const POUR_RE = /^(\s*POUR\s+)([\p{L}_][\p{L}\p{N}_]*)/iu;
+const FINPOUR_RE = /^\s*FIN\s*POUR\b/i;
+
+/** Mots (hors chaînes et commentaires) de la ligne. */
+const wordsOf = (line: string) => {
+  const out: string[] = [];
+  mapOutsideStrings(line.replace(/(^\s*(\\\\|\/\/|#)).*$/, ""), (p) => {
+    for (const m of p.matchAll(IDENT)) out.push(m[0]);
+    return p;
+  });
+  return out;
+};
+
+/** Variables qui reçoivent une valeur dans le module (affectation, LIRE, boucle POUR, paramètres). */
+function assignedVars(lines: string[]): Set<string> {
+  const set = new Set<string>();
+  for (const l of lines) {
+    const a = /^\s*([\p{L}_][\p{L}\p{N}_]*)\s*(\[[^\]]*\]\s*)*(=|←|<-)(?!=)/u.exec(l);
+    if (a) set.add(norm(a[1]));
+    const pour = POUR_RE.exec(l);
+    if (pour) set.add(norm(pour[2]));
+    const lire = /^\s*(LIRE|SAISIR|LIS)\b(.*)$/iu.exec(l);
+    if (lire) for (const w of wordsOf(lire[2])) set.add(norm(w));
+    const entrer = /^\s*ENTRER\b(.*)$/iu.exec(l);
+    if (entrer) for (const w of wordsOf(entrer[1])) set.add(norm(w));
+  }
+  return set;
+}
+
+/**
+ * Erreurs de logique fréquentes, détectables sans exécuter :
+ * - boucle POUR imbriquée qui réutilise la variable de la boucle extérieure (POUR i … POUR i) alors
+ *   qu'une autre variable (j) est utilisée dans son corps sans jamais recevoir de valeur ;
+ * - variable jamais initialisée dont le nom ressemble à une variable du programme (faute de frappe).
+ */
+function logicFixes(source: string[], others: string[]): { lines: string[]; changes: Change[] } {
+  let lines = source;
+  const out = [...lines];
+  const changes: Change[] = [];
+  const known = new Set([...KEYWORDS, ...BUILTIN_NAMES, ...others.map(norm), "VRAI", "FAUX", "JUSQU", "JUSQUA", "A", "DE", "PAS", "ALLANT", "INCREMENT", "TANT", "QUE", "TANTQUE", "ET", "OU", "NON", "MOD", "DIV", "ALORS", "FAIRE", "SINON", "FINSI", "FINPOUR", "FINTANTQUE", "DEBUT", "FIN", "ECRIRE", "LIRE", "AFFICHER", "SAISIR", "ENTIER", "REEL", "CHAINE", "BOOLEEN", "TABLEAU"]);
+  const assigned = assignedVars(out);
+  const unassignedIn = (from: number, to: number) => {
+    const found: string[] = [];
+    for (let k = from; k < to; k++) for (const w of wordsOf(out[k])) if (!known.has(norm(w)) && !assigned.has(norm(w)) && !found.some((f) => norm(f) === norm(w))) found.push(w);
+    return found;
+  };
+  // Boucles imbriquées avec la même variable.
+  const stack: Array<{ line: number; v: string }> = [];
+  for (let k = 0; k < out.length; k++) {
+    const pour = POUR_RE.exec(out[k]);
+    if (pour) {
+      const v = pour[2];
+      const outer = stack.find((s) => norm(s.v) === norm(v));
+      if (outer) {
+        // Fin de cette boucle intérieure.
+        let depth = 0;
+        let end = out.length;
+        for (let m = k + 1; m < out.length; m++) {
+          if (POUR_RE.test(out[m])) depth++;
+          else if (FINPOUR_RE.test(out[m])) {
+            if (depth === 0) {
+              end = m;
+              break;
+            }
+            depth--;
+          }
+        }
+        const missing = unassignedIn(k + 1, end).filter((w) => w.length <= 3);
+        const used = new Set(stack.map((s) => norm(s.v)));
+        const next = missing[0] ?? ["j", "k", "l", "m", "n"].find((c) => !used.has(norm(c)) && !assigned.has(norm(c)));
+        if (next) {
+          out[k] = out[k].replace(POUR_RE, `$1${next}`);
+          assigned.add(norm(next));
+          changes.push({ line: k + 1, before: lines[k], after: out[k], why: `la boucle intérieure réutilisait ${v} (déjà la variable de la boucle de la ligne ${outer.line + 1}) : ${v} → ${next}` });
+          stack.push({ line: k, v: next });
+          continue;
+        }
+      }
+      stack.push({ line: k, v });
+    } else if (FINPOUR_RE.test(out[k])) stack.pop();
+  }
+  // Tableau à 2 dimensions lu avec un indice qui n'a jamais de valeur (ECRIRE T[i][j] sans boucle POUR j) :
+  // la ligne est placée dans une boucle POUR j qui parcourt la ligne T[i].
+  {
+    const loops: Array<{ v: string; indent: string }> = [];
+    for (let k = 0; k < out.length; k++) {
+      const pour = POUR_RE.exec(out[k]);
+      if (pour) {
+        loops.push({ v: pour[2], indent: /^\s*/.exec(out[k])![0] });
+        continue;
+      }
+      if (FINPOUR_RE.test(out[k])) {
+        loops.pop();
+        continue;
+      }
+      const inner = loops[loops.length - 1];
+      if (!inner) continue;
+      const m = new RegExp(`([\\p{L}_][\\p{L}\\p{N}_]*)\\[\\s*${inner.v}\\s*\\]\\s*\\[\\s*([\\p{L}_][\\p{L}\\p{N}_]?)\\s*\\]`, "u").exec(out[k]);
+      if (!m || assigned.has(norm(m[2])) || known.has(norm(m[2]))) continue;
+      const indent = /^\s*/.exec(out[k])![0];
+      const w = m[2];
+      out.splice(k, 1, `${indent}POUR ${w}=1 JUSQU'A TAILLE(${m[1]}[${inner.v}]) FAIRE`, `  ${out[k]}`, `${indent}FINPOUR`);
+      lines = [...lines.slice(0, k), "", lines[k], "", ...lines.slice(k + 1)];
+      for (const c of changes) if (c.line - 1 >= k) c.line += 2;
+      assigned.add(norm(w));
+      changes.push({ line: k + 1, before: "", after: out[k], why: `${w} n'avait jamais de valeur : boucle POUR ${w} ajoutée pour parcourir ${m[1]}[${inner.v}]` });
+      k += 2;
+    }
+  }
+  // Variable jamais initialisée qui ressemble à une variable du programme.
+  const names = [...assigned];
+  for (let k = 0; k < out.length; k++) {
+    for (const w of new Set(wordsOf(out[k]))) {
+      // Noms d'au moins 3 lettres seulement (i / j sont traités par la règle des boucles), hors appels f(…).
+      if (w.length < 3 || known.has(norm(w)) || assigned.has(norm(w)) || new RegExp(`${w}\\s*\\(`, "u").test(out[k])) continue;
+      const guess = closest(w, names);
+      if (!guess) continue;
+      const original = [...lines.join("\n").matchAll(IDENT)].find((m) => norm(m[0]) === guess)?.[0] ?? guess;
+      const r = replaceWord(out[k], w, original);
+      if (r) {
+        out[k] = r;
+        changes.push({ line: k + 1, before: lines[k], after: r, why: `${w} n'a jamais reçu de valeur : ${w} → ${original}` });
+      }
+    }
+  }
+  return { lines: out, changes };
+}
+
 /**
  * Corrige le module `name` du projet. Renvoie le code corrigé et la liste des changements,
  * ou null si aucune correction sûre n'est possible. `compiles` dit si le module compile ensuite.
@@ -154,6 +284,12 @@ export function autoFix(modules: Module[], name: string): { code: string; change
     if (inserted) for (const c of changes) if (c.line - 1 >= fix.line) c.line++;
     changes.push({ line: fix.line + 1, before: inserted ? "" : lines[fix.line], after: fix.lines[fix.line], why: fix.why });
     lines = fix.lines;
+  }
+  // Le module compile : erreurs de logique fréquentes (boucles imbriquées, variable mal écrite).
+  if (compileProject(modules.map((m) => (m === target ? { ...m, code: lines.join("\n") } : m))).ok) {
+    const logic = logicFixes(lines, others);
+    lines = logic.lines;
+    changes.push(...logic.changes);
   }
   if (!changes.length) return null;
   // Plusieurs corrections sur la même ligne : une seule entrée (avant → après).
