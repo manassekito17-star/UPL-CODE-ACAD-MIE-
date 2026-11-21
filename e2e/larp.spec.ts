@@ -14,7 +14,7 @@ async function openClassic(page: Page) {
 
 test("Interface classique : disposition (menus, panneau de contrôle, navigateur, modèles, messages, statut)", async ({ page }) => {
   await openClassic(page);
-  for (const m of ["Fichier", "Éditer", "Afficher", "Exécuter", "Projet", "Options", "Aide"]) await expect(page.getByTestId(`menu-${m}`)).toBeVisible();
+  for (const m of ["Fichier", "Éditer", "Afficher", "Exécuter", "Correction", "Projet", "Options", "Aide"]) await expect(page.getByTestId(`menu-${m}`)).toBeVisible();
   await expect(page.getByTestId("panneau-controle")).toBeVisible();
   await expect(page.getByTestId("navigateur")).toContainText("Module principal");
   await expect(page.getByTestId("doc-PRINCIPAL")).toBeVisible();
@@ -48,15 +48,28 @@ test("Interface classique : exécuter (F7), saisie dans la console, erreur de co
   // « Corriger le code » : l'éditeur réécrit le code corrigé, puis il s'exécute.
   await page.getByTestId("zone-code").fill('DÉBUT\n  POUR i = 1 JUSQU\'À 2\n    ECRIR "n" i\nFIN\n');
   await page.getByTestId("compiler").click();
-  await page.getByTestId("corriger-code").click();
+  // Rien n'est corrigé tout seul : l'éditeur indique le menu Correction.
+  await expect(page.getByTestId("messages")).toContainText("menu Correction » Corriger le code");
+  await expect(page.getByTestId("dialogue-correction")).toHaveCount(0);
+  await page.getByTestId("menu-Correction").click();
+  await page.getByTestId("menu-Correction/Corriger le code...").click();
   await expect(page.getByTestId("code-corrige")).toContainText("POUR i = 1 JUSQU'À 2 FAIRE");
   await expect(page.getByTestId("code-corrige")).toContainText('ÉCRIRE "n", i');
   await expect(page.getByTestId("code-corrige")).toContainText("FINPOUR");
   await page.getByTestId("appliquer-correction").click();
   await expect(page.getByTestId("zone-code")).toHaveValue(/JUSQU'À 2 FAIRE[\s\S]*ÉCRIRE "n", i[\s\S]*FINPOUR/);
   await page.getByTestId("compiler").click();
-  await expect(page.getByTestId("corriger-code")).toHaveCount(0);
   await expect(page.getByTestId("messages")).not.toContainText("Erreur");
+
+  // Boucle intérieure qui réutilise i au lieu de j (programme d'un étudiant) : corrigé depuis le menu.
+  await page.getByTestId("zone-code").fill("DEBUT\nsom=0\nT=[[1,2],[3,4]]\nPOUR i= 1 JUSQU'A 2 FAIRE\n  POUR i= 1 JUSQU'A 2 FAIRE\n    som=som+T[i][j]\n  FINPOUR\n  ECRIRE \"somme ligne\",i,\"=\",som\n  som=0\nFINPOUR\nFIN\n");
+  await page.getByTestId("executer").click();
+  await expect(page.getByTestId("messages")).toContainText("menu Correction » Corriger le code");
+  await page.getByTestId("menu-Correction").click();
+  await page.getByTestId("menu-Correction/Corriger le code...").click();
+  await expect(page.getByTestId("liste-corrections")).toContainText("réutilisait i");
+  await page.getByTestId("appliquer-correction").click();
+  await expect(page.getByTestId("zone-code")).toHaveValue(/POUR j= 1 JUSQU'A 2 FAIRE/);
 });
 
 test("Interface classique : barre des caractères spéciaux (tape au curseur, l'éditeur garde le focus)", async ({ page }) => {

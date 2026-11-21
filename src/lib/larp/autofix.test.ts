@@ -40,3 +40,27 @@ describe("Corriger le code : l'éditeur réécrit le module corrigé", () => {
     expect(fix('DÉBUT\n  ÉCRIRE "ok"\nFIN')).toBeNull();
   });
 });
+
+describe("Corriger le code : erreurs de logique (menu Correction)", () => {
+  const prog = (inner: string, body = "som=som+T[i][j]") => `DEBUT\nsom=0\nT=[[8,16,12,9.8,10],[20,14,5.6,10.8,12],[8.9,11.5,12,9.8,14],[6,18,12.5,13,11]]\nPOUR i= 1 JUSQU'A 4 FAIRE\n  POUR ${inner}= 1 JUSQU'A 5 FAIRE\n    ${body}\n  FINPOUR\n    ECRIRE "somme ligne",i,"=",som\n    som=0\nFINPOUR\nFIN`;
+
+  it("boucle intérieure qui réutilise i alors que j est utilisé : i → j, puis le programme donne les bonnes sommes", () => {
+    const r = autoFix([{ name: "PRINCIPAL", main: true, code: prog("i") }], "PRINCIPAL")!;
+    expect(r.code).toBe(prog("j"));
+    expect(r.changes[0].line).toBe(5);
+    expect(r.changes[0].why).toMatch(/réutilisait i/);
+    const out = runProject([{ name: "PRINCIPAL", main: true, code: r.code }]);
+    expect(out.error).toBeUndefined();
+    expect(out.output.replace(/\s+/g, " ")).toContain("somme ligne 4 = 60.5");
+  });
+
+  it("variable mal écrite jamais initialisée : somme → som", () => {
+    const r = autoFix([{ name: "PRINCIPAL", main: true, code: prog("j", "som=somm+T[i][j]") }], "PRINCIPAL")!;
+    expect(r.code).toContain("som=som+T[i][j]");
+  });
+
+  it("programme correct : rien à corriger (ni A de JUSQU'A, ni j, ni fonctions)", () => {
+    expect(autoFix([{ name: "PRINCIPAL", main: true, code: prog("j") }], "PRINCIPAL")).toBeNull();
+    expect(autoFix([{ name: "PRINCIPAL", main: true, code: 'DÉBUT\n LIRE nom\n ÉCRIRE "Bonjour ", nom, LONGUEUR(nom)\n POUR k DE 1 A 3 FAIRE\n  ÉCRIRE k\n FINPOUR\nFIN' }], "PRINCIPAL")).toBeNull();
+  });
+});
