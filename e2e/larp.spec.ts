@@ -244,8 +244,7 @@ test("Interface classique : projet enregistré dans le compte, retrouvé depuis 
   await expect(p2.getByTestId("etat-compte")).toHaveText("☁ Dans votre compte", { timeout: 20_000 });
   await expect(p2.getByTestId("dialogue-confirmation")).toHaveCount(0);
 
-  // Nettoyage : suppression du projet du compte.
-  await p2.getByTestId("console-texte").click();
+  // Nettoyage : suppression du projet du compte (la console de l'appareil 2 est déjà fermée).
   await p2.getByTestId("menu-Fichier").click();
   await p2.getByTestId("menu-Fichier/Ouvrir...").click();
   await p2.getByTestId("projet-compte").filter({ hasText: name }).click();
