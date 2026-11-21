@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { autoPrepareOffline, keepSavedFilesOffline, registerServiceWorker } from "@/lib/offline/client";
 
 /**
@@ -27,5 +27,52 @@ export function RegisterServiceWorker({ loggedIn = false }: { loggedIn?: boolean
       window.removeEventListener("online", onOnline);
     };
   }, [loggedIn]);
-  return null;
+  return <UpdateBanner />;
+}
+
+const CURRENT = process.env.NEXT_PUBLIC_VERSION ?? "dev";
+
+/**
+ * Page restée ouverte (onglet ou application sur l'écran d'accueil) pendant une mise en ligne :
+ * elle garde l'ancien code en mémoire. Au retour sur la page, on compare avec la version en ligne
+ * et on propose de recharger.
+ */
+function UpdateBanner() {
+  const [available, setAvailable] = useState(false);
+  useEffect(() => {
+    if (CURRENT === "dev") return;
+    let last = 0;
+    const check = async () => {
+      if (document.visibilityState !== "visible" || !navigator.onLine || Date.now() - last < 60_000) return;
+      last = Date.now();
+      try {
+        const res = await fetch("/api/version", { cache: "no-store" });
+        const { version } = (await res.json()) as { version?: string };
+        if (version && version !== "dev" && version !== CURRENT) setAvailable(true);
+      } catch {
+        /* hors ligne : on réessaiera */
+      }
+    };
+    void check();
+    const timer = setInterval(() => void check(), 10 * 60_000);
+    document.addEventListener("visibilitychange", check);
+    window.addEventListener("focus", check);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", check);
+      window.removeEventListener("focus", check);
+    };
+  }, []);
+  if (!available) return null;
+  return (
+    <div role="status" data-testid="nouvelle-version" className="fixed inset-x-3 top-[max(0.75rem,env(safe-area-inset-top))] z-[100] mx-auto flex max-w-md items-center gap-3 rounded-lg bg-nuit-900 px-4 py-3 text-sm text-white shadow-xl">
+      <span className="flex-1">Une nouvelle version de ZENTECH est disponible. Enregistrez votre travail, puis mettez à jour.</span>
+      <button type="button" onClick={() => window.location.reload()} className="shrink-0 rounded-md bg-electrique-600 px-3 py-1.5 font-semibold hover:bg-electrique-500">
+        Mettre à jour
+      </button>
+      <button type="button" onClick={() => setAvailable(false)} aria-label="Plus tard" className="shrink-0 px-1 text-white/70 hover:text-white">
+        ✕
+      </button>
+    </div>
+  );
 }

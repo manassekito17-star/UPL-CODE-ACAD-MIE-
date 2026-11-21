@@ -18,6 +18,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { cloneWithNewIds, findNode, insertNodes, locationOf, removeNodes, type FlowLoc, type FlowNode, type FlowProgram } from "@/lib/flow/model";
 import { compileProject, Machine, NAME_RE, type RunEvent } from "@/lib/larp/interpreter";
+import { fixHint } from "@/lib/larp/hints";
 import { KEYWORDS, LarpError, norm } from "@/lib/larp/lexer";
 import {
   deleteSaved,
@@ -77,7 +78,7 @@ const DW = 1000;
 const DH = 640;
 const CURRENT_KEY = "upl:larp:courant";
 
-type Msg = { text: string; kind: "info" | "warn" | "err"; module?: string; line?: number };
+type Msg = { text: string; kind: "info" | "warn" | "err" | "hint"; module?: string; line?: number };
 type Seg = { t: string; k?: "ind" | "in" | "sys" | "err" };
 type Status = "idle" | "running" | "paused" | "input" | "done" | "error";
 type Auto = "run" | "pause" | "walk" | "continue";
@@ -290,14 +291,23 @@ export function LarpStudio() {
     addMsg({ text: "Exécution terminée.", kind: "info" });
   };
 
+  /** « Comment corriger » : conseil calculé à partir du message et de la ligne fautive. */
+  const hintFor = (err: LarpError) => {
+    const { modules } = projectSources(project);
+    const m = modules.find((x) => norm(x.name) === norm(err.module));
+    const lineText = m?.code.split("\n")[err.line - 1] ?? "";
+    return fixHint(err.message, lineText, modules.filter((x) => !x.main).map((x) => x.name));
+  };
+
   const fail = (e: unknown) => {
     flush();
     const err = e instanceof LarpError ? e : new LarpError(e instanceof Error ? e.message : String(e), 1, "");
-    setSegs((s) => [...s, { t: `\nErreur d'exécution : ${err.message}\n`, k: "err" }]);
+    const hint = hintFor(err);
+    setSegs((s) => [...s, { t: `\nErreur d'exécution : ${err.message}\n`, k: "err" }, ...(hint ? [{ t: `💡 Comment corriger : ${hint}\n`, k: "sys" as const }] : [])]);
     setStatus("error");
     setPos(null);
     setErrorLoc({ module: err.module, line: err.line });
-    addMsg({ text: `Erreur d'exécution - ${err.module} (ligne ${err.line}) : ${err.message}`, kind: "err", module: err.module, line: err.line });
+    addMsg([{ text: `Erreur d'exécution - ${err.module} (ligne ${err.line}) : ${err.message}`, kind: "err", module: err.module, line: err.line }, ...(hint ? [{ text: `💡 Comment corriger : ${hint}`, kind: "hint" as const, module: err.module, line: err.line }] : [])]);
     goTo(err.module, err.line);
   };
 
@@ -356,6 +366,8 @@ export function LarpStudio() {
     const log: Msg[] = res.log.map((t) => ({ text: t, kind: t.startsWith("ÉCHEC") ? "err" : "info" }));
     if (!res.ok) {
       log[log.length - 1] = { text: `Erreur - ${res.error.module} (ligne ${res.error.line}) : ${res.error.message}`, kind: "err", module: res.error.module, line: res.error.line };
+      const hint = hintFor(res.error);
+      if (hint) log.push({ text: `💡 Comment corriger : ${hint}`, kind: "hint", module: res.error.module, line: res.error.line });
       setMessages(log);
       setShowMsgs(true);
       setErrorLoc({ module: res.error.module, line: res.error.line });
@@ -838,7 +850,7 @@ export function LarpStudio() {
       items: [
         { label: "Aide contextuelle...", accel: "F1", action: () => setDialog({ t: "aide" }) },
         { label: "Contenu...", accel: "Shift+F1", action: () => setDialog({ t: "aide" }) },
-        { label: "Erreur...", accel: "Ctrl+F1", action: () => setDialog({ t: "info", title: "Erreur", text: messages.filter((m) => m.kind === "err").slice(-1)[0]?.text ?? "Aucune erreur sélectionnée." }) },
+        { label: "Erreur...", accel: "Ctrl+F1", action: () => setDialog({ t: "info", title: "Erreur", text: messages.filter((m) => m.kind === "err" || m.kind === "hint").slice(-2).map((m) => m.text).join("\n\n") || "Aucune erreur sélectionnée." }) },
         { sep: true },
         { label: "À propos...", action: () => setDialog({ t: "apropos" }) },
       ],
@@ -1177,13 +1189,14 @@ export function LarpStudio() {
 
             {/* Panneau de messages */}
             {showMsgs && (
-              <div className="h-[76px] shrink-0 overflow-auto border-t border-[#aca899] bg-white px-1 py-[1px]" style={{ font: "11px 'Courier New', monospace" }} data-testid="messages">
+              <div className={`${messages.some((m) => m.kind === "hint") ? "h-[132px]" : "h-[76px]"} shrink-0 overflow-auto border-t border-[#aca899] bg-white px-1 py-[1px]`} style={{ font: "11px 'Courier New', monospace" }} data-testid="messages">
                 {messages.map((m, i) => (
                   <button
                     type="button"
                     key={i}
                     onClick={() => m.module && m.line && goTo(m.module, m.line)}
-                    className={`block w-full whitespace-pre text-left ${m.kind === "err" ? "text-[#d00000]" : m.kind === "warn" ? "text-[#8a5a00]" : "text-black"} ${m.module ? "hover:underline" : ""}`}
+                    data-kind={m.kind}
+                    className={`block w-full text-left ${m.kind === "hint" ? "whitespace-pre-wrap rounded bg-[#eef6ff] px-1 text-[#00468c]" : "whitespace-pre"} ${m.kind === "err" ? "text-[#d00000]" : m.kind === "warn" ? "text-[#8a5a00]" : m.kind === "hint" ? "" : "text-black"} ${m.module ? "hover:underline" : ""}`}
                   >
                     {m.kind === "info" && !m.text.startsWith("COMPL") && !m.text.startsWith("Prêt") ? "  " : ""}
                     {m.text}

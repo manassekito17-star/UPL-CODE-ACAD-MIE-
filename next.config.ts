@@ -50,6 +50,8 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Version déployée (commit) : la page sait quand une nouvelle version est en ligne.
+  env: { NEXT_PUBLIC_VERSION: process.env.VERCEL_GIT_COMMIT_SHA ?? "dev" },
   // N'annonce pas la technologie utilisée (en-tête X-Powered-By).
   poweredByHeader: false,
   // Pas de cartes de sources (source maps) publiques en production.

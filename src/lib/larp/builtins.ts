@@ -158,6 +158,17 @@ const table: Record<string, Fn> = {
     if (c.k === "c") return int(c.v.filter((x) => x !== null).length);
     return int([...fmt(c, ctx.sep())].length);
   },
+  // TAILLE(NOTE) : nombre d'éléments ; TAILLE(5) (taille voulue d'un tableau) : 5.
+  TAILLE: (a, ctx) => {
+    need(a, 1, "TAILLE");
+    const c = a[0];
+    // Tableau encore vide (jamais rempli) : taille 0, la boucle ne s'exécute pas.
+    if (c === null) return int(0);
+    if (c.k === "c") return int(c.v.filter((x) => x !== null).length);
+    if (c.k === "i") return c;
+    if (c.k === "f") return int(Math.trunc(c.v));
+    return int([...fmt(c, ctx.sep())].length);
+  },
   COSINUS: f1("COSINUS", Math.cos),
   DATE: (a) => {
     need(a, 0, "DATE");
@@ -276,7 +287,6 @@ const SYN: Record<string, string> = {
   RACINECARREE: "RACINE",
   RAC: "RACINE",
   ALEATOIREENTIER: "ALEATOIRE",
-  TAILLE: "COMPTER",
 };
 
 export function builtin(key: string): Fn | undefined {
