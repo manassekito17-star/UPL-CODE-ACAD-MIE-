@@ -55,6 +55,8 @@ const cases: Array<[string, string, string[]]> = [
   ["ET OU minuscules", 'DEBUT\n SI 1 < 2 et 2 < 3 ou faux ALORS\n  ecrire "ok"\n finsi\nFIN', []],
   ["vrai/faux minuscules", 'DEBUT\n x = vrai\n SI x ALORS\n  ecrire "ok"\n FINSI\nFIN', []],
   ["TAILLE(5) et TAILLE(tableau)", 'DÉBUT\n  POUR i=1 jusqu\'a TAILLE(5)FAIRE\n    Lire NOTE[i]\n    FINPOUR\n    POUR i=1 jusqu\'a TAILLE (NOTE) FAIRE\n      ECRIRE NOTE[i],"I"\n      FINPOUR\nFIN', ["12", "8", "15", "9", "10"]],
+  ["tableau à 2 dimensions T[i][j]", 'DÉBUT\n  Som=0\n  T=[[8,16,12,9.8,10],[2,4,6,8,10],[1,2,3,4,5],[5,5,5,5,5]]\n POUR i=1 jusqu\'a 4 FAIRE\n   POUR j=1 jusqu\'a 5 FAIRE\n     Som=Som+T[i][j]\n   FINPOUR\n     ECRIRE "Somme ligne ", i, " = ", Som\n     Som=0\n FINPOUR\nFIN', []],
+  ["ligne de tableau manquante : #IND comme sur PC", 'DÉBUT\n  Som=0\n  T=[[1,2],[3,4]]\n POUR i=1 jusqu\'a 3 FAIRE\n   POUR j=1 jusqu\'a 2 FAIRE\n     Som=Som+T[i][j]\n   FINPOUR\n FINPOUR\n ECRIRE Som\nFIN', []],
   ["module EXECUTER", 'DEBUT\n EXECUTER Bonjour\nFIN', []],
 ];
 const EXPECTED: Record<string, string> = {
@@ -75,6 +77,8 @@ const EXPECTED: Record<string, string> = {
   "ENTIER()": "3\n",
   "puissance ^ et **": "8 8\n",
   "MAJUSCULES/POSITION": "ABC 2\n",
+  "tableau à 2 dimensions T[i][j]": "Somme ligne  1  =  55.8\nSomme ligne  2  =  30\nSomme ligne  3  =  15\nSomme ligne  4  =  25\n",
+  "ligne de tableau manquante : #IND comme sur PC": "10\n",
   "TAILLE(5) et TAILLE(tableau)": "12\n8\n15\n9\n10\n12 I\n8 I\n15 I\n9 I\n10 I\n",
 };
 
@@ -88,4 +92,33 @@ describe("écritures des cours acceptées (compatibilité LARP élargie)", () =>
       if (EXPECTED[name] !== undefined) expect(r.output).toBe(EXPECTED[name]);
     });
   }
+});
+
+describe("programme du cours exécuté sur LARP (PC) : même résultat", () => {
+  it("sommes des lignes et des colonnes d'un tableau 4 × 5", () => {
+    const code = `DÉBUT
+  Som = 0
+  T = [[8, 16, 12, 9.8, 10],[20, 14, 5.6, 10.8, 12],[8.9, 11.5, 12, 9.8, 14],[6, 18, 12.5, 13, 11]]
+  POUR i = 1 JUSQU'A 4 FAIRE
+    POUR j = 1 JUSQU'A 5 FAIRE
+      Som = Som + T[i][j]
+    FINPOUR
+      ECRIRE "Somme ligne ", i, " = ", Som
+      Som = 0
+  FINPOUR
+
+ POUR i = 1 JUSQU'A 5 FAIRE
+   POUR j = 1 JUSQU'A 4 FAIRE
+     Som = Som + T[j][i]
+   FINPOUR
+     ECRIRE "Somme Colonne ", i, " = ", Som
+     Som = 0
+ FINPOUR
+FIN`;
+    const r = runProject([{ name: "PRINCIPAL", main: true, code }]);
+    expect(r.error).toBeUndefined();
+    expect(r.warnings).toEqual([]);
+    const lines = r.output.trim().split("\n").map((l) => l.replace(/\s+/g, " "));
+    expect(lines).toEqual(["Somme ligne 1 = 55.8", "Somme ligne 2 = 62.4", "Somme ligne 3 = 56.2", "Somme ligne 4 = 60.5", "Somme Colonne 1 = 42.9", "Somme Colonne 2 = 59.5", "Somme Colonne 3 = 42.1", "Somme Colonne 4 = 43.4", "Somme Colonne 5 = 47"]);
+  });
 });

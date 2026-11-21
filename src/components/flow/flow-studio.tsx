@@ -740,9 +740,15 @@ function Studio() {
       {bottomTab === "historique" && (
         <ol className="space-y-0.5 overflow-auto text-gray-300" data-testid="historique-flow">
           {past.length === 0 && <li className="text-gray-500">Aucune modification pour l&apos;instant.</li>}
+          {past.length > 0 && <li className="pb-1 text-gray-500">Touchez « Revenir ici » pour retrouver l&apos;organigramme tel qu&apos;il était avant une modification (annulable avec Ctrl+Z).</li>}
           {[...past].reverse().map((h, i) => (
-            <li key={i}>
-              {new Date(h.at).toLocaleTimeString("fr-FR")} — {h.label}
+            <li key={i} className="flex items-center gap-2">
+              <span className="min-w-0 flex-1 truncate">
+                {new Date(h.at).toLocaleTimeString("fr-FR")} — {h.label}
+              </span>
+              <button type="button" data-testid="revenir-version" onClick={() => commit(h.program, `Retour avant « ${h.label} »`)} className="shrink-0 rounded border border-white/15 px-2 py-0.5 text-[11px] hover:bg-white/10">
+                Revenir ici
+              </button>
             </li>
           ))}
         </ol>

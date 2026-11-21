@@ -46,6 +46,10 @@ import { MobileKeys, type KeyAction } from "./mobile-keys";
 import { OfflineDialog, type InstallPromptEvent } from "./offline-dialog";
 import { Icon, type IconName } from "./icons";
 import { useProject, type IdeProject, type SaveStatus } from "./use-project";
+import { FixDialog } from "@/components/editor/fix-dialog";
+import { HistoryDialog } from "@/components/editor/history-dialog";
+import { autoFixCode, type FixResult } from "@/lib/fix";
+import { recordVersion } from "@/lib/history";
 import { QuickOpen, ShortcutsDialog } from "./quick-dialogs";
 
 type SideView = "explorateur" | "recherche" | "projets" | "versions" | "parametres";
@@ -222,6 +226,10 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
   // Fenêtres « Aller au fichier » (Ctrl+P) et « Raccourcis clavier » (comme VS Code).
   const [quickOpen, setQuickOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  /** « Corriger le code » (fichier actif) et historique du fichier gardé sur l'appareil. */
+  const [fixProposal, setFixProposal] = useState<(FixResult & { path: string }) | null>(null);
+  const [showFix, setShowFix] = useState(false);
+  const [fileHistory, setFileHistory] = useState(false);
   const chord = useRef(0);
   const goToRef = useRef<((path: string, line: number, column?: number) => void) | null>(null);
   const [offlineOpen, setOfflineOpen] = useState(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).has("installer"));
@@ -484,9 +492,15 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
   };
 
   // ---------------- Édition ----------------
+  const fileHistoryKey = (path: string) => `ide:${project.id ?? "local"}:${path}`;
+  const keepVersion = (path: string, reason: string, code?: string) => {
+    const content = code ?? project.files.find((x) => x.path === path)?.content;
+    if (content !== undefined) recordVersion(fileHistoryKey(path), content, reason);
+  };
   const onChange = (path: string, value: string) => {
     const f = project.files.find((x) => x.path === path);
     if (!f || f.content === value) return;
+    if (fixProposal?.path === path) setFixProposal(null);
     const r = updateFile(snapshot, path, value);
     if (r.ok) update(r.project);
     else notify(r.error);
@@ -536,7 +550,7 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
         return true;
       },
     });
-  }, [projectKey]);
+  }, [projectKey, setShortcutsOpen, setQuickOpen]);
 
   const focusedEditor = () => editorsRef.current.get(focusedGroup) ?? editorsRef.current.get(0);
   // L'éditeur annule ses calculs en cours (suggestions, survol) quand on tape : ces annulations
@@ -744,6 +758,8 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
     setRunning(true);
     setResult(null);
     setRunError(null);
+    setFixProposal(null);
+    keepVersion(activePath, "Exécution");
     setBottom("console");
     setBottomMin(false);
     const started = new Date();
@@ -752,6 +768,10 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
     setRunStatus(null);
     setResult(r.result ?? null);
     setRunError(r.error ?? null);
+    if (r.result && r.result.status !== "ok" && activeFile && !/Aucune donnée disponible/i.test(r.result.stderr ?? "")) {
+      const fix = autoFixCode(runnable.language, activeFile.content, { message: [r.result.compileOutput, r.result.stderr].filter(Boolean).join("\n"), line: r.result.errorLine ?? 0 });
+      setFixProposal(fix ? { ...fix, path: activePath } : null);
+    }
     addLog(`Exécution de ${activePath} (${languageOf(activePath).label}) : ${r.result ? STATUS_LABELS[r.result.status] : (r.error ?? "erreur")}${r.result?.timeMs != null ? ` en ${r.result.timeMs} ms` : ""} — ${started.toLocaleTimeString("fr-FR")}.`, r.result?.status === "ok" ? "info" : "erreur");
   };
 
@@ -799,6 +819,7 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
       }
       if (e.key.toLowerCase() === "s") {
         e.preventDefault();
+        if (activePath) keepVersion(activePath, "Enregistrement");
         void save();
       } else if (e.key.toLowerCase() === "b") {
         e.preventDefault();
@@ -878,9 +899,18 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
         "separateur",
         !project.id && loggedIn
           ? { label: "Enregistrer dans mon compte…", shortcut: "Ctrl+S", onClick: () => void saveToAccount() }
-          : { label: "Enregistrer", shortcut: "Ctrl+S", onClick: () => void save(), disabled: status === "enregistrement" },
+          : {
+              label: "Enregistrer",
+              shortcut: "Ctrl+S",
+              onClick: () => {
+                if (activePath) keepVersion(activePath, "Enregistrement");
+                void save();
+              },
+              disabled: status === "enregistrement",
+            },
         { label: "Renommer le projet…", onClick: () => void renameProject() },
         { label: "Historique des versions", onClick: () => setSide("versions") },
+        { label: "Historique du fichier (sur cet appareil)…", onClick: () => setFileHistory(true), disabled: noFile },
         "separateur",
         { label: "Fermer l'éditeur", onClick: () => activePath && closeTab(focusedGroup, activePath), disabled: noFile },
         { label: "Préférences", onClick: () => setSide("parametres") },
@@ -1354,6 +1384,11 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
                         {result && sqlConsoleText(result)}
                         {result?.stderr && <span className="text-red-300">{result.stderr}</span>}
                         {result?.hint && <span className="block text-amber-300">💡 {result.hint}</span>}
+                        {fixProposal && fixProposal.path === activePath && !running && (
+                          <button type="button" data-testid="corriger-code" onClick={() => setShowFix(true)} className="mt-2 block rounded border border-emerald-500/60 bg-emerald-600/20 px-3 py-1 font-sans text-xs font-semibold text-emerald-200 hover:bg-emerald-600/40">
+                            ✨ Corriger le code ({fixProposal.changes.length} correction{fixProposal.changes.length > 1 ? "s" : ""})
+                          </button>
+                        )}
                         {consoleLines.map((l, i) => (
                           <span key={i} className={cn("block", l.level === "error" && "text-red-300", l.level === "warn" && "text-amber-300")}>
                             [page] {l.text}
@@ -1490,6 +1525,37 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
         />
       )}
       {shortcutsOpen && <ShortcutsDialog onClose={() => setShortcutsOpen(false)} />}
+      {showFix && fixProposal && (
+        <FixDialog
+          fix={fixProposal}
+          title={basename(fixProposal.path)}
+          onClose={() => setShowFix(false)}
+          onApply={() => {
+            const f = fixProposal;
+            keepVersion(f.path, "Avant correction");
+            onChange(f.path, f.code);
+            keepVersion(f.path, "Correction automatique", f.code);
+            setFixProposal(null);
+            setShowFix(false);
+            notify("Code corrigé ✓ — exécutez-le (Ctrl+Entrée). Votre ancien code est dans Fichier → Historique du fichier.", "info");
+          }}
+        />
+      )}
+      {fileHistory && activePath && activeFile && (
+        <HistoryDialog
+          storageKey={fileHistoryKey(activePath)}
+          title={basename(activePath)}
+          current={activeFile.content}
+          onClose={() => setFileHistory(false)}
+          onRestore={(code) => {
+            keepVersion(activePath, "Avant restauration");
+            onChange(activePath, code);
+            keepVersion(activePath, "Version restaurée", code);
+            setFileHistory(false);
+            notify("Version du fichier restaurée ✓", "info");
+          }}
+        />
+      )}
       <OfflineDialog open={offlineOpen} onClose={() => setOfflineOpen(false)} installEvent={installEvent} onInstalled={() => setInstallEvent(null)} online={online} loadLanguages={loadLanguages} warmPython={warmPython} warmEngines={warmEngines} warmPhpSql={warmPhpSql} />
       {touch && activePath && !(bottom && bottomMax) && <MobileKeys language={activeLang?.monaco ?? null} onAction={keyAction} />}
     </div>
