@@ -93,3 +93,32 @@ describe("écritures des cours acceptées (compatibilité LARP élargie)", () =>
     });
   }
 });
+
+describe("programme du cours exécuté sur LARP (PC) : même résultat", () => {
+  it("sommes des lignes et des colonnes d'un tableau 4 × 5", () => {
+    const code = `DÉBUT
+  Som = 0
+  T = [[8, 16, 12, 9.8, 10],[20, 14, 5.6, 10.8, 12],[8.9, 11.5, 12, 9.8, 14],[6, 18, 12.5, 13, 11]]
+  POUR i = 1 JUSQU'A 4 FAIRE
+    POUR j = 1 JUSQU'A 5 FAIRE
+      Som = Som + T[i][j]
+    FINPOUR
+      ECRIRE "Somme ligne ", i, " = ", Som
+      Som = 0
+  FINPOUR
+
+ POUR i = 1 JUSQU'A 5 FAIRE
+   POUR j = 1 JUSQU'A 4 FAIRE
+     Som = Som + T[j][i]
+   FINPOUR
+     ECRIRE "Somme Colonne ", i, " = ", Som
+     Som = 0
+ FINPOUR
+FIN`;
+    const r = runProject([{ name: "PRINCIPAL", main: true, code }]);
+    expect(r.error).toBeUndefined();
+    expect(r.warnings).toEqual([]);
+    const lines = r.output.trim().split("\n").map((l) => l.replace(/\s+/g, " "));
+    expect(lines).toEqual(["Somme ligne 1 = 55.8", "Somme ligne 2 = 62.4", "Somme ligne 3 = 56.2", "Somme ligne 4 = 60.5", "Somme Colonne 1 = 42.9", "Somme Colonne 2 = 59.5", "Somme Colonne 3 = 42.1", "Somme Colonne 4 = 43.4", "Somme Colonne 5 = 47"]);
+  });
+});
