@@ -197,6 +197,8 @@ export function LarpStudio() {
   const [fixProposal, setFixProposal] = useState<{ docId: string; module: string; code: string; changes: Change[]; compiles: boolean } | null>(null);
   const [showFix, setShowFix] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  /** Avertissements de l'exécution en cours (#IND…). */
+  const warnCount = useRef(0);
   /** Historique des versions d'un module (gardé sur l'appareil). */
   const historyKey = (name: string) => `larp:${project.cloud?.id ?? project.name}:${name}`;
   const keepVersion = (d: LarpDoc | undefined, reason: string, code = d?.code ?? "") => {
@@ -301,6 +303,8 @@ export function LarpStudio() {
     setPos(null);
     syncInspect();
     addMsg({ text: "Exécution terminée.", kind: "info" });
+    // Terminé avec des avertissements (#IND…) : le menu Correction peut proposer le code corrigé.
+    if (warnCount.current > 0) addMsg(correctionTip(doc.name));
   };
 
   /** Correction proposée pour un module (calculée seulement quand on la demande). */
@@ -436,10 +440,14 @@ export function LarpStudio() {
     setMenu(null);
     const c = compile();
     if (!c.ok) return;
+    warnCount.current = 0;
     const out: Seg[] = [];
     const m = new Machine(c.res.compiled, {
       out: (t, k) => out.push({ t, k }),
-      warn: (text, module, line) => addMsg({ text: `${text} (${module}, ligne ${line})`, kind: "warn", module, line }),
+      warn: (text, module, line) => {
+        warnCount.current++;
+        addMsg({ text: `${text} (${module}, ligne ${line})`, kind: "warn", module, line });
+      },
       buffers: c.buffers,
     });
     run.current = { m, gen: m.run(), sources: c.sources, auto: mode === "normal" ? "run" : "pause", out };

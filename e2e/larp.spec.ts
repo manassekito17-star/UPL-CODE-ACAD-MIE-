@@ -70,6 +70,17 @@ test("Interface classique : exécuter (F7), saisie dans la console, erreur de co
   await expect(page.getByTestId("liste-corrections")).toContainText("réutilisait i");
   await page.getByTestId("appliquer-correction").click();
   await expect(page.getByTestId("zone-code")).toHaveValue(/POUR j= 1 JUSQU'A 2 FAIRE/);
+
+  // T[i][j] sans boucle POUR j : comme sur PC, le programme continue (#IND + avertissement),
+  // et le menu Correction propose la boucle POUR j.
+  await page.getByTestId("zone-code").fill('DÉBUT\n  T=[["JANVIER","FEVRIER"],["MARS","AVRIL"]]\n  POUR i=1 jusqu\'a 2 FAIRE\n    ECRIRE T[i][j]\n  FINPOUR\nFIN\n');
+  await page.getByTestId("executer").click();
+  await expect(page.getByTestId("messages")).toContainText("Exécution terminée");
+  await expect(page.getByTestId("messages")).toContainText("indice indéfini");
+  await expect(page.getByTestId("messages")).toContainText("menu Correction » Corriger le code");
+  await page.getByTestId("menu-Correction").click();
+  await page.getByTestId("menu-Correction/Corriger le code...").click();
+  await expect(page.getByTestId("code-corrige")).toContainText("POUR j=1 JUSQU'A TAILLE(T[i]) FAIRE");
 });
 
 test("Interface classique : barre des caractères spéciaux (tape au curseur, l'éditeur garde le focus)", async ({ page }) => {
