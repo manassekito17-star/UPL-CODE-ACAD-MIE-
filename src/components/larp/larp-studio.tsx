@@ -18,6 +18,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { cloneWithNewIds, findNode, insertNodes, locationOf, removeNodes, type FlowLoc, type FlowNode, type FlowProgram } from "@/lib/flow/model";
 import { compileProject, Machine, NAME_RE, type RunEvent } from "@/lib/larp/interpreter";
+import { autoFix, type Change } from "@/lib/larp/autofix";
 import { fixHint } from "@/lib/larp/hints";
 import { KEYWORDS, LarpError, norm } from "@/lib/larp/lexer";
 import {
@@ -190,6 +191,9 @@ export function LarpStudio() {
     setSubPath(m ? `/${m}` : "");
   };
   const [dialog, setDialog] = useState<Dialog | null>(null);
+  /** « Corriger le code » : module réécrit avec les erreurs de syntaxe corrigées. */
+  const [fixProposal, setFixProposal] = useState<{ docId: string; module: string; code: string; changes: Change[]; compiles: boolean } | null>(null);
+  const [showFix, setShowFix] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([{ text: "Prêt. Ouvrez Exécuter » Exécuter… (F7) pour lancer l'algorithme.", kind: "info" }]);
   const [showSide, setShowSide] = useState(true);
   const [showMsgs, setShowMsgs] = useState(true);
@@ -368,6 +372,9 @@ export function LarpStudio() {
       log[log.length - 1] = { text: `Erreur - ${res.error.module} (ligne ${res.error.line}) : ${res.error.message}`, kind: "err", module: res.error.module, line: res.error.line };
       const hint = hintFor(res.error);
       if (hint) log.push({ text: `💡 Comment corriger : ${hint}`, kind: "hint", module: res.error.module, line: res.error.line });
+      const errDoc = docOfModule(res.error.module);
+      const fixed = errDoc?.kind === "pseudo" ? autoFix(modules, res.error.module) : null;
+      setFixProposal(fixed && errDoc ? { docId: errDoc.id, module: errDoc.name, ...fixed } : null);
       setMessages(log);
       setShowMsgs(true);
       setErrorLoc({ module: res.error.module, line: res.error.line });
@@ -375,6 +382,7 @@ export function LarpStudio() {
       return { ok: false };
     }
     setMessages(log);
+    setFixProposal(null);
     return { ok: true, res, sources, buffers };
   };
 
@@ -1170,7 +1178,10 @@ export function LarpStudio() {
                     key={doc.id}
                     ref={editor}
                     value={doc.code ?? ""}
-                    onChange={(v) => updateDoc(doc.id, { code: v })}
+                    onChange={(v) => {
+                      updateDoc(doc.id, { code: v });
+                      setFixProposal(null);
+                    }}
                     kind={doc.kind === "tampon" ? "tampon" : "module"}
                     bg={doc.kind === "tampon" ? "#ffffff" : editorBg}
                     activeLine={activeLine}
@@ -1202,6 +1213,11 @@ export function LarpStudio() {
                     {m.text}
                   </button>
                 ))}
+                {fixProposal && (
+                  <button type="button" data-testid="corriger-code" onClick={() => setShowFix(true)} className="my-[2px] rounded border border-[#2e7d32] bg-[#e8f5e9] px-2 py-[2px] font-sans text-[12px] font-semibold text-[#1b5e20] hover:bg-[#c8e6c9]">
+                    ✨ Corriger le code ({fixProposal.changes.length} correction{fixProposal.changes.length > 1 ? "s" : ""})
+                  </button>
+                )}
               </div>
             )}
             {/* Panneau de statut */}
@@ -1388,6 +1404,51 @@ export function LarpStudio() {
                 <span className="min-w-0 flex-1 truncate border border-[#aca899] px-1">{selVar ? `${selVar} est de type ${inspect.vars.find((v) => v.name === selVar)?.type ?? "indéfini"}` : ""}</span>
               </div>
             </Win>
+          )}
+
+          {showFix && fixProposal && (
+            <div className="absolute inset-0 z-40" style={{ background: "rgba(0,0,0,.08)" }}>
+              <Win title={`Code corrigé — ${fixProposal.module}`} onClose={() => setShowFix(false)} testId="dialogue-correction" style={{ left: (DW - 580) / 2, top: 30, width: 580, maxHeight: DH - 60 }}>
+                <div className="flex min-h-0 flex-col gap-2 p-2">
+                  <p>{fixProposal.compiles ? "Voici votre code corrigé. Les lignes modifiées sont surlignées en vert." : "Voici une partie des corrections. Il restera une erreur à corriger vous-même (voir le conseil 💡)."}</p>
+                  <pre className="max-h-[260px] overflow-auto border border-[#7f9db9] bg-[#b9d3b1] py-1" style={{ font: "12px 'Courier New', monospace" }} data-testid="code-corrige">
+                    {fixProposal.code.split("\n").map((l, i) => {
+                      const changed = fixProposal.changes.some((c) => c.line === i + 1);
+                      return (
+                        <div key={i} className={changed ? "bg-[#7ed67e] font-bold" : ""}>
+                          <span className="inline-block w-8 select-none pr-2 text-right text-[#4a6a4a]">{i + 1}</span>
+                          {l || " "}
+                        </div>
+                      );
+                    })}
+                  </pre>
+                  <ul className="max-h-[110px] list-disc overflow-auto pl-5 text-[12px]" data-testid="liste-corrections">
+                    {fixProposal.changes.map((c, i) => (
+                      <li key={i}>
+                        Ligne {c.line} : {c.why}
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="flex justify-end gap-2">
+                    <XpButton
+                      autoFocus
+                      testId="appliquer-correction"
+                      onClick={() => {
+                        const f = fixProposal;
+                        updateDoc(f.docId, { code: f.code });
+                        setShowFix(false);
+                        setFixProposal(null);
+                        addMsg({ text: `Code corrigé (${f.changes.length} correction${f.changes.length > 1 ? "s" : ""}). Relancez Exécuter (F7).`, kind: "info" });
+                        goTo(f.module, f.changes[0].line);
+                      }}
+                    >
+                      Remplacer mon code
+                    </XpButton>
+                    <XpButton onClick={() => setShowFix(false)}>Annuler</XpButton>
+                  </div>
+                </div>
+              </Win>
+            </div>
           )}
 
           {dialog && (

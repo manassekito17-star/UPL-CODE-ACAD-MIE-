@@ -44,6 +44,19 @@ test("Interface classique : exécuter (F7), saisie dans la console, erreur de co
   await page.getByTestId("zone-code").fill("DÉBUT\n  T = [1, 2]\n  ÉCRIRE LONGEUR(T)\nFIN\n");
   await page.getByTestId("compiler").click();
   await expect(page.getByTestId("messages")).toContainText("Vouliez-vous dire LONGUEUR");
+
+  // « Corriger le code » : l'éditeur réécrit le code corrigé, puis il s'exécute.
+  await page.getByTestId("zone-code").fill('DÉBUT\n  POUR i = 1 JUSQU\'À 2\n    ECRIR "n" i\nFIN\n');
+  await page.getByTestId("compiler").click();
+  await page.getByTestId("corriger-code").click();
+  await expect(page.getByTestId("code-corrige")).toContainText("POUR i = 1 JUSQU'À 2 FAIRE");
+  await expect(page.getByTestId("code-corrige")).toContainText('ÉCRIRE "n", i');
+  await expect(page.getByTestId("code-corrige")).toContainText("FINPOUR");
+  await page.getByTestId("appliquer-correction").click();
+  await expect(page.getByTestId("zone-code")).toHaveValue(/JUSQU'À 2 FAIRE[\s\S]*ÉCRIRE "n", i[\s\S]*FINPOUR/);
+  await page.getByTestId("compiler").click();
+  await expect(page.getByTestId("corriger-code")).toHaveCount(0);
+  await expect(page.getByTestId("messages")).not.toContainText("Erreur");
 });
 
 test("Interface classique : barre des caractères spéciaux (tape au curseur, l'éditeur garde le focus)", async ({ page }) => {
