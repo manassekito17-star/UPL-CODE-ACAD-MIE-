@@ -167,7 +167,8 @@ function assignedVars(lines: string[]): Set<string> {
  *   qu'une autre variable (j) est utilisée dans son corps sans jamais recevoir de valeur ;
  * - variable jamais initialisée dont le nom ressemble à une variable du programme (faute de frappe).
  */
-function logicFixes(lines: string[], others: string[]): { lines: string[]; changes: Change[] } {
+function logicFixes(source: string[], others: string[]): { lines: string[]; changes: Change[] } {
+  let lines = source;
   const out = [...lines];
   const changes: Change[] = [];
   const known = new Set([...KEYWORDS, ...BUILTIN_NAMES, ...others.map(norm), "VRAI", "FAUX", "JUSQU", "JUSQUA", "A", "DE", "PAS", "ALLANT", "INCREMENT", "TANT", "QUE", "TANTQUE", "ET", "OU", "NON", "MOD", "DIV", "ALORS", "FAIRE", "SINON", "FINSI", "FINPOUR", "FINTANTQUE", "DEBUT", "FIN", "ECRIRE", "LIRE", "AFFICHER", "SAISIR", "ENTIER", "REEL", "CHAINE", "BOOLEEN", "TABLEAU"]);
@@ -211,6 +212,34 @@ function logicFixes(lines: string[], others: string[]): { lines: string[]; chang
       }
       stack.push({ line: k, v });
     } else if (FINPOUR_RE.test(out[k])) stack.pop();
+  }
+  // Tableau à 2 dimensions lu avec un indice qui n'a jamais de valeur (ECRIRE T[i][j] sans boucle POUR j) :
+  // la ligne est placée dans une boucle POUR j qui parcourt la ligne T[i].
+  {
+    const loops: Array<{ v: string; indent: string }> = [];
+    for (let k = 0; k < out.length; k++) {
+      const pour = POUR_RE.exec(out[k]);
+      if (pour) {
+        loops.push({ v: pour[2], indent: /^\s*/.exec(out[k])![0] });
+        continue;
+      }
+      if (FINPOUR_RE.test(out[k])) {
+        loops.pop();
+        continue;
+      }
+      const inner = loops[loops.length - 1];
+      if (!inner) continue;
+      const m = new RegExp(`([\\p{L}_][\\p{L}\\p{N}_]*)\\[\\s*${inner.v}\\s*\\]\\s*\\[\\s*([\\p{L}_][\\p{L}\\p{N}_]?)\\s*\\]`, "u").exec(out[k]);
+      if (!m || assigned.has(norm(m[2])) || known.has(norm(m[2]))) continue;
+      const indent = /^\s*/.exec(out[k])![0];
+      const w = m[2];
+      out.splice(k, 1, `${indent}POUR ${w}=1 JUSQU'A TAILLE(${m[1]}[${inner.v}]) FAIRE`, `  ${out[k]}`, `${indent}FINPOUR`);
+      lines = [...lines.slice(0, k), "", lines[k], "", ...lines.slice(k + 1)];
+      for (const c of changes) if (c.line - 1 >= k) c.line += 2;
+      assigned.add(norm(w));
+      changes.push({ line: k + 1, before: "", after: out[k], why: `${w} n'avait jamais de valeur : boucle POUR ${w} ajoutée pour parcourir ${m[1]}[${inner.v}]` });
+      k += 2;
+    }
   }
   // Variable jamais initialisée qui ressemble à une variable du programme.
   const names = [...assigned];

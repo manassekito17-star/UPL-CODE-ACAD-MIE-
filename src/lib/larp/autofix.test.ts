@@ -64,3 +64,15 @@ describe("Corriger le code : erreurs de logique (menu Correction)", () => {
     expect(autoFix([{ name: "PRINCIPAL", main: true, code: 'DÉBUT\n LIRE nom\n ÉCRIRE "Bonjour ", nom, LONGUEUR(nom)\n POUR k DE 1 A 3 FAIRE\n  ÉCRIRE k\n FINPOUR\nFIN' }], "PRINCIPAL")).toBeNull();
   });
 });
+
+describe("Corriger le code : T[i][j] sans boucle POUR j", () => {
+  it("ajoute la boucle POUR j qui parcourt la ligne, le programme affiche les mois", () => {
+    const code = `DÉBUT\n  T=[["JANVIER","FEVRIER","MARS"],["AVRIL","MAI","JUIN"],["JUILLET","AOUT","SEPTEMBRE"],["OCTOBRE","NOVEMBRE","DECEMBRE"]]\n  POUR i=1 jusqu'a 3 FAIRE\n    ECRIRE T[i][j]\n    FINPOUR\n  N=3\n  POUR i=1 jusqu'a N FAIRE\n    ECRIRE T[i][N]\n    N=n-1\n    FINPOUR\nFIN`;
+    const r = autoFix([{ name: "PRINCIPAL", main: true, code }], "PRINCIPAL")!;
+    expect(r.code.split("\n").slice(3, 6)).toEqual(["    POUR j=1 JUSQU'A TAILLE(T[i]) FAIRE", "      ECRIRE T[i][j]", "    FINPOUR"]);
+    expect(r.changes).toHaveLength(1);
+    const out = runProject([{ name: "PRINCIPAL", main: true, code: r.code }]);
+    expect(out.error).toBeUndefined();
+    expect(out.output.split("\n").slice(0, 4)).toEqual(["JANVIER", "FEVRIER", "MARS", "AVRIL"]);
+  });
+});
