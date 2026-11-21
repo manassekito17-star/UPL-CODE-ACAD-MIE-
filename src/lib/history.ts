@@ -36,7 +36,9 @@ export function recordVersion(key: string, code: string, reason: string): boolea
   const list = read(key);
   const last = list.reduce<Version | null>((m, v) => (!m || v.at > m.at ? v : m), null);
   if (last && last.code === code) return false;
-  const next = [...list, { at: Date.now(), code, reason }].sort((a, b) => a.at - b.at).slice(-MAX);
+  // Heures strictement croissantes : deux versions gardées dans la même milliseconde restent dans l'ordre.
+  const at = Math.max(Date.now(), (last?.at ?? 0) + 1);
+  const next = [...list, { at, code, reason }].sort((a, b) => a.at - b.at).slice(-MAX);
   try {
     localStorage.setItem(PREFIX + key, JSON.stringify(next));
   } catch {
