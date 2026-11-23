@@ -13,6 +13,7 @@ const PUBLIC_LINKS = [
   { href: "/exercices", label: "Exercices" },
   { href: "/editeur", label: "Éditeur" },
   { href: "/ide", label: "ZENTECH IDE" },
+  { href: "/texte", label: "ZENTECH Texte" },
   { href: "/laboratoire", label: "Laboratoire" },
   { href: "/flow", label: "Flow Studio" },
   { href: "/flow/classique", label: "Interface LARP" },

@@ -83,6 +83,28 @@ const GUIDES: EditorGuide[] = [
     ],
   },
   {
+    id: "zentech-texte",
+    name: "ZENTECH Texte",
+    href: "/texte",
+    forWhat: "Un éditeur de texte rapide pour développeurs, avec l'ergonomie des éditeurs de texte classiques : aller à n'importe quoi, palette de commandes, curseurs multiples, exécution Ctrl+B.",
+    steps: [
+      "Menu du site → « ZENTECH Texte ». Vos fichiers et onglets sont gardés sur l'appareil : au retour, tout est là.",
+      "Ctrl+P (ou ⌕ sur téléphone) : tapez quelques lettres d'un fichier. Ajoutez @ pour une fonction, : pour une ligne, # pour un mot.",
+      "Ctrl+Maj+P (ou ⌘) : la palette de toutes les commandes (trier les lignes, changer la syntaxe, le thème…).",
+      "Ctrl+B (ou ▶) : exécuter le fichier. Les entrées du programme se tapent sous la sortie.",
+      "Ctrl+S : enregistrer (le point ● sur l'onglet disparaît). Préférences → Réglages pour changer le thème, la taille du texte, les tabulations…",
+    ],
+    example: {
+      title: "Plusieurs curseurs",
+      code: "nom = \"Ana\"\nprint(nom)\nprint(nom.upper())\n\n# Double-cliquez sur « nom », puis Ctrl+D deux fois :\n# les trois « nom » sont sélectionnés, tapez « prenom » pour les renommer.",
+    },
+    tips: [
+      "Ctrl+F puis Alt+Entrée : toutes les occurrences deviennent des curseurs. Ctrl+Maj+F : rechercher dans tous les fichiers.",
+      "Alt+Maj+2 : deux colonnes côte à côte. Maj+F11 : mode sans distraction.",
+      "Outils → Corriger le code… et Fichier → Historique du fichier… comme dans les autres éditeurs.",
+    ],
+  },
+  {
     id: "flow-studio",
     name: "ZENTECH Flow Studio",
     href: "/flow",
