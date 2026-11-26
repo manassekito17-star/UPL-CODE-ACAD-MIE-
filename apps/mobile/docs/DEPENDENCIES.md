@@ -29,6 +29,7 @@ versions validées pour le SDK installé. Relevé du 26/11/2026.
 | `react-native-gesture-handler` | ~3.3.0 | MIT | Gestes tactiles natifs |
 | `react-native-reanimated` + `react-native-worklets` | 4.7.1 + 0.13.0 | MIT | Animations et gestes sur le thread UI |
 | `zustand` | ^5.1.0 | MIT | États partagés |
+| `@expo/vector-icons` + `expo-font` + `expo-asset` | ^15.0.2 + ~58.0.12 + ~58.0.21 | MIT (glyphes Material Design Icons : Apache-2.0) | Icônes de l'interface (phase 2). `expo-asset` est requis par `expo-font` : sans lui, le bundle échoue. Seule la police MaterialCommunityIcons est incluse. |
 | `expo-sqlite` | ~58.0.18 | MIT | Métadonnées locales des projets (phase 7) |
 | `expo-file-system` | ~58.0.15 | MIT | Fichiers des ressources (phases 5, 7, 8) |
 | `expo-image-picker` | ~58.0.10 | MIT | Import depuis la galerie (phase 5) |

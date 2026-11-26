@@ -7,8 +7,10 @@ sauvegarde locale et export PNG. Gratuit, hors ligne, sans compte.
 > Nom technique : `studio-graphic`. Le nom commercial n'est pas encore défini ;
 > « Studio Graphic » et l'identifiant `app.studiographic.dev` sont provisoires.
 
-**État : phase 1 (initialisation) terminée.** Les fonctionnalités graphiques
-arrivent à partir de la phase 2. Voir [docs/ROADMAP.md](docs/ROADMAP.md).
+**État : phase 2 (interface) terminée.** Création de documents, accueil avec
+projets récents et espace de travail sont en place ; le canvas Skia arrive en
+phase 3. Les projets ne sont pas encore enregistrés sur l'appareil (phase 7).
+Voir [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Pile technique
 

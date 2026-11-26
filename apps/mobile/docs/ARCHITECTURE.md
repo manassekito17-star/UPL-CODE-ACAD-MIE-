@@ -87,6 +87,32 @@ gestes du canvas (phase 3).
 - Classes de largeur (`useBreakpoint`) : `compact` < 600 ≤ `medium` < 900 ≤
   `expanded`, pour replier les panneaux sur petit écran.
 
+## Documents (phase 2)
+
+- `engine/documents` : modèle `GraphicDocument` versionné (`formatVersion`),
+  validation de la saisie (`validateDocumentInput`), formats prédéfinis,
+  orientation, estimation mémoire. Fonctions pures, testées sans rendu.
+- Limites (`DOCUMENT_LIMITS`, **provisoires**, à mesurer en phase 9) :
+  1 à 8192 px par côté, 16 777 216 px au plus (4096², 64 Mo par calque RGBA),
+  avertissement au-delà de 8 388 608 px.
+- Format « Écran » : fenêtre en pixels physiques (points × densité), en
+  portrait, réduit proportionnellement s'il dépasse les limites.
+- `stores/documentStore` : documents de la session, **en mémoire seulement**
+  jusqu'à la phase 7. L'accueil et l'écran « Projet introuvable » le disent.
+- Suppression : la boîte de confirmation mémorise le document complet et le
+  nomme ; seule cette entrée est supprimée (testé avec trois projets).
+
+## Espace de travail (phase 2)
+
+| Largeur | Disposition |
+|---|---|
+| `compact` (< 600 dp) | Barre supérieure, zone de travail, barre inférieure (outils + boutons Calques / Propriétés). Un panneau à la fois, en feuille refermable. |
+| `medium` / `expanded` | Outils à gauche, zone de travail, colonne de panneaux à droite (272 / 320 dp), chaque panneau repliable, colonne masquable depuis la barre supérieure. |
+
+État d'affichage dans `stores/editorUiStore`, séparé du document.
+Annuler, Rétablir, Exporter et les outils sont visibles mais désactivés, avec
+la phase qui les livrera annoncée aux lecteurs d'écran.
+
 ## Fonctionnalités non encore développées
 
 Elles sont affichées avec le composant `PlannedFeature` et le numéro de la

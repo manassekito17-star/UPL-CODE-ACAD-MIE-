@@ -1,5 +1,13 @@
 export { AppText, type AppTextProps } from './AppText';
+export { BackgroundSwatch, type BackgroundSwatchProps } from './BackgroundSwatch';
 export { Button, type ButtonProps, type ButtonVariant } from './Button';
+export { Chip, type ChipProps } from './Chip';
+export { CollapsiblePanel, type CollapsiblePanelProps } from './CollapsiblePanel';
+export { ConfirmDialog, type ConfirmDialogProps } from './ConfirmDialog';
+export { Icon, type IconName, type IconProps } from './Icon';
+export { IconButton, type IconButtonProps } from './IconButton';
 export { Panel, type PanelProps } from './Panel';
 export { PlannedFeature, type PlannedFeatureProps } from './PlannedFeature';
 export { Screen, type ScreenProps } from './Screen';
+export { SegmentedControl, type SegmentedControlProps, type SegmentOption } from './SegmentedControl';
+export { TextField, type TextFieldProps } from './TextField';

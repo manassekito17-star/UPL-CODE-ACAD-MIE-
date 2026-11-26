@@ -38,7 +38,11 @@ export const colors = {
   /** Texte posé sur accentSolid. */
   textOnAccent: '#FFFFFF',
 
+  /** Texte et icônes de danger sur fond sombre. */
   danger: '#FF5C5C',
+  /** Fond des boutons destructifs (texte blanc ≥ 4,5:1, contour ≥ 3:1 sur panneau). */
+  dangerSolid: '#D32F2F',
+  dangerSolidPressed: '#B3261E',
   success: '#3DD68C',
   warning: '#F5B841',
 

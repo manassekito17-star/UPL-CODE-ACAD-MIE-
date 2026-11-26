@@ -13,7 +13,9 @@ Toutes les commandes se lancent depuis `apps/mobile/`.
 
 ## Organisation
 
-- `tests/unit/` : fonctions pures (thème, contrastes, classes de largeur).
+- `tests/unit/` : fonctions pures (thème, contrastes, classes de largeur),
+  modèle de document (validation, limites mémoire, formats, orientation),
+  stores Zustand, dates et identifiants.
 - `tests/integration/` :
   - `navigation.test.tsx` rend les **vraies routes** de `src/app` avec
     `expo-router/testing-library` et vérifie les parcours.
@@ -21,6 +23,12 @@ Toutes les commandes se lancent depuis `apps/mobile/`.
     code C++ de Skia compilé en WebAssembly), relit les pixels et encode un
     PNG. Ce test sert de socle aux tests du rendu (phase 3) et de l'export
     (phase 8).
+  - `new-document.test.tsx` : formulaire (format par défaut, formats,
+    orientation, erreurs, refus d'un document trop lourd, création).
+  - `home-projects.test.tsx` : liste, ouverture, confirmation et suppression
+    du seul projet visé.
+  - `editor.test.tsx` : espace de travail sur petit et grand écran (largeur
+    simulée en remplaçant `useBreakpoint`).
 
 ## Pièges connus
 
@@ -31,6 +39,17 @@ Toutes les commandes se lancent depuis `apps/mobile/`.
   Expo Router) doivent figurer dans `transformIgnorePatterns`.
 - `renderRouter('src/app')` résout le chemin depuis le dossier courant : lancer
   Jest depuis `apps/mobile/` (c'est le cas avec `npm test`).
+- Testing Library 14 a retiré `toHaveAccessibilityState` : utiliser
+  `toBeExpanded`, `toBeChecked`, `toBeDisabled`, `toBeSelected`.
+- Les stores Zustand sont globaux : les réinitialiser dans `beforeEach`
+  (`resetDocumentStore`, `resetEditorUiStore`).
+
+## Vérification visuelle
+
+Les captures se font sur l'export web (`npx expo export --platform web`)
+avec Playwright, en 360 dp (petit téléphone), 412 dp et 1180 dp (tablette).
+Elles ont révélé en phase 2 trois défauts que les tests ne voyaient pas
+(unité « px » masquée, libellé tronqué, bouton de suppression peu visible).
 
 ## Ce que ces tests ne couvrent pas
 

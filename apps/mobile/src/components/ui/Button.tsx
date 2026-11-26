@@ -12,13 +12,15 @@ export interface ButtonProps extends Omit<PressableProps, 'children' | 'style'> 
   /** Texte secondaire sous le libellé (ex. : raison d'une désactivation). */
   hint?: string;
   fullWidth?: boolean;
+  /** Occupe toute la hauteur disponible (boutons alignés côte à côte). */
+  grow?: boolean;
 }
 
 const background: Record<ButtonVariant, { idle: string; pressed: string }> = {
   primary: { idle: colors.accentSolid, pressed: colors.accentSolidPressed },
   secondary: { idle: colors.panel, pressed: colors.panelPressed },
   ghost: { idle: 'transparent', pressed: colors.panel },
-  danger: { idle: colors.panel, pressed: colors.panelPressed },
+  danger: { idle: colors.dangerSolid, pressed: colors.dangerSolidPressed },
 };
 
 /** Bouton tactile du thème : cible d'au moins 48 dp, états pressé et désactivé. */
@@ -27,6 +29,7 @@ export function Button({
   variant = 'primary',
   hint,
   fullWidth = false,
+  grow = false,
   disabled = false,
   accessibilityHint,
   ...rest
@@ -44,6 +47,7 @@ export function Button({
       style={({ pressed }) => [
         styles.base,
         fullWidth && styles.fullWidth,
+        grow && styles.grow,
         variant === 'secondary' && styles.bordered,
         { backgroundColor: pressed ? background[variant].pressed : background[variant].idle },
         isDisabled && styles.disabled,
@@ -52,8 +56,8 @@ export function Button({
       <View style={styles.content}>
         <AppText
           variant="subtitle"
-          tone={isDisabled ? 'disabled' : variant === 'danger' ? 'danger' : 'primary'}
-          style={variant === 'primary' && !isDisabled ? { color: colors.textOnAccent } : null}
+          tone={isDisabled ? 'disabled' : 'primary'}
+          style={(variant === 'primary' || variant === 'danger') && !isDisabled ? { color: colors.textOnAccent } : null}
         >
           {label}
         </AppText>
@@ -78,6 +82,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   fullWidth: { alignSelf: 'stretch' },
+  grow: { flexGrow: 1 },
   bordered: { borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
   disabled: { backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
   content: { alignItems: 'center', gap: spacing.xxs },

@@ -60,6 +60,12 @@ describe('accessibilité des contrastes (WCAG 2.2 AA)', () => {
     expect(contrastRatio(colors.accentSolid, colors.background)).toBeGreaterThanOrEqual(UI_AA);
   });
 
+  it('les boutons destructifs sont lisibles et se distinguent du panneau', () => {
+    expect(contrastRatio(colors.textOnAccent, colors.dangerSolid)).toBeGreaterThanOrEqual(TEXT_AA);
+    expect(contrastRatio(colors.textOnAccent, colors.dangerSolidPressed)).toBeGreaterThanOrEqual(TEXT_AA);
+    expect(contrastRatio(colors.dangerSolid, colors.panel)).toBeGreaterThanOrEqual(UI_AA);
+  });
+
   it('le texte de danger reste lisible sur les panneaux', () => {
     expect(contrastRatio(colors.danger, colors.panel)).toBeGreaterThanOrEqual(TEXT_AA);
   });

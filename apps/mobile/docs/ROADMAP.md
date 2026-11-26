@@ -4,8 +4,8 @@ Chaque phase se termine par un rapport et attend une validation avant la suivant
 
 | Phase | Contenu | État |
 |---|---|---|
-| 1 | Initialisation : projet Expo SDK 58, TypeScript strict, dépendances, architecture, navigation, thème sombre, outillage de tests | **Livrée, en attente de validation** |
-| 2 | Interface : accueil complet, formulaire de création de document (dimensions, orientation, fond, limites mémoire), espace de travail (barres, panneaux repliables) | À faire |
+| 1 | Initialisation : projet Expo SDK 58, TypeScript strict, dépendances, architecture, navigation, thème sombre, outillage de tests | Livrée et validée |
+| 2 | Interface : accueil complet, formulaire de création de document (dimensions, orientation, fond, limites mémoire), espace de travail (barres, panneaux repliables) | **Livrée, en attente de validation** |
 | 3 | Moteur graphique : modèle de document, canvas Skia, coordonnées document/écran, zoom, déplacement, ajustement | À faire |
 | 4 | Calques : ajout, suppression confirmée, sélection, renommage, duplication, visibilité, opacité, ordre, déplacement | À faire |
 | 5 | Import d'images (galerie, permissions, original préservé), outil texte éditable, formes (rectangle, cercle, ligne), transformations tactiles | À faire |

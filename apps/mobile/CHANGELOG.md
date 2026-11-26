@@ -5,6 +5,17 @@ versions selon [SemVer](https://semver.org/lang/fr/).
 
 ## [Non publié]
 
+### Phase 2 — Interface
+
+- Création de document : formats prédéfinis (écran de l'appareil, carré, story, Full HD, 4K, A4 300 dpi), largeur et hauteur libres, orientation (inversion automatique), fond blanc, noir ou transparent, nom, aperçu et mémoire estimée.
+- Protection mémoire : 1 à 8192 px par côté, 16,7 Mpx au plus (64 Mo par calque), avertissement au-delà de 8,4 Mpx. Valeurs provisoires, à mesurer en phase 9.
+- Modèle de document versionné (`engine/documents`) et store de session (Zustand).
+- Accueil : projets récents (vignette, dimensions, fond, date), ouverture, suppression avec confirmation nommant le projet.
+- Espace de travail : barre supérieure, zone de travail, barre d'outils, panneaux Calques et Propriétés ; colonne repliable sur grand écran, feuille sur téléphone ; projet introuvable signalé.
+- Composants : icônes, bouton-icône, champ de saisie, sélecteur segmenté, puce, boîte de confirmation, panneau repliable, aperçu de fond.
+- Accessibilité : nouveau rouge `dangerSolid` pour les boutons destructifs (contrastes testés).
+- Ajout de `@expo/vector-icons`, `expo-font`, `expo-asset`.
+
 ### Phase 1 — Initialisation
 
 - Projet Expo SDK 58 / React Native 0.88 / TypeScript strict dans `apps/mobile/`.

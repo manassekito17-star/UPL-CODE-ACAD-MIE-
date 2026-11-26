@@ -29,7 +29,7 @@ export default function RootLayout() {
         >
           <Stack.Screen name="index" options={{ headerShown: false, title: 'Accueil' }} />
           <Stack.Screen name="new-document" options={{ title: 'Nouveau projet' }} />
-          <Stack.Screen name="editor/[projectId]" options={{ title: 'Éditeur' }} />
+          <Stack.Screen name="editor/[projectId]" options={{ headerShown: false, title: 'Éditeur' }} />
           <Stack.Screen name="settings" options={{ title: 'Paramètres' }} />
         </Stack>
       </ThemeProvider>
