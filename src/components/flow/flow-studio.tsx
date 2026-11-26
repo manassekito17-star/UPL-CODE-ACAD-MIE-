@@ -1,5 +1,6 @@
 "use client";
 
+import { ConsoleScreen, EndOfProgram, isNarrowScreen } from "@/components/editor/console-screen";
 import "@xyflow/react/dist/style.css";
 import { Background, Controls, MarkerType, MiniMap, ReactFlow, ReactFlowProvider, getNodesBounds, getViewportForBounds, useReactFlow, type Edge, type Node } from "@xyflow/react";
 import { toPng, toSvg } from "html-to-image";
@@ -168,6 +169,8 @@ function Studio() {
   const [running, setRunning] = useState(false);
   const [speed, setSpeed] = useState(500);
   const [answer, setAnswer] = useState("");
+  /** Téléphone : écran « ← Console » plein écran pendant l'exécution. */
+  const [consoleScreen, setConsoleScreen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [importText, setImportText] = useState("");
   const [importResult, setImportResult] = useState<{ program: FlowProgram; warnings: string[] } | { error: string } | null>(null);
@@ -348,6 +351,7 @@ function Studio() {
       return;
     }
     setRunning(true);
+    if (isNarrowScreen()) setConsoleScreen(true);
     const r = await runTrace(generated.code, opts.stdin ?? current.stdin);
     setRunning(false);
     setTrace(r);
@@ -685,6 +689,7 @@ function Studio() {
               ))}
               {trace?.error && idx >= lastIdx && !missingInput && <p className="text-red-300">{trace.error.message}</p>}
               {trace && idx >= lastIdx && !trace.error && <p className="text-emerald-300">✓ Fin de l&apos;algorithme ({trace.trace.length} étapes)</p>}
+              {trace && idx >= lastIdx && !missingInput && <EndOfProgram className="text-gray-300" />}
             </div>
             {missingInput && (
               <form
@@ -844,6 +849,36 @@ function Studio() {
 
   return (
     <div className="fixed inset-0 z-40 flex flex-col bg-[#1e1f22] text-gray-100" data-testid="flow-studio">
+      {consoleScreen && (
+        <ConsoleScreen
+          onBack={() => setConsoleScreen(false)}
+          running={running}
+          finished={Boolean(trace) && idx >= lastIdx && !missingInput}
+          footer={
+            missingInput ? (
+              <form
+                className="flex items-center gap-2"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  giveInput();
+                }}
+                data-testid="saisie-ecran-console"
+              >
+                <span className="font-mono text-[#f28c28]">{missingInput} ?</span>
+                <input autoFocus value={answer} onChange={(e) => setAnswer(e.target.value)} aria-label={`Valeur de ${missingInput}`} className="min-w-0 flex-1 border-b border-[#f28c28] bg-transparent font-mono text-white outline-none" />
+                <button type="submit" className="rounded bg-[#f28c28] px-3 py-1 font-semibold text-black">OK</button>
+              </form>
+            ) : undefined
+          }
+        >
+          {transcript.map((t, i) => (
+            <div key={i} className={t.kind === "in" ? "text-sky-200" : undefined}>
+              {t.kind === "in" ? `↳ ${t.text}` : t.text}
+            </div>
+          ))}
+          {trace?.error && idx >= lastIdx && !missingInput && <div className="text-red-300">{trace.error.message}</div>}
+        </ConsoleScreen>
+      )}
       {/* Barre supérieure */}
       <header className="flex shrink-0 flex-wrap items-center gap-2 border-b border-white/10 bg-[#2b2d30] px-2 py-1.5">
         <Link href="/" className="rounded px-2 py-1 text-sm font-bold text-white hover:bg-white/10" aria-label="Retour à l'accueil">

@@ -59,7 +59,7 @@ test("aller à n'importe quoi, curseurs multiples, recherche, exécution, enregi
   await page.getByLabel("Aller à", { exact: true }).press("Enter");
   await page.keyboard.press("Control+b");
   await expect(page.getByTestId("zt-console")).toContainText("Somme = 55", { timeout: 30_000 });
-  await expect(page.getByTestId("zt-console")).toContainText(/\[Terminé en .* s\]/);
+  await expect(page.getByTestId("zt-console")).toContainText("--------------\n[Fin de programme]");
 
   // Palette de commandes : trier les lignes.
   await page.keyboard.press("Control+Shift+p");

@@ -16,6 +16,7 @@ import { cn } from "../ui";
 import type { MonacoEditor } from "./code-editor";
 import { autoFixCode, type FixResult } from "@/lib/fix";
 import { recordVersion } from "@/lib/history";
+import { ConsoleScreen, EndOfProgram, isNarrowScreen } from "./console-screen";
 import { FixDialog } from "./fix-dialog";
 import { HistoryDialog } from "./history-dialog";
 import { ResultExtras, sqlConsoleText } from "./result-extras";
@@ -242,6 +243,8 @@ export function AlgoStudio({
   /** « Corriger le code » proposé après une erreur. */
   const [fixProposal, setFixProposal] = useState<FixResult | null>(null);
   const [showFix, setShowFix] = useState(false);
+  /** Téléphone : la console s'ouvre en plein écran (« ← Console ») pendant l'exécution. */
+  const [consoleScreen, setConsoleScreen] = useState(false);
   const [fontSize, setFontSize] = useState(15);
   const [pasteText, setPasteText] = useState("");
   const editorRef = useRef<MonacoEditor | null>(null);
@@ -445,6 +448,7 @@ export function AlgoStudio({
       return;
     }
     setRunning(true);
+    if (isNarrowScreen()) setConsoleScreen(true);
     setError(null);
     setResult(null);
     setStatus(null);
@@ -805,6 +809,41 @@ export function AlgoStudio({
   };
 
   const keep = (e: React.PointerEvent | React.MouseEvent) => e.preventDefault();
+  // Sortie du programme (console du bas et écran « Console » du téléphone).
+  const finished = !running && Boolean(result || error) && !missingInput;
+  const programOutput = (
+    <>
+      {error && <span className="text-red-300">{error}</span>}
+      {result?.compileOutput && <span className="text-red-300">{result.compileOutput}{"\n"}</span>}
+      {result && sqlConsoleText(result)}
+      {result?.stderr && !missingInput && <span className="text-red-300">{result.stdout && !result.stdout.endsWith("\n") ? "\n" : ""}{result.stderr}</span>}
+      {result?.hint && !missingInput && <span className="mt-2 block text-amber-300">💡 {result.hint}</span>}
+    </>
+  );
+  const inputForm = (testId: string) =>
+    missingInput && (
+      <form
+        className="flex shrink-0 items-center gap-2 rounded border border-[#f28c28]/60 bg-black/50 px-2 py-2 font-mono text-[13px]"
+        onSubmit={(e) => {
+          e.preventDefault();
+          giveInput();
+        }}
+        data-testid={testId}
+      >
+        <span className="text-[#f28c28]">{missingInput} ?</span>
+        <input
+          autoFocus
+          value={answer}
+          onChange={(e) => setAnswer(e.target.value)}
+          aria-label={`Valeur de ${missingInput}`}
+          enterKeyHint="send"
+          className="min-w-0 flex-1 border-b border-[#f28c28] bg-transparent font-mono text-gray-100 outline-none"
+        />
+        <button type="submit" className="rounded bg-[#f28c28] px-3 py-1 font-sans text-xs font-semibold text-black">
+          OK
+        </button>
+      </form>
+    );
   const iconButton = "grid h-12 w-12 shrink-0 place-items-center rounded-full text-gray-100 hover:bg-white/10 active:bg-white/20";
 
   return (
@@ -942,6 +981,12 @@ export function AlgoStudio({
             </button>
           </div>
         )}
+        {consoleScreen && !isWeb && (
+          <ConsoleScreen onBack={() => setConsoleScreen(false)} running={running} finished={finished} footer={missingInput ? inputForm("saisie-ecran-console") : undefined}>
+            {running && status && <div className="text-[#f28c28]">{status}</div>}
+            {programOutput}
+          </ConsoleScreen>
+        )}
         {showFix && fixProposal && (
           <FixDialog
             fix={fixProposal}
@@ -1029,11 +1074,8 @@ export function AlgoStudio({
               <pre className="min-h-16 flex-1 overflow-auto whitespace-pre-wrap break-words rounded bg-black/50 p-2 font-mono text-[13px] leading-relaxed text-gray-100" aria-live="polite">
                 {running && <span className="text-[#f28c28]">{status ?? "Exécution en cours…"}</span>}
                 {!running && !result && !error && <span className="text-gray-500">Appuyez sur ▶ pour exécuter votre algorithme.</span>}
-                {error && <span className="text-red-300">{error}</span>}
-                {result?.compileOutput && <span className="text-red-300">{result.compileOutput}{"\n"}</span>}
-                {result && sqlConsoleText(result)}
-                {result?.stderr && !missingInput && <span className="text-red-300">{result.stdout && !result.stdout.endsWith("\n") ? "\n" : ""}{result.stderr}</span>}
-                {result?.hint && !missingInput && <span className="mt-2 block text-amber-300">💡 {result.hint}</span>}
+                {programOutput}
+                {finished && <EndOfProgram className="text-gray-300" />}
               </pre>
                 {fixProposal && !missingInput && !running && (
                   <button type="button" data-testid="corriger-code" onClick={() => setShowFix(true)} className="shrink-0 self-start rounded-md border border-emerald-500/60 bg-emerald-600/20 px-3 py-1.5 text-sm font-semibold text-emerald-200 hover:bg-emerald-600/40">
@@ -1041,29 +1083,7 @@ export function AlgoStudio({
                   </button>
                 )}
                 <ResultExtras result={result} files={files} />
-                {missingInput && (
-                  <form
-                    className="flex shrink-0 items-center gap-2 rounded border border-[#f28c28]/60 bg-black/50 px-2 py-2 font-mono text-[13px]"
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      giveInput();
-                    }}
-                    data-testid="saisie-console"
-                  >
-                    <span className="text-[#f28c28]">{missingInput} ?</span>
-                    <input
-                      autoFocus
-                      value={answer}
-                      onChange={(e) => setAnswer(e.target.value)}
-                      aria-label={`Valeur de ${missingInput}`}
-                      enterKeyHint="send"
-                      className="min-w-0 flex-1 border-b border-[#f28c28] bg-transparent font-mono text-gray-100 outline-none"
-                    />
-                    <button type="submit" className="rounded bg-[#f28c28] px-3 py-1 font-sans text-xs font-semibold text-black">
-                      OK
-                    </button>
-                  </form>
-                )}
+                {inputForm("saisie-console")}
             </div>
           )}
         </section>
