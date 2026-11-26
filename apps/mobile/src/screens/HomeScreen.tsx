@@ -28,8 +28,7 @@ export function HomeScreen() {
           Créer
         </AppText>
         <AppText tone="secondary">
-          Studio graphique mobile : documents multicalques, textes, formes et retouches, sans compte et sans
-          connexion.
+          Documents multicalques, textes, formes et retouches, sans compte et sans connexion.
         </AppText>
       </View>
 

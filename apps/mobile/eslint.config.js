@@ -36,9 +36,9 @@ module.exports = defineConfig([
   ),
   // Thème, utilitaires et types sont des briques de base sans dépendance applicative.
   forbid(
-    ['src/theme/**', 'src/utils/**', 'src/types/**'],
+    ['src/theme/**', 'src/utils/**', 'src/types/**', 'src/constants/**'],
     [...UI_LAYERS, '@/stores', '@/stores/*', '@/features', '@/features/*', '@/engine', '@/engine/*', '@/services', '@/services/*'],
-    'Les modules de base (theme, utils, types) ne doivent dépendre d’aucune couche applicative.',
+    'Les modules de base (theme, utils, types, constants) ne doivent dépendre d’aucune couche applicative.',
   ),
   // Les services (stockage, fichiers) ne dépendent pas de l'interface.
   forbid(['src/services/**', 'src/stores/**'], UI_LAYERS, "Les services et les stores ne doivent pas importer l'interface."),

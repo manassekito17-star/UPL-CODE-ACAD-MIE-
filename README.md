@@ -136,4 +136,4 @@ Le contenu de référence est dans `src/content/` (`courses/*.ts`, `exercises/*.
 
 | Dossier | Projet |
 |---|---|
-| [`apps/mobile/`](apps/mobile/README.md) | **Studio Graphic** (nom provisoire) : éditeur graphique mobile Android / iOS (Expo, React Native, Skia). Projet npm indépendant : ses dépendances, son lint, ses tests et sa CI ([`.github/workflows/mobile.yml`](.github/workflows/mobile.yml)) sont séparés de ceux du site. |
+| [`apps/mobile/`](apps/mobile/README.md) | **ZENTECH DESIGN** : éditeur graphique mobile Android / iOS (Expo, React Native, Skia). Projet npm indépendant : ses dépendances, son lint, ses tests et sa CI ([`.github/workflows/mobile.yml`](.github/workflows/mobile.yml)) sont séparés de ceux du site. |

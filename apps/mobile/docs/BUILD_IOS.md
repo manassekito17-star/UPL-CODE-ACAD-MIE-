@@ -38,5 +38,5 @@ npx eas-cli@latest build --profile development --platform ios
   (`npm run bundle:check`, bytecode Hermes).
 - **Compilation native iOS non testée** : l'environnement de la phase 1 est
   un conteneur Linux, sans Xcode. À faire sur un Mac ou via EAS Build.
-- Identifiant de bundle provisoire : `app.studiographic.dev` (à remplacer quand
-  le nom commercial sera validé).
+- Identifiant de bundle provisoire : `app.studiographic.dev`. À remplacer par
+  l'identifiant définitif de ZENTECH DESIGN avant la première publication.

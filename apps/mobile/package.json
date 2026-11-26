@@ -54,7 +54,7 @@
     "verify": "npm run typecheck && npm run lint && npm test"
   },
   "private": true,
-  "description": "Studio graphique mobile (nom commercial à définir) — React Native, Expo, Skia.",
+  "description": "ZENTECH DESIGN — studio graphique mobile (React Native, Expo, Skia).",
   "engines": {
     "node": ">=22.13.0"
   }

@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "Studio Graphic",
-    "slug": "studio-graphic",
+    "name": "ZENTECH DESIGN",
+    "slug": "zentech-design",
     "version": "0.1.0",
-    "scheme": "studiographic",
+    "scheme": "zentechdesign",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -36,7 +36,7 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Studio Graphic accède à vos photos uniquement pour les importer dans vos projets. Rien n'est envoyé sur Internet.",
+          "photosPermission": "ZENTECH DESIGN accède à vos photos uniquement pour les importer dans vos projets. Rien n'est envoyé sur Internet.",
           "cameraPermission": false,
           "microphonePermission": false
         }

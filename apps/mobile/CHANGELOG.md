@@ -7,6 +7,8 @@ versions selon [SemVer](https://semver.org/lang/fr/).
 
 ### Phase 2 — Interface
 
+- Nom commercial : **ZENTECH DESIGN** (nom affiché, logo, paramètres, autorisation photos). Slug Expo `zentech-design`, schéma de liens `zentechdesign://`.
+
 - Création de document : formats prédéfinis (écran de l'appareil, carré, story, Full HD, 4K, A4 300 dpi), largeur et hauteur libres, orientation (inversion automatique), fond blanc, noir ou transparent, nom, aperçu et mémoire estimée.
 - Protection mémoire : 1 à 8192 px par côté, 16,7 Mpx au plus (64 Mo par calque), avertissement au-delà de 8,4 Mpx. Valeurs provisoires, à mesurer en phase 9.
 - Modèle de document versionné (`engine/documents`) et store de session (Zustand).

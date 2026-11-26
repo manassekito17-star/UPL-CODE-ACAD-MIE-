@@ -1,6 +1,6 @@
 # Architecture
 
-Studio graphique mobile (nom commercial à définir, nom technique `studio-graphic`).
+ZENTECH DESIGN, studio graphique mobile (nom technique `studio-graphic`).
 Ce document décrit l'organisation du code et les règles qui la protègent.
 
 ## Vue d'ensemble

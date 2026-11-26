@@ -1,10 +1,8 @@
 import { StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui';
+import { APP_NAME, APP_TAGLINE } from '@/constants/app';
 import { colors, radius, spacing } from '@/theme';
-
-/** Nom affiché tant que le nom commercial n'est pas validé. */
-export const PROVISIONAL_APP_NAME = 'Studio Graphic';
 
 export interface LogoProps {
   size?: number;
@@ -12,14 +10,14 @@ export interface LogoProps {
 }
 
 /**
- * Logo provisoire : trois plaques décalées évoquant une pile de calques.
+ * Logo ZENTECH DESIGN : trois plaques décalées évoquant une pile de calques.
  * Dessiné avec de simples vues pour ne dépendre d'aucun fichier image.
  */
 export function Logo({ size = 44, showName = true }: LogoProps) {
   const plate = size * 0.62;
   const step = (size - plate) / 2;
   return (
-    <View style={styles.row} accessible accessibilityRole="image" accessibilityLabel={`Logo ${PROVISIONAL_APP_NAME}`}>
+    <View style={styles.row} accessible accessibilityRole="image" accessibilityLabel={`Logo ${APP_NAME}`}>
       <View style={{ width: size, height: size }}>
         {[colors.panelPressed, colors.accentSolid, colors.accent].map((color, i) => (
           <View
@@ -33,9 +31,11 @@ export function Logo({ size = 44, showName = true }: LogoProps) {
       </View>
       {showName ? (
         <View>
-          <AppText variant="title">{PROVISIONAL_APP_NAME}</AppText>
+          <AppText variant="title" style={styles.name}>
+            {APP_NAME}
+          </AppText>
           <AppText variant="caption" tone="secondary">
-            Nom provisoire
+            {APP_TAGLINE}
           </AppText>
         </View>
       ) : null}
@@ -46,4 +46,5 @@ export function Logo({ size = 44, showName = true }: LogoProps) {
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   plate: { position: 'absolute', borderRadius: radius.sm, borderWidth: 1, borderColor: colors.background },
+  name: { letterSpacing: 0.5 },
 });

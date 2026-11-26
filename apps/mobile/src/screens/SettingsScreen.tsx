@@ -1,8 +1,8 @@
 import Constants from 'expo-constants';
 import { Platform, StyleSheet, View } from 'react-native';
 
-import { PROVISIONAL_APP_NAME } from '@/components/brand/Logo';
 import { AppText, Panel, Screen } from '@/components/ui';
+import { APP_NAME } from '@/constants/app';
 import { spacing } from '@/theme';
 
 function Row({ label, value }: { label: string; value: string }) {
@@ -19,7 +19,7 @@ export function SettingsScreen() {
   return (
     <Screen testID="settings-screen">
       <Panel title="Application">
-        <Row label="Nom" value={`${PROVISIONAL_APP_NAME} (provisoire)`} />
+        <Row label="Nom" value={APP_NAME} />
         <Row label="Version" value={version} />
         <Row label="Plateforme" value={`${Platform.OS} ${String(Platform.Version)}`} />
       </Panel>

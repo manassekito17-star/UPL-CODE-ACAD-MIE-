@@ -1,11 +1,12 @@
-# Studio Graphic (nom provisoire)
+# ZENTECH DESIGN
 
 Studio graphique mobile professionnel pour **Android** et **iOS** : documents
 multicalques, images, textes, formes, transformations tactiles, historique,
 sauvegarde locale et export PNG. Gratuit, hors ligne, sans compte.
 
-> Nom technique : `studio-graphic`. Le nom commercial n'est pas encore défini ;
-> « Studio Graphic » et l'identifiant `app.studiographic.dev` sont provisoires.
+> Nom commercial : **ZENTECH DESIGN**. Nom technique du paquet : `studio-graphic`.
+> L'identifiant d'application `app.studiographic.dev` reste provisoire (à fixer
+> avant toute publication sur les stores).
 
 **État : phase 2 (interface) terminée.** Création de documents, accueil avec
 projets récents et espace de travail sont en place ; le canvas Skia arrive en
