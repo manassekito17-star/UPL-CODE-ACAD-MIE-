@@ -33,6 +33,8 @@ versions validées pour le SDK installé. Relevé du 26/11/2026.
 | `expo-sqlite` | ~58.0.18 | MIT | Métadonnées locales des projets (phase 7) |
 | `expo-file-system` | ~58.0.15 | MIT | Fichiers des ressources (phases 5, 7, 8) |
 | `expo-image-picker` | ~58.0.10 | MIT | Import depuis la galerie (phase 5) |
+| `expo-image-manipulator` | ~58.0.16 | MIT | Copie de travail des images importées (décodage natif, réduction, JPEG/PNG) |
+| `@expo-google-fonts/inter` | ^0.4.2 | MIT (paquet), OFL-1.1 (police Inter) | Police embarquée des textes : rendu identique sur toutes les plateformes et à l'export. Seules les graisses 400 et 700 sont incluses (≈ 0,7 Mo). |
 | `react-dom`, `react-native-web`, `@expo/metro-runtime` | 19.3.0, ^0.21.4, ~58.0.17 | MIT | Exigés par Expo Router ; captures d'écran de vérification |
 
 `react-dom` doit rester à la même version que `react` (19.3.0). Sinon npm
@@ -46,7 +48,7 @@ l'installation échoue (`ERESOLVE`).
 | `typescript` | ~6.0.3 | Apache-2.0 | Typage strict |
 | `jest` + `jest-expo` | ~30.5.2 + ~58.0.16 | MIT | Tests (préréglage Expo) |
 | `@testing-library/react-native` + `test-renderer` | 14.1.0 + ^1.3.1 | MIT | Tests d'interface |
-| `@types/jest`, `@types/react` | 30.0.0, ~19.3.0 | MIT | Types |
+| `@types/jest`, `@types/react`, `@types/node` | 30.0.0, ~19.3.0, ^22 | MIT | Types (`@types/node` : lecture des polices dans les tests de rendu ; aligné sur Node 22) |
 | `eslint` + `eslint-config-expo` | ^9.39.5 + ~58.0.4 | MIT | Analyse statique |
 
 ## Audit de sécurité

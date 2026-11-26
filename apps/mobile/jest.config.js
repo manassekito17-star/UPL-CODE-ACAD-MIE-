@@ -15,6 +15,8 @@ module.exports = {
     // Doublure de Reanimated (voir tests/mocks/reanimated.ts). Expo Router la
     // charge aussi via 'react-native-reanimated/mock'.
     '^react-native-reanimated/mock$': '<rootDir>/tests/mocks/reanimated.ts',
+    // Polices embarquées : Metro les remplace par un identifiant de ressource.
+    '\\.(ttf|otf)$': '<rootDir>/tests/mocks/fileAsset.js',
   },
   collectCoverageFrom: ['src/**/*.{ts,tsx}', '!src/app/**'],
 };

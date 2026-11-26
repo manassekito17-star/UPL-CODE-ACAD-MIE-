@@ -5,6 +5,17 @@ versions selon [SemVer](https://semver.org/lang/fr/).
 
 ## [Non publié]
 
+### Phase 5 — Images, texte, formes, transformations
+
+- Import d'images : galerie système (aucune autorisation demandée sur Android 13+ et iOS 14+), copie intacte de l'original dans le dossier de l'application, copie de travail JPEG ou PNG (HEIC converti) réduite si elle dépasse 4096 px ou 16,7 Mpx ; nettoyage si l'import échoue. Depuis l'accueil (nouveau document aux dimensions de la photo) ou dans l'éditeur (nouveau calque).
+- Texte : vrai calque éditable (contenu, taille, couleur, alignement, gras), police Inter embarquée (rendu identique sur toutes les plateformes et à l'export), retour à la ligne dans la largeur, hauteur ajustée au contenu.
+- Formes : rectangle, cercle (ellipse), ligne aux extrémités arrondies ; couleur par nuancier ou code hexadécimal.
+- Transformations tactiles : poignées de coin (redimensionner, coin opposé fixe même tourné ; proportions gardées pour les images) et poignée de rotation (aimantée à 45°) ; aperçu sur le thread UI, enregistrement au relâchement.
+- Barre d'outils : modes (Sélection, Vue) et insertions (Texte, Formes, Image) ; menu « Ajouter un calque ».
+- Ressources de rendu (police, images décodées) fournies explicitement, partagées par l'écran et le futur export.
+- Corrections trouvées pendant la phase : détection PNG/GIF par le nom de fichier, tap déclenché à la fin d'un glisser, cadre de sélection qui mordait sur le contenu, vignette de ligne invisible, chargement de Skia sur le web.
+- Dépendances : `expo-image-manipulator`, `@expo-google-fonts/inter` ; `@types/node` (tests).
+
 ### Phase 4 — Calques
 
 - Modèle de calque (`engine/layers`) : identifiant, nom, type, x, y, largeur, hauteur, rotation, opacité, visibilité, verrouillage ; l'ordre d'affichage est la position dans la pile. Premier type concret : rectangle (cercle, ligne, texte et image en phase 5).

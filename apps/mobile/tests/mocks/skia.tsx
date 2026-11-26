@@ -31,3 +31,8 @@ export const Fill = Nothing;
 export const Skia = neutral;
 export const TileMode = { Clamp: 0, Repeat: 1, Mirror: 2, Decal: 3 };
 export const FilterMode = { Nearest: 0, Linear: 1 };
+export const MipmapMode = { None: 0, Nearest: 1, Linear: 2 };
+export const TextAlign = { Left: 0, Right: 1, Center: 2, Justify: 3, Start: 4, End: 5 };
+/** Pas de police ni d'image dans les tests d'interface : textes et images non dessinés. */
+export const useFonts = () => null;
+export const useImage = () => null;

@@ -1,7 +1,7 @@
 import type { GraphicDocument } from '@/engine/documents/types';
 
 import { normalizeRotation } from './geometry';
-import type { Layer } from './types';
+import type { Layer, TextAlignment } from './types';
 
 /**
  * Opérations sur la pile de calques. Toutes sont PURES : elles renvoient un
@@ -192,3 +192,76 @@ export const bringForward = (doc: GraphicDocument, id: string) => moveLayerTo(do
 export const sendBackward = (doc: GraphicDocument, id: string) => moveLayerTo(doc, id, layerOrder(doc, id) - 1);
 export const bringToFront = (doc: GraphicDocument, id: string) => moveLayerTo(doc, id, doc.layers.length - 1);
 export const sendToBack = (doc: GraphicDocument, id: string) => moveLayerTo(doc, id, 0);
+
+export const TEXT_MAX_LENGTH = 2000;
+export const MIN_FONT_SIZE = 4;
+export const MAX_FONT_SIZE = 1000;
+const HEX_COLOR = /^#[0-9A-F]{6}$/i;
+
+/** Normalise une couleur saisie (« 3685ff », « #3685FF ») ou renvoie null si invalide. */
+export function normalizeHexColor(raw: string): string | null {
+  const value = raw.trim().replace(/^#?/, '#').toUpperCase();
+  return HEX_COLOR.test(value) ? value : null;
+}
+
+export interface LayerStylePatch {
+  /** Remplissage d'une forme ou couleur d'un texte. */
+  color?: string;
+  text?: string;
+  fontSize?: number;
+  align?: TextAlignment;
+  bold?: boolean;
+}
+
+/**
+ * Modifie le style d'un calque (couleur, texte, taille, alignement, gras).
+ * Refusé sur un calque verrouillé ; chaque champ est validé et ne s'applique
+ * qu'aux types de calque qui le possèdent.
+ */
+export function updateLayerStyle(doc: GraphicDocument, id: string, patch: LayerStylePatch): GraphicDocument {
+  const index = indexOrThrow(doc.layers, id);
+  const layer = doc.layers[index] as Layer;
+  if (layer.locked) throw new LayerError('Calque verrouillé : déverrouillez-le pour le modifier.', 'locked');
+
+  let color: string | undefined;
+  if (patch.color !== undefined) {
+    const normalized = normalizeHexColor(patch.color);
+    if (!normalized) throw new LayerError('Couleur invalide : format attendu #RRVVBB.', 'invalid');
+    color = normalized;
+  }
+
+  if (layer.type === 'shape') {
+    if (patch.text !== undefined || patch.fontSize !== undefined || patch.align !== undefined || patch.bold !== undefined) {
+      throw new LayerError('Cette propriété ne concerne que les textes.', 'invalid');
+    }
+    return color === undefined ? doc : withLayers(doc, replaceAt(doc.layers, index, { ...layer, fill: color }));
+  }
+
+  if (layer.type === 'text') {
+    if (patch.text !== undefined) {
+      if (patch.text.trim() === '') throw new LayerError('Le texte ne peut pas être vide.', 'invalid');
+      if (patch.text.length > TEXT_MAX_LENGTH) {
+        throw new LayerError(`Le texte ne doit pas dépasser ${TEXT_MAX_LENGTH} caractères.`, 'invalid');
+      }
+    }
+    if (
+      patch.fontSize !== undefined &&
+      (!Number.isFinite(patch.fontSize) || patch.fontSize < MIN_FONT_SIZE || patch.fontSize > MAX_FONT_SIZE)
+    ) {
+      throw new LayerError(`La taille du texte doit être comprise entre ${MIN_FONT_SIZE} et ${MAX_FONT_SIZE} px.`, 'invalid');
+    }
+    return withLayers(
+      doc,
+      replaceAt(doc.layers, index, {
+        ...layer,
+        ...(color !== undefined ? { color } : {}),
+        ...(patch.text !== undefined ? { text: patch.text } : {}),
+        ...(patch.fontSize !== undefined ? { fontSize: patch.fontSize } : {}),
+        ...(patch.align !== undefined ? { align: patch.align } : {}),
+        ...(patch.bold !== undefined ? { bold: patch.bold } : {}),
+      }),
+    );
+  }
+
+  throw new LayerError("Une image n'a pas de couleur ni de texte à modifier.", 'invalid');
+}

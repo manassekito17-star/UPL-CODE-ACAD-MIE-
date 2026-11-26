@@ -5,19 +5,31 @@ import { useEditorUiStore } from '@/stores/editorUiStore';
 import { colors, spacing } from '@/theme';
 
 import { TOOLS, isToolAvailable } from './tools';
+import { useInsertMenu } from './useInsertMenu';
 
 export interface EditorToolbarProps {
   orientation: 'vertical' | 'horizontal';
+  documentId: string;
 }
 
 /**
- * Barre d'outils. Les outils des phases non livrées restent visibles mais
+ * Barre d'outils : deux modes (Sélection, Vue) et trois insertions (Texte,
+ * Formes, Image). Les outils des phases non livrées restent visibles mais
  * désactivés, avec la phase annoncée aux lecteurs d'écran.
  */
-export function EditorToolbar({ orientation }: EditorToolbarProps) {
+export function EditorToolbar({ orientation, documentId }: EditorToolbarProps) {
   const horizontal = orientation === 'horizontal';
   const activeTool = useEditorUiStore((s) => s.activeTool);
   const setTool = useEditorUiStore((s) => s.setTool);
+  const menu = useInsertMenu(documentId);
+
+  const press = (id: (typeof TOOLS)[number]['id']) => {
+    if (id === 'text') menu.insert('text');
+    else if (id === 'shape') menu.openShapes();
+    else if (id === 'image') void menu.insert('image');
+    else setTool(id);
+  };
+
   return (
     <ScrollView
       horizontal={horizontal}
@@ -30,7 +42,7 @@ export function EditorToolbar({ orientation }: EditorToolbarProps) {
       testID="editor-toolbar"
     >
       {TOOLS.map((tool) => {
-        const available = isToolAvailable(tool);
+        const available = isToolAvailable(tool) && !(tool.id === 'image' && menu.importing);
         return (
           <IconButton
             key={tool.id}
@@ -38,12 +50,13 @@ export function EditorToolbar({ orientation }: EditorToolbarProps) {
             label={tool.label}
             showLabel
             disabled={!available}
-            active={available && activeTool === tool.id}
-            accessibilityHint={available ? tool.hint : `Disponible en phase ${tool.availableInPhase}`}
-            onPress={() => setTool(tool.id)}
+            active={tool.kind === 'mode' && available && activeTool === tool.id}
+            accessibilityHint={isToolAvailable(tool) ? tool.hint : `Disponible en phase ${tool.availableInPhase}`}
+            onPress={() => press(tool.id)}
           />
         );
       })}
+      {menu.dialog}
     </ScrollView>
   );
 }

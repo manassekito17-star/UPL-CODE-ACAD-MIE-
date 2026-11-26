@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import { SkiaGate } from '@/components/SkiaGate';
 import { colors } from '@/theme';
 import { navigationTheme } from '@/theme/navigationTheme';
 
@@ -16,23 +17,25 @@ import { navigationTheme } from '@/theme/navigationTheme';
 export default function RootLayout() {
   return (
     <GestureHandlerRootView style={styles.root}>
-      <ThemeProvider value={navigationTheme}>
-        <StatusBar style="light" />
-        <Stack
-          screenOptions={{
-            headerStyle: { backgroundColor: colors.surface },
-            headerTintColor: colors.textPrimary,
-            headerTitleStyle: { color: colors.textPrimary },
-            headerShadowVisible: false,
-            contentStyle: { backgroundColor: colors.background },
-          }}
-        >
-          <Stack.Screen name="index" options={{ headerShown: false, title: 'Accueil' }} />
-          <Stack.Screen name="new-document" options={{ title: 'Nouveau projet' }} />
-          <Stack.Screen name="editor/[projectId]" options={{ headerShown: false, title: 'Éditeur' }} />
-          <Stack.Screen name="settings" options={{ title: 'Paramètres' }} />
-        </Stack>
-      </ThemeProvider>
+      <SkiaGate>
+        <ThemeProvider value={navigationTheme}>
+          <StatusBar style="light" />
+          <Stack
+            screenOptions={{
+              headerStyle: { backgroundColor: colors.surface },
+              headerTintColor: colors.textPrimary,
+              headerTitleStyle: { color: colors.textPrimary },
+              headerShadowVisible: false,
+              contentStyle: { backgroundColor: colors.background },
+            }}
+          >
+            <Stack.Screen name="index" options={{ headerShown: false, title: 'Accueil' }} />
+            <Stack.Screen name="new-document" options={{ title: 'Nouveau projet' }} />
+            <Stack.Screen name="editor/[projectId]" options={{ headerShown: false, title: 'Éditeur' }} />
+            <Stack.Screen name="settings" options={{ title: 'Paramètres' }} />
+          </Stack>
+        </ThemeProvider>
+      </SkiaGate>
     </GestureHandlerRootView>
   );
 }

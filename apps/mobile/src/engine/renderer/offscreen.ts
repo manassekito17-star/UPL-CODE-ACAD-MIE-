@@ -2,11 +2,13 @@ import { Skia, type SkImage } from '@shopify/react-native-skia';
 
 import { DOCUMENT_LIMITS } from '@/engine/documents';
 
-import { drawDocument, type DrawableDocument } from './drawDocument';
+import { NO_RESOURCES, drawDocument, type DrawableDocument, type RenderResources } from './drawDocument';
 
 export interface OffscreenOptions {
   /** Facteur appliqué aux dimensions du document (1 = taille réelle). */
   scale?: number;
+  /** Police et images décodées (les mêmes qu'à l'écran). */
+  resources?: RenderResources;
 }
 
 /**
@@ -16,7 +18,10 @@ export interface OffscreenOptions {
  * Lève une erreur si l'image dépasse le budget mémoire des documents : on ne
  * tente jamais une allocation que la validation aurait refusée.
  */
-export function renderDocumentToImage(doc: DrawableDocument, { scale = 1 }: OffscreenOptions = {}): SkImage {
+export function renderDocumentToImage(
+  doc: DrawableDocument,
+  { scale = 1, resources = NO_RESOURCES }: OffscreenOptions = {},
+): SkImage {
   const width = Math.max(1, Math.round(doc.width * scale));
   const height = Math.max(1, Math.round(doc.height * scale));
   if (width * height > DOCUMENT_LIMITS.maxPixels) {
@@ -30,7 +35,7 @@ export function renderDocumentToImage(doc: DrawableDocument, { scale = 1 }: Offs
   canvas.clear(Skia.Color('transparent'));
   canvas.save();
   canvas.scale(width / doc.width, height / doc.height);
-  drawDocument(canvas, doc);
+  drawDocument(canvas, doc, resources);
   canvas.restore();
   surface.flush();
   const image = surface.makeImageSnapshot();

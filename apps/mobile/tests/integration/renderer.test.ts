@@ -184,6 +184,121 @@ describe('rendu des calques', () => {
   });
 });
 
+describe('formes, texte et image', () => {
+  /* eslint-disable @typescript-eslint/no-require-imports */
+  const fs = require('node:fs') as typeof import('node:fs');
+  const path = require('node:path') as typeof import('node:path');
+  /* eslint-enable @typescript-eslint/no-require-imports */
+  const fontDir = path.join(__dirname, '../../node_modules/@expo-google-fonts/inter');
+  const fonts = Skia.TypefaceFontProvider.Make();
+  for (const file of ['400Regular/Inter_400Regular.ttf', '700Bold/Inter_700Bold.ttf']) {
+    const face = Skia.Typeface.MakeFreeTypeFaceFromData(Skia.Data.fromBytes(new Uint8Array(fs.readFileSync(path.join(fontDir, file)))));
+    if (!face) throw new Error(`police illisible : ${file}`);
+    fonts.registerFont(face, renderer.TEXT_FONT_FAMILY);
+  }
+  const resources = (images: Map<string, ReturnType<typeof renderer.renderDocumentToImage>> = new Map()) => ({ fonts, images });
+
+  const base = { id: 'l', name: 'L', x: 0, y: 0, rotation: 0, opacity: 1, visible: true, locked: false };
+  const RED = [255, 0, 0, 255];
+  const WHITE = [255, 255, 255, 255];
+
+  it('dessine un cercle inscrit dans la boîte (coins vides)', () => {
+    const ellipse = { ...base, type: 'shape' as const, shape: 'ellipse' as const, width: 40, height: 40, fill: '#FF0000' };
+    const image = renderer.renderDocumentToImage({ ...doc('white', 40, 40), layers: [ellipse] });
+    expect(pixelAt(image, 20, 20)).toEqual(RED);
+    expect(pixelAt(image, 2, 2)).toEqual(WHITE);
+    expect(pixelAt(image, 37, 37)).toEqual(WHITE);
+  });
+
+  it('dessine une ligne aux extrémités arrondies', () => {
+    const line = { ...base, type: 'shape' as const, shape: 'line' as const, width: 40, height: 10, fill: '#FF0000' };
+    const image = renderer.renderDocumentToImage({ ...doc('white', 40, 10), layers: [line] });
+    expect(pixelAt(image, 20, 5)).toEqual(RED);
+    expect(pixelAt(image, 0, 0)).toEqual(WHITE); // coin arrondi
+  });
+
+  it("dessine l'image décodée redimensionnée dans la boîte du calque, et rien si elle n'est pas chargée", () => {
+    // Image source 4 × 2 : moitié gauche rouge, moitié droite bleue.
+    const src = Skia.Surface.Make(4, 2);
+    if (!src) throw new Error('surface indisponible');
+    const paint = Skia.Paint();
+    paint.setColor(Skia.Color('#FF0000'));
+    src.getCanvas().drawRect(Skia.XYWHRect(0, 0, 2, 2), paint);
+    paint.setColor(Skia.Color('#0000FF'));
+    src.getCanvas().drawRect(Skia.XYWHRect(2, 0, 2, 2), paint);
+    src.flush();
+    const png = src.makeImageSnapshot().encodeToBytes();
+    const decoded = Skia.Image.MakeImageFromEncoded(Skia.Data.fromBytes(png));
+    if (!decoded) throw new Error('décodage impossible');
+
+    const asset = { uri: 'file:///work.png', width: 4, height: 2, originalUri: 'file:///orig.heic', originalWidth: 4, originalHeight: 2, fileName: 'photo.heic' };
+    const layer = { ...base, type: 'image' as const, width: 40, height: 20, asset };
+    const d = { ...doc('white', 40, 20), layers: [layer] };
+    const image = renderer.renderDocumentToImage(d, { resources: resources(new Map([[asset.uri, decoded]])) });
+    expect(pixelAt(image, 5, 10)).toEqual(RED);
+    expect(pixelAt(image, 35, 10)).toEqual([0, 0, 255, 255]);
+
+    const notLoaded = renderer.renderDocumentToImage(d, { resources: resources() });
+    expect(pixelAt(notLoaded, 5, 10)).toEqual(WHITE);
+  });
+
+  const text = (over: Record<string, unknown>) => ({
+    ...base,
+    type: 'text' as const,
+    text: 'HHHH',
+    fontSize: 40,
+    color: '#000000',
+    align: 'left' as const,
+    bold: false,
+    fontFamily: 'Inter' as const,
+    width: 300,
+    height: 60,
+    ...over,
+  });
+  const darkColumns = (image: ReturnType<typeof renderer.renderDocumentToImage>) => {
+    const columns: number[] = [];
+    for (let x = 0; x < 300; x += 2) {
+      for (let y = 0; y < 60; y += 2) {
+        if ((pixelAt(image, x, y)[0] ?? 255) < 128) {
+          columns.push(x);
+          break;
+        }
+      }
+    }
+    return columns;
+  };
+
+  it('écrit un vrai texte avec la police embarquée, aligné à gauche ou à droite', () => {
+    const left = darkColumns(renderer.renderDocumentToImage({ ...doc('white', 300, 60), layers: [text({})] }, { resources: resources() }));
+    expect(left.length).toBeGreaterThan(10);
+    expect(Math.min(...left)).toBeLessThan(10);
+    expect(Math.max(...left)).toBeLessThan(150);
+
+    const right = darkColumns(
+      renderer.renderDocumentToImage({ ...doc('white', 300, 60), layers: [text({ align: 'right' })] }, { resources: resources() }),
+    );
+    expect(Math.min(...right)).toBeGreaterThan(150);
+    expect(Math.max(...right)).toBeGreaterThan(285);
+  });
+
+  it('le gras épaissit les traits ; sans police, rien n’est dessiné', () => {
+    const count = (bold: boolean) =>
+      darkColumns(renderer.renderDocumentToImage({ ...doc('white', 300, 60), layers: [text({ bold })] }, { resources: resources() })).length;
+    expect(count(true)).toBeGreaterThan(count(false));
+    const noFont = renderer.renderDocumentToImage({ ...doc('white', 300, 60), layers: [text({})] });
+    expect(darkColumns(noFont)).toEqual([]);
+  });
+
+  it('mesure la hauteur du texte, retour à la ligne compris', () => {
+    const one = renderer.measureTextHeight(text({}), fonts) ?? 0;
+    const two = renderer.measureTextHeight(text({ width: 60 }), fonts) ?? 0; // « HHHH » ne tient pas sur une ligne
+    expect(one).toBeGreaterThan(40);
+    expect(one).toBeLessThan(60);
+    expect(two).toBeGreaterThan(one * 1.8);
+    expect(renderer.measureTextHeight(text({}), null)).toBeNull();
+  });
+});
+
 describe('damier de transparence', () => {
   it('alterne les deux tons case par case et se répète', () => {
     const shader = renderer.createCheckerShader(4, '#FFFFFF', '#000000');

@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { AppText, Button, CollapsiblePanel, Icon, IconButton, Screen } from '@/components/ui';
 import type { GraphicDocument } from '@/engine/documents';
+import { RenderResourcesProvider } from '@/features/rendering/RenderResourcesProvider';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useDocumentStore } from '@/stores/documentStore';
 import { useEditorUiStore, type EditorPanel } from '@/stores/editorUiStore';
@@ -37,7 +38,11 @@ export function EditorScreen({ projectId }: EditorScreenProps) {
   }, [projectId, resetForDocument]);
 
   if (!document) return <MissingDocument />;
-  return breakpoint === 'compact' ? <CompactWorkspace document={document} /> : <WideWorkspace document={document} />;
+  return (
+    <RenderResourcesProvider layers={document.layers}>
+      {breakpoint === 'compact' ? <CompactWorkspace document={document} /> : <WideWorkspace document={document} />}
+    </RenderResourcesProvider>
+  );
 }
 
 /** Téléphone en portrait : canvas plein écran, un panneau à la fois en feuille. */
@@ -65,7 +70,7 @@ function CompactWorkspace({ document }: { document: GraphicDocument }) {
         </View>
       ) : null}
       <View style={styles.bottomBar}>
-        <EditorToolbar orientation="horizontal" />
+        <EditorToolbar orientation="horizontal" documentId={document.id} />
         <View style={styles.divider} />
         {(Object.keys(PANEL_META) as EditorPanel[]).map((panel) => (
           <IconButton
@@ -94,7 +99,7 @@ function WideWorkspace({ document }: { document: GraphicDocument }) {
     <Screen scroll={false} edges={['top', 'bottom', 'left', 'right']} testID="editor-screen">
       <EditorTopBar document={document} sidePanels={{ visible: sidePanelsVisible, onToggle: toggleSidePanels }} />
       <View style={styles.row}>
-        <EditorToolbar orientation="vertical" />
+        <EditorToolbar orientation="vertical" documentId={document.id} />
         <CanvasArea document={document} />
         {sidePanelsVisible ? (
           <ScrollView

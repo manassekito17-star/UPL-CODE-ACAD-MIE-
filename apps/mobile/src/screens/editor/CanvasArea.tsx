@@ -5,6 +5,7 @@ import { AppText, IconButton } from '@/components/ui';
 import { DocumentCanvasHost, type CanvasController } from '@/engine/canvas';
 import type { GraphicDocument } from '@/engine/documents';
 import { useLayerActions } from '@/features/layers/useLayerActions';
+import { useRenderResources } from '@/features/rendering/RenderResourcesProvider';
 import { useEditorUiStore } from '@/stores/editorUiStore';
 import { colors, radius, spacing, touchTarget } from '@/theme';
 
@@ -23,6 +24,7 @@ export function CanvasArea({ document }: CanvasAreaProps) {
   const tool = useEditorUiStore((s) => s.activeTool);
   const selectedLayerId = useEditorUiStore((s) => s.selectedLayerId);
   const actions = useLayerActions(document.id);
+  const resources = useRenderResources();
   const controller = useRef<CanvasController>(null);
   const [zoom, setZoom] = useState<number | null>(null);
 
@@ -38,7 +40,8 @@ export function CanvasArea({ document }: CanvasAreaProps) {
         selectedLayerId={selectedLayerId}
         onTapDocument={actions.selectAt}
         onLayerDragStart={actions.select}
-        onLayerMoved={actions.translate}
+        resources={resources}
+        onLayerTransformed={actions.transform}
       />
 
       <View style={styles.zoomBar} accessibilityRole="toolbar" accessibilityLabel="Zoom">

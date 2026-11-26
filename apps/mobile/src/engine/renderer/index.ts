@@ -1,15 +1,20 @@
 export {
   BACKGROUND_FILL,
+  NO_RESOURCES,
+  TEXT_FONT_FAMILY,
   checkerCellFor,
   createCheckerShader,
   drawBackground,
   drawDocument,
   drawLayer,
   drawLayerContent,
+  layoutText,
+  measureTextHeight,
   opacityPaint,
   recordBackgroundPicture,
   recordDocumentPicture,
   recordLayerContentPicture,
   type DrawableDocument,
+  type RenderResources,
 } from './drawDocument';
 export { renderDocumentToImage, type OffscreenOptions } from './offscreen';

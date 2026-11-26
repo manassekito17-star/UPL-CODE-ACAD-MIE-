@@ -1,3 +1,3 @@
-// Android et iOS : Skia est natif, le canvas s'affiche directement.
-// (Sur le web, voir DocumentCanvasHost.web.tsx.)
+// Point d'entrée du canvas pour l'interface. Sur le web, CanvasKit est
+// chargé une fois pour toute l'application (components/SkiaGate.web.tsx).
 export { DocumentCanvas as DocumentCanvasHost } from './DocumentCanvas';

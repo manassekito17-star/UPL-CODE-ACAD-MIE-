@@ -23,7 +23,10 @@ async function openEditor() {
 }
 
 async function addRectangles(count: number) {
-  for (let i = 0; i < count; i += 1) await fireEvent.press(button('Ajouter un rectangle'));
+  for (let i = 0; i < count; i += 1) {
+    await fireEvent.press(button('Ajouter un calque'));
+    await fireEvent.press(within(screen.getByTestId('choice-dialog')).getByRole('button', { name: 'Rectangle' }));
+  }
 }
 
 /** Ordre affiché dans la liste (le haut de la pile en premier). */

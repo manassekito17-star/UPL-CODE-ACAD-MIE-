@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { Logo } from '@/components/brand/Logo';
 import { AppText, Button, Icon, IconButton, Panel, Screen } from '@/components/ui';
+import { openImageAsNewDocument, useImageImport } from '@/features/image-import/useImageImport';
 import { RecentProjects } from '@/features/projects/RecentProjects';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { colors, spacing } from '@/theme';
@@ -10,6 +11,12 @@ import { colors, spacing } from '@/theme';
 export function HomeScreen() {
   const breakpoint = useBreakpoint();
   const actionsInRow = breakpoint !== 'compact';
+  const imageImport = useImageImport();
+
+  const importImage = async () => {
+    const { asset } = await imageImport.pick();
+    if (asset) openImageAsNewDocument(asset);
+  };
 
   return (
     <Screen edges={['top', 'bottom', 'left', 'right']} testID="home-screen">
@@ -43,9 +50,27 @@ export function HomeScreen() {
           />
         </View>
         <View style={actionsInRow ? styles.actionCell : null}>
-          <Button label="Importer une image" variant="secondary" fullWidth grow={actionsInRow} disabled hint="Disponible en phase 5" />
+          <Button
+            label="Importer une image"
+            variant="secondary"
+            fullWidth
+            grow={actionsInRow}
+            disabled={imageImport.importing}
+            hint={imageImport.importing ? 'Import en cours…' : 'Nouveau document aux dimensions de la photo'}
+            accessibilityHint="Ouvre la galerie ; l’original de la photo n’est jamais modifié"
+            onPress={() => void importImage()}
+          />
         </View>
       </View>
+
+      {imageImport.error ? (
+        <View style={styles.notice} accessibilityRole="alert" accessibilityLiveRegion="polite">
+          <Icon name="alert-circle-outline" size={18} color={colors.danger} />
+          <AppText variant="caption" tone="danger" style={styles.noticeText}>
+            {imageImport.error}
+          </AppText>
+        </View>
+      ) : null}
 
       <Panel title="Projets récents">
         <View style={styles.notice} accessible>

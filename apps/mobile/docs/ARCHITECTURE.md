@@ -173,6 +173,39 @@ DocumentCanvas (engine/canvas)
   panneau Calques ; une saisie refusée (nom, champ numérique) affiche l'erreur
   sous le champ concerné, une seule fois.
 
+## Images, texte, formes et poignées (phase 5)
+
+- **Types de calques** (`engine/layers/types.ts`) : `shape` (rectangle,
+  ellipse, ligne), `text` (contenu, taille, couleur, alignement, gras, police
+  Inter), `image` (référence à deux fichiers locaux : original intact et copie
+  de travail). Une copie de calque image partage les fichiers : aucune donnée
+  binaire n'est dupliquée.
+- **Ressources de rendu** (`RenderResources`) : la police et les images
+  décodées sont passées explicitement à `drawDocument`, jamais lues dans une
+  variable globale. L'éditeur les charge une fois
+  (`features/rendering/RenderResourcesProvider`, images décodées une seule
+  fois, retirées du cache quand elles ne servent plus) ; l'export utilisera
+  les mêmes.
+- **Texte** : mis en page par Skia Paragraph dans la largeur du calque ; la
+  hauteur du calque est recalculée (même opération, donc une seule étape
+  d'historique) quand le texte, sa taille ou la largeur changent.
+- **Import d'image** (`services/imageImport.ts`) : décision pure
+  (`planImageImport`) + accès natifs injectables (`ImportDeps`), testés
+  séparément. Fichiers dans `Documents/assets/` (réorganisés par projet en
+  phase 7).
+- **Poignées** (`engine/layers/geometry.ts`) : `hitHandle`,
+  `resizeFromCorner`, `rotateFromPointer`, fonctions pures « worklet ». Le
+  canvas tient une seule « manipulation » (mode, géométrie de départ,
+  aperçu) sur le thread UI pour déplacer, redimensionner et tourner ; le
+  contenu est étiré en aperçu (`layerMatrixForContent`) puis réenregistré au
+  relâchement.
+- **Tap ou glisser** : un tap échoue au-delà de 10 points de déplacement ;
+  sans cette borne, relâcher un calque hors de sa boîte le désélectionnait.
+- **Web** : CanvasKit est chargé une fois pour toute l'application
+  (`components/SkiaGate.web.tsx`) ; Android et iOS n'attendent rien.
+  L'import d'images n'est pas disponible sur le web (pas de système de
+  fichiers) : ce n'est pas une plateforme cible.
+
 ## Fonctionnalités non encore développées
 
 Elles sont affichées avec le composant `PlannedFeature` et le numéro de la

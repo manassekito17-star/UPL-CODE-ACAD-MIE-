@@ -1,7 +1,19 @@
-import { FilterMode, Skia, TileMode, type SkCanvas, type SkPaint, type SkPicture, type SkShader } from '@shopify/react-native-skia';
+import {
+  FilterMode,
+  MipmapMode,
+  Skia,
+  TextAlign,
+  TileMode,
+  type SkCanvas,
+  type SkImage,
+  type SkPaint,
+  type SkPicture,
+  type SkShader,
+  type SkTypefaceFontProvider,
+} from '@shopify/react-native-skia';
 
 import type { DocumentBackground, GraphicDocument } from '@/engine/documents';
-import { layerMatrix, type Layer } from '@/engine/layers';
+import { layerMatrix, type ImageLayer, type Layer, type ShapeLayer, type TextLayer } from '@/engine/layers';
 
 /** Couleurs de fond exactes écrites dans le document (et donc dans l'export). */
 export const BACKGROUND_FILL: Record<Exclude<DocumentBackground, 'transparent'>, string> = {
@@ -13,6 +25,96 @@ export type DrawableDocument = Pick<GraphicDocument, 'width' | 'height' | 'backg
   layers?: readonly Layer[];
 };
 
+/**
+ * Ressources nécessaires au rendu, fournies explicitement (jamais globales)
+ * pour que l'écran et l'export utilisent exactement les mêmes :
+ * - la police embarquée des textes ;
+ * - les images décodées, indexées par l'URI de leur copie de travail.
+ * Une ressource absente (police ou image encore en chargement) n'est pas
+ * dessinée : l'export (phase 8) vérifiera qu'elles sont toutes prêtes.
+ */
+export interface RenderResources {
+  fonts: SkTypefaceFontProvider | null;
+  images: ReadonlyMap<string, SkImage>;
+}
+
+export const NO_RESOURCES: RenderResources = { fonts: null, images: new Map() };
+
+/** Familles de police déclarées dans le fournisseur de polices. */
+export const TEXT_FONT_FAMILY = 'Inter';
+
+const TEXT_ALIGN: Record<TextLayer['align'], TextAlign> = {
+  left: TextAlign.Left,
+  center: TextAlign.Center,
+  right: TextAlign.Right,
+};
+
+/** Paragraphe Skia mis en page dans la largeur du calque (null sans police). */
+export function layoutText(layer: Pick<TextLayer, 'text' | 'fontSize' | 'color' | 'align' | 'bold' | 'width'>, fonts: SkTypefaceFontProvider | null) {
+  if (!fonts) return null;
+  const paragraph = Skia.ParagraphBuilder.Make({ textAlign: TEXT_ALIGN[layer.align] }, fonts)
+    .pushStyle({
+      color: Skia.Color(layer.color),
+      fontFamilies: [TEXT_FONT_FAMILY],
+      fontSize: layer.fontSize,
+      fontStyle: { weight: layer.bold ? 700 : 400 },
+    })
+    .addText(layer.text)
+    .pop()
+    .build();
+  paragraph.layout(layer.width);
+  return paragraph;
+}
+
+/** Hauteur occupée par le texte dans la largeur du calque (null sans police). */
+export function measureTextHeight(
+  layer: Pick<TextLayer, 'text' | 'fontSize' | 'color' | 'align' | 'bold' | 'width'>,
+  fonts: SkTypefaceFontProvider | null,
+): number | null {
+  const paragraph = layoutText(layer, fonts);
+  return paragraph ? paragraph.getHeight() : null;
+}
+
+function drawShape(canvas: SkCanvas, layer: ShapeLayer): void {
+  const paint = Skia.Paint();
+  paint.setAntiAlias(true);
+  paint.setColor(Skia.Color(layer.fill));
+  const rect = Skia.XYWHRect(0, 0, layer.width, layer.height);
+  switch (layer.shape) {
+    case 'rectangle':
+      canvas.drawRect(rect, paint);
+      return;
+    case 'ellipse':
+      canvas.drawOval(rect, paint);
+      return;
+    case 'line': {
+      const radius = layer.height / 2;
+      canvas.drawRRect(Skia.RRectXY(rect, radius, radius), paint);
+      return;
+    }
+  }
+}
+
+function drawText(canvas: SkCanvas, layer: TextLayer, resources: RenderResources): void {
+  layoutText(layer, resources.fonts)?.paint(canvas, 0, 0);
+}
+
+function drawImage(canvas: SkCanvas, layer: ImageLayer, resources: RenderResources): void {
+  const image = resources.images.get(layer.asset.uri);
+  if (!image) return;
+  const paint = Skia.Paint();
+  paint.setAntiAlias(true);
+  canvas.drawImageRectOptions(
+    image,
+    Skia.XYWHRect(0, 0, image.width(), image.height()),
+    Skia.XYWHRect(0, 0, layer.width, layer.height),
+    FilterMode.Linear,
+    // Réduction de qualité quand une photo est affichée en petit.
+    MipmapMode.Linear,
+    paint,
+  );
+}
+
 /** Fond seul (sans calques). Un fond transparent n'écrit aucun pixel. */
 export function drawBackground(canvas: SkCanvas, doc: Pick<GraphicDocument, 'width' | 'height' | 'background'>): void {
   if (doc.background === 'transparent') return;
@@ -22,15 +124,17 @@ export function drawBackground(canvas: SkCanvas, doc: Pick<GraphicDocument, 'wid
 }
 
 /** Contenu d'un calque dans son repère local (0, 0) → (width, height), opacité non comprise. */
-export function drawLayerContent(canvas: SkCanvas, layer: Layer): void {
+export function drawLayerContent(canvas: SkCanvas, layer: Layer, resources: RenderResources = NO_RESOURCES): void {
   switch (layer.type) {
-    case 'shape': {
-      const paint = Skia.Paint();
-      paint.setAntiAlias(true);
-      paint.setColor(Skia.Color(layer.fill));
-      canvas.drawRect(Skia.XYWHRect(0, 0, layer.width, layer.height), paint);
+    case 'shape':
+      drawShape(canvas, layer);
       return;
-    }
+    case 'text':
+      drawText(canvas, layer, resources);
+      return;
+    case 'image':
+      drawImage(canvas, layer, resources);
+      return;
   }
 }
 
@@ -47,13 +151,13 @@ export function opacityPaint(opacity: number): SkPaint | null {
  * appliquée au calque entier (composition isolée, comme les logiciels de
  * retouche), puis contenu. Les calques masqués ne sont pas dessinés.
  */
-export function drawLayer(canvas: SkCanvas, layer: Layer): void {
+export function drawLayer(canvas: SkCanvas, layer: Layer, resources: RenderResources = NO_RESOURCES): void {
   if (!layer.visible || layer.opacity <= 0) return;
   canvas.save();
   canvas.concat(layerMatrix(layer));
   const paint = opacityPaint(layer.opacity);
   if (paint) canvas.saveLayer(paint);
-  drawLayerContent(canvas, layer);
+  drawLayerContent(canvas, layer, resources);
   if (paint) canvas.restore();
   canvas.restore();
 }
@@ -67,9 +171,9 @@ export function drawLayer(canvas: SkCanvas, layer: Layer): void {
  * layerMatrix, opacité par composition) pour pouvoir déplacer un calque sans
  * tout réenregistrer. Le damier de transparence n'en fait pas partie.
  */
-export function drawDocument(canvas: SkCanvas, doc: DrawableDocument): void {
+export function drawDocument(canvas: SkCanvas, doc: DrawableDocument, resources: RenderResources = NO_RESOURCES): void {
   drawBackground(canvas, doc);
-  for (const layer of doc.layers ?? []) drawLayer(canvas, layer);
+  for (const layer of doc.layers ?? []) drawLayer(canvas, layer, resources);
 }
 
 function record(width: number, height: number, draw: (canvas: SkCanvas) => void): SkPicture {
@@ -83,8 +187,8 @@ function record(width: number, height: number, draw: (canvas: SkCanvas) => void)
  * Enregistre le document entier dans une Picture : une liste de commandes
  * rejouée par le GPU sans repasser par JavaScript.
  */
-export function recordDocumentPicture(doc: DrawableDocument): SkPicture {
-  return record(doc.width, doc.height, (canvas) => drawDocument(canvas, doc));
+export function recordDocumentPicture(doc: DrawableDocument, resources: RenderResources = NO_RESOURCES): SkPicture {
+  return record(doc.width, doc.height, (canvas) => drawDocument(canvas, doc, resources));
 }
 
 /** Fond seul, en Picture (cache de l'écran). */
@@ -96,8 +200,8 @@ export function recordBackgroundPicture(doc: Pick<GraphicDocument, 'width' | 'he
  * Contenu d'un calque en Picture, dans son repère local. Recalculée seulement
  * quand le contenu change (pas quand le calque est déplacé ou tourné).
  */
-export function recordLayerContentPicture(layer: Layer): SkPicture {
-  return record(layer.width, layer.height, (canvas) => drawLayerContent(canvas, layer));
+export function recordLayerContentPicture(layer: Layer, resources: RenderResources = NO_RESOURCES): SkPicture {
+  return record(layer.width, layer.height, (canvas) => drawLayerContent(canvas, layer, resources));
 }
 
 /**

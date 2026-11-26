@@ -39,6 +39,17 @@ Toutes les commandes se lancent depuis `apps/mobile/`.
   Propriétés de bout en bout, suppression confirmée du seul calque visé
   (même si la sélection change pendant la confirmation), double validation
   évitée, sélection et déplacement appelés par le canvas.
+- `tests/unit/phase5-engine.test.ts` : fabriques (texte, cercle, ligne,
+  image), styles validés, poignées (coin opposé fixe même tourné,
+  proportions, taille minimale, rotation aimantée, tolérance tactile).
+- `tests/unit/imageImport.test.ts` : plan d'import (réduction, format) et
+  import avec accès natifs simulés (original copié tel quel, nettoyage en
+  cas d'échec).
+- `tests/integration/insert-and-style.test.tsx` : insertions (menu, barre
+  d'outils, image de la galerie simulée), couleurs, propriétés du texte.
+- `tests/integration/renderer.test.ts` couvre aussi cercle, ligne, image
+  (PNG généré pour le test) et texte avec la police Inter chargée depuis le
+  fichier TTF.
 - `tests/unit/viewport.test.ts` : géométrie de la vue (conversions,
   ajustement, zones recouvertes, zoom à point fixe, bornes, pan borné) et
   arbitrage des gestes.

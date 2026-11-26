@@ -49,8 +49,9 @@ describe('espace de travail', () => {
     expect(useEditorUiStore.getState().activeTool).toBe('select');
     expect(selectTool).toBeSelected();
     await fireEvent.press(panTool);
+    // Phase 5 : les insertions sont disponibles (ce ne sont pas des modes).
     for (const tool of ['Texte', 'Formes', 'Image']) {
-      expect(within(toolbar).getByRole('button', { name: tool })).toBeDisabled();
+      expect(within(toolbar).getByRole('button', { name: tool })).toBeEnabled();
     }
     expect(useEditorUiStore.getState().activeTool).toBe('pan');
   });

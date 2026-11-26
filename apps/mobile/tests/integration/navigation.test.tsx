@@ -1,7 +1,17 @@
 import { fireEvent, renderRouter, screen } from 'expo-router/testing-library';
 
-import { resetDocumentStore } from '@/stores/documentStore';
+import type { ImageAsset } from '@/engine/layers';
+import { pickAndImportImage } from '@/services/imageImport';
+import { resetDocumentStore, useDocumentStore } from '@/stores/documentStore';
 import { resetEditorUiStore } from '@/stores/editorUiStore';
+
+// La galerie et le système de fichiers sont natifs : le service d'import est simulé ici
+// (sa logique est testée à part, dans tests/unit/imageImport.test.ts).
+jest.mock('@/services/imageImport', () => ({
+  ...jest.requireActual('@/services/imageImport'),
+  pickAndImportImage: jest.fn(),
+}));
+const pickMock = pickAndImportImage as jest.MockedFunction<typeof pickAndImportImage>;
 
 // Les vraies routes de src/app (chemin relatif au dossier du paquet, d'où
 // `npm test` est lancé) : le test échoue si une route disparaît ou change de nom.
@@ -20,9 +30,40 @@ describe('navigation', () => {
     expect(screen.getByRole('button', { name: 'Nouveau projet' })).toBeTruthy();
   });
 
-  it("n'annonce pas une importation qui n'existe pas encore : le bouton est désactivé", async () => {
+  it("importe une image dans un nouveau document à ses dimensions, puis ouvre l'éditeur", async () => {
+    const asset: ImageAsset = {
+      uri: 'file:///app/assets/img_1.jpg',
+      width: 1600,
+      height: 1200,
+      originalUri: 'file:///app/assets/img_1-original.heic',
+      originalWidth: 4032,
+      originalHeight: 3024,
+      fileName: 'Vacances.HEIC',
+    };
+    pickMock.mockResolvedValueOnce(asset);
     await renderRouter(appDir, { initialUrl: '/' });
-    expect(screen.getByRole('button', { name: 'Importer une image' })).toBeDisabled();
+    await fireEvent.press(screen.getByRole('button', { name: 'Importer une image' }));
+    expect(await screen.findByTestId('editor-screen')).toBeTruthy();
+
+    const [docId] = useDocumentStore.getState().order;
+    const doc = useDocumentStore.getState().documents[docId ?? ''];
+    expect(doc).toMatchObject({ name: 'Vacances', width: 1600, height: 1200, background: 'white' });
+    expect(doc?.layers).toHaveLength(1);
+    expect(doc?.layers[0]).toMatchObject({ type: 'image', x: 0, y: 0, width: 1600, height: 1200, asset });
+  });
+
+  it("n'ouvre rien si l'utilisateur annule, et affiche l'erreur d'un import raté", async () => {
+    pickMock.mockResolvedValueOnce(null);
+    await renderRouter(appDir, { initialUrl: '/' });
+    await fireEvent.press(screen.getByRole('button', { name: 'Importer une image' }));
+    expect(screen.getByTestId('home-screen')).toBeTruthy();
+    expect(useDocumentStore.getState().order).toHaveLength(0);
+
+    const { ImageImportError } = jest.requireActual('@/services/imageImport');
+    pickMock.mockRejectedValueOnce(new ImageImportError("L'image n'a pas pu être importée (format non pris en charge ou fichier illisible)."));
+    await fireEvent.press(screen.getByRole('button', { name: 'Importer une image' }));
+    expect(await screen.findByText("L'image n'a pas pu être importée (format non pris en charge ou fichier illisible).")).toBeTruthy();
+    expect(useDocumentStore.getState().order).toHaveLength(0);
   });
 
   it('crée un document puis ouvre l’éditeur ; le retour ramène à l’accueil où le projet est listé', async () => {
