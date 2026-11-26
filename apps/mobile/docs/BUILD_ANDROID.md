@@ -79,5 +79,8 @@ simultanées ont provoqué l'arrêt de `clang++` par manque de mémoire. Remède
   `assembleDebug` arm64-v8a **BUILD SUCCESSFUL** (7 min 36 s), aucune
   permission supplémentaire. Étiquette de l'application : « ZENTECH DESIGN »,
   schéma de liens `zentechdesign://` (vérifiés dans le projet généré).
+- Phase 5 (ajout d'`expo-image-manipulator`) : `assembleDebug` arm64-v8a
+  **BUILD SUCCESSFUL** (6 min 43 s), aucune permission supplémentaire ;
+  bundles de production Android et iOS construits, polices Inter incluses.
 - Exécution sur émulateur ou appareil : **non testée** (pas de virtualisation
   matérielle dans l'environnement de la phase 1). À faire sur votre poste.
