@@ -1,3 +1,5 @@
+import type { Layer } from '@/engine/layers/types';
+
 /** Fond d'un document. `transparent` conserve le canal alpha à l'export. */
 export type DocumentBackground = 'white' | 'black' | 'transparent';
 
@@ -18,8 +20,8 @@ export interface DocumentSpec {
 export const DOCUMENT_FORMAT_VERSION = 1 as const;
 
 /**
- * Document graphique. Les calques s'ajouteront en phase 4 : le modèle évoluera
- * avant d'être enregistré pour la première fois (phase 7).
+ * Document graphique. Le format n'a encore jamais été enregistré (phase 7) :
+ * il peut évoluer sans migration jusque-là.
  */
 export interface GraphicDocument {
   formatVersion: typeof DOCUMENT_FORMAT_VERSION;
@@ -28,6 +30,8 @@ export interface GraphicDocument {
   width: number;
   height: number;
   background: DocumentBackground;
+  /** Pile de calques, du bas (index 0) vers le haut. */
+  layers: Layer[];
   /** Horodatages en millisecondes depuis l'époque Unix. */
   createdAt: number;
   updatedAt: number;

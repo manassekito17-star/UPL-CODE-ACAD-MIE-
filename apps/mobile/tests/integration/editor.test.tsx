@@ -36,14 +36,20 @@ describe('espace de travail', () => {
     expect(within(topBar).getByRole('button', { name: 'Annuler' })).toBeDisabled();
     expect(within(topBar).getByRole('button', { name: 'Exporter' })).toBeDisabled();
     expect(screen.getByTestId('canvas-area')).toBeTruthy();
-    expect(screen.getByLabelText('Document de 1920 × 1080 pixels')).toBeTruthy();
+    expect(screen.getByLabelText('Document de 1920 × 1080 pixels, 0 calque')).toBeTruthy();
 
     const toolbar = screen.getByTestId('editor-toolbar');
-    // Phase 3 : l'outil Vue est disponible et actif par défaut.
+    // Vue (phase 3) actif par défaut ; Sélection (phase 4) disponible.
     const panTool = within(toolbar).getByRole('button', { name: 'Vue' });
     expect(panTool).toBeEnabled();
     expect(panTool).toBeSelected();
-    for (const tool of ['Sélection', 'Texte', 'Formes', 'Image']) {
+    const selectTool = within(toolbar).getByRole('button', { name: 'Sélection' });
+    expect(selectTool).toBeEnabled();
+    await fireEvent.press(selectTool);
+    expect(useEditorUiStore.getState().activeTool).toBe('select');
+    expect(selectTool).toBeSelected();
+    await fireEvent.press(panTool);
+    for (const tool of ['Texte', 'Formes', 'Image']) {
       expect(within(toolbar).getByRole('button', { name: tool })).toBeDisabled();
     }
     expect(useEditorUiStore.getState().activeTool).toBe('pan');

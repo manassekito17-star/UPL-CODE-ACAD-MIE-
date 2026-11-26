@@ -18,6 +18,7 @@ export function createDocument(spec: DocumentSpec, { id, now }: CreateDocumentDe
     width: spec.width,
     height: spec.height,
     background: spec.background,
+    layers: [],
     createdAt: now,
     updatedAt: now,
   };

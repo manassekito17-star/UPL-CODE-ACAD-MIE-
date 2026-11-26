@@ -1,0 +1,35 @@
+export { DEFAULT_SHAPE_FILL, createRectangleLayer, nextLayerName } from './factory';
+export {
+  containsPoint,
+  hitTest,
+  layerMatrix,
+  normalizeRotation,
+  type HitCandidate,
+  type LayerGeometry,
+} from './geometry';
+export {
+  DUPLICATE_OFFSET,
+  LAYER_NAME_MAX,
+  LayerError,
+  MIN_LAYER_SIZE,
+  addLayer,
+  bringForward,
+  bringToFront,
+  copyName,
+  duplicateLayer,
+  findLayer,
+  layerOrder,
+  moveLayerTo,
+  normalizeLayerName,
+  removeLayer,
+  renameLayer,
+  sendBackward,
+  sendToBack,
+  setLayerLocked,
+  setLayerOpacity,
+  setLayerVisibility,
+  translateLayer,
+  updateLayerGeometry,
+  type LayerPatch,
+} from './operations';
+export type { Layer, LayerBase, LayerType, ShapeKind, ShapeLayer } from './types';

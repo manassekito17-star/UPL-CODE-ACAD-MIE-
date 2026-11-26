@@ -33,6 +33,12 @@ Toutes les commandes se lancent depuis `apps/mobile/`.
   - `renderer.test.ts` : rendu du document avec le vrai Skia (pixels exacts
     par fond, damier absent de l'image, échelle, refus au-delà du budget
     mémoire, Picture identique au rendu direct, motif du damier).
+- `tests/unit/layers.test.ts` : opérations sur les calques, erreurs,
+  verrouillage, normalisation, matrice, test d'atteinte.
+- `tests/integration/layers-panel.test.tsx` : panneaux Calques et
+  Propriétés de bout en bout, suppression confirmée du seul calque visé
+  (même si la sélection change pendant la confirmation), double validation
+  évitée, sélection et déplacement appelés par le canvas.
 - `tests/unit/viewport.test.ts` : géométrie de la vue (conversions,
   ajustement, zones recouvertes, zoom à point fixe, bornes, pan borné) et
   arbitrage des gestes.
@@ -50,6 +56,11 @@ Toutes les commandes se lancent depuis `apps/mobile/`.
   Jest depuis `apps/mobile/` (c'est le cas avec `npm test`).
 - Testing Library 14 a retiré `toHaveAccessibilityState` : utiliser
   `toBeExpanded`, `toBeChecked`, `toBeDisabled`, `toBeSelected`.
+- `act()` est asynchrone lui aussi : toujours `await act(async () => …)`,
+  sinon le rendu des tests suivants est vide.
+- Ne pas espionner une méthode d'un store Zustand avec `jest.spyOn` : l'espion
+  est recopié dans tous les états suivants et `mockRestore` ne le retire que
+  du premier. S'abonner au store (`subscribe`) pour compter les modifications.
 - Les stores Zustand sont globaux : les réinitialiser dans `beforeEach`
   (`resetDocumentStore`, `resetEditorUiStore`).
 

@@ -83,6 +83,107 @@ describe('rendu du document', () => {
   });
 });
 
+const rect = (over: Partial<import('@/engine/layers').ShapeLayer> = {}): import('@/engine/layers').ShapeLayer => ({
+  id: 'r',
+  type: 'shape',
+  shape: 'rectangle',
+  name: 'R',
+  x: 10,
+  y: 10,
+  width: 20,
+  height: 10,
+  rotation: 0,
+  opacity: 1,
+  visible: true,
+  locked: false,
+  fill: '#FF0000',
+  ...over,
+});
+
+describe('rendu des calques', () => {
+  const RED = [255, 0, 0, 255];
+  const WHITE = [255, 255, 255, 255];
+
+  it('place un rectangle à sa position exacte', () => {
+    const image = renderer.renderDocumentToImage({ ...doc('white', 40, 30), layers: [rect()] });
+    expect(pixelAt(image, 10, 10)).toEqual(RED);
+    expect(pixelAt(image, 29, 19)).toEqual(RED);
+    expect(pixelAt(image, 9, 10)).toEqual(WHITE);
+    expect(pixelAt(image, 30, 15)).toEqual(WHITE);
+    expect(pixelAt(image, 15, 20)).toEqual(WHITE);
+  });
+
+  it('tourne autour du centre (90° : la boîte 20 × 10 devient 10 × 20)', () => {
+    // Centre (20, 15) : après rotation la boîte couvre x ∈ [15, 25], y ∈ [5, 25].
+    const image = renderer.renderDocumentToImage({ ...doc('white', 40, 30), layers: [rect({ rotation: 90 })] });
+    expect(pixelAt(image, 20, 6)).toEqual(RED);
+    expect(pixelAt(image, 20, 24)).toEqual(RED);
+    expect(pixelAt(image, 12, 15)).toEqual(WHITE);
+    expect(pixelAt(image, 28, 15)).toEqual(WHITE);
+  });
+
+  it("applique l'opacité au calque entier", () => {
+    const image = renderer.renderDocumentToImage({ ...doc('transparent'), layers: [rect({ opacity: 0.5 })] });
+    const [r, g, b, a] = pixelAt(image, 15, 15);
+    expect([r, g, b]).toEqual([255, 0, 0]);
+    expect(a).toBeGreaterThanOrEqual(126);
+    expect(a).toBeLessThanOrEqual(129);
+  });
+
+  it("n'affiche pas un calque masqué ni un calque d'opacité nulle", () => {
+    for (const layer of [rect({ visible: false }), rect({ opacity: 0 })]) {
+      const image = renderer.renderDocumentToImage({ ...doc('white'), layers: [layer] });
+      expect(pixelAt(image, 15, 15)).toEqual(WHITE);
+    }
+  });
+
+  it("respecte l'ordre : le calque du haut recouvre celui du bas", () => {
+    const bottom = rect({ id: 'b', fill: '#FF0000' });
+    const top = rect({ id: 't', fill: '#0000FF', x: 20 });
+    const image = renderer.renderDocumentToImage({ ...doc('white'), layers: [bottom, top] });
+    expect(pixelAt(image, 15, 15)).toEqual(RED);
+    expect(pixelAt(image, 25, 15)).toEqual([0, 0, 255, 255]);
+    const swapped = renderer.renderDocumentToImage({ ...doc('white'), layers: [top, bottom] });
+    expect(pixelAt(swapped, 25, 15)).toEqual(RED);
+  });
+
+  it("l'écran (fond + contenus de calques placés par leur matrice) produit exactement l'image de l'export", () => {
+    const layers = [
+      rect({ id: 'a', x: 3, y: 4, width: 25, height: 12, rotation: 33, fill: '#12A0F0' }),
+      rect({ id: 'b', x: 15, y: 9, width: 18, height: 18, rotation: -70, opacity: 0.6, fill: '#F0C010' }),
+      rect({ id: 'c', x: 0, y: 0, width: 10, height: 10, visible: false }),
+    ];
+    const d = { ...doc('white', 48, 36), layers };
+    const exported = renderer.renderDocumentToImage(d);
+
+    // Composition de l'écran, telle que DocumentCanvas l'assemble avec des groupes Skia.
+    const surface = Skia.Surface.Make(48, 36);
+    if (!surface) throw new Error('surface indisponible');
+    const canvas = surface.getCanvas();
+    canvas.clear(Skia.Color('transparent'));
+    canvas.drawPicture(renderer.recordBackgroundPicture(d));
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { layerMatrix } = require('@/engine/layers') as typeof import('@/engine/layers');
+    for (const layer of layers.filter((l) => l.visible)) {
+      canvas.save();
+      canvas.concat(layerMatrix(layer));
+      const paint = renderer.opacityPaint(layer.opacity);
+      if (paint) canvas.saveLayer(paint);
+      canvas.drawPicture(renderer.recordLayerContentPicture(layer));
+      if (paint) canvas.restore();
+      canvas.restore();
+    }
+    surface.flush();
+    const screen = surface.makeImageSnapshot();
+
+    const read = (img: Image) =>
+      Array.from(
+        img.readPixels(0, 0, { width: 48, height: 36, colorType: ColorType.RGBA_8888, alphaType: AlphaType.Unpremul }) ?? [],
+      );
+    expect(read(screen)).toEqual(read(exported));
+  });
+});
+
 describe('damier de transparence', () => {
   it('alterne les deux tons case par case et se répète', () => {
     const shader = renderer.createCheckerShader(4, '#FFFFFF', '#000000');

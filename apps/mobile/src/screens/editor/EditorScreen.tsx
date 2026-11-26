@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { AppText, Button, CollapsiblePanel, Icon, IconButton, Screen } from '@/components/ui';
@@ -28,6 +29,12 @@ export interface EditorScreenProps {
 export function EditorScreen({ projectId }: EditorScreenProps) {
   const document = useDocumentStore((s) => s.documents[projectId]);
   const breakpoint = useBreakpoint();
+  const resetForDocument = useEditorUiStore((s) => s.resetForDocument);
+
+  // Nouvelle ouverture : aucune sélection ni message hérités d'un autre document.
+  useEffect(() => {
+    resetForDocument();
+  }, [projectId, resetForDocument]);
 
   if (!document) return <MissingDocument />;
   return breakpoint === 'compact' ? <CompactWorkspace document={document} /> : <WideWorkspace document={document} />;

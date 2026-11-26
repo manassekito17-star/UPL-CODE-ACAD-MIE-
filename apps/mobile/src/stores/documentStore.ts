@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import { createDocument, type DocumentSpec, type GraphicDocument } from '@/engine/documents';
+import { LayerError } from '@/engine/layers';
 import { createLocalId } from '@/utils/id';
 
 /**
@@ -16,7 +17,15 @@ export interface DocumentState {
   createDocument: (spec: DocumentSpec) => GraphicDocument;
   /** Supprime exactement ce document. Renvoie faux s'il n'existe pas. */
   removeDocument: (id: string) => boolean;
+  /**
+   * Applique une opération pure au document (voir engine/layers). Met à jour
+   * la date de modification seulement si le document a changé. Une
+   * LayerError est renvoyée sous forme de message, jamais avalée.
+   */
+  mutateDocument: (id: string, operation: (doc: GraphicDocument) => GraphicDocument) => MutationResult;
 }
+
+export type MutationResult = { ok: true } | { ok: false; message: string };
 
 export const useDocumentStore = create<DocumentState>()((set, get) => ({
   documents: {},
@@ -39,6 +48,25 @@ export const useDocumentStore = create<DocumentState>()((set, get) => ({
       return { documents, order: state.order.filter((other) => other !== id) };
     });
     return true;
+  },
+
+  mutateDocument: (id, operation) => {
+    const current = get().documents[id];
+    if (!current) return { ok: false, message: 'Projet introuvable.' };
+    let next: GraphicDocument;
+    try {
+      next = operation(current);
+    } catch (error) {
+      if (error instanceof LayerError) return { ok: false, message: error.message };
+      throw error;
+    }
+    if (next !== current) {
+      set((state) => ({
+        documents: { ...state.documents, [id]: { ...next, updatedAt: Date.now() } },
+        order: [id, ...state.order.filter((other) => other !== id)],
+      }));
+    }
+    return { ok: true };
   },
 }));
 

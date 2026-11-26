@@ -1,5 +1,5 @@
 import { Canvas, Group, Picture, Rect, Skia } from '@shopify/react-native-skia';
-import { useCallback, useEffect, useImperativeHandle, useMemo, useState, type Ref } from 'react';
+import { useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type Ref } from 'react';
 import { PixelRatio, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import {
   GestureDetector,
@@ -8,13 +8,16 @@ import {
   useSimultaneousGestures,
   useTapGesture,
 } from 'react-native-gesture-handler';
-import { useDerivedValue, useSharedValue, withTiming } from 'react-native-reanimated';
+import { useDerivedValue, useSharedValue, withTiming, type SharedValue } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 
+import { hitTest, layerMatrix, type HitCandidate, type Layer } from '@/engine/layers';
 import {
   checkerCellFor,
   createCheckerShader,
-  recordDocumentPicture,
+  opacityPaint,
+  recordBackgroundPicture,
+  recordLayerContentPicture,
   type DrawableDocument,
 } from '@/engine/renderer';
 import {
@@ -36,7 +39,7 @@ import {
 } from '@/engine/transformations';
 import { colors } from '@/theme';
 
-import { oneFingerMovesView, type ToolId } from './gestures';
+import { oneFingerMovesView, resolveGestureTarget, type ToolId } from './gestures';
 
 /** Commandes de la vue, appelées par les boutons de zoom de l'interface. */
 export interface CanvasController {
@@ -53,6 +56,73 @@ export interface DocumentCanvasProps {
   controllerRef?: Ref<CanvasController>;
   /** Zones recouvertes par l'interface : l'ajustement à l'écran les évite. */
   insets?: Insets;
+  /** Pile de calques (du bas vers le haut). */
+  layers?: readonly Layer[];
+  selectedLayerId?: string | null;
+  /** Outil Sélection : tap au point (x, y) du document. */
+  onTapDocument?: (x: number, y: number) => void;
+  /** Outil Sélection : un calque modifiable commence à être déplacé au doigt. */
+  onLayerDragStart?: (id: string) => void;
+  /**
+   * Fin du déplacement au doigt : décalage en pixels entiers du document.
+   * Renvoie faux si le déplacement est refusé (le calque revient en place).
+   */
+  onLayerMoved?: (id: string, dx: number, dy: number) => boolean;
+}
+
+/** Déplacement en cours d'un calque, tenu sur le thread UI. */
+interface DragState {
+  id: SharedValue<string>;
+  x: SharedValue<number>;
+  y: SharedValue<number>;
+}
+
+const NO_LAYERS: readonly Layer[] = [];
+
+/**
+ * Un calque à l'écran : son contenu en Picture (recalculée seulement si le
+ * contenu change), placé par la même matrice que le rendu hors écran, avec
+ * l'opacité appliquée par composition. Le décalage du glisser en cours
+ * s'ajoute sur le thread UI, sans rendu React.
+ */
+function LayerNode({ layer, drag }: { layer: Layer; drag: DragState }) {
+  const { type, width, height, fill, opacity } = layer;
+  const picture = useMemo(
+    () => recordLayerContentPicture({ ...layer, type, width, height, fill }),
+    // Seul le contenu compte ici : déplacer ou tourner le calque ne réenregistre rien.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [type, width, height, fill],
+  );
+  const paint = useMemo(() => opacityPaint(opacity) ?? undefined, [opacity]);
+  const matrix = useDerivedValue(() => {
+    const dragging = drag.id.get() === layer.id;
+    return layerMatrix(layer, dragging ? drag.x.get() : 0, dragging ? drag.y.get() : 0);
+  }, [layer]);
+  return (
+    <Group matrix={matrix} layer={paint}>
+      <Picture picture={picture} />
+    </Group>
+  );
+}
+
+/**
+ * Contour de sélection, d'épaisseur constante à l'écran, qui suit le glisser.
+ * Deux tons (bordure blanche sous un trait d'accent) : il reste visible sur
+ * n'importe quelle couleur, y compris un calque de la couleur d'accent.
+ */
+function SelectionOutline({ layer, drag, scale }: { layer: Layer; drag: DragState; scale: SharedValue<number> }) {
+  const matrix = useDerivedValue(() => {
+    const dragging = drag.id.get() === layer.id;
+    return layerMatrix(layer, dragging ? drag.x.get() : 0, dragging ? drag.y.get() : 0);
+  }, [layer]);
+  const haloWidth = useDerivedValue(() => 4 / scale.get());
+  const strokeWidth = useDerivedValue(() => 2 / scale.get());
+  return (
+    <Group matrix={matrix}>
+      <Rect x={0} y={0} width={layer.width} height={layer.height} style="stroke" strokeWidth={haloWidth} color="#FFFFFF" />
+      <Rect x={0} y={0} width={layer.width} height={layer.height} style="stroke" strokeWidth={strokeWidth} color={colors.accent} />
+    </Group>
+  );
 }
 
 const ANIMATION = { duration: 180 };
@@ -66,7 +136,18 @@ const ANIMATION = { duration: 180 };
  *   des valeurs partagées lues par Skia : aucun rendu React pendant un geste.
  * - Arbitrage des gestes : voir ./gestures.ts.
  */
-export function DocumentCanvas({ document, tool, onZoomChange, controllerRef, insets = NO_INSETS }: DocumentCanvasProps) {
+export function DocumentCanvas({
+  document,
+  tool,
+  onZoomChange,
+  controllerRef,
+  insets = NO_INSETS,
+  layers = NO_LAYERS,
+  selectedLayerId = null,
+  onTapDocument,
+  onLayerDragStart,
+  onLayerMoved,
+}: DocumentCanvasProps) {
   const pixelRatio = PixelRatio.get();
   const [viewSize, setViewSize] = useState<Size | null>(null);
 
@@ -79,15 +160,75 @@ export function DocumentCanvas({ document, tool, onZoomChange, controllerRef, in
   const docSize = useSharedValue<Size>({ width: document.width, height: document.height });
   const fitInsets = useSharedValue<Insets>(insets);
   const oneFingerPan = useSharedValue(oneFingerMovesView(tool));
+  const selectTool = useSharedValue(tool === 'select');
+  const hitLayers = useSharedValue<HitCandidate[]>([]);
+  const drag: DragState = {
+    id: useSharedValue(''),
+    x: useSharedValue(0),
+    y: useSharedValue(0),
+  };
 
   useEffect(() => {
     oneFingerPan.set(oneFingerMovesView(tool));
-  }, [tool, oneFingerPan]);
+    selectTool.set(tool === 'select');
+  }, [tool, oneFingerPan, selectTool]);
+
+  // Copie légère de la géométrie des calques pour le test d'atteinte sur le thread UI.
+  useEffect(() => {
+    hitLayers.set(
+      layers.map(({ id, x, y, width: w, height: h, rotation, visible, locked }) => ({
+        id,
+        x,
+        y,
+        width: w,
+        height: h,
+        rotation,
+        visible,
+        locked,
+      })),
+    );
+  }, [layers, hitLayers]);
+
+  // Fin d'un glisser : le décalage visuel reste appliqué jusqu'à ce que la
+  // nouvelle position du calque soit rendue, puis il est remis à zéro (pas
+  // de retour visuel en arrière entre les deux).
+  const pendingMove = useRef<{ id: string; x: number; y: number } | null>(null);
+  const resetDrag = useCallback(() => {
+    pendingMove.current = null;
+    drag.id.set('');
+    drag.x.set(0);
+    drag.y.set(0);
+  }, [drag.id, drag.x, drag.y]);
+  useLayoutEffect(() => {
+    const pending = pendingMove.current;
+    if (!pending) return;
+    const layer = layers.find((l) => l.id === pending.id);
+    if (!layer || layer.x !== pending.x || layer.y !== pending.y) resetDrag();
+  }, [layers, resetDrag]);
+
+  const dragStart = useCallback((id: string) => onLayerDragStart?.(id), [onLayerDragStart]);
+  const dragEnd = useCallback(
+    (id: string, dx: number, dy: number) => {
+      const layer = layers.find((l) => l.id === id);
+      const rx = Math.round(dx);
+      const ry = Math.round(dy);
+      if (!layer || !onLayerMoved || (rx === 0 && ry === 0)) {
+        resetDrag();
+        return;
+      }
+      pendingMove.current = { id, x: layer.x, y: layer.y };
+      // Accepté : le décalage sera remis à zéro quand la nouvelle position sera
+      // rendue (useLayoutEffect ci-dessus). Refusé : le calque revient en place.
+      if (!onLayerMoved(id, rx, ry)) resetDrag();
+    },
+    [layers, onLayerMoved, resetDrag],
+  );
+  const tapAt = useCallback((x: number, y: number) => onTapDocument?.(x, y), [onTapDocument]);
 
   // Cache du rendu : recalculé seulement quand le contenu du document change.
   const { width, height, background } = document;
-  const documentPicture = useMemo(
-    () => recordDocumentPicture({ width, height, background }),
+  const backgroundPicture = useMemo(
+    () => recordBackgroundPicture({ width, height, background }),
     [width, height, background],
   );
   const checkerPicture = useMemo(() => {
@@ -210,7 +351,54 @@ export function DocumentCanvas({ document, tool, onZoomChange, controllerRef, in
     },
   });
 
-  const gesture = useSimultaneousGestures(pinch, twoFingerPan, singleFingerPan, doubleTap);
+  // Outil Sélection : un doigt sur un calque modifiable le déplace ; ailleurs, rien.
+  const layerPan = usePanGesture({
+    maxPointers: 1,
+    enabled: selectTool,
+    onBegin: (e) => {
+      'worklet';
+      const s = scale.get();
+      const hit = hitTest(hitLayers.get(), (e.x - tx.get()) / s, (e.y - ty.get()) / s);
+      const target = resolveGestureTarget({
+        pointers: e.numberOfPointers,
+        tool: 'select',
+        hitEditableLayer: hit !== null && !hit.locked,
+      });
+      if (target === 'layer' && hit) {
+        drag.x.set(0);
+        drag.y.set(0);
+        drag.id.set(hit.id);
+        scheduleOnRN(dragStart, hit.id);
+      } else {
+        drag.id.set('');
+      }
+    },
+    onUpdate: (e) => {
+      'worklet';
+      if (drag.id.get() === '') return;
+      const s = scale.get();
+      drag.x.set(drag.x.get() + e.changeX / s);
+      drag.y.set(drag.y.get() + e.changeY / s);
+    },
+    onFinalize: () => {
+      'worklet';
+      const id = drag.id.get();
+      if (id !== '') scheduleOnRN(dragEnd, id, drag.x.get(), drag.y.get());
+    },
+  });
+
+  const singleTap = useTapGesture({
+    numberOfTaps: 1,
+    enabled: selectTool,
+    onActivate: (e) => {
+      'worklet';
+      const s = scale.get();
+      scheduleOnRN(tapAt, (e.x - tx.get()) / s, (e.y - ty.get()) / s);
+    },
+  });
+
+  const gesture = useSimultaneousGestures(pinch, twoFingerPan, singleFingerPan, layerPan, singleTap, doubleTap);
+  const selectedLayer = layers.find((l) => l.id === selectedLayerId && l.visible);
 
   // ---------- Rendu Skia ----------
   const transform = useDerivedValue(() => [{ translateX: tx.get() }, { translateY: ty.get() }, { scale: scale.get() }]);
@@ -230,14 +418,16 @@ export function DocumentCanvas({ document, tool, onZoomChange, controllerRef, in
         testID="document-canvas"
         accessible
         accessibilityRole="image"
-        accessibilityLabel={`Document de ${width} × ${height} pixels`}
+        accessibilityLabel={`Document de ${width} × ${height} pixels, ${layers.length} calque${layers.length > 1 ? 's' : ''}`}
       >
         {viewSize ? (
           <Canvas style={StyleSheet.absoluteFill}>
             <Group transform={transform}>
               {checkerPicture ? <Picture picture={checkerPicture} /> : null}
-              <Picture picture={documentPicture} />
+              <Picture picture={backgroundPicture} />
+              {layers.map((layer) => (layer.visible ? <LayerNode key={layer.id} layer={layer} drag={drag} /> : null))}
               <Rect x={0} y={0} width={width} height={height} style="stroke" strokeWidth={borderWidth} color={colors.border} />
+              {selectedLayer ? <SelectionOutline layer={selectedLayer} drag={drag} scale={scale} /> : null}
             </Group>
           </Canvas>
         ) : null}

@@ -148,6 +148,31 @@ DocumentCanvas (engine/canvas)
   Picture en cache), mais **non mesurée sur appareil**. Mesures prévues en
   phase 9.
 
+## Calques (phase 4)
+
+- **Modèle** (`engine/layers/types.ts`) : `(x, y)` coin supérieur gauche de la
+  boîte non tournée, rotation en degrés (sens horaire) autour du centre,
+  opacité 0–1. L'ordre d'affichage est l'index dans `document.layers`
+  (0 = bas) : un champ séparé pourrait se désynchroniser.
+- **Opérations pures** (`engine/layers/operations.ts`) : document → nouveau
+  document ; les calques non modifiés sont partagés (pas de copie). Base des
+  commandes réversibles de la phase 6. Les refus sont des `LayerError`
+  typées, transformées en message par `documentStore.mutateDocument`.
+- **Une seule géométrie** : `layerMatrix()` (matrice 3 × 3) sert à l'écran
+  (prop `matrix` des groupes Skia), à l'export (`canvas.concat`) et, inversée,
+  au test d'atteinte. Test « écran = export » pixel par pixel.
+- **Rendu écran** : fond en Picture + un groupe par calque (contenu en
+  Picture recalculée seulement si le contenu change, opacité par composition
+  `saveLayer`). Déplacer ou tourner un calque ne réenregistre rien.
+- **Glisser un calque** : décalage tenu dans des valeurs partagées (thread
+  UI), appliqué au calque et à son contour ; au relâchement, décalage arrondi
+  et enregistré, puis remis à zéro une fois la nouvelle position rendue
+  (`useLayoutEffect`) pour éviter un retour visuel en arrière. À confirmer
+  sur appareil.
+- **Erreurs à l'utilisateur** : une action refusée affiche un message dans le
+  panneau Calques ; une saisie refusée (nom, champ numérique) affiche l'erreur
+  sous le champ concerné, une seule fois.
+
 ## Fonctionnalités non encore développées
 
 Elles sont affichées avec le composant `PlannedFeature` et le numéro de la

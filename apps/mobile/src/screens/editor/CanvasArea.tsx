@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText, IconButton } from '@/components/ui';
 import { DocumentCanvasHost, type CanvasController } from '@/engine/canvas';
 import type { GraphicDocument } from '@/engine/documents';
+import { useLayerActions } from '@/features/layers/useLayerActions';
 import { useEditorUiStore } from '@/stores/editorUiStore';
 import { colors, radius, spacing, touchTarget } from '@/theme';
 
@@ -20,6 +21,8 @@ const CANVAS_INSETS = { top: touchTarget + spacing.sm, right: 0, bottom: 0, left
 /** Zone centrale de travail : canvas Skia et commandes de zoom. */
 export function CanvasArea({ document }: CanvasAreaProps) {
   const tool = useEditorUiStore((s) => s.activeTool);
+  const selectedLayerId = useEditorUiStore((s) => s.selectedLayerId);
+  const actions = useLayerActions(document.id);
   const controller = useRef<CanvasController>(null);
   const [zoom, setZoom] = useState<number | null>(null);
 
@@ -31,6 +34,11 @@ export function CanvasArea({ document }: CanvasAreaProps) {
         onZoomChange={setZoom}
         controllerRef={controller}
         insets={CANVAS_INSETS}
+        layers={document.layers}
+        selectedLayerId={selectedLayerId}
+        onTapDocument={actions.selectAt}
+        onLayerDragStart={actions.select}
+        onLayerMoved={actions.translate}
       />
 
       <View style={styles.zoomBar} accessibilityRole="toolbar" accessibilityLabel="Zoom">

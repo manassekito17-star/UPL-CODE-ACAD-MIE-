@@ -5,6 +5,15 @@ versions selon [SemVer](https://semver.org/lang/fr/).
 
 ## [Non publié]
 
+### Phase 4 — Calques
+
+- Modèle de calque (`engine/layers`) : identifiant, nom, type, x, y, largeur, hauteur, rotation, opacité, visibilité, verrouillage ; l'ordre d'affichage est la position dans la pile. Premier type concret : rectangle (cercle, ligne, texte et image en phase 5).
+- Opérations pures et testées : ajouter (au-dessus de la sélection), supprimer, renommer, dupliquer, masquer/afficher, verrouiller, opacité, monter/descendre, premier plan/arrière-plan, déplacer, modifier position/taille/rotation. Un identifiant inconnu lève une erreur au lieu d'agir sur un autre calque ; un calque verrouillé ne peut être ni déplacé, ni transformé, ni supprimé.
+- Panneau Calques : pile (le haut en premier), sélection, actions, visibilité et verrou par calque, suppression confirmée nommant le calque (la cible est figée à l'ouverture de la boîte), renommage dans une boîte de saisie.
+- Panneau Propriétés : X, Y, largeur, hauteur, rotation, opacité, validés en fin de saisie (une seule validation même si Entrée puis perte du focus).
+- Canvas : chaque calque rendu par la même matrice et la même composition d'opacité que l'export (vérifié pixel par pixel) ; contenu en cache par calque ; contour de sélection deux tons.
+- Outil Sélection : toucher sélectionne le calque visible le plus haut (ou désélectionne), glisser déplace un calque déverrouillé sur le thread UI ; position arrondie au pixel et enregistrée au relâchement. Deux doigts agissent toujours sur la vue.
+
 ### Phase 3 — Moteur graphique
 
 - Canvas Skia du document (`engine/canvas/DocumentCanvas`) : rendu GPU, bordure d'un point quel que soit le zoom, damier de transparence (repère d'affichage, jamais exporté).

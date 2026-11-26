@@ -156,6 +156,7 @@ describe('createDocument', () => {
       width: 100,
       height: 50,
       background: 'transparent',
+      layers: [],
       createdAt: 1_700_000_000_000,
       updatedAt: 1_700_000_000_000,
     });
