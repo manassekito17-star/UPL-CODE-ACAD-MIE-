@@ -102,16 +102,50 @@ gestes du canvas (phase 3).
 - Suppression : la boîte de confirmation mémorise le document complet et le
   nomme ; seule cette entrée est supprimée (testé avec trois projets).
 
-## Espace de travail (phase 2)
+## Espace de travail (phase 2, refondu au module M1)
 
-| Largeur | Disposition |
+| Écran | Disposition |
 |---|---|
-| `compact` (< 600 dp) | Barre supérieure, zone de travail, barre inférieure (outils + boutons Calques / Propriétés). Un panneau à la fois, en feuille refermable. |
-| `medium` / `expanded` | Outils à gauche, zone de travail, colonne de panneaux à droite (272 / 320 dp), chaque panneau repliable, colonne masquable depuis la barre supérieure. |
+| Téléphone : `compact` (< 600 dp), ou hauteur < 520 dp (téléphone en paysage) | Barre supérieure, zone de travail, barre inférieure (outils + boutons Calques / Propriétés). Un panneau à la fois, en feuille refermable. |
+| Tablette et grand écran : `medium` / `expanded` et hauteur ≥ 520 dp | **Espace studio** (`screens/editor/desktop/`), voir ci-dessous. |
 
-État d'affichage dans `stores/editorUiStore`, séparé du document.
-Annuler, Rétablir, Exporter et les outils sont visibles mais désactivés, avec
-la phase qui les livrera annoncée aux lecteurs d'écran.
+La règle est dans `EditorScreen` (`STUDIO_MIN_HEIGHT`). État d'affichage du
+téléphone dans `stores/editorUiStore`, séparé du document.
+
+### Espace studio (M1)
+
+```
+┌ MenuBar ─ Fichier Édition Image Calque Texte Sélection Filtre Affichage Fenêtre Aide ┐
+├ OptionsBar ─ contenu selon l'outil actif ────────────────────────────────────────────┤
+│ ToolRail │ DocTabs (nom @ zoom (calque, RVB/8) *)            │ Dock                   │
+│ 20       │ RulersFrame ┌───────────────────────────────┐     │  Couleur | Nuancier    │
+│ familles │             │ DocumentCanvas (vue partagée) │     │  Propriétés | Ajust.   │
+│ 51 outils│             └───────────────────────────────┘     │  Calques | Canaux | …  │
+├──────────┴────────────────────────────────────────────────────┴────────────────────────┤
+└ StatusBar ─ zoom, dimensions, mémoire, état d'enregistrement ──────────────────────────┘
+```
+
+- `theme/workspace.ts` : palette graphite (`ws`) et métriques denses
+  (`wsMetrics`) ; contrastes vérifiés par `tests/unit/theme.test.ts`.
+- `stores/workspaceStore.ts` : outil choisi par famille, couleurs de premier
+  plan et d'arrière-plan, onglets, panneaux masqués, groupes repliés, règles,
+  demandes de suppression / renommage venues des menus. Rien de cet état
+  n'est dans le document.
+- `screens/editor/toolFamilies.ts` : catalogue des 51 outils. Statut `ok`,
+  `partial` (avec la limite écrite) ou `todo` (avec son module). Un outil
+  `todo` n'a aucun comportement : la barre ouvre sa famille, où il est
+  désactivé et affiche « Prévu · Mx ». Vérifié par `tests/unit/studio.test.ts`.
+- `useMenus.ts` : chaque entrée de menu est une vraie action, désactivée
+  quand elle est sans objet, ou « prévue » (désactivée, module affiché).
+- `WorkspaceContext` : document, contrôleur et valeurs partagées de la vue.
+  `DocumentCanvas` accepte une vue fournie par le parent (`view`), ce qui
+  permet aux règles de suivre zoom et déplacement sur le thread UI sans
+  rendu React.
+- `measure.ts` : ancrage des menus (`measureInWindow`), isolé pour être
+  remplacé dans les tests (la doublure native de Jest ne répond jamais).
+- Les panneaux Ajustements, Canaux, Tracés et Historique sont en place mais
+  n'affichent aucune donnée inventée : leurs entrées sont désactivées et
+  nomment leur module (M9, M15, M12, M2).
 
 ## Moteur graphique (phase 3)
 

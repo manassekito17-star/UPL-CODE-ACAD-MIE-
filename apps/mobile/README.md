@@ -8,11 +8,13 @@ sauvegarde locale et export PNG. Gratuit, hors ligne, sans compte.
 > L'identifiant d'application `app.studiographic.dev` reste provisoire (à fixer
 > avant toute publication sur les stores).
 
-**État : phase 5 terminée.** Documents, canvas Skia (zoom, déplacement),
-calques (rectangle, cercle, ligne, texte éditable, image importée),
-poignées tactiles (déplacer, redimensionner, tourner), propriétés et
-couleurs. Historique (Annuler/Rétablir) en phase 6 ; les projets ne sont pas
-encore enregistrés sur l'appareil (phase 7).
+**État : phases 1 à 5 terminées ; module M1 (partie 1) livré.** Documents,
+canvas Skia (zoom, déplacement), calques (rectangle, cercle, ligne, texte
+éditable, image importée), poignées tactiles (déplacer, redimensionner,
+tourner), propriétés et couleurs. Sur tablette et grand écran : espace studio
+(menus, barre d'options, outils par familles, règles, dock de panneaux, barre
+d'état). Historique (Annuler/Rétablir) au module M2 ; les projets ne sont pas
+encore enregistrés sur l'appareil (M3).
 Voir [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Pile technique

@@ -77,10 +77,12 @@ describe('navigation', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Créer le document' }));
 
     expect(await screen.findByTestId('editor-screen')).toBeTruthy();
-    expect(screen.getByText('Affiche')).toBeTruthy();
+    // Écran de test de 750 points de large : espace studio, document en onglet.
+    expect(screen.getByTestId('desktop-workspace')).toBeTruthy();
+    expect(screen.getByLabelText(/^Document Affiche @/)).toBeTruthy();
     expect(screen.getAllByText('1080 × 1080 px').length).toBeGreaterThan(0);
 
-    await fireEvent.press(screen.getByRole('button', { name: 'Retour à l’accueil' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Fermer Affiche' }));
     expect(await screen.findByTestId('home-screen')).toBeTruthy();
     expect(screen).toHavePathname('/');
     expect(screen.getByRole('button', { name: 'Ouvrir Affiche' })).toBeTruthy();

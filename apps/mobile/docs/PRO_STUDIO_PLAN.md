@@ -33,7 +33,7 @@ Rédigé le 26/11/2026, après la phase 5. Maquette interactive : page
 
 Chaque commande non développée est **désactivée** et indique son module.
 
-### Familles d'outils (20 familles, 50 outils)
+### Familles d'outils (20 familles, 51 outils)
 
 | Raccourci | Famille | Outils | État |
 |---|---|---|---|
@@ -116,6 +116,17 @@ un outil = un module ; toute modification = une commande.
 
 Ordre recommandé : **M1**, puis M2, M3, M4 (rien ne doit plus se perdre),
 puis M5 mesuré sur appareil, puis les autres selon les priorités.
+
+## État d'avancement
+
+- **M1, partie 1 (livrée)** : espace studio complet sur tablette et grand
+  écran (voir ARCHITECTURE.md, « Espace studio »). Outils réellement
+  utilisables : Déplacement, Main, Zoom (boutons et pincement), Texte
+  horizontal, Rectangle, Ellipse, Ligne. Les 44 autres outils ouvrent leur
+  famille et y sont désactivés avec leur module.
+- **M1, suite** : espaces de travail enregistrés, guide des outils.
+- Les raccourcis clavier ne sont affichés nulle part tant que M17 ne les
+  rend pas réels.
 
 ## 6. Risques et limites
 

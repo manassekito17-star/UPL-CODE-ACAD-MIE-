@@ -120,21 +120,12 @@ describe('espace de travail', () => {
   });
 
   describe('grand écran', () => {
-    it('affiche les deux panneaux côte à côte, repliables et masquables', async () => {
+    it('affiche l’espace studio (détaillé dans studio-workspace.test.tsx)', async () => {
       await openEditor('expanded');
-      expect(screen.getByTestId('side-panels')).toBeTruthy();
-      expect(screen.getByTestId('layers-panel-content')).toBeTruthy();
-      expect(screen.getByTestId('properties-panel-content')).toBeTruthy();
-
-      const layersHeader = within(screen.getByTestId('panel-layers')).getByRole('button', { name: 'Calques' });
-      expect(layersHeader).toBeExpanded();
-      await fireEvent.press(layersHeader);
-      expect(screen.queryByTestId('layers-panel-content')).toBeNull();
-      expect(screen.getByTestId('properties-panel-content')).toBeTruthy();
-
-      await fireEvent.press(screen.getByRole('button', { name: 'Masquer les panneaux' }));
-      expect(screen.queryByTestId('side-panels')).toBeNull();
-      expect(screen.getByRole('button', { name: 'Afficher les panneaux' })).toBeTruthy();
+      expect(screen.getByTestId('desktop-workspace')).toBeTruthy();
+      expect(screen.queryByTestId('editor-toolbar')).toBeNull();
+      expect(screen.getByTestId('layers-panel')).toBeTruthy();
+      expect(screen.getByTestId('properties-panel')).toBeTruthy();
     });
   });
 });

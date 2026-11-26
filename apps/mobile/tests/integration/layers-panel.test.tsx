@@ -1,15 +1,11 @@
-import { act, fireEvent, renderHook, renderRouter, screen, within } from 'expo-router/testing-library';
+import { act, fireEvent, renderHook, screen, within } from 'expo-router/testing-library';
 
 import type { ShapeLayer } from '@/engine/layers';
 import { useLayerActions } from '@/features/layers/useLayerActions';
 import { resetDocumentStore, useDocumentStore } from '@/stores/documentStore';
 import { resetEditorUiStore, useEditorUiStore } from '@/stores/editorUiStore';
 
-// Grand écran : panneaux Calques et Propriétés affichés côte à côte.
-jest.mock('@/hooks/useBreakpoint', () => ({
-  ...jest.requireActual('@/hooks/useBreakpoint'),
-  useBreakpoint: () => 'expanded',
-}));
+import { renderPhonePanels } from '../helpers/PhonePanels';
 
 let docId = '';
 const doc = () => useDocumentStore.getState().documents[docId];
@@ -19,7 +15,7 @@ const button = (name: string) => screen.getByRole('button', { name });
 
 async function openEditor() {
   docId = useDocumentStore.getState().createDocument({ width: 1000, height: 500, background: 'white', name: 'Affiche' }).id;
-  await renderRouter('src/app', { initialUrl: `/editor/${docId}` });
+  await renderPhonePanels(docId);
 }
 
 async function addRectangles(count: number) {

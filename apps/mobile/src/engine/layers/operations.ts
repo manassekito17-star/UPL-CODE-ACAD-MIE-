@@ -265,3 +265,28 @@ export function updateLayerStyle(doc: GraphicDocument, id: string, patch: LayerS
 
   throw new LayerError("Une image n'a pas de couleur ni de texte à modifier.", 'invalid');
 }
+
+export type AlignEdge = 'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom';
+
+/**
+ * Aligne un calque sur le document, d'après sa boîte englobante visible
+ * (rotation comprise), comme le font les logiciels de retouche.
+ */
+export function alignLayer(doc: GraphicDocument, id: string, edge: AlignEdge): GraphicDocument {
+  const layer = doc.layers[indexOrThrow(doc.layers, id)] as Layer;
+  const rad = (layer.rotation * Math.PI) / 180;
+  const cos = Math.abs(Math.cos(rad));
+  const sin = Math.abs(Math.sin(rad));
+  // Demi-dimensions de la boîte englobante du calque tourné.
+  const ex = (layer.width / 2) * cos + (layer.height / 2) * sin;
+  const ey = (layer.width / 2) * sin + (layer.height / 2) * cos;
+  let cx = layer.x + layer.width / 2;
+  let cy = layer.y + layer.height / 2;
+  if (edge === 'left') cx = ex;
+  if (edge === 'center') cx = doc.width / 2;
+  if (edge === 'right') cx = doc.width - ex;
+  if (edge === 'top') cy = ey;
+  if (edge === 'middle') cy = doc.height / 2;
+  if (edge === 'bottom') cy = doc.height - ey;
+  return updateLayerGeometry(doc, id, { x: Math.round(cx - layer.width / 2), y: Math.round(cy - layer.height / 2) });
+}

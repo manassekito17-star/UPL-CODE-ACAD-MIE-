@@ -3,7 +3,9 @@ import { useMemo } from 'react';
 import type { GraphicDocument } from '@/engine/documents';
 import {
   addLayer,
+  alignLayer,
   bringForward,
+  bringToFront,
   createImageLayer,
   createShapeLayer,
   createTextLayer,
@@ -13,11 +15,13 @@ import {
   removeLayer,
   renameLayer,
   sendBackward,
+  sendToBack,
   setLayerLocked,
   setLayerVisibility,
   translateLayer,
   updateLayerGeometry,
   updateLayerStyle,
+  type AlignEdge,
   type ImageAsset,
   type Layer,
   type LayerGeometry,
@@ -29,6 +33,7 @@ import { measureTextHeight } from '@/engine/renderer';
 import { useRenderResources } from '@/features/rendering/RenderResourcesProvider';
 import { useDocumentStore } from '@/stores/documentStore';
 import { useEditorUiStore } from '@/stores/editorUiStore';
+import { useWorkspaceStore } from '@/stores/workspaceStore';
 import { createLocalId } from '@/utils/id';
 
 export interface LayerActions {
@@ -46,6 +51,9 @@ export interface LayerActions {
   setLocked: (id: string, locked: boolean) => void;
   moveUp: (id: string) => void;
   moveDown: (id: string) => void;
+  toFront: (id: string) => void;
+  toBack: (id: string) => void;
+  align: (id: string, edge: AlignEdge) => void;
   /** Renvoie le message d'erreur à afficher dans le champ concerné, ou null si appliqué. */
   update: (id: string, patch: LayerPatch) => string | null;
   /** Couleur, texte, taille, alignement, gras. Même convention que `update`. */
@@ -102,6 +110,7 @@ export function useLayerActions(documentId: string): LayerActions {
       return result.ok ? null : result.message;
     };
     const currentDoc = () => useDocumentStore.getState().documents[documentId];
+    const foreground = () => useWorkspaceStore.getState().foreground.toUpperCase();
 
     /** Insère au-dessus du calque sélectionné (ou en haut), sélectionne et passe à l'outil Sélection. */
     const insert = (make: (doc: GraphicDocument) => Layer) => {
@@ -117,9 +126,17 @@ export function useLayerActions(documentId: string): LayerActions {
     };
 
     return {
-      addShape: (kind) => insert((doc) => createShapeLayer(doc, kind, createLocalId('layer'))),
-      addRectangle: () => insert((doc) => createShapeLayer(doc, 'rectangle', createLocalId('layer'))),
-      addText: () => insert((doc) => createTextLayer(doc, createLocalId('layer'))),
+      // Les nouvelles formes et les nouveaux textes prennent la couleur de premier plan.
+      addShape: (kind) => insert((doc) => createShapeLayer(doc, kind, createLocalId('layer'), foreground())),
+      addRectangle: () => insert((doc) => createShapeLayer(doc, 'rectangle', createLocalId('layer'), foreground())),
+      addText: () =>
+        insert((doc) => {
+          const layer = createTextLayer(doc, createLocalId('layer'));
+          const fg = foreground();
+          // Un texte de la couleur du fond serait invisible : on garde alors la couleur contrastée.
+          const invisible = (doc.background === 'white' && fg === '#FFFFFF') || (doc.background === 'black' && fg === '#000000');
+          return invisible ? layer : { ...layer, color: fg };
+        }),
       addImage: (asset) => insert((doc) => createImageLayer(doc, asset, createLocalId('layer'))),
       duplicate: (id) => {
         const newId = createLocalId('layer');
@@ -143,6 +160,15 @@ export function useLayerActions(documentId: string): LayerActions {
       },
       moveDown: (id) => {
         run((d) => sendBackward(d, id));
+      },
+      toFront: (id) => {
+        run((d) => bringToFront(d, id));
+      },
+      toBack: (id) => {
+        run((d) => sendToBack(d, id));
+      },
+      align: (id, edge) => {
+        run((d) => alignLayer(d, id, edge));
       },
       // Une largeur de texte modifiée change le retour à la ligne : on réajuste la hauteur.
       update: (id, patch) =>

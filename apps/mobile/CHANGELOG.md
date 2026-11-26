@@ -5,6 +5,19 @@ versions selon [SemVer](https://semver.org/lang/fr/).
 
 ## [Non publié]
 
+### Module M1 (partie 1) — Espace studio tablette et grand écran
+
+- Nouvel espace de travail sur tablette et grand écran (hauteur ≥ 520 dp ; le téléphone, y compris en paysage, garde son espace) : barre de menus (Fichier, Édition, Image, Calque, Texte, Sélection, Filtre, Affichage, Fenêtre, Aide), barre d'options contextuelle, barre d'outils verticale par familles, onglet du document, règles, toile, dock de panneaux à onglets, barre d'état. Palette graphite dense, identité propre (aucune icône ni marque tierce).
+- Menus : actions réelles (nouveau, ouvrir une image, fermer, insérer texte / formes / image, dupliquer, supprimer avec confirmation, renommer, masquer, verrouiller, disposition, gras et alignement du texte, zoom, règles, panneaux, réinitialisation de l'espace) ; les commandes futures sont désactivées et nomment leur module.
+- Outils : 51 outils en 20 familles. Disponibles : Déplacement, Main, Zoom, Texte horizontal, Rectangle, Ellipse, Ligne. Les autres ouvrent leur famille, désactivés, avec leur module.
+- Barre d'options : X, Y, L, H, angle et six alignements sur le document (Déplacement) ; zoom (Main, Zoom) ; graisse, taille, alignement et couleur (Texte) ; remplissage et géométrie (Formes).
+- Couleurs de premier plan et d'arrière-plan (permuter, par défaut) ; les nouvelles formes et les nouveaux textes prennent la couleur de premier plan.
+- Panneau Couleur (sélecteur TSV dessiné par Skia, code hexadécimal, valeurs RVB et TSL), Nuancier, Propriétés (transformation, aspect, texte, image, document), Calques (filtre par type, opacité, tout verrouiller, visibilité, vignettes, arrière-plan verrouillé, renommage par appui long, ajout, suppression confirmée). Ajustements, Canaux, Tracés et Historique : présents, contenu annoncé pour M9, M15, M12 et M2.
+- Règles horizontale et verticale en pixels du document, qui suivent le zoom et le déplacement sur le thread UI ; masquables sans recréer la toile.
+- Moteur : `alignLayer` (boîte englobante du calque tourné) ; `DocumentCanvas` accepte une vue partagée et une couleur de table de travail.
+- Tests : 241 au total, 195 avant le module (espace studio, catalogue d'outils, alignement, état de l'espace, règles, conversions TSV). Les tests des panneaux du téléphone les rendent désormais directement (`tests/helpers/PhonePanels.tsx`).
+- Aucune nouvelle dépendance, aucune nouvelle autorisation.
+
 ### Phase 5 — Images, texte, formes, transformations
 
 - Import d'images : galerie système (aucune autorisation demandée sur Android 13+ et iOS 14+), copie intacte de l'original dans le dossier de l'application, copie de travail JPEG ou PNG (HEIC converti) réduite si elle dépasse 4096 px ou 16,7 Mpx ; nettoyage si l'import échoue. Depuis l'accueil (nouveau document aux dimensions de la photo) ou dans l'éditeur (nouveau calque).

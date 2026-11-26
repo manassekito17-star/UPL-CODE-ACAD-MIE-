@@ -28,6 +28,12 @@ export const Group = Nothing;
 export const Picture = Nothing;
 export const Rect = Nothing;
 export const Fill = Nothing;
+export const Path = Nothing;
+export const Text = Nothing;
+export const Circle = Nothing;
+export const Line = Nothing;
+export const LinearGradient = Nothing;
+export const vec = (x: number, y: number) => ({ x, y });
 export const Skia = neutral;
 export const TileMode = { Clamp: 0, Repeat: 1, Mirror: 2, Decal: 3 };
 export const FilterMode = { Nearest: 0, Linear: 1 };
@@ -36,3 +42,4 @@ export const TextAlign = { Left: 0, Right: 1, Center: 2, Justify: 3, Start: 4, E
 /** Pas de police ni d'image dans les tests d'interface : textes et images non dessinés. */
 export const useFonts = () => null;
 export const useImage = () => null;
+export const useFont = () => null;

@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 
-import { AppText, Button, CollapsiblePanel, Icon, IconButton, Screen } from '@/components/ui';
+import { AppText, Button, Icon, IconButton, Screen } from '@/components/ui';
 import type { GraphicDocument } from '@/engine/documents';
 import { RenderResourcesProvider } from '@/features/rendering/RenderResourcesProvider';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
@@ -10,6 +10,7 @@ import { useEditorUiStore, type EditorPanel } from '@/stores/editorUiStore';
 import { colors, radius, spacing } from '@/theme';
 
 import { CanvasArea } from './CanvasArea';
+import { DesktopWorkspace } from './desktop/DesktopWorkspace';
 import { EditorToolbar } from './EditorToolbar';
 import { EditorTopBar, goHome } from './EditorTopBar';
 import { LayersPanelContent, PropertiesPanelContent } from './panels';
@@ -23,6 +24,13 @@ function PanelContent({ panel, document }: { panel: EditorPanel; document: Graph
   return panel === 'layers' ? <LayersPanelContent document={document} /> : <PropertiesPanelContent document={document} />;
 }
 
+/**
+ * Hauteur minimale de l'espace studio (menus, options, règles, dock) : en
+ * dessous (téléphone en paysage), la toile garderait trop peu de place et
+ * l'espace téléphone est utilisé.
+ */
+export const STUDIO_MIN_HEIGHT = 520;
+
 export interface EditorScreenProps {
   projectId: string;
 }
@@ -30,6 +38,8 @@ export interface EditorScreenProps {
 export function EditorScreen({ projectId }: EditorScreenProps) {
   const document = useDocumentStore((s) => s.documents[projectId]);
   const breakpoint = useBreakpoint();
+  const { height } = useWindowDimensions();
+  const studio = breakpoint !== 'compact' && height >= STUDIO_MIN_HEIGHT;
   const resetForDocument = useEditorUiStore((s) => s.resetForDocument);
 
   // Nouvelle ouverture : aucune sélection ni message hérités d'un autre document.
@@ -40,12 +50,12 @@ export function EditorScreen({ projectId }: EditorScreenProps) {
   if (!document) return <MissingDocument />;
   return (
     <RenderResourcesProvider layers={document.layers}>
-      {breakpoint === 'compact' ? <CompactWorkspace document={document} /> : <WideWorkspace document={document} />}
+      {studio ? <DesktopWorkspace document={document} /> : <CompactWorkspace document={document} />}
     </RenderResourcesProvider>
   );
 }
 
-/** Téléphone en portrait : canvas plein écran, un panneau à la fois en feuille. */
+/** Téléphone (portrait ou paysage) : canvas plein écran, un panneau à la fois en feuille. */
 function CompactWorkspace({ document }: { document: GraphicDocument }) {
   const sheet = useEditorUiStore((s) => s.compactSheet);
   const toggleSheet = useEditorUiStore((s) => s.toggleCompactSheet);
@@ -87,44 +97,6 @@ function CompactWorkspace({ document }: { document: GraphicDocument }) {
   );
 }
 
-/** Tablette ou paysage : outils à gauche, panneaux repliables à droite. */
-function WideWorkspace({ document }: { document: GraphicDocument }) {
-  const breakpoint = useBreakpoint();
-  const sidePanelsVisible = useEditorUiStore((s) => s.sidePanelsVisible);
-  const expanded = useEditorUiStore((s) => s.expandedPanels);
-  const toggleSidePanels = useEditorUiStore((s) => s.toggleSidePanels);
-  const togglePanel = useEditorUiStore((s) => s.togglePanelExpanded);
-
-  return (
-    <Screen scroll={false} edges={['top', 'bottom', 'left', 'right']} testID="editor-screen">
-      <EditorTopBar document={document} sidePanels={{ visible: sidePanelsVisible, onToggle: toggleSidePanels }} />
-      <View style={styles.row}>
-        <EditorToolbar orientation="vertical" documentId={document.id} />
-        <CanvasArea document={document} />
-        {sidePanelsVisible ? (
-          <ScrollView
-            style={[styles.side, { width: breakpoint === 'expanded' ? 320 : 272 }]}
-            testID="side-panels"
-          >
-            {(Object.keys(PANEL_META) as EditorPanel[]).map((panel) => (
-              <CollapsiblePanel
-                key={panel}
-                title={PANEL_META[panel].title}
-                icon={PANEL_META[panel].icon}
-                expanded={expanded[panel]}
-                onToggle={() => togglePanel(panel)}
-                testID={`panel-${panel}`}
-              >
-                <PanelContent panel={panel} document={document} />
-              </CollapsiblePanel>
-            ))}
-          </ScrollView>
-        ) : null}
-      </View>
-    </Screen>
-  );
-}
-
 function MissingDocument() {
   return (
     <Screen edges={['top', 'bottom', 'left', 'right']} testID="editor-missing">
@@ -143,13 +115,6 @@ function MissingDocument() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  row: { flex: 1, flexDirection: 'row' },
-  side: {
-    flexGrow: 0,
-    backgroundColor: colors.panel,
-    borderLeftWidth: StyleSheet.hairlineWidth,
-    borderLeftColor: colors.border,
-  },
   bottomBar: {
     flexDirection: 'row',
     alignItems: 'center',

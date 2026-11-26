@@ -84,6 +84,25 @@ export interface DocumentCanvasProps {
    * (le calque revient alors en place).
    */
   onLayerTransformed?: (id: string, geometry: LayerGeometry) => boolean;
+  /**
+   * Valeurs de la vue fournies par le parent, pour que d'autres éléments
+   * (règles) suivent le zoom et le déplacement sur le thread UI. Sinon le
+   * canvas utilise les siennes.
+   */
+  view?: ViewSharedValues;
+  /** Couleur de la table de travail autour du document. */
+  pasteboardColor?: string;
+}
+
+export interface ViewSharedValues {
+  scale: SharedValue<number>;
+  tx: SharedValue<number>;
+  ty: SharedValue<number>;
+}
+
+/** Valeurs de vue partagées entre le canvas et les éléments qui le suivent. */
+export function useViewSharedValues(): ViewSharedValues {
+  return { scale: useSharedValue(1), tx: useSharedValue(0), ty: useSharedValue(0) };
 }
 
 type Mode = 'none' | 'move' | 'rotate' | Corner;
@@ -228,14 +247,15 @@ export function DocumentCanvas({
   onTapDocument,
   onLayerDragStart,
   onLayerTransformed,
+  view: externalView,
+  pasteboardColor,
 }: DocumentCanvasProps) {
   const pixelRatio = PixelRatio.get();
   const [viewSize, setViewSize] = useState<Size | null>(null);
 
   // État de la vue, partagé entre le thread JS et le thread UI.
-  const scale = useSharedValue(1);
-  const tx = useSharedValue(0);
-  const ty = useSharedValue(0);
+  const ownView = useViewSharedValues();
+  const { scale, tx, ty } = externalView ?? ownView;
   const limits = useSharedValue<ZoomLimits>({ min: 0.01, max: 32 });
   const view = useSharedValue<Size>({ width: 1, height: 1 });
   const docSize = useSharedValue<Size>({ width: document.width, height: document.height });
@@ -531,7 +551,7 @@ export function DocumentCanvas({
   return (
     <GestureDetector gesture={gesture}>
       <View
-        style={styles.fill}
+        style={pasteboardColor ? [styles.fill, { backgroundColor: pasteboardColor }] : styles.fill}
         onLayout={onLayout}
         testID="document-canvas"
         accessible

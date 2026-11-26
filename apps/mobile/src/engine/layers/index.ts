@@ -36,6 +36,7 @@ export {
   MIN_LAYER_SIZE,
   TEXT_MAX_LENGTH,
   addLayer,
+  alignLayer,
   bringForward,
   bringToFront,
   copyName,
@@ -55,6 +56,7 @@ export {
   translateLayer,
   updateLayerGeometry,
   updateLayerStyle,
+  type AlignEdge,
   type LayerPatch,
   type LayerStylePatch,
 } from './operations';

@@ -1,14 +1,12 @@
-import { fireEvent, renderRouter, screen, within } from 'expo-router/testing-library';
+import { fireEvent, screen, within } from 'expo-router/testing-library';
 
 import type { ImageAsset, ShapeLayer, TextLayer } from '@/engine/layers';
 import { pickAndImportImage } from '@/services/imageImport';
 import { resetDocumentStore, useDocumentStore } from '@/stores/documentStore';
 import { resetEditorUiStore, useEditorUiStore } from '@/stores/editorUiStore';
+import { resetWorkspaceStore, useWorkspaceStore } from '@/stores/workspaceStore';
 
-jest.mock('@/hooks/useBreakpoint', () => ({
-  ...jest.requireActual('@/hooks/useBreakpoint'),
-  useBreakpoint: () => 'expanded',
-}));
+import { renderPhonePanels } from '../helpers/PhonePanels';
 jest.mock('@/services/imageImport', () => ({
   ...jest.requireActual('@/services/imageImport'),
   pickAndImportImage: jest.fn(),
@@ -22,7 +20,7 @@ const toolbar = () => within(screen.getByTestId('editor-toolbar'));
 
 async function openEditor() {
   docId = useDocumentStore.getState().createDocument({ width: 1000, height: 500, background: 'white', name: 'Affiche' }).id;
-  await renderRouter('src/app', { initialUrl: `/editor/${docId}` });
+  await renderPhonePanels(docId);
 }
 
 async function insertFromMenu(label: string) {
@@ -33,6 +31,7 @@ async function insertFromMenu(label: string) {
 beforeEach(() => {
   resetDocumentStore();
   resetEditorUiStore();
+  resetWorkspaceStore();
   pickMock.mockReset();
 });
 
@@ -89,6 +88,24 @@ describe('insertion', () => {
   });
 });
 
+describe('couleur de premier plan', () => {
+  it('les nouvelles formes et les nouveaux textes en prennent la couleur', async () => {
+    useWorkspaceStore.getState().setForeground('#E056FD');
+    await openEditor();
+    await insertFromMenu('Rectangle');
+    await insertFromMenu('Texte');
+    expect((layers()[0] as ShapeLayer).fill).toBe('#E056FD');
+    expect((layers()[1] as TextLayer).color).toBe('#E056FD');
+  });
+
+  it('un texte de la couleur du fond garde une couleur contrastée', async () => {
+    useWorkspaceStore.getState().setForeground('#FFFFFF');
+    await openEditor(); // fond blanc
+    await insertFromMenu('Texte');
+    expect((layers()[0] as TextLayer).color).toBe('#101114');
+  });
+});
+
 describe('propriétés de style', () => {
   it("change la couleur d'une forme par le nuancier et par code, et refuse un code invalide", async () => {
     await openEditor();
@@ -137,8 +154,9 @@ describe('propriétés de style', () => {
   it('un calque verrouillé ne change pas de style', async () => {
     await openEditor();
     await insertFromMenu('Rectangle');
+    const before = (layers()[0] as ShapeLayer).fill;
     await fireEvent.press(button('Verrouiller Rectangle 1'));
     await fireEvent.press(screen.getByRole('radio', { name: 'Couleur #FF5C5C' }));
-    expect((layers()[0] as ShapeLayer).fill).toBe('#3685FF');
+    expect((layers()[0] as ShapeLayer).fill).toBe(before);
   });
 });
