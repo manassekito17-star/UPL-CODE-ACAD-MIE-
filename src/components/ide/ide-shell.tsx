@@ -46,6 +46,7 @@ import { MobileKeys, type KeyAction } from "./mobile-keys";
 import { OfflineDialog, type InstallPromptEvent } from "./offline-dialog";
 import { Icon, type IconName } from "./icons";
 import { useProject, type IdeProject, type SaveStatus } from "./use-project";
+import { ConsoleScreen, EndOfProgram, isNarrowScreen } from "@/components/editor/console-screen";
 import { FixDialog } from "@/components/editor/fix-dialog";
 import { HistoryDialog } from "@/components/editor/history-dialog";
 import { autoFixCode, type FixResult } from "@/lib/fix";
@@ -230,6 +231,8 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
   const [fixProposal, setFixProposal] = useState<(FixResult & { path: string }) | null>(null);
   const [showFix, setShowFix] = useState(false);
   const [fileHistory, setFileHistory] = useState(false);
+  /** Téléphone : écran « ← Console » plein écran pendant l'exécution. */
+  const [consoleScreen, setConsoleScreen] = useState(false);
   const chord = useRef(0);
   const goToRef = useRef<((path: string, line: number, column?: number) => void) | null>(null);
   const [offlineOpen, setOfflineOpen] = useState(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).has("installer"));
@@ -756,6 +759,7 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
       return;
     }
     setRunning(true);
+    if (isNarrowScreen()) setConsoleScreen(true);
     setResult(null);
     setRunError(null);
     setFixProposal(null);
@@ -883,6 +887,17 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
   };
   const togglePreview = () => setRight((r) => (r === "apercu" ? null : "apercu"));
   const noFile = !activePath;
+
+  // Sortie du programme (panneau Console et écran « Console » du téléphone).
+  const programOutput = (
+    <>
+      {runError && <span className="text-red-300">{runError}{"\n"}</span>}
+      {result?.compileOutput && <span className="text-red-300">{result.compileOutput}{"\n"}</span>}
+      {result && sqlConsoleText(result)}
+      {result?.stderr && <span className="text-red-300">{result.stderr}</span>}
+      {result?.hint && <span className="block text-amber-300">💡 {result.hint}</span>}
+    </>
+  );
 
   const menus: MenuDef[] = [
     {
@@ -1379,11 +1394,8 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
                       <pre className="min-h-16 flex-1 overflow-auto whitespace-pre-wrap break-words rounded bg-black/40 p-2 text-gray-100" aria-live="polite" data-testid="ide-console">
                         {running && <span className="text-cyan-accent">{runStatus ?? "Exécution en cours…"}{"\n"}</span>}
                         {!running && !result && !runError && !consoleLines.length && <span className="text-gray-500">Ctrl + Entrée pour exécuter le fichier actif. Les messages console.log() de l&apos;aperçu web s&apos;affichent aussi ici.</span>}
-                        {runError && <span className="text-red-300">{runError}{"\n"}</span>}
-                        {result?.compileOutput && <span className="text-red-300">{result.compileOutput}{"\n"}</span>}
-                        {result && sqlConsoleText(result)}
-                        {result?.stderr && <span className="text-red-300">{result.stderr}</span>}
-                        {result?.hint && <span className="block text-amber-300">💡 {result.hint}</span>}
+                        {programOutput}
+                        {!running && (result || runError) && <EndOfProgram className="text-gray-300" />}
                         {fixProposal && fixProposal.path === activePath && !running && (
                           <button type="button" data-testid="corriger-code" onClick={() => setShowFix(true)} className="mt-2 block rounded border border-emerald-500/60 bg-emerald-600/20 px-3 py-1 font-sans text-xs font-semibold text-emerald-200 hover:bg-emerald-600/40">
                             ✨ Corriger le code ({fixProposal.changes.length} correction{fixProposal.changes.length > 1 ? "s" : ""})
@@ -1525,6 +1537,12 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
         />
       )}
       {shortcutsOpen && <ShortcutsDialog onClose={() => setShortcutsOpen(false)} />}
+      {consoleScreen && (
+        <ConsoleScreen onBack={() => setConsoleScreen(false)} running={running} finished={!running && Boolean(result || runError)}>
+          {running && runStatus && <div className="text-cyan-accent">{runStatus}</div>}
+          {programOutput}
+        </ConsoleScreen>
+      )}
       {showFix && fixProposal && (
         <FixDialog
           fix={fixProposal}

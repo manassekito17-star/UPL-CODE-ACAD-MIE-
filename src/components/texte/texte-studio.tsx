@@ -7,6 +7,7 @@
 import Editor, { type Monaco } from "@monaco-editor/react";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { configureMonaco, type MonacoEditor } from "@/components/editor/code-editor";
+import { ConsoleScreen, END_OF_PROGRAM, isNarrowScreen } from "@/components/editor/console-screen";
 import { FixDialog } from "@/components/editor/fix-dialog";
 import { HistoryDialog } from "@/components/editor/history-dialog";
 import { sqlConsoleText } from "@/components/editor/result-extras";
@@ -104,6 +105,8 @@ export function TexteStudio() {
   const [bookmarks, setBookmarks] = useState<Record<string, number[]>>({});
   const [sideMobile, setSideMobile] = useState(false);
   const [findCount, setFindCount] = useState<number | null>(null);
+  /** Téléphone : écran « ← Console » plein écran pendant l'exécution. */
+  const [consoleScreen, setConsoleScreen] = useState(false);
   const [menuX, setMenuX] = useState(8);
   // Petit écran (téléphone) : retour à la ligne et pas de minicarte, quelle que soit la préférence.
   const [narrow, setNarrow] = useState(false);
@@ -581,20 +584,21 @@ export function TexteStudio() {
       return;
     }
     setOutput({ title: `Sortie — ${basename(path)}`, text: "", running: true });
+    if (isNarrowScreen()) setConsoleScreen(true);
     const t0 = clock();
     const r = await runProgram(rf.language, rf.files, stdin);
     const secs = ((clock() - t0) / 1000).toFixed(2);
     const res = r.result;
     if (!res) {
-      setOutput({ title: `Sortie — ${basename(path)}`, text: `${r.error ?? "Exécution impossible."}\n[Arrêté]`, running: false });
+      setOutput({ title: `Sortie — ${basename(path)}`, text: `${r.error ?? "Exécution impossible."}\n${END_OF_PROGRAM}`, running: false });
       return;
     }
     const body = [res.compileOutput, sqlConsoleText(res), res.stderr].filter(Boolean).join(res.stdout.endsWith("\n") ? "" : "\n");
     const failed = res.status !== "ok";
     const message = [res.compileOutput, res.stderr].filter(Boolean).join("\n");
     setOutput({
-      title: `Sortie — ${basename(path)}`,
-      text: `${body}${body && !body.endsWith("\n") ? "\n" : ""}${res.hint ? `💡 ${res.hint}\n` : ""}[Terminé en ${secs} s${failed ? " avec une erreur" : ""}]`,
+      title: `Sortie — ${basename(path)} · ${secs} s${failed ? " · erreur" : ""}`,
+      text: `${body}${body && !body.endsWith("\n") ? "\n" : ""}${res.hint ? `💡 ${res.hint}\n` : ""}\n${END_OF_PROGRAM}`,
       running: false,
       error: failed ? { message, line: res.errorLine ?? 0, path } : null,
     });
@@ -1107,6 +1111,11 @@ export function TexteStudio() {
             openFile(path, { line: line ?? undefined, column: column ?? undefined, endColumn: endColumn ?? undefined });
           }}
         />
+      )}
+      {consoleScreen && output && !output.preview && !output.results && (
+        <ConsoleScreen onBack={() => setConsoleScreen(false)} running={output.running} finished={false} title={output.title.startsWith("Sortie") ? "Console" : output.title}>
+          {output.running ? "" : output.text}
+        </ConsoleScreen>
       )}
       {ask && (
         <div className="fixed inset-0 z-[90] grid place-items-center bg-black/50 p-4" role="presentation">

@@ -19,6 +19,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { cloneWithNewIds, findNode, insertNodes, locationOf, removeNodes, type FlowLoc, type FlowNode, type FlowProgram } from "@/lib/flow/model";
 import { compileProject, Machine, NAME_RE, type RunEvent } from "@/lib/larp/interpreter";
 import { autoFix, type Change } from "@/lib/larp/autofix";
+import { ConsoleScreen, EndOfProgram, isNarrowScreen } from "@/components/editor/console-screen";
 import { HistoryDialog } from "@/components/editor/history-dialog";
 import { fixHint } from "@/lib/larp/hints";
 import { recordVersion } from "@/lib/history";
@@ -227,6 +228,14 @@ export function LarpStudio() {
   const [status, setStatus] = useState<Status>("idle");
   const [runMode, setRunMode] = useState<"normal" | "step">("normal");
   const [consoleOpen, setConsoleOpen] = useState(false);
+  /** Téléphone (petit écran) : la console s'ouvre en plein écran, comme les applications d'algorithmique. */
+  const [phoneConsole, setPhoneConsole] = useState(false);
+  useEffect(() => {
+    const on = () => setPhoneConsole(isNarrowScreen());
+    on();
+    window.addEventListener("resize", on);
+    return () => window.removeEventListener("resize", on);
+  }, []);
   const [stepOpen, setStepOpen] = useState(false);
   const [segs, setSegs] = useState<Seg[]>([]);
   const [pos, setPos] = useState<{ module: string; line: number } | null>(null);
@@ -339,6 +348,37 @@ export function LarpStudio() {
     const lineText = m?.code.split("\n")[err.line - 1] ?? "";
     return fixHint(err.message, lineText, modules.filter((x) => !x.main).map((x) => x.name));
   };
+
+  /** Sortie de la console (fenêtre « Console » et écran plein écran du téléphone). */
+  const consoleSegs = (
+    <>
+      {segs.map((s, i) => (
+        <span key={i} style={{ color: s.k === "ind" || s.k === "err" ? "#ff4040" : s.k === "in" ? "#ffffff" : undefined }}>
+          {s.t}
+        </span>
+      ))}
+      {status === "input" && (
+        <input
+          data-console-input
+          data-testid="console-saisie"
+          aria-label="Saisie de l'utilisateur"
+          autoFocus
+          value={inputText}
+          onChange={(e) => setInputText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              submitInput();
+            }
+          }}
+          className="w-[60%] border-0 bg-transparent p-0 text-white caret-white outline-none"
+          style={{ font: "inherit" }}
+          enterKeyHint="send"
+        />
+      )}
+      {status === "input" && <span className="inline-block h-[13px] w-[7px] animate-pulse bg-[#d8d8d8] align-middle" />}
+    </>
+  );
 
   const fail = (e: unknown) => {
     flush();
@@ -1312,8 +1352,23 @@ export function LarpStudio() {
             </div>
           </div>
 
-          {/* Console d'exécution */}
-          {consoleOpen && (
+          {/* Console d'exécution : sur téléphone, écran « ← Console » plein écran */}
+          {consoleOpen && phoneConsole && (
+            <ConsoleScreen
+              onBack={closeConsole}
+              finished={status === "done" || status === "error"}
+              footer={
+                status === "input" ? (
+                  <button type="button" onClick={submitInput} className="w-full rounded bg-[#3d3d3d] py-2 font-sans text-sm font-semibold" data-testid="console-valider-ecran">
+                    Entrée ↵
+                  </button>
+                ) : undefined
+              }
+            >
+              <div onClick={() => (document.querySelector("[data-console-input]") as HTMLInputElement | null)?.focus()}>{consoleSegs}</div>
+            </ConsoleScreen>
+          )}
+          {consoleOpen && !phoneConsole && (
             <Win
               title="Console"
               icon={<span className="grid h-[14px] w-[14px] place-items-center rounded-[2px] bg-[#16a34a] text-[8px] font-black text-white">C</span>}
@@ -1337,31 +1392,8 @@ export function LarpStudio() {
                   if (el) el.scrollTop = el.scrollHeight;
                 }}
               >
-                {segs.map((s, i) => (
-                  <span key={i} style={{ color: s.k === "ind" || s.k === "err" ? "#ff4040" : s.k === "in" ? "#ffffff" : undefined }}>
-                    {s.t}
-                  </span>
-                ))}
-                {status === "input" && (
-                  <input
-                    data-console-input
-                    data-testid="console-saisie"
-                    aria-label="Saisie de l'utilisateur"
-                    autoFocus
-                    value={inputText}
-                    onChange={(e) => setInputText(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        submitInput();
-                      }
-                    }}
-                    className="w-[60%] border-0 bg-transparent p-0 text-white caret-white outline-none"
-                    style={{ font: "inherit" }}
-                    enterKeyHint="send"
-                  />
-                )}
-                {status === "input" && <span className="inline-block h-[13px] w-[7px] animate-pulse bg-[#d8d8d8] align-middle" />}
+                {consoleSegs}
+                {(status === "done" || status === "error") && <EndOfProgram className="mt-[15px]" />}
                 {(status === "done" || status === "error") && (
                   <div className="mt-[15px] text-[#ffff00]" data-testid="console-fin">
                     Pressez une touche pour fermer la console...

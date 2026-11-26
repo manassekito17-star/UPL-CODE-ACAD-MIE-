@@ -172,8 +172,12 @@ for (const [name, device] of [["iPhone", devices["iPhone 13 landscape"]], ["Andr
     expect(box!.width).toBeGreaterThan(500);
     await page.getByTestId("executer").tap();
     await page.getByTestId("console-saisie").fill("5");
-    await page.getByTestId("console-valider").tap();
-    await expect(page.getByTestId("console-texte")).toContainText("120");
+    // Téléphone : la console s'ouvre en plein écran (« ← Console »), puis « [Fin de programme] ».
+    await page.getByTestId("console-valider-ecran").tap();
+    await expect(page.getByTestId("ecran-console")).toContainText("120");
+    await expect(page.getByTestId("ecran-console")).toContainText("--------------\n[Fin de programme]");
+    await page.getByTestId("console-retour").tap();
+    await expect(page.getByTestId("ecran-console")).toHaveCount(0);
     await page.getByTestId("menu-Exécuter").tap();
     await expect(page.getByTestId("menu-Exécuter/Exécuter...")).toBeVisible();
     await context.close();
