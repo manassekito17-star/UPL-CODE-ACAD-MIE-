@@ -45,3 +45,6 @@ coverage/
 
 # Android SDK local path (machine-specific)
 local.properties
+
+# Skia web (CanvasKit), copié par `npm run web:setup`
+public/canvaskit.wasm

@@ -1,8 +1,8 @@
-import { fireEvent, renderRouter, screen, within } from 'expo-router/testing-library';
+import { act, fireEvent, renderRouter, screen, within } from 'expo-router/testing-library';
 
 import type { Breakpoint } from '@/hooks/useBreakpoint';
 import { resetDocumentStore, useDocumentStore } from '@/stores/documentStore';
-import { resetEditorUiStore } from '@/stores/editorUiStore';
+import { resetEditorUiStore, useEditorUiStore } from '@/stores/editorUiStore';
 
 // La largeur d'écran est simulée en remplaçant le hook de classe de largeur.
 let mockBreakpoint: Breakpoint = 'compact';
@@ -29,18 +29,64 @@ beforeEach(() => {
 });
 
 describe('espace de travail', () => {
-  it('affiche la barre supérieure, la zone de travail et des outils désactivés tant que leur phase n’est pas livrée', async () => {
+  it('affiche la barre supérieure, le canvas et les outils selon leur phase', async () => {
     await openEditor('compact');
     const topBar = screen.getByTestId('editor-top-bar');
     expect(within(topBar).getByText('Bannière')).toBeTruthy();
     expect(within(topBar).getByRole('button', { name: 'Annuler' })).toBeDisabled();
     expect(within(topBar).getByRole('button', { name: 'Exporter' })).toBeDisabled();
     expect(screen.getByTestId('canvas-area')).toBeTruthy();
+    expect(screen.getByLabelText('Document de 1920 × 1080 pixels')).toBeTruthy();
 
     const toolbar = screen.getByTestId('editor-toolbar');
-    for (const tool of ['Sélection', 'Vue', 'Texte', 'Formes', 'Image']) {
+    // Phase 3 : l'outil Vue est disponible et actif par défaut.
+    const panTool = within(toolbar).getByRole('button', { name: 'Vue' });
+    expect(panTool).toBeEnabled();
+    expect(panTool).toBeSelected();
+    for (const tool of ['Sélection', 'Texte', 'Formes', 'Image']) {
       expect(within(toolbar).getByRole('button', { name: tool })).toBeDisabled();
     }
+    expect(useEditorUiStore.getState().activeTool).toBe('pan');
+  });
+
+  it('ajuste le document à la zone de travail puis obéit aux commandes de zoom', async () => {
+    await openEditor('compact');
+    const zoomValue = () => screen.getByTestId('zoom-value');
+    expect(zoomValue()).toHaveTextContent('…'); // taille de la zone encore inconnue
+
+    // Zone de 400 × 600 points, densité 2 : 1920 px tiennent dans 352 points
+    // (marges de 24) → échelle 0,1833 → 36,7 % → affiché 37 %.
+    await act(async () => {
+      fireEvent(screen.getByTestId('document-canvas'), 'layout', {
+        nativeEvent: { layout: { x: 0, y: 0, width: 400, height: 600 } },
+      });
+    });
+    expect(zoomValue()).toHaveTextContent('37 %');
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Zoomer' }));
+    expect(zoomValue()).toHaveTextContent('52 %');
+    await fireEvent.press(screen.getByRole('button', { name: 'Dézoomer' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Dézoomer' }));
+    expect(zoomValue()).toHaveTextContent('26 %');
+
+    await fireEvent.press(zoomValue());
+    expect(zoomValue()).toHaveTextContent('100 %');
+    await fireEvent.press(screen.getByRole('button', { name: 'Ajuster à l’écran' }));
+    expect(zoomValue()).toHaveTextContent('37 %');
+  });
+
+  it('ne dézoome pas au-delà du quart de l’ajustement', async () => {
+    await openEditor('compact');
+    await act(async () => {
+      fireEvent(screen.getByTestId('document-canvas'), 'layout', {
+        nativeEvent: { layout: { x: 0, y: 0, width: 400, height: 600 } },
+      });
+    });
+    for (let i = 0; i < 10; i += 1) {
+      await fireEvent.press(screen.getByRole('button', { name: 'Dézoomer' }));
+    }
+    // 36,67 % / 4 = 9,2 %.
+    expect(screen.getByTestId('zoom-value')).toHaveTextContent('9 %');
   });
 
   describe('petit écran', () => {

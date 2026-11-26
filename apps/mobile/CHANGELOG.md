@@ -5,6 +5,16 @@ versions selon [SemVer](https://semver.org/lang/fr/).
 
 ## [Non publié]
 
+### Phase 3 — Moteur graphique
+
+- Canvas Skia du document (`engine/canvas/DocumentCanvas`) : rendu GPU, bordure d'un point quel que soit le zoom, damier de transparence (repère d'affichage, jamais exporté).
+- Code de dessin unique (`engine/renderer`) pour l'écran (Picture mise en cache) et le rendu hors écran (base de l'export PNG), vérifié pixel par pixel avec le vrai Skia.
+- Géométrie de la vue (`engine/transformations`) : conversions document ↔ écran, ajustement à l'écran (évite la barre de zoom), zoom autour d'un point fixe, bornes (¼ de l'ajustement → 32 pixels physiques par pixel), le document ne peut pas sortir de la vue.
+- Gestes (Gesture Handler 3 + Reanimated 4, thread UI) : pincer pour zoomer, glisser à deux doigts, glisser à un doigt avec l'outil Vue, double tap (ajuster / 100 %). Règle d'arbitrage vue ↔ calques définie et testée (`engine/canvas/gestures.ts`).
+- Commandes de zoom : dézoomer, zoomer (×√2), valeur en % (100 % = 1 pixel du document par pixel physique), ajuster à l'écran. Réajustement automatique à la rotation ou à l'ouverture des panneaux.
+- Outil « Vue » disponible et actif par défaut.
+- Tests : doublures Skia et Reanimated pour les tests d'interface (la doublure officielle de Reanimated 4.7 échoue avec jest-expo).
+
 ### Phase 2 — Interface
 
 - Nom commercial : **ZENTECH DESIGN** (nom affiché, logo, paramètres, autorisation photos). Slug Expo `zentech-design`, schéma de liens `zentechdesign://`.

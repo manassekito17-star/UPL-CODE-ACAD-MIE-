@@ -28,7 +28,16 @@ Toutes les commandes se lancent depuis `apps/mobile/`.
   - `home-projects.test.tsx` : liste, ouverture, confirmation et suppression
     du seul projet visé.
   - `editor.test.tsx` : espace de travail sur petit et grand écran (largeur
-    simulée en remplaçant `useBreakpoint`).
+    simulée en remplaçant `useBreakpoint`), outils, commandes de zoom et
+    bornes du zoom (taille de la zone simulée par un événement `layout`).
+  - `renderer.test.ts` : rendu du document avec le vrai Skia (pixels exacts
+    par fond, damier absent de l'image, échelle, refus au-delà du budget
+    mémoire, Picture identique au rendu direct, motif du damier).
+- `tests/unit/viewport.test.ts` : géométrie de la vue (conversions,
+  ajustement, zones recouvertes, zoom à point fixe, bornes, pan borné) et
+  arbitrage des gestes.
+- `tests/mocks/` : doublures de Skia et de Reanimated pour les tests
+  d'interface (voir les commentaires en tête de fichier).
 
 ## Pièges connus
 
@@ -43,6 +52,14 @@ Toutes les commandes se lancent depuis `apps/mobile/`.
   `toBeExpanded`, `toBeChecked`, `toBeDisabled`, `toBeSelected`.
 - Les stores Zustand sont globaux : les réinitialiser dans `beforeEach`
   (`resetDocumentStore`, `resetEditorUiStore`).
+
+## Gestes
+
+Les gestes tactiles réels (pincement à deux doigts, inertie, conflits avec le
+système) ne sont pas simulables dans Jest. Leur logique est testée par les
+fonctions pures ; leur câblage a été vérifié sur l'export web à la souris
+(glisser : le document se déplace de la distance attendue ; double clic :
+ajustement puis 100 %). Le pincement doit être essayé sur appareil.
 
 ## Vérification visuelle
 

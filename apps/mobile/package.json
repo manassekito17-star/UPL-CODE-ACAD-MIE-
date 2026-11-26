@@ -51,7 +51,8 @@
     "test:coverage": "jest --coverage",
     "doctor": "npx --yes expo-doctor",
     "bundle:check": "expo export --platform android --platform ios --output-dir dist/bundle-check",
-    "verify": "npm run typecheck && npm run lint && npm test"
+    "verify": "npm run typecheck && npm run lint && npm test",
+    "web:setup": "setup-skia-web public"
   },
   "private": true,
   "description": "ZENTECH DESIGN — studio graphique mobile (React Native, Expo, Skia).",

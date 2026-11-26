@@ -1,20 +1,23 @@
 import { ScrollView, StyleSheet } from 'react-native';
 
 import { IconButton } from '@/components/ui';
+import { useEditorUiStore } from '@/stores/editorUiStore';
 import { colors, spacing } from '@/theme';
 
-import { TOOLS } from './tools';
+import { TOOLS, isToolAvailable } from './tools';
 
 export interface EditorToolbarProps {
   orientation: 'vertical' | 'horizontal';
 }
 
 /**
- * Barre d'outils. Les outils sont visibles pour annoncer l'organisation de
- * l'espace de travail, mais désactivés tant que leur phase n'est pas livrée.
+ * Barre d'outils. Les outils des phases non livrées restent visibles mais
+ * désactivés, avec la phase annoncée aux lecteurs d'écran.
  */
 export function EditorToolbar({ orientation }: EditorToolbarProps) {
   const horizontal = orientation === 'horizontal';
+  const activeTool = useEditorUiStore((s) => s.activeTool);
+  const setTool = useEditorUiStore((s) => s.setTool);
   return (
     <ScrollView
       horizontal={horizontal}
@@ -26,16 +29,21 @@ export function EditorToolbar({ orientation }: EditorToolbarProps) {
       accessibilityLabel="Outils"
       testID="editor-toolbar"
     >
-      {TOOLS.map((tool) => (
-        <IconButton
-          key={tool.id}
-          icon={tool.icon}
-          label={tool.label}
-          showLabel
-          disabled
-          accessibilityHint={`Disponible en phase ${tool.availableInPhase}`}
-        />
-      ))}
+      {TOOLS.map((tool) => {
+        const available = isToolAvailable(tool);
+        return (
+          <IconButton
+            key={tool.id}
+            icon={tool.icon}
+            label={tool.label}
+            showLabel
+            disabled={!available}
+            active={available && activeTool === tool.id}
+            accessibilityHint={available ? tool.hint : `Disponible en phase ${tool.availableInPhase}`}
+            onPress={() => setTool(tool.id)}
+          />
+        );
+      })}
     </ScrollView>
   );
 }

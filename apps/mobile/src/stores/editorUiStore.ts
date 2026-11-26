@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+import type { ToolId } from '@/engine/canvas/gestures';
+
 export type EditorPanel = 'layers' | 'properties';
 
 /**
@@ -10,6 +12,9 @@ export type EditorPanel = 'layers' | 'properties';
  *   barre d'outils.
  */
 export interface EditorUiState {
+  /** Outil actif. « Vue » par défaut tant que la sélection n'existe pas (phase 4). */
+  activeTool: ToolId;
+  setTool: (tool: ToolId) => void;
   sidePanelsVisible: boolean;
   expandedPanels: Record<EditorPanel, boolean>;
   compactSheet: EditorPanel | null;
@@ -20,6 +25,7 @@ export interface EditorUiState {
 }
 
 const initialState = {
+  activeTool: 'pan' as ToolId,
   sidePanelsVisible: true,
   expandedPanels: { layers: true, properties: true },
   compactSheet: null,
@@ -27,6 +33,7 @@ const initialState = {
 
 export const useEditorUiStore = create<EditorUiState>()((set) => ({
   ...initialState,
+  setTool: (tool) => set({ activeTool: tool }),
   toggleSidePanels: () => set((s) => ({ sidePanelsVisible: !s.sidePanelsVisible })),
   togglePanelExpanded: (panel) =>
     set((s) => ({ expandedPanels: { ...s.expandedPanels, [panel]: !s.expandedPanels[panel] } })),

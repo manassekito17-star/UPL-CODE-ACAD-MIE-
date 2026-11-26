@@ -8,9 +8,10 @@ sauvegarde locale et export PNG. Gratuit, hors ligne, sans compte.
 > L'identifiant d'application `app.studiographic.dev` reste provisoire (à fixer
 > avant toute publication sur les stores).
 
-**État : phase 2 (interface) terminée.** Création de documents, accueil avec
-projets récents et espace de travail sont en place ; le canvas Skia arrive en
-phase 3. Les projets ne sont pas encore enregistrés sur l'appareil (phase 7).
+**État : phase 3 (moteur graphique) terminée.** Création de documents,
+accueil, espace de travail et canvas Skia avec zoom et déplacement tactiles
+sont en place. Calques à partir de la phase 4 ; les projets ne sont pas
+encore enregistrés sur l'appareil (phase 7).
 Voir [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Pile technique

@@ -113,6 +113,41 @@ gestes du canvas (phase 3).
 Annuler, Rétablir, Exporter et les outils sont visibles mais désactivés, avec
 la phase qui les livrera annoncée aux lecteurs d'écran.
 
+## Moteur graphique (phase 3)
+
+```
+DocumentCanvas (engine/canvas)
+ ├─ gestes : pincement, pan 2 doigts, pan 1 doigt (outil Vue), double tap
+ │    └─ worklets sur le thread UI → valeurs partagées scale, x, y
+ ├─ Skia <Canvas>
+ │    └─ <Group transform = [x, y, scale]>     ← matrice lue sur le thread UI
+ │         ├─ Picture « damier » (fond transparent seulement)
+ │         ├─ Picture « document »              ← engine/renderer/drawDocument
+ │         └─ bordure (épaisseur 1 / scale)
+ └─ contrôleur (ajuster, zoomer, 100 %) appelé par les boutons de l'interface
+```
+
+- **Coordonnées** : `écran = document × scale + (x, y)` ; fonctions pures dans
+  `engine/transformations/viewport.ts`, marquées `'worklet'` pour servir à la
+  fois aux tests et aux gestes.
+- **Cache** : le document est enregistré une fois dans une `SkPicture`,
+  recalculée seulement quand son contenu change. Zoomer ou déplacer ne
+  modifie que la matrice : aucun rendu React, aucun nouvel enregistrement.
+- **Écran = export** : `drawDocument` est l'unique code de dessin, rejoué à
+  l'écran (Picture) et sur une surface hors écran (`renderDocumentToImage`,
+  futur export PNG). Le damier n'en fait pas partie.
+- **Mémoire** : le rendu hors écran refuse toute surface au-delà de
+  `DOCUMENT_LIMITS.maxPixels` et libère la surface aussitôt (`dispose`).
+- **Arbitrage des gestes** (`engine/canvas/gestures.ts`) : deux doigts = vue,
+  toujours ; un doigt = vue avec l'outil Vue, calque touché avec l'outil
+  Sélection (phase 4), rien sinon. Un calque ne peut donc pas bouger pendant
+  un zoom.
+- **Web** : uniquement pour les captures de vérification ; Skia y passe par
+  CanvasKit (`DocumentCanvasHost.web.tsx`, `npm run web:setup`).
+- **Performances** : architecture prévue pour la fluidité (thread UI,
+  Picture en cache), mais **non mesurée sur appareil**. Mesures prévues en
+  phase 9.
+
 ## Fonctionnalités non encore développées
 
 Elles sont affichées avec le composant `PlannedFeature` et le numéro de la
