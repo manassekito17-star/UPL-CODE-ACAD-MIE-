@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Première version statique du site (branche main), conservée telle quelle.
     "js/**",
+    // Application mobile : projet indépendant avec sa propre configuration (apps/mobile/eslint.config.js).
+    "apps/**",
   ]),
 ]);
 

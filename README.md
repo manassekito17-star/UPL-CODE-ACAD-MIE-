@@ -131,3 +131,9 @@ Documentation : [mise en ligne pas à pas](docs/DEPLOIEMENT.md) · [budget zéro
 ## Contribuer au contenu
 
 Le contenu de référence est dans `src/content/` (`courses/*.ts`, `exercises/*.ts`). Après modification : `npm test` (vérifie que tout s'exécute), puis `npm run seed:generate` et réimport du seed. Une fois la base en service, les enseignants peuvent aussi éditer les cours depuis l'administration ; un contenu n'est visible des étudiants qu'après publication (validation pédagogique enregistrée).
+
+## Autres projets du dépôt
+
+| Dossier | Projet |
+|---|---|
+| [`apps/mobile/`](apps/mobile/README.md) | **Studio Graphic** (nom provisoire) : éditeur graphique mobile Android / iOS (Expo, React Native, Skia). Projet npm indépendant : ses dépendances, son lint, ses tests et sa CI ([`.github/workflows/mobile.yml`](.github/workflows/mobile.yml)) sont séparés de ceux du site. |

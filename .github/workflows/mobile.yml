@@ -1,0 +1,46 @@
+name: Mobile (studio-graphic)
+
+on:
+  push:
+    paths:
+      - "apps/mobile/**"
+      - ".github/workflows/mobile.yml"
+  pull_request:
+    paths:
+      - "apps/mobile/**"
+      - ".github/workflows/mobile.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mobile-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: apps/mobile
+
+jobs:
+  verifier:
+    name: Types, lint, tests, cohérence Expo, bundles Android/iOS
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/mobile/package-lock.json
+      - run: npm ci
+      - name: Types (TypeScript strict)
+        run: npm run typecheck
+      - name: Lint (frontières de l'architecture incluses)
+        run: npm run lint
+      - name: Tests Jest
+        run: npm test -- --ci
+      - name: Cohérence des versions et de la configuration Expo
+        run: npm run doctor
+      - name: Bundles JavaScript de production Android et iOS
+        run: npm run bundle:check

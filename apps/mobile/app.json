@@ -1,0 +1,49 @@
+{
+  "expo": {
+    "name": "Studio Graphic",
+    "slug": "studio-graphic",
+    "version": "0.1.0",
+    "scheme": "studiographic",
+    "orientation": "default",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#101114",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "app.studiographic.dev"
+    },
+    "android": {
+      "package": "app.studiographic.dev",
+      "adaptiveIcon": {
+        "backgroundColor": "#101114",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "output": "single"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-sqlite",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Studio Graphic accède à vos photos uniquement pour les importer dans vos projets. Rien n'est envoyé sur Internet.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
