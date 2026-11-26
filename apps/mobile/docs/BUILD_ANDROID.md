@@ -63,7 +63,7 @@ fichier compilé en parallèle. Sur une machine de 16 Go, deux compilations CMak
 simultanées ont provoqué l'arrêt de `clang++` par manque de mémoire. Remèdes :
 `./gradlew --max-workers=1`, ou fermer les autres applications.
 
-## État de la vérification (phase 1)
+## État de la vérification
 
 - `expo prebuild` : OK, projet Android généré.
 - Bundle JavaScript Android de production : OK (`npm run bundle:check`).
@@ -75,5 +75,9 @@ simultanées ont provoqué l'arrêt de `clang++` par manque de mémoire. Remède
 - Permissions déclarées dans l'APK (relevées avec `aapt2 dump permissions`) :
   `INTERNET`, `READ/WRITE_EXTERNAL_STORAGE` (≤ API 32), `SYSTEM_ALERT_WINDOW`,
   `VIBRATE`, `ACCESS_LOCAL_NETWORK`. `CAMERA` et `RECORD_AUDIO` sont bien absentes.
+- Phase 2 (après ajout de `expo-font`, `expo-asset`, `@expo/vector-icons`) :
+  `assembleDebug` arm64-v8a **BUILD SUCCESSFUL** (7 min 36 s), aucune
+  permission supplémentaire. Étiquette de l'application : « ZENTECH DESIGN »,
+  schéma de liens `zentechdesign://` (vérifiés dans le projet généré).
 - Exécution sur émulateur ou appareil : **non testée** (pas de virtualisation
   matérielle dans l'environnement de la phase 1). À faire sur votre poste.
