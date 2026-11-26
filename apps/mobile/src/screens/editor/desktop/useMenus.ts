@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 
 import { findLayer } from '@/engine/layers';
+import { useHistory } from '@/features/history/useHistory';
 import { openImageAsNewDocument, useImageImport } from '@/features/image-import/useImageImport';
 import { useLayerActions } from '@/features/layers/useLayerActions';
 import { useEditorUiStore } from '@/stores/editorUiStore';
@@ -30,6 +31,7 @@ export function useMenus(): MenuDef[] {
   const { document, controller } = useWorkspace();
   const actions = useLayerActions(document.id);
   const insertMenu = useInsertMenu(document.id);
+  const history = useHistory(document.id);
   const imageImport = useImageImport();
   const selectedId = useEditorUiStore((s) => s.selectedLayerId);
   const setTool = useEditorUiStore((s) => s.setTool);
@@ -61,8 +63,20 @@ export function useMenus(): MenuDef[] {
     {
       title: 'Édition',
       entries: [
-        planned('Annuler', 'M2'),
-        planned('Rétablir', 'M2'),
+        {
+          type: 'item',
+          label: history.undoLabel ? `Annuler : ${history.undoLabel}` : 'Annuler',
+          icon: 'undo',
+          disabled: !history.canUndo,
+          onPress: history.undo,
+        },
+        {
+          type: 'item',
+          label: history.redoLabel ? `Rétablir : ${history.redoLabel}` : 'Rétablir',
+          icon: 'redo',
+          disabled: !history.canRedo,
+          onPress: history.redo,
+        },
         sep,
         planned('Couper', 'M6'),
         planned('Copier', 'M6'),

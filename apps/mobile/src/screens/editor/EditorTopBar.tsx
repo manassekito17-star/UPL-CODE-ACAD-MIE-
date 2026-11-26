@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { AppText, IconButton } from '@/components/ui';
 import type { GraphicDocument } from '@/engine/documents';
+import { useHistory } from '@/features/history/useHistory';
 import { formatDimensions } from '@/features/projects/labels';
 import { colors, spacing } from '@/theme';
 
@@ -18,6 +19,7 @@ export function goHome(): void {
 }
 
 export function EditorTopBar({ document, sidePanels }: EditorTopBarProps) {
+  const history = useHistory(document.id);
   return (
     <View style={styles.bar} testID="editor-top-bar">
       <IconButton icon="arrow-left" label="Retour à l’accueil" onPress={goHome} />
@@ -29,8 +31,20 @@ export function EditorTopBar({ document, sidePanels }: EditorTopBarProps) {
           {formatDimensions(document.width, document.height)}
         </AppText>
       </View>
-      <IconButton icon="undo" label="Annuler" disabled accessibilityHint="Disponible en phase 6" />
-      <IconButton icon="redo" label="Rétablir" disabled accessibilityHint="Disponible en phase 6" />
+      <IconButton
+        icon="undo"
+        label="Annuler"
+        disabled={!history.canUndo}
+        accessibilityHint={history.undoLabel ? `Annuler : ${history.undoLabel}` : 'Rien à annuler'}
+        onPress={history.undo}
+      />
+      <IconButton
+        icon="redo"
+        label="Rétablir"
+        disabled={!history.canRedo}
+        accessibilityHint={history.redoLabel ? `Rétablir : ${history.redoLabel}` : 'Rien à rétablir'}
+        onPress={history.redo}
+      />
       {sidePanels ? (
         <IconButton
           icon="dock-right"

@@ -67,17 +67,6 @@ export function PathsPanel() {
   return <PlannedList module="M12" intro="Les tracés arrivent avec l’outil Plume." items={[]} testID="paths-panel" />;
 }
 
-export function HistoryPanel() {
-  return (
-    <PlannedList
-      module="M2"
-      intro="Annuler et rétablir ne sont pas encore disponibles : chaque modification est appliquée directement."
-      items={[]}
-      testID="history-panel"
-    />
-  );
-}
-
 export function CharacterPanel() {
   return (
     <PlannedList

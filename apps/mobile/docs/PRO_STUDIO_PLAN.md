@@ -130,6 +130,8 @@ puis M5 mesuré sur appareil, puis les autres selon les priorités.
   26/11/2026 : l'interface peut reproduire celle des logiciels de référence,
   sans logo ni icône Adobe.
 - **M1, suite** : espaces de travail enregistrés, guide des outils.
+- **M2 (livré)** : historique de 50 états par document, Annuler / Rétablir
+  (téléphone et tablette), panneau Historique réel.
 - Les raccourcis clavier ne sont affichés nulle part tant que M17 ne les
   rend pas réels.
 

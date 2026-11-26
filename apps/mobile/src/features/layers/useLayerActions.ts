@@ -87,6 +87,28 @@ function withTextFitted(
   };
 }
 
+/** Libellé d'historique d'une modification saisie dans un champ. */
+export function geometryLabel(patch: LayerPatch): string {
+  const keys = Object.keys(patch);
+  if (keys.length === 1 && keys[0] === 'opacity') return 'Opacité du calque';
+  if (keys.every((k) => k === 'x' || k === 'y')) return 'Déplacer';
+  return 'Transformation manuelle';
+}
+
+/** « Déplacer » si seule la position change, sinon « Transformation manuelle ». */
+export function transformLabel(doc: GraphicDocument | undefined, id: string, geometry: LayerGeometry): string {
+  const layer = doc ? findLayer(doc, id) : undefined;
+  if (layer && layer.width === geometry.width && layer.height === geometry.height && layer.rotation === geometry.rotation) {
+    return 'Déplacer';
+  }
+  return 'Transformation manuelle';
+}
+
+function styleLabel(doc: GraphicDocument | undefined, id: string): string {
+  const layer = doc ? findLayer(doc, id) : undefined;
+  return layer?.type === 'text' ? 'Modifier le calque de texte' : 'Modifier le calque de forme';
+}
+
 /**
  * Actions sur les calques du document `documentId`. Chaque action passe par
  * une opération pure du moteur ; un refus (calque verrouillé, valeur
@@ -99,27 +121,28 @@ export function useLayerActions(documentId: string): LayerActions {
   const { fonts } = useRenderResources();
 
   return useMemo(() => {
-    const run = (operation: (doc: GraphicDocument) => GraphicDocument): boolean => {
-      const result = mutate(documentId, operation);
+    // Chaque modification réussie devient un état nommé de l'historique (M2).
+    const run = (operation: (doc: GraphicDocument) => GraphicDocument, label: string): boolean => {
+      const result = mutate(documentId, operation, label);
       setNotice(result.ok ? null : result.message);
       return result.ok;
     };
     /** Même chose, mais l'erreur est rendue à l'appelant (affichée sous un champ). */
-    const runForField = (operation: (doc: GraphicDocument) => GraphicDocument): string | null => {
-      const result = mutate(documentId, operation);
+    const runForField = (operation: (doc: GraphicDocument) => GraphicDocument, label: string): string | null => {
+      const result = mutate(documentId, operation, label);
       return result.ok ? null : result.message;
     };
     const currentDoc = () => useDocumentStore.getState().documents[documentId];
     const foreground = () => useWorkspaceStore.getState().foreground.toUpperCase();
 
     /** Insère au-dessus du calque sélectionné (ou en haut), sélectionne et passe à l'outil Sélection. */
-    const insert = (make: (doc: GraphicDocument) => Layer) => {
+    const insert = (make: (doc: GraphicDocument) => Layer, label: string) => {
       const doc = currentDoc();
       if (!doc) return;
       const layer = make(doc);
       const ui = useEditorUiStore.getState();
       const above = ui.selectedLayerId && findLayer(doc, ui.selectedLayerId) ? ui.selectedLayerId : null;
-      if (run(withTextFitted((d) => addLayer(d, layer, above), layer.id, fonts))) {
+      if (run(withTextFitted((d) => addLayer(d, layer, above), layer.id, fonts), label)) {
         selectLayer(layer.id);
         ui.setTool('select');
       }
@@ -127,8 +150,9 @@ export function useLayerActions(documentId: string): LayerActions {
 
     return {
       // Les nouvelles formes et les nouveaux textes prennent la couleur de premier plan.
-      addShape: (kind) => insert((doc) => createShapeLayer(doc, kind, createLocalId('layer'), foreground())),
-      addRectangle: () => insert((doc) => createShapeLayer(doc, 'rectangle', createLocalId('layer'), foreground())),
+      addShape: (kind) => insert((doc) => createShapeLayer(doc, kind, createLocalId('layer'), foreground()), 'Nouveau calque de forme'),
+      addRectangle: () =>
+        insert((doc) => createShapeLayer(doc, 'rectangle', createLocalId('layer'), foreground()), 'Nouveau calque de forme'),
       addText: () =>
         insert((doc) => {
           const layer = createTextLayer(doc, createLocalId('layer'));
@@ -136,39 +160,39 @@ export function useLayerActions(documentId: string): LayerActions {
           // Un texte de la couleur du fond serait invisible : on garde alors la couleur contrastée.
           const invisible = (doc.background === 'white' && fg === '#FFFFFF') || (doc.background === 'black' && fg === '#000000');
           return invisible ? layer : { ...layer, color: fg };
-        }),
-      addImage: (asset) => insert((doc) => createImageLayer(doc, asset, createLocalId('layer'))),
+        }, 'Nouveau calque de texte'),
+      addImage: (asset) => insert((doc) => createImageLayer(doc, asset, createLocalId('layer')), 'Importer une image'),
       duplicate: (id) => {
         const newId = createLocalId('layer');
-        if (run((d) => duplicateLayer(d, id, newId))) selectLayer(newId);
+        if (run((d) => duplicateLayer(d, id, newId), 'Dupliquer le calque')) selectLayer(newId);
       },
       remove: (id) => {
-        if (run((d) => removeLayer(d, id)) && useEditorUiStore.getState().selectedLayerId === id) {
+        if (run((d) => removeLayer(d, id), 'Supprimer le calque') && useEditorUiStore.getState().selectedLayerId === id) {
           selectLayer(null);
         }
       },
       // L'erreur est affichée dans la boîte de saisie, pas dans le panneau derrière.
-      rename: (id, name) => runForField((d) => renameLayer(d, id, name)),
+      rename: (id, name) => runForField((d) => renameLayer(d, id, name), 'Renommer le calque'),
       setVisible: (id, visible) => {
-        run((d) => setLayerVisibility(d, id, visible));
+        run((d) => setLayerVisibility(d, id, visible), visible ? 'Afficher le calque' : 'Masquer le calque');
       },
       setLocked: (id, locked) => {
-        run((d) => setLayerLocked(d, id, locked));
+        run((d) => setLayerLocked(d, id, locked), locked ? 'Verrouiller le calque' : 'Déverrouiller le calque');
       },
       moveUp: (id) => {
-        run((d) => bringForward(d, id));
+        run((d) => bringForward(d, id), 'Disposition des calques');
       },
       moveDown: (id) => {
-        run((d) => sendBackward(d, id));
+        run((d) => sendBackward(d, id), 'Disposition des calques');
       },
       toFront: (id) => {
-        run((d) => bringToFront(d, id));
+        run((d) => bringToFront(d, id), 'Disposition des calques');
       },
       toBack: (id) => {
-        run((d) => sendToBack(d, id));
+        run((d) => sendToBack(d, id), 'Disposition des calques');
       },
       align: (id, edge) => {
-        run((d) => alignLayer(d, id, edge));
+        run((d) => alignLayer(d, id, edge), 'Aligner');
       },
       // Une largeur de texte modifiée change le retour à la ligne : on réajuste la hauteur.
       update: (id, patch) =>
@@ -176,11 +200,14 @@ export function useLayerActions(documentId: string): LayerActions {
           patch.width !== undefined && patch.height === undefined
             ? withTextFitted((d) => updateLayerGeometry(d, id, patch), id, fonts)
             : (d) => updateLayerGeometry(d, id, patch),
+          geometryLabel(patch),
         ),
-      setStyle: (id, patch) => runForField(withTextFitted((d) => updateLayerStyle(d, id, patch), id, fonts)),
-      translate: (id, dx, dy) => run((d) => translateLayer(d, id, dx, dy)),
+      setStyle: (id, patch) =>
+        runForField(withTextFitted((d) => updateLayerStyle(d, id, patch), id, fonts), styleLabel(currentDoc(), id)),
+      translate: (id, dx, dy) => run((d) => translateLayer(d, id, dx, dy), 'Déplacer'),
       // Un texte redimensionné garde une hauteur ajustée à son contenu.
-      transform: (id, geometry) => run(withTextFitted((d) => updateLayerGeometry(d, id, geometry), id, fonts)),
+      transform: (id, geometry) =>
+        run(withTextFitted((d) => updateLayerGeometry(d, id, geometry), id, fonts), transformLabel(currentDoc(), id, geometry)),
       select: (id) => {
         selectLayer(id);
         setNotice(null);

@@ -209,7 +209,7 @@ describe('espace studio : barre d’outils et options', () => {
 
   it('l’outil Rectangle insère une forme de la couleur de premier plan, modifiable dans la barre d’options', async () => {
     await openStudio();
-    useWorkspaceStore.getState().setForeground('#C9645B');
+    await act(async () => useWorkspaceStore.getState().setForeground('#C9645B'));
     await fireEvent.press(button('Formes : Rectangle'));
     const shape = layers()[0] as ShapeLayer;
     expect(shape).toMatchObject({ type: 'shape', shape: 'rectangle', fill: '#C9645B' });
@@ -327,10 +327,10 @@ describe('espace studio : dock', () => {
 
   it('les panneaux prévus le disent, sans contenu inventé ; un groupe se replie', async () => {
     await openStudio();
-    await fireEvent.press(screen.getByTestId('strip-history'));
-    expect(within(screen.getByTestId('history-panel')).getByText(/Prévu · M2/)).toBeTruthy();
-    await fireEvent.press(button('Réduire Historique'));
-    expect(screen.queryByTestId('history-panel')).toBeNull();
+    await fireEvent.press(screen.getByTestId('strip-paragraph'));
+    expect(within(screen.getByTestId('paragraph-panel')).getByText(/Prévu · M13/)).toBeTruthy();
+    await fireEvent.press(button('Réduire Paragraphe'));
+    expect(screen.queryByTestId('paragraph-panel')).toBeNull();
 
     await fireEvent.press(screen.getByRole('tab', { name: 'Réglages' }));
     expect(screen.getByLabelText('Courbes')).toBeDisabled();
@@ -367,5 +367,63 @@ describe('espace studio : dock', () => {
     await fireEvent.press(nav.getByRole('button', { name: 'Zoom avant' }));
     expect(nav.getByText('156 %')).toBeTruthy();
     expect(nav.getByLabelText('Vignette du document : toucher pour centrer la vue')).toBeTruthy();
+  });
+});
+
+describe('historique (M2)', () => {
+  it('Édition annule et rétablit en nommant l’action ; la sélection suit', async () => {
+    await openStudio();
+    await openMenu('Édition');
+    expect(menuItem('Annuler')).toBeDisabled();
+    await fireEvent.press(screen.getByLabelText('Fermer le menu', { includeHiddenElements: true }));
+
+    await addRectangle();
+    const x = screen.getByTestId('prop-x');
+    await fireEvent.changeText(x, '10');
+    await fireEvent(x, 'blur');
+    expect(layers()[0]?.x).toBe(10);
+
+    await openMenu('Édition');
+    await fireEvent.press(menuItem('Annuler : Déplacer'));
+    expect(layers()[0]?.x).not.toBe(10);
+    await openMenu('Édition');
+    await fireEvent.press(menuItem('Annuler : Nouveau calque de forme'));
+    expect(layers()).toHaveLength(0);
+    // Le calque n'existe plus dans l'état affiché : il n'est plus sélectionné.
+    expect(useEditorUiStore.getState().selectedLayerId).toBeNull();
+
+    await openMenu('Édition');
+    await fireEvent.press(menuItem('Rétablir : Nouveau calque de forme'));
+    await openMenu('Édition');
+    await fireEvent.press(menuItem('Rétablir : Déplacer'));
+    expect(layers()[0]?.x).toBe(10);
+  });
+
+  it('panneau Historique : revenir à un état, rétablir, supprimer et effacer', async () => {
+    await openStudio();
+    await addRectangle();
+    await fireEvent.press(button('Masquer Rectangle 1'));
+    await fireEvent.press(screen.getByTestId('strip-history'));
+    const panel = within(screen.getByTestId('history-panel'));
+    expect(panel.getByRole('button', { name: 'État 1 : Nouveau document' })).toBeTruthy();
+    expect(panel.getByRole('button', { name: 'État 3 : Masquer le calque' })).toBeSelected();
+
+    await fireEvent.press(panel.getByRole('button', { name: 'État 1 : Nouveau document' }));
+    expect(layers()).toHaveLength(0);
+    await fireEvent.press(panel.getByRole('button', { name: 'État 3 : Masquer le calque' }));
+    expect(layers()[0]?.visible).toBe(false);
+
+    await fireEvent.press(panel.getByRole('button', { name: 'État 2 : Nouveau calque de forme' }));
+    await fireEvent.press(screen.getByTestId('history-delete'));
+    await fireEvent.press(within(screen.getByTestId('confirm-dialog')).getByRole('button', { name: 'Supprimer' }));
+    expect(useDocumentStore.getState().histories[docId]?.states.map((s) => s.label)).toEqual(['Nouveau document']);
+    expect(layers()).toHaveLength(0);
+
+    await addRectangle();
+    await fireEvent.press(screen.getByTestId('history-clear'));
+    await fireEvent.press(within(screen.getByTestId('confirm-dialog')).getByRole('button', { name: 'Effacer' }));
+    expect(useDocumentStore.getState().histories[docId]?.states).toHaveLength(1);
+    expect(layers()).toHaveLength(1);
+    expect(screen.getByTestId('history-undo')).toBeDisabled();
   });
 });

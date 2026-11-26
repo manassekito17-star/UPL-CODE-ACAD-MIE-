@@ -52,7 +52,9 @@ export function openImageAsNewDocument(asset: ImageAsset): string {
     name,
   });
   const layer = { ...createImageLayer(doc, asset, createLocalId('layer')), x: 0, y: 0, width: asset.width, height: asset.height };
-  store.mutateDocument(doc.id, (d) => addLayer(d, layer));
+  store.mutateDocument(doc.id, (d) => addLayer(d, layer), 'Ouvrir');
+  // Le document ouvert est l'état de départ : il n'y a rien à annuler.
+  store.clearHistory(doc.id, 'Ouvrir');
   router.push({ pathname: '/editor/[projectId]', params: { projectId: doc.id } });
   return doc.id;
 }

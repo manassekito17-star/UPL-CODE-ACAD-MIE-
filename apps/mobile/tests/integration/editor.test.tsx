@@ -33,7 +33,7 @@ describe('espace de travail', () => {
     await openEditor('compact');
     const topBar = screen.getByTestId('editor-top-bar');
     expect(within(topBar).getByText('Bannière')).toBeTruthy();
-    expect(within(topBar).getByRole('button', { name: 'Annuler' })).toBeDisabled();
+    expect(within(topBar).getByRole('button', { name: 'Annuler' })).toBeDisabled(); // rien à annuler
     expect(within(topBar).getByRole('button', { name: 'Exporter' })).toBeDisabled();
     expect(screen.getByTestId('canvas-area')).toBeTruthy();
     expect(screen.getByLabelText('Document de 1920 × 1080 pixels, 0 calque')).toBeTruthy();
@@ -97,6 +97,21 @@ describe('espace de travail', () => {
   });
 
   describe('petit écran', () => {
+    it('Annuler et Rétablir de la barre supérieure suivent l’historique', async () => {
+      const doc = await openEditor('compact');
+      const topBar = within(screen.getByTestId('editor-top-bar'));
+      expect(topBar.getByRole('button', { name: 'Annuler' })).toBeDisabled();
+      await fireEvent.press(within(screen.getByTestId('editor-toolbar')).getByRole('button', { name: 'Texte' }));
+      expect(useDocumentStore.getState().documents[doc.id]?.layers).toHaveLength(1);
+      const undo = topBar.getByRole('button', { name: 'Annuler' });
+      expect(undo).toBeEnabled();
+      expect(undo.props.accessibilityHint).toBe('Annuler : Nouveau calque de texte');
+      await fireEvent.press(undo);
+      expect(useDocumentStore.getState().documents[doc.id]?.layers).toHaveLength(0);
+      await fireEvent.press(topBar.getByRole('button', { name: 'Rétablir' }));
+      expect(useDocumentStore.getState().documents[doc.id]?.layers).toHaveLength(1);
+    });
+
     it('ouvre un seul panneau à la fois, en feuille refermable', async () => {
       await openEditor('compact');
       expect(screen.queryByTestId('side-panels')).toBeNull();

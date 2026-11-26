@@ -251,6 +251,24 @@ DocumentCanvas (engine/canvas)
   L'import d'images n'est pas disponible sur le web (pas de système de
   fichiers) : ce n'est pas une plateforme cible.
 
+## Historique (M2)
+
+- `engine/history` : fonctions pures sur `{ states, index }` (`record`,
+  `undo`, `redo`, `goTo`, `deleteFrom`, `clearHistory`). Un état est le
+  document immuable lui-même : les opérations du moteur ne modifient jamais
+  le document reçu, donc les calques inchangés sont partagés entre états et
+  les images (références de fichiers) ne sont jamais copiées. 50 états par
+  document (`HISTORY_LIMIT`).
+- `stores/documentStore` : `histories[id]` à côté de `documents[id]`.
+  `mutateDocument(id, opération, libellé)` est le seul point d'écriture ; il
+  enregistre un état si le document a changé. `undo`, `redo`,
+  `goToHistoryState`, `deleteHistoryFrom`, `clearHistory`.
+- `features/history/useHistory` : contrôles pour l'interface ; retire la
+  sélection si son calque n'existe plus dans l'état affiché.
+- Les libellés viennent de `useLayerActions` (`geometryLabel`,
+  `transformLabel`) : une manipulation au doigt est « Déplacer » si seule la
+  position change, sinon « Transformation manuelle ».
+
 ## Fonctionnalités non encore développées
 
 Elles sont affichées avec le composant `PlannedFeature` et le numéro de la

@@ -5,6 +5,17 @@ versions selon [SemVer](https://semver.org/lang/fr/).
 
 ## [Non publié]
 
+### Module M2 — Historique (Annuler / Rétablir)
+
+- Moteur (`engine/history`) : chaque action réussie devient un état nommé ; Annuler, Rétablir, aller à un état, supprimer un état et les suivants, effacer l'historique. 50 états par document ; une nouvelle action après un retour abandonne les états rétablissables. Les documents étant immuables, un état est le document lui-même : les calques inchangés sont partagés et les images ne sont jamais copiées.
+- Store des documents : `mutateDocument(id, opération, libellé)` enregistre l'état ; une opération refusée ou sans effet n'en crée pas. Un document ouvert depuis une image part de l'état « Ouvrir » (rien à annuler).
+- Actions nommées : Nouveau calque de forme / de texte, Importer une image, Dupliquer, Supprimer, Renommer, Afficher / Masquer, Verrouiller / Déverrouiller, Disposition des calques, Aligner, Déplacer, Transformation manuelle, Opacité du calque, Modifier le calque de texte / de forme.
+- Après Annuler ou Rétablir, la sélection est retirée si son calque n'existe plus.
+- Téléphone : boutons Annuler et Rétablir de la barre supérieure actifs (l'action est annoncée aux lecteurs d'écran).
+- Tablette : menu Édition « Annuler : Déplacer » / « Rétablir : … » ; panneau Historique réel (états, état courant, états annulés grisés, compteur sur 50, annuler, rétablir, effacer et supprimer avec confirmation ; « Nouveau document à partir de l'état » prévu M3).
+- L'historique vit en mémoire avec le document : il n'est pas enregistré (comme dans les logiciels de retouche), l'enregistrement du document arrive avec M3.
+- Tests : 262 (250 avant).
+
 ### Module M1 (partie 2) — Interface fidèle aux références
 
 - Décision de l'utilisateur (26/11/2026) : l'interface peut reproduire celle des logiciels de retouche de référence ; ni logo ni icône Adobe, nom et identité ZENTECH DESIGN conservés.
