@@ -64,7 +64,7 @@ appliqué. À revoir à chaque mise à jour du SDK.
 | `CAMERA`, `RECORD_AUDIO` | expo-image-picker | **Retirées** (`android.blockedPermissions`) : la V0.1 n'utilise pas l'appareil photo |
 | `READ_EXTERNAL_STORAGE`, `WRITE_EXTERNAL_STORAGE` (≤ Android 12) | expo-image-picker | Nécessaires à l'import sur les anciennes versions d'Android |
 | `INTERNET` | React Native | Nécessaire au build de développement (Metro). L'application n'envoie aucune donnée. |
-| `SYSTEM_ALERT_WINDOW`, `VIBRATE` | modèle React Native | À réexaminer pour la version de production (phase 9) |
+| `SYSTEM_ALERT_WINDOW`, `VIBRATE`, `ACCESS_LOCAL_NETWORK` | modèle React Native / outils de développement | À réexaminer pour la version de production (phase 9) |
 
 iOS : seule la description d'accès aux photos est déclarée
 (`photosPermission`) ; caméra et micro désactivés (`false`).

@@ -67,7 +67,13 @@ simultanées ont provoqué l'arrêt de `clang++` par manque de mémoire. Remède
 
 - `expo prebuild` : OK, projet Android généré.
 - Bundle JavaScript Android de production : OK (`npm run bundle:check`).
-- Compilation native `assembleDebug` (arm64-v8a) dans un conteneur Linux :
-  **en cours au moment du commit initial**, résultat consigné dans le commit suivant.
+- Compilation native `assembleDebug` (arm64-v8a) dans un conteneur Linux
+  (OpenJDK 21, SDK 37, NDK 27.1) : **BUILD SUCCESSFUL**. APK de debug de
+  112 Mo contenant `librnskia.so`, `libreanimated.so`, `libworklets.so`,
+  `libhermesvm.so`, `libreactnative.so`, `libexpo-sqlite.so`.
+  Paquet `app.studiographic.dev`, versionName 0.1.0, compileSdk 37, targetSdk 36.
+- Permissions déclarées dans l'APK (relevées avec `aapt2 dump permissions`) :
+  `INTERNET`, `READ/WRITE_EXTERNAL_STORAGE` (≤ API 32), `SYSTEM_ALERT_WINDOW`,
+  `VIBRATE`, `ACCESS_LOCAL_NETWORK`. `CAMERA` et `RECORD_AUDIO` sont bien absentes.
 - Exécution sur émulateur ou appareil : **non testée** (pas de virtualisation
   matérielle dans l'environnement de la phase 1). À faire sur votre poste.
