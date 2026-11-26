@@ -83,6 +83,10 @@ export function ToolRail() {
   const swapColors = useWorkspaceStore((s) => s.swapColors);
   const resetColors = useWorkspaceStore((s) => s.resetColors);
   const showPanel = useWorkspaceStore((s) => s.showPanel);
+  const double = useWorkspaceStore((s) => s.toolRailDouble);
+  const toggleDouble = useWorkspaceStore((s) => s.toggleToolRailDouble);
+  const panelsHidden = useWorkspaceStore((s) => s.panelsHidden);
+  const togglePanelsHidden = useWorkspaceStore((s) => s.togglePanelsHidden);
   const activate = useActivateTool();
   const refs = useRef<Record<string, ViewRef | null>>({});
   const [flyout, setFlyout] = useState<{ family: ToolFamily; anchor: Anchor } | null>(null);
@@ -94,16 +98,26 @@ export function ToolRail() {
   };
 
   return (
-    <View style={styles.rail} testID="tool-rail">
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} accessibilityRole="toolbar" accessibilityLabel="Outils">
+    <View style={[styles.rail, double && styles.railDouble]} testID="tool-rail">
+      <View style={styles.railBar}>
+        <WIconButton
+          icon={double ? 'chevron-double-left' : 'chevron-double-right'}
+          label={double ? 'Barre d’outils sur une colonne' : 'Barre d’outils sur deux colonnes'}
+          size={12}
+          style={styles.railToggle}
+          onPress={toggleDouble}
+          testID="tool-rail-toggle"
+        />
+      </View>
+      <ScrollView contentContainerStyle={[styles.content, double && styles.contentDouble]} showsVerticalScrollIndicator={false} accessibilityRole="toolbar" accessibilityLabel="Outils">
         {TOOL_FAMILIES.map((family) => {
           const shown = findTool(familyChoice[family.id] ?? '') ?? family.items[0];
           if (!shown) return null;
           const active = family.items.some((t) => t.key === effective);
           const usable = isUsable(shown);
           return (
-            <View key={family.id}>
-              {GROUP_BREAKS.has(family.id) ? <View style={styles.groupBreak} /> : null}
+            <View key={family.id} style={double ? styles.cellDouble : undefined}>
+              {GROUP_BREAKS.has(family.id) && !double ? <View style={styles.groupBreak} /> : null}
               <WIconButton
                 innerRef={(node) => {
                   refs.current[family.id] = node;
@@ -122,7 +136,10 @@ export function ToolRail() {
           );
         })}
 
-        <View style={styles.colors}>
+        <View style={styles.fullRow}>
+          <WIconButton icon="dots-horizontal" label="Modifier la barre d’outils" hint="Prévu au module M1 (suite)" size={16} style={styles.tool} disabled />
+        </View>
+        <View style={[styles.fullRow, styles.colors]}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`Couleur de premier plan ${foreground}`}
@@ -132,10 +149,22 @@ export function ToolRail() {
             testID="foreground-swatch"
           />
           <View style={[styles.swatch, styles.bg, { backgroundColor: background }]} accessible accessibilityLabel={`Couleur d’arrière-plan ${background}`} />
+          <WIconButton icon="swap-horizontal" label="Permuter les couleurs" size={11} onPress={swapColors} style={[styles.mini, styles.swap]} />
+          <WIconButton icon="backup-restore" label="Couleurs par défaut (noir et blanc)" size={11} onPress={resetColors} style={[styles.mini, styles.reset]} />
         </View>
-        <View style={styles.colorActions}>
-          <WIconButton icon="swap-horizontal" label="Permuter les couleurs" size={15} onPress={swapColors} style={styles.small} />
-          <WIconButton icon="backup-restore" label="Couleurs par défaut (noir et blanc)" size={15} onPress={resetColors} style={styles.small} />
+        <View style={styles.fullRow}>
+          <WIconButton icon="circle-box-outline" label="Mode Masque" hint="Prévu au module M6" size={17} style={styles.tool} disabled />
+        </View>
+        <View style={styles.fullRow}>
+          <WIconButton
+            icon={panelsHidden ? 'fullscreen-exit' : 'monitor'}
+            label={panelsHidden ? 'Mode d’affichage standard' : 'Mode plein écran avec barre de menus'}
+            size={17}
+            style={styles.tool}
+            active={panelsHidden}
+            onPress={togglePanelsHidden}
+            testID="screen-mode"
+          />
         </View>
       </ScrollView>
 
@@ -158,16 +187,23 @@ export function ToolRail() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   rail: { width: wsMetrics.toolRail, backgroundColor: ws.chrome, borderRightWidth: 1, borderRightColor: ws.border },
+  railDouble: { width: wsMetrics.toolButton * 2 + 8 },
+  railBar: { height: 14, alignItems: 'flex-end', backgroundColor: ws.header },
+  railToggle: { height: 14, minWidth: 20, paddingHorizontal: 0, borderRadius: 0 },
   content: { alignItems: 'center', paddingVertical: 4, gap: 1 },
-  tool: { width: wsMetrics.toolButton, height: 28 },
+  contentDouble: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' },
+  cellDouble: { width: wsMetrics.toolButton, alignItems: 'center' },
+  fullRow: { width: '100%', alignItems: 'center' },
+  tool: { width: wsMetrics.toolButton, height: 27 },
   toolPlanned: { opacity: 0.55 },
   groupBreak: { height: 1, width: 24, backgroundColor: ws.divider, marginVertical: 3, alignSelf: 'center' },
-  colors: { width: 32, height: 32, marginTop: 6 },
-  swatch: { position: 'absolute', width: 20, height: 20, borderWidth: 1, borderColor: '#000', outlineColor: '#FFFFFF' },
-  fg: { left: 0, top: 0, zIndex: 1, borderColor: '#FFFFFF' },
-  bg: { right: 0, bottom: 0 },
-  colorActions: { flexDirection: 'row' },
-  small: { minWidth: 18, width: 18, height: 22, paddingHorizontal: 0 },
+  colors: { width: 34, height: 34, marginTop: 8, marginBottom: 2, alignSelf: 'center' },
+  swatch: { position: 'absolute', width: 18, height: 18, borderWidth: 1, borderColor: '#000' },
+  fg: { left: 2, top: 2, zIndex: 1, borderColor: '#9A9A9A' },
+  bg: { left: 11, top: 11, borderColor: '#9A9A9A' },
+  mini: { position: 'absolute', minWidth: 12, width: 12, height: 12, paddingHorizontal: 0 },
+  swap: { right: -2, top: -2 },
+  reset: { left: -2, bottom: -2 },
   flyoutTitle: { paddingHorizontal: 10, paddingVertical: 6, fontSize: wsMetrics.smallFontSize, textTransform: 'uppercase', letterSpacing: 0.6 },
   flyoutRow: { minHeight: 40, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 10, borderRadius: 4, marginHorizontal: 4 },
   flyoutPressed: { backgroundColor: ws.accent },

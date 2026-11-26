@@ -78,6 +78,39 @@ export function HistoryPanel() {
   );
 }
 
+export function CharacterPanel() {
+  return (
+    <PlannedList
+      module="M13"
+      intro="Police Inter, taille, graisse et couleur se règlent déjà dans la barre d’options et les Propriétés."
+      items={[
+        { label: 'Autres polices', icon: 'format-font' },
+        { label: 'Interlignage', icon: 'format-line-spacing' },
+        { label: 'Approche et crénage', icon: 'format-letter-spacing' },
+        { label: 'Échelle horizontale et verticale', icon: 'arrow-expand-horizontal' },
+        { label: 'Faux gras, faux italique, capitales', icon: 'format-italic' },
+      ]}
+      testID="character-panel"
+    />
+  );
+}
+
+export function ParagraphPanel() {
+  return (
+    <PlannedList
+      module="M13"
+      intro="L’alignement gauche, centre, droite est déjà disponible."
+      items={[
+        { label: 'Justification', icon: 'format-align-justify' },
+        { label: 'Retraits', icon: 'format-indent-increase' },
+        { label: 'Espace avant et après', icon: 'format-paragraph-spacing' },
+        { label: 'Césure', icon: 'format-text-wrapping-wrap' },
+      ]}
+      testID="paragraph-panel"
+    />
+  );
+}
+
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   panel: { paddingVertical: 6 },

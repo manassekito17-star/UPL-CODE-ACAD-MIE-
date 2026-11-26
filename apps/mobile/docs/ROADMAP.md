@@ -22,6 +22,6 @@ phases 6 à 9 ci-dessus correspondent aux modules M2 (historique), M3
 
 | Module | Contenu | État |
 |---|---|---|
-| M1 | Espace studio tablette / grand écran : menus, barre d'options, 20 familles d'outils, règles, onglet, dock (Couleur, Nuancier, Propriétés, Ajustements, Calques, Canaux, Tracés, Historique), barre d'état | **Partie 1 livrée, en attente de validation** |
+| M1 | Espace studio tablette / grand écran : menus, barre d'options, 20 familles d'outils, règles, onglet, dock (Couleur, Nuancier, Propriétés, Réglages, Calques, Couches, Tracés), colonne d'icônes (Historique, Navigateur, Caractère, Paragraphe), barre d'état | **Parties 1 et 2 livrées, en attente de validation** |
 | M1 (suite) | Espaces de travail enregistrés, guide des outils | À faire |
 | M2 à M19 | Voir le plan | À faire |

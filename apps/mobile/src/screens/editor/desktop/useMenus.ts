@@ -4,10 +4,11 @@ import { findLayer } from '@/engine/layers';
 import { openImageAsNewDocument, useImageImport } from '@/features/image-import/useImageImport';
 import { useLayerActions } from '@/features/layers/useLayerActions';
 import { useEditorUiStore } from '@/stores/editorUiStore';
-import { useWorkspaceStore, type PanelId } from '@/stores/workspaceStore';
+import { useWorkspaceStore } from '@/stores/workspaceStore';
 
 import { goHome } from '../EditorTopBar';
 import { useInsertMenu } from '../useInsertMenu';
+import { PANEL_LABELS } from './panelMeta';
 import type { MenuEntry } from './ui';
 import { ZOOM_STEP, useWorkspace } from './WorkspaceContext';
 
@@ -19,16 +20,6 @@ export interface MenuDef {
 const planned = (label: string, module: string): MenuEntry => ({ type: 'item', label, planned: true, right: module });
 const sep: MenuEntry = { type: 'separator' };
 
-export const PANEL_LABELS: Record<PanelId, string> = {
-  color: 'Couleur',
-  swatches: 'Nuancier',
-  properties: 'Propriétés',
-  adjustments: 'Ajustements',
-  layers: 'Calques',
-  channels: 'Canaux',
-  paths: 'Tracés',
-  history: 'Historique',
-};
 
 /**
  * Contenu des menus. Une commande disponible déclenche une vraie action ;
@@ -216,6 +207,7 @@ export function useMenus(): MenuDef[] {
         { type: 'item', label: '100 %', onPress: () => controller.current?.setZoomPercent(100) },
         sep,
         { type: 'item', label: 'Règles', checked: ws.rulersVisible, onPress: ws.toggleRulers },
+        { type: 'item', label: 'Mode plein écran avec barre de menus', checked: ws.panelsHidden, onPress: ws.togglePanelsHidden },
         planned('Repères', 'M16'),
         planned('Grille', 'M16'),
         planned('Magnétisme', 'M16'),
@@ -224,7 +216,7 @@ export function useMenus(): MenuDef[] {
     {
       title: 'Fenêtre',
       entries: [
-        ...(['layers', 'properties', 'color', 'swatches', 'history', 'adjustments', 'channels', 'paths'] as const).map(
+        ...(['adjustments', 'paragraph', 'character', 'color', 'channels', 'layers', 'history', 'navigator', 'swatches', 'properties', 'paths'] as const).map(
           (panel): MenuEntry => ({
             type: 'item',
             label: PANEL_LABELS[panel],
@@ -233,11 +225,10 @@ export function useMenus(): MenuDef[] {
           }),
         ),
         sep,
-        planned('Navigateur', 'M16'),
-        planned('Caractère, Paragraphe', 'M13'),
-        sep,
-        planned('Espaces de travail enregistrés', 'M1 (suite)'),
+        { type: 'header', label: 'Espace de travail' },
+        { type: 'item', label: 'Essentiels (par défaut)', checked: true, disabled: true },
         { type: 'item', label: 'Réinitialiser l’espace de travail', onPress: ws.resetWorkspace },
+        planned('Nouvel espace de travail…', 'M1 (suite)'),
       ],
     },
     {

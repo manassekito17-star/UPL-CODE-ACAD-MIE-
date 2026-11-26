@@ -47,10 +47,14 @@ describe('espace studio : disposition', () => {
     for (const title of ['Fichier', 'Édition', 'Image', 'Calque', 'Texte', 'Sélection', 'Filtre', 'Affichage', 'Fenêtre', 'Aide']) {
       expect(button(`Menu ${title}`)).toBeTruthy();
     }
-    expect(screen.getByLabelText('Document Affiche @ … % (Arrière-plan, RVB/8), non enregistré')).toBeTruthy();
-    expect(within(screen.getByTestId('status-bar')).getByText('1000 × 500 px')).toBeTruthy();
-    for (const tab of ['Couleur', 'Nuancier', 'Propriétés', 'Ajustements', 'Calques', 'Canaux', 'Tracés', 'Historique']) {
+    expect(screen.getByLabelText('Document Affiche @ …% (Arrière-plan, RVB/8), non enregistré')).toBeTruthy();
+    // 1000 × 500 × 3 octets aplatis = 1,43M ; un document sans calque.
+    expect(screen.getByLabelText('Taille du document : Doc : 1,43M/1,43M')).toBeTruthy();
+    for (const tab of ['Couleur', 'Nuancier', 'Propriétés', 'Réglages', 'Calques', 'Couches', 'Tracés']) {
       expect(screen.getByRole('tab', { name: tab })).toBeTruthy();
+    }
+    for (const panel of ['Historique', 'Navigateur', 'Caractère', 'Paragraphe']) {
+      expect(within(screen.getByTestId('panel-strip')).getByRole('button', { name: panel })).toBeTruthy();
     }
     // L'espace téléphone n'est pas rendu.
     expect(screen.queryByTestId('editor-toolbar')).toBeNull();
@@ -62,11 +66,32 @@ describe('espace studio : disposition', () => {
       fireEvent(screen.getByTestId('document-canvas'), 'layout', { nativeEvent: { layout: { x: 0, y: 0, width: 600, height: 500 } } });
     });
     // 1000 px dans 552 points (marges de 24) : 0,552 point par pixel, densité 2 → 110 %.
-    expect(screen.getByTestId('status-zoom')).toHaveTextContent('110 %');
-    expect(screen.getByLabelText(/^Document Affiche @ 110 %/)).toBeTruthy();
+    expect(screen.getByTestId('status-zoom').props.value).toBe('110');
+    expect(screen.getByLabelText(/^Document Affiche @ 110% /)).toBeTruthy();
     await openMenu('Affichage');
     await fireEvent.press(menuItem('100 %'));
-    expect(screen.getByTestId('status-zoom')).toHaveTextContent('100 %');
+    expect(screen.getByTestId('status-zoom').props.value).toBe('100');
+
+    // Saisie directe du zoom dans la barre d'état.
+    const field = screen.getByTestId('status-zoom');
+    await fireEvent.changeText(field, '50');
+    await fireEvent(field, 'submitEditing');
+    expect(screen.getByLabelText(/^Document Affiche @ 50% /)).toBeTruthy();
+  });
+
+  it('la barre d’état change d’information par son menu', async () => {
+    await openStudio();
+    await addRectangle();
+    // Le rectangle (4 octets par pixel de sa surface) s'ajoute au document aplati.
+    const r = layers()[0] as ShapeLayer;
+    const layered = ((1000 * 500 * 3 + r.width * r.height * 4) / 1048576).toFixed(2).replace('.', ',');
+    expect(screen.getByLabelText(`Taille du document : Doc : 1,43M/${layered}M`)).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('status-info'));
+    await fireEvent.press(within(screen.getByTestId('status-menu')).getByRole('menuitem', { name: 'Dimensions du document' }));
+    expect(screen.getByLabelText('Dimensions du document : 1000 × 500 px')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('status-info'));
+    await fireEvent.press(within(screen.getByTestId('status-menu')).getByRole('menuitem', { name: 'Outil actif' }));
+    expect(screen.getByLabelText('Outil actif : Déplacement')).toBeTruthy();
   });
 });
 
@@ -124,7 +149,7 @@ describe('espace studio : menus', () => {
     await openMenu('Fenêtre');
     await fireEvent.press(menuItem('Calques'));
     expect(screen.queryByRole('tab', { name: 'Calques' })).toBeNull();
-    expect(screen.getByRole('tab', { name: 'Canaux' })).toBeSelected();
+    expect(screen.getByRole('tab', { name: 'Couches' })).toBeSelected();
 
     await openMenu('Fenêtre');
     await fireEvent.press(menuItem('Réinitialiser l’espace de travail'));
@@ -140,7 +165,37 @@ describe('espace studio : barre d’outils et options', () => {
     await fireEvent.press(button('Déplacement'));
     expect(useEditorUiStore.getState().activeTool).toBe('select');
     expect(button('Déplacement')).toBeSelected();
-    expect(within(screen.getByTestId('options-bar')).getByText('Déplacement')).toBeTruthy();
+    expect(within(screen.getByTestId('options-bar')).getByRole('checkbox', { name: 'Sélection auto :' })).toBeChecked();
+  });
+
+  it('Sélection auto et options de transformation sont de vraies options de l’outil', async () => {
+    await openStudio();
+    await fireEvent.press(button('Déplacement'));
+    await fireEvent.press(screen.getByTestId('opt-auto-select'));
+    await fireEvent.press(screen.getByTestId('opt-transform-controls'));
+    expect(useWorkspaceStore.getState()).toMatchObject({ autoSelect: false, showTransformControls: false });
+    expect(screen.getByTestId('opt-auto-select')).not.toBeChecked();
+    // « Réinitialiser l’outil » rétablit les deux options.
+    await fireEvent.press(button(/^Outil Déplacement, paramètres prédéfinis/));
+    await fireEvent.press(within(screen.getByTestId('select-dropdown')).getByRole('menuitem', { name: 'Réinitialiser l’outil' }));
+    expect(useWorkspaceStore.getState()).toMatchObject({ autoSelect: true, showTransformControls: true });
+  });
+
+  it('barre d’outils sur deux colonnes ; mode plein écran masque outils, options et panneaux', async () => {
+    await openStudio();
+    await fireEvent.press(screen.getByTestId('tool-rail-toggle'));
+    expect(useWorkspaceStore.getState().toolRailDouble).toBe(true);
+    expect(button('Barre d’outils sur une colonne')).toBeTruthy();
+
+    await fireEvent.press(screen.getByTestId('screen-mode'));
+    expect(screen.queryByTestId('tool-rail')).toBeNull();
+    expect(screen.queryByTestId('options-bar')).toBeNull();
+    expect(screen.queryByTestId('dock-area')).toBeNull();
+    expect(screen.getByTestId('document-canvas')).toBeTruthy();
+    await openMenu('Affichage');
+    await fireEvent.press(menuItem('Mode plein écran avec barre de menus'));
+    expect(screen.getByTestId('tool-rail')).toBeTruthy();
+    expect(screen.getByTestId('dock-area')).toBeTruthy();
   });
 
   it('un outil prévu ouvre sa famille sans changer d’outil, chaque entrée porte son module', async () => {
@@ -225,12 +280,16 @@ describe('espace studio : dock', () => {
     await fireEvent(opacity, 'blur');
     expect(layers()[1]?.opacity).toBeCloseTo(0.4);
 
-    await fireEvent.press(screen.getByTestId('layers-filter'));
-    await fireEvent.press(within(screen.getByTestId('select-dropdown')).getByRole('menuitem', { name: 'Formes' }));
+    // Filtre par type : formes seulement, puis interrupteur coupé.
+    await fireEvent.press(screen.getByTestId('layers-filter-shape'));
     expect(panel.queryByRole('button', { name: 'Calque Texte 1' })).toBeNull();
     expect(panel.getByRole('button', { name: 'Calque Rectangle 1' })).toBeTruthy();
-    await fireEvent.press(screen.getByTestId('layers-filter'));
-    await fireEvent.press(within(screen.getByTestId('select-dropdown')).getByRole('menuitem', { name: 'Tous les calques' }));
+    expect(screen.getByTestId('layers-filter-switch')).toBeChecked();
+    expect(panel.queryByTestId('layer-background')).toBeNull();
+    await fireEvent.press(screen.getByTestId('layers-filter-switch'));
+    expect(panel.getByRole('button', { name: 'Calque Texte 1' })).toBeTruthy();
+    expect(panel.getByTestId('layer-background')).toBeTruthy();
+    expect(screen.getByLabelText('Fond')).not.toBeEnabled();
 
     await fireEvent(panel.getByRole('button', { name: 'Calque Rectangle 1' }), 'longPress');
     const prompt = screen.getByTestId('prompt-dialog');
@@ -268,14 +327,45 @@ describe('espace studio : dock', () => {
 
   it('les panneaux prévus le disent, sans contenu inventé ; un groupe se replie', async () => {
     await openStudio();
-    await fireEvent.press(screen.getByRole('tab', { name: 'Historique' }));
+    await fireEvent.press(screen.getByTestId('strip-history'));
     expect(within(screen.getByTestId('history-panel')).getByText(/Prévu · M2/)).toBeTruthy();
-    await fireEvent.press(screen.getByRole('tab', { name: 'Ajustements' }));
-    expect(screen.getByLabelText('Courbes')).toBeDisabled();
+    await fireEvent.press(button('Réduire Historique'));
+    expect(screen.queryByTestId('history-panel')).toBeNull();
 
-    await fireEvent.press(button('Replier le groupe Ajustements'));
+    await fireEvent.press(screen.getByRole('tab', { name: 'Réglages' }));
+    expect(screen.getByLabelText('Courbes')).toBeDisabled();
+    // Toucher l'onglet actif réduit le groupe, puis le développe.
+    await fireEvent.press(screen.getByRole('tab', { name: 'Réglages' }));
     expect(screen.queryByTestId('adjustments-panel')).toBeNull();
-    await fireEvent.press(button('Déplier le groupe Ajustements'));
+    await fireEvent.press(screen.getByRole('tab', { name: 'Réglages' }));
     expect(screen.getByTestId('adjustments-panel')).toBeTruthy();
+
+    // Menu du panneau : fermer un onglet.
+    await fireEvent.press(screen.getByTestId('panel-menu-properties'));
+    await fireEvent.press(within(screen.getByTestId('panel-menu')).getByRole('menuitem', { name: 'Fermer Réglages' }));
+    expect(screen.queryByRole('tab', { name: 'Réglages' })).toBeNull();
+  });
+
+  it('le dock se réduit en icônes ; une icône le développe sur son panneau', async () => {
+    await openStudio();
+    await fireEvent.press(screen.getByTestId('dock-toggle'));
+    const collapsed = within(screen.getByTestId('dock-collapsed'));
+    expect(screen.queryByTestId('layers-panel')).toBeNull();
+    await fireEvent.press(collapsed.getByRole('button', { name: 'Nuancier' }));
+    expect(screen.queryByTestId('dock-collapsed')).toBeNull();
+    expect(screen.getByRole('tab', { name: 'Nuancier' })).toBeSelected();
+  });
+
+  it('Navigateur : vignette du document et zoom', async () => {
+    await openStudio();
+    await act(async () => {
+      fireEvent(screen.getByTestId('document-canvas'), 'layout', { nativeEvent: { layout: { x: 0, y: 0, width: 600, height: 500 } } });
+    });
+    await fireEvent.press(screen.getByTestId('strip-navigator'));
+    const nav = within(screen.getByTestId('navigator-panel'));
+    expect(nav.getByText('110 %')).toBeTruthy();
+    await fireEvent.press(nav.getByRole('button', { name: 'Zoom avant' }));
+    expect(nav.getByText('156 %')).toBeTruthy();
+    expect(nav.getByLabelText('Vignette du document : toucher pour centrer la vue')).toBeTruthy();
   });
 });

@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Image, Pressable, StyleSheet, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
-import { BackgroundSwatch, Icon } from '@/components/ui';
+import { BackgroundSwatch, Icon, type IconName } from '@/components/ui';
 import { findLayer, type Layer } from '@/engine/layers';
 import { useLayerActions } from '@/features/layers/useLayerActions';
 import { BACKGROUND_LABELS } from '@/features/projects/labels';
@@ -14,8 +14,14 @@ import { useInsertMenu } from '../../useInsertMenu';
 import { Divider, WIconButton, WNumberField, WSelect, WText } from '../ui';
 import { useWorkspace } from '../WorkspaceContext';
 
-type TypeFilter = 'all' | Layer['type'];
-const FILTER_LABELS: Record<TypeFilter, string> = { all: 'Tous les calques', text: 'Textes', shape: 'Formes', image: 'Images' };
+/** Filtres par type, dans l'ordre habituel : pixels, réglages, textes, formes, objets dynamiques. */
+const KIND_FILTERS: readonly { label: string; icon: IconName; kind: Layer['type'] | null; module?: string }[] = [
+  { label: 'calques d’image', icon: 'image-outline', kind: 'image' },
+  { label: 'calques de réglage', icon: 'circle-half-full', kind: null, module: 'M9' },
+  { label: 'calques de texte', icon: 'format-text', kind: 'text' },
+  { label: 'calques de forme', icon: 'vector-square', kind: 'shape' },
+  { label: 'objets dynamiques', icon: 'file-image-outline', kind: null, module: 'M7' },
+];
 
 /** Modes de fusion : seul « Normal » est rendu aujourd'hui ; les autres arrivent avec M7. */
 const BLEND_MODES = ['Produit', 'Superposition', 'Lumière tamisée', 'Écran', 'Différence', 'Teinte', 'Saturation', 'Couleur', 'Luminosité'];
@@ -84,34 +90,83 @@ export function LayersPanel() {
   const notice = useEditorUiStore((s) => s.notice);
   const requestDelete = useWorkspaceStore((s) => s.requestDeleteLayer);
   const insertMenu = useInsertMenu(document.id);
-  const [filter, setFilter] = useState<TypeFilter>('all');
+  const [kinds, setKinds] = useState<readonly Layer['type'][]>([]);
+  const [filterOn, setFilterOn] = useState(true);
   const selected = selectedId ? findLayer(document, selectedId) : undefined;
-  const shown = [...document.layers].reverse().filter((l) => filter === 'all' || l.type === filter);
+  const filtering = filterOn && kinds.length > 0;
+  const shown = [...document.layers].reverse().filter((l) => !filtering || kinds.includes(l.type));
+  const toggleKind = (kind: Layer['type']) => {
+    setFilterOn(true);
+    setKinds((k) => (k.includes(kind) ? k.filter((x) => x !== kind) : [...k, kind]));
+  };
+  const editable = !!selected && !selected.locked;
 
   return (
     <View style={styles.panel} testID="layers-panel">
       <View style={styles.toolbar}>
         <WSelect
-          label="Filtrer les calques"
-          value={FILTER_LABELS[filter]}
-          width={116}
-          testID="layers-filter"
-          entries={(Object.keys(FILTER_LABELS) as TypeFilter[]).map((f) => ({ type: 'item', label: FILTER_LABELS[f], checked: f === filter, onPress: () => setFilter(f) }))}
+          label="Type de filtre"
+          value="Type"
+          icon="magnify"
+          width={84}
+          testID="layers-filter-kind"
+          entries={[
+            { type: 'item', label: 'Type', checked: true, disabled: true },
+            ...['Nom', 'Effet', 'Mode', 'Attribut', 'Couleur', 'Sélectionnés'].map((label) => ({ type: 'item' as const, label, planned: true, right: 'M7' })),
+          ]}
         />
+        {KIND_FILTERS.map((f) => (
+          <WIconButton
+            key={f.label}
+            icon={f.icon}
+            label={f.kind ? `Filtrer : ${f.label}` : `Filtrer : ${f.label}`}
+            hint={f.kind ? undefined : `Prévu au module ${f.module}`}
+            size={15}
+            style={styles.lockButton}
+            active={!!f.kind && filtering && kinds.includes(f.kind)}
+            disabled={!f.kind}
+            onPress={() => f.kind && toggleKind(f.kind)}
+            testID={f.kind ? `layers-filter-${f.kind}` : undefined}
+          />
+        ))}
+        <Pressable
+          accessibilityRole="switch"
+          accessibilityLabel="Filtrage des calques"
+          accessibilityState={{ checked: filtering }}
+          disabled={kinds.length === 0}
+          onPress={() => setFilterOn((on) => !on)}
+          style={[styles.switch, filtering && styles.switchOn]}
+          testID="layers-filter-switch"
+        >
+          <View style={[styles.knob, filtering && styles.knobOn]} />
+        </Pressable>
+      </View>
+      <Divider />
+      <View style={styles.toolbar}>
         <WSelect
           label="Mode de fusion"
           value="Normal"
-          width={100}
+          width={112}
           entries={[{ type: 'item', label: 'Normal', checked: true, disabled: true }, { type: 'separator' }, ...BLEND_MODES.map((label) => ({ type: 'item' as const, label, planned: true, right: 'M7' }))]}
+        />
+        <View style={styles.spacer} />
+        <WNumberField
+          label="Opacité :"
+          value={selected ? selected.opacity * 100 : 100}
+          suffix="%"
+          width={58}
+          editable={editable}
+          onCommit={(p) => (!selected ? null : p < 0 || p > 100 ? 'Entre 0 et 100 %.' : actions.update(selected.id, { opacity: p / 100 }))}
+          testID="layers-opacity"
         />
       </View>
       <View style={styles.toolbar}>
-        <WText dim>Verrou</WText>
+        <WText dim>Verrou :</WText>
         <WIconButton icon="checkerboard" label="Verrouiller les pixels transparents" hint="Prévu au module M5" size={15} style={styles.lockButton} disabled />
         <WIconButton icon="brush" label="Verrouiller les pixels" hint="Prévu au module M5" size={15} style={styles.lockButton} disabled />
         <WIconButton icon="arrow-all" label="Verrouiller la position" hint="Prévu au module M7" size={15} style={styles.lockButton} disabled />
         <WIconButton
-          icon={selected?.locked ? 'lock' : 'lock-open-variant-outline'}
+          icon="lock"
           label={selected ? (selected.locked ? `Tout déverrouiller : ${selected.name}` : `Tout verrouiller : ${selected.name}`) : 'Tout verrouiller'}
           size={15}
           style={styles.lockButton}
@@ -121,15 +176,7 @@ export function LayersPanel() {
           testID="layers-lock"
         />
         <View style={styles.spacer} />
-        <WNumberField
-          label="Opacité"
-          value={selected ? selected.opacity * 100 : 100}
-          suffix="%"
-          width={58}
-          editable={!!selected && !selected.locked}
-          onCommit={(p) => (!selected ? null : p < 0 || p > 100 ? 'Entre 0 et 100 %.' : actions.update(selected.id, { opacity: p / 100 }))}
-          testID="layers-opacity"
-        />
+        <WNumberField label="Fond :" value={100} suffix="%" width={52} editable={false} onCommit={() => null} hint="Prévu au module M7 (avec les styles de calque)" />
       </View>
       <Divider />
 
@@ -142,7 +189,7 @@ export function LayersPanel() {
         </View>
       ) : null}
 
-      <View style={styles.list} accessibilityLabel="Pile des calques, du haut vers le bas">
+      <ScrollView style={styles.list} accessibilityLabel="Pile des calques, du haut vers le bas">
         {shown.map((layer) => (
           <LayerRow key={layer.id} layer={layer} selected={layer.id === selectedId} />
         ))}
@@ -151,7 +198,7 @@ export function LayersPanel() {
             Aucun calque de ce type.
           </WText>
         ) : null}
-        {filter === 'all' ? (
+        {!filtering ? (
           <View style={styles.row} accessible accessibilityLabel={`Arrière-plan : ${BACKGROUND_LABELS[document.background]}, verrouillé`} testID="layer-background">
             <View style={styles.eye}>
               <Icon name="eye-outline" size={16} color={ws.textDim} />
@@ -167,7 +214,7 @@ export function LayersPanel() {
             </View>
           </View>
         ) : null}
-      </View>
+      </ScrollView>
 
       <Divider />
       <View style={styles.footer} accessibilityRole="toolbar" accessibilityLabel="Actions sur les calques">
@@ -196,7 +243,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   flexText: { flex: 1, fontSize: wsMetrics.smallFontSize },
   panel: { flex: 1 },
-  toolbar: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4, paddingHorizontal: 6, paddingVertical: 3 },
+  toolbar: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 3, paddingHorizontal: 6, paddingVertical: 3 },
   notice: { flexDirection: 'row', gap: 6, alignItems: 'flex-start', padding: 6 },
   list: { flex: 1 },
   row: { height: 40, flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: ws.header },
@@ -216,6 +263,10 @@ const styles = StyleSheet.create({
   lock: { width: 28, minWidth: 28, alignItems: 'center', justifyContent: 'center' },
   empty: { padding: 10 },
   spacer: { flexGrow: 1 },
-  lockButton: { minWidth: 26, paddingHorizontal: 2 },
+  switch: { width: 22, height: 12, borderRadius: 6, borderWidth: 1, borderColor: ws.textDim, justifyContent: 'center', paddingHorizontal: 1, marginLeft: 2 },
+  switchOn: { borderColor: ws.accent, backgroundColor: ws.accent },
+  knob: { width: 8, height: 8, borderRadius: 4, backgroundColor: ws.textDim },
+  knobOn: { alignSelf: 'flex-end', backgroundColor: '#FFFFFF' },
+  lockButton: { minWidth: 24, paddingHorizontal: 1 },
   footer: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', paddingHorizontal: 4, height: 32 },
 });

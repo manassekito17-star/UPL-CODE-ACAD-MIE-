@@ -8,8 +8,9 @@ import { useWorkspaceStore } from '@/stores/workspaceStore';
 import { ws, wsMetrics } from '@/theme';
 
 import { findTool } from '../toolFamilies';
+import { goHome } from '../EditorTopBar';
 import { useEffectiveToolKey } from './ToolRail';
-import { Divider, WIconButton, WNumberField, WSelect, WText } from './ui';
+import { Divider, WCheckbox, WIconButton, WNumberField, WSelect, WText } from './ui';
 import { ZOOM_STEP, useWorkspace } from './WorkspaceContext';
 
 const ALIGN: { edge: AlignEdge; icon: 'align-horizontal-left' | 'align-horizontal-center' | 'align-horizontal-right' | 'align-vertical-top' | 'align-vertical-center' | 'align-vertical-bottom'; label: string }[] = [
@@ -64,6 +65,11 @@ export function OptionsBar() {
   const actions = useLayerActions(document.id);
   const selectedId = useEditorUiStore((s) => s.selectedLayerId);
   const foreground = useWorkspaceStore((s) => s.foreground);
+  const autoSelect = useWorkspaceStore((s) => s.autoSelect);
+  const setAutoSelect = useWorkspaceStore((s) => s.setAutoSelect);
+  const showControls = useWorkspaceStore((s) => s.showTransformControls);
+  const setShowControls = useWorkspaceStore((s) => s.setShowTransformControls);
+  const resetWorkspace = useWorkspaceStore((s) => s.resetWorkspace);
   const layer = selectedId ? findLayer(document, selectedId) : undefined;
   const update = (patch: Record<string, number>) => (layer ? actions.update(layer.id, patch) : null);
 
@@ -74,7 +80,14 @@ export function OptionsBar() {
   } else if (key === 'move') {
     content = (
       <>
-        <WText dim>Sélection auto : calque le plus haut sous le doigt</WText>
+        <WCheckbox label="Sélection auto :" checked={autoSelect} onChange={setAutoSelect} testID="opt-auto-select" />
+        <WSelect
+          label="Cible de la sélection auto"
+          value="Calque"
+          width={86}
+          entries={[{ type: 'item', label: 'Calque', checked: true, disabled: true }, { type: 'item', label: 'Groupe', planned: true, right: 'M7' }]}
+        />
+        <WCheckbox label="Afficher les options de transformation" checked={showControls} onChange={setShowControls} testID="opt-transform-controls" />
         <Divider vertical />
         <GeometryFields layer={layer} onCommit={update} />
         <Divider vertical />
@@ -146,22 +159,59 @@ export function OptionsBar() {
 
   return (
     <View style={styles.bar} testID="options-bar">
+      <WIconButton icon="home-outline" label="Accueil" size={17} onPress={goHome} testID="opt-home" />
       {tool ? (
         <View style={styles.toolName}>
-          <Icon name={tool.icon} size={18} color={ws.accentText} />
-          <WText>{tool.label}</WText>
+          <WSelect
+            label={`Outil ${tool.label}, paramètres prédéfinis`}
+            value=""
+            icon={tool.icon}
+            width={52}
+            entries={[
+              { type: 'header', label: tool.label },
+              {
+                type: 'item',
+                label: 'Réinitialiser l’outil',
+                disabled: key !== 'move',
+                onPress: () => {
+                  setAutoSelect(true);
+                  setShowControls(true);
+                },
+              },
+              { type: 'item', label: 'Paramètres prédéfinis d’outils…', planned: true, right: 'M17' },
+            ]}
+          />
         </View>
       ) : null}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.content}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.content} style={styles.flex}>
         {content}
       </ScrollView>
+      <View style={styles.right}>
+        <WIconButton icon="magnify" label="Rechercher dans l’application" hint="Prévu au module M17" size={17} disabled />
+        <WSelect
+          label="Espace de travail"
+          value=""
+          icon="dock-window"
+          width={52}
+          testID="opt-workspace"
+          entries={[
+            { type: 'item', label: 'Essentiels (par défaut)', checked: true, disabled: true },
+            { type: 'separator' },
+            { type: 'item', label: 'Réinitialiser Essentiels', onPress: resetWorkspace },
+            { type: 'item', label: 'Nouvel espace de travail…', planned: true, right: 'M1 (suite)' },
+          ]}
+        />
+        <WIconButton icon="export-variant" label="Partager ou exporter" hint="Prévu au module M4" size={17} disabled />
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   bar: { height: wsMetrics.optionsBar, flexDirection: 'row', alignItems: 'center', backgroundColor: ws.chrome, borderBottomWidth: 1, borderBottomColor: ws.border },
-  toolName: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, height: '100%', borderRightWidth: 1, borderRightColor: ws.divider },
+  flex: { flex: 1 },
+  toolName: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, height: '100%', borderRightWidth: 1, borderRightColor: ws.divider },
+  right: { flexDirection: 'row', alignItems: 'center', gap: 2, paddingHorizontal: 6, borderLeftWidth: 1, borderLeftColor: ws.divider, height: '100%' },
   content: { alignItems: 'center', gap: 10, paddingHorizontal: 10 },
   group: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   chip: { width: 22, height: 22, borderRadius: 3, borderWidth: 1, borderColor: ws.border },

@@ -74,6 +74,9 @@ export function DesktopWorkspace({ document }: { document: GraphicDocument }) {
   const tool = useEditorUiStore((s) => s.activeTool);
   const selectedLayerId = useEditorUiStore((s) => s.selectedLayerId);
   const rulersVisible = useWorkspaceStore((s) => s.rulersVisible);
+  const panelsHidden = useWorkspaceStore((s) => s.panelsHidden);
+  const autoSelect = useWorkspaceStore((s) => s.autoSelect);
+  const showTransformControls = useWorkspaceStore((s) => s.showTransformControls);
   const actions = useLayerActions(document.id);
   const resources = useRenderResources();
   const controller = useRef<CanvasController>(null);
@@ -87,9 +90,9 @@ export function DesktopWorkspace({ document }: { document: GraphicDocument }) {
       <SafeAreaView edges={['top', 'bottom', 'left', 'right']} style={styles.root} testID="editor-screen">
         <View style={styles.root} testID="desktop-workspace">
           <MenuBar />
-          <OptionsBar />
+          {panelsHidden ? null : <OptionsBar />}
           <View style={styles.row}>
-            <ToolRail />
+            {panelsHidden ? null : <ToolRail />}
             <View style={styles.center}>
               <DocTabs />
               <RulersFrame view={view} visible={rulersVisible}>
@@ -106,10 +109,12 @@ export function DesktopWorkspace({ document }: { document: GraphicDocument }) {
                   onLayerTransformed={actions.transform}
                   view={view}
                   pasteboardColor={ws.pasteboard}
+                  autoSelect={autoSelect}
+                  showTransformControls={showTransformControls}
                 />
               </RulersFrame>
             </View>
-            <Dock width={breakpoint === 'expanded' ? wsMetrics.dockWidth : wsMetrics.dockWidthMedium} />
+            {panelsHidden ? null : <Dock width={breakpoint === 'expanded' ? wsMetrics.dockWidth : wsMetrics.dockWidthMedium} />}
           </View>
           <StatusBar />
         </View>

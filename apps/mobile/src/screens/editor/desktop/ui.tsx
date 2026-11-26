@@ -70,13 +70,15 @@ export function useAnchor() {
 }
 
 /** Fenêtre flottante ancrée (menus, familles d'outils, listes). Toucher à côté la ferme. */
-export function Popover({ anchor, placement = 'below', onClose, children, testID, width = 280 }: { anchor: Anchor | null; placement?: 'below' | 'right'; onClose: () => void; children: ReactNode; testID?: string; width?: number }) {
+export function Popover({ anchor, placement = 'below', onClose, children, testID, width = 280 }: { anchor: Anchor | null; placement?: 'below' | 'right' | 'left'; onClose: () => void; children: ReactNode; testID?: string; width?: number }) {
   const position: ViewStyle =
     anchor === null
       ? {}
       : placement === 'below'
         ? { left: Math.max(4, anchor.x), top: anchor.y + anchor.height + 2 }
-        : { left: anchor.x + anchor.width + 4, top: Math.max(4, anchor.y) };
+        : placement === 'right'
+          ? { left: anchor.x + anchor.width + 4, top: Math.max(4, anchor.y) }
+          : { left: Math.max(4, anchor.x - width - 4), top: Math.max(4, anchor.y) };
   return (
     <Modal visible={anchor !== null} transparent animationType="none" onRequestClose={onClose} statusBarTranslucent>
       <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Fermer le menu" />
@@ -149,7 +151,7 @@ export function MenuList({ entries, onClose }: { entries: readonly MenuEntry[]; 
 }
 
 /** Champ numérique compact (barre d'options, panneaux) : validé en fin de saisie, une seule fois. */
-export function WNumberField({ label, value, suffix, onCommit, editable = true, width = 64, testID, decimals = 0 }: { label: string; value: number; suffix?: string; onCommit: (v: number) => string | null; editable?: boolean; width?: number; testID?: string; decimals?: number }) {
+export function WNumberField({ label, value, suffix, onCommit, editable = true, width = 64, testID, decimals = 0, hint, hideLabel }: { label: string; value: number; suffix?: string; onCommit: (v: number) => string | null; editable?: boolean; width?: number; testID?: string; decimals?: number; hint?: string; hideLabel?: boolean }) {
   const shownValue = decimals === 0 ? String(Math.round(value)) : String(Math.round(value * 10 ** decimals) / 10 ** decimals).replace('.', ',');
   const [text, setText] = useState(shownValue);
   const [shown, setShown] = useState(shownValue);
@@ -175,10 +177,11 @@ export function WNumberField({ label, value, suffix, onCommit, editable = true, 
   };
   return (
     <View style={styles.fieldWrap}>
-      <WText dim>{label}</WText>
+      {hideLabel ? null : <WText dim>{label}</WText>}
       <View style={[styles.field, { width }, error && styles.fieldError, !editable && styles.fieldOff]}>
         <TextInput
-          accessibilityLabel={label}
+          accessibilityLabel={label.replace(/\s*:$/, '')}
+          accessibilityHint={hint}
           value={text}
           editable={editable}
           onChangeText={(t) => {
@@ -202,7 +205,7 @@ export function WNumberField({ label, value, suffix, onCommit, editable = true, 
 }
 
 /** Liste déroulante compacte : un bouton qui ouvre un MenuList ancré. */
-export function WSelect({ label, value, entries, width = 120, testID }: { label: string; value: string; entries: readonly MenuEntry[]; width?: number; testID?: string }) {
+export function WSelect({ label, value, entries, width = 120, testID, icon }: { label: string; value: string; entries: readonly MenuEntry[]; width?: number; testID?: string; icon?: IconName }) {
   const { ref, measure } = useAnchor();
   const [anchor, setAnchor] = useState<Anchor | null>(null);
   return (
@@ -215,6 +218,7 @@ export function WSelect({ label, value, entries, width = 120, testID }: { label:
         style={[styles.select, { width }]}
         testID={testID}
       >
+        {icon ? <Icon name={icon} size={14} color={ws.textDim} /> : null}
         <WText numberOfLines={1} style={styles.flex}>
           {value}
         </WText>
@@ -224,6 +228,24 @@ export function WSelect({ label, value, entries, width = 120, testID }: { label:
         <MenuList entries={entries} onClose={() => setAnchor(null)} />
       </Popover>
     </>
+  );
+}
+
+/** Case à cocher compacte, avec son libellé. */
+export function WCheckbox({ label, checked, onChange, disabled, testID }: { label: string; checked: boolean; onChange: (v: boolean) => void; disabled?: boolean; testID?: string }) {
+  return (
+    <Pressable
+      accessibilityRole="checkbox"
+      accessibilityLabel={label}
+      accessibilityState={{ checked, disabled: !!disabled }}
+      disabled={disabled}
+      onPress={() => onChange(!checked)}
+      style={styles.checkbox}
+      testID={testID}
+    >
+      <Icon name={checked ? 'checkbox-marked' : 'checkbox-blank-outline'} size={16} color={disabled ? ws.textDisabled : checked ? ws.accentText : ws.textDim} />
+      <WText disabled={disabled}>{label}</WText>
+    </Pressable>
   );
 }
 
@@ -278,6 +300,7 @@ const styles = StyleSheet.create({
   fieldOff: { opacity: 0.5 },
   fieldInput: { flex: 1, minWidth: 0, color: ws.text, fontSize: wsMetrics.fontSize, paddingVertical: 0 },
   select: { height: 26, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: ws.input, borderRadius: 3, borderWidth: 1, borderColor: ws.border, paddingHorizontal: 8 },
+  checkbox: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 30 },
   vDivider: { width: 1, alignSelf: 'stretch', backgroundColor: ws.divider, marginVertical: 6 },
   hDivider: { height: 1, alignSelf: 'stretch', backgroundColor: ws.divider },
 });

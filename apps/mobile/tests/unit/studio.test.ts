@@ -1,5 +1,7 @@
 import { createDocument, type GraphicDocument } from '@/engine/documents';
 import { LayerError, addLayer, alignLayer, createRectangleLayer, setLayerLocked, updateLayerGeometry } from '@/engine/layers';
+import { pickDragLayer } from '@/engine/canvas/gestures';
+import { documentSizes, formatMegabytes } from '@/screens/editor/desktop/DocChrome';
 import { rulerStep } from '@/screens/editor/desktop/Rulers';
 import { ALL_TOOLS, TOOL_FAMILIES, familyOf, findTool, isUsable } from '@/screens/editor/toolFamilies';
 import { PANEL_GROUPS, resetWorkspaceStore, useWorkspaceStore } from '@/stores/workspaceStore';
@@ -82,6 +84,18 @@ describe('workspaceStore', () => {
     expect(st()).toMatchObject({ foreground: '#000000', background: '#FFFFFF' });
   });
 
+  it('la colonne d’icônes ouvre ses panneaux ; fermer un groupe masque tous ses onglets', () => {
+    st().showPanel('navigator');
+    expect(st().openStripPanel).toBe('navigator');
+    st().togglePanelVisible('navigator');
+    expect(st()).toMatchObject({ openStripPanel: null, hiddenPanels: ['navigator'] });
+    st().closeGroup('color');
+    expect(st().hiddenPanels).toEqual(['navigator', 'color', 'swatches']);
+    st().showPanel('swatches');
+    expect(st().hiddenPanels).toEqual(['navigator', 'color']);
+    expect(st().activeTab.color).toBe('swatches');
+  });
+
   it('masquer l’onglet actif passe au suivant ; afficher un panneau déplie son groupe', () => {
     st().togglePanelVisible('layers');
     expect(st().hiddenPanels).toEqual(['layers']);
@@ -110,5 +124,31 @@ describe('règles', () => {
     expect(rulerStep(2)).toBe(50);
     expect(rulerStep(8)).toBe(10);
     expect(rulerStep(0.02)).toBe(5000);
+  });
+});
+
+describe('outil Déplacement : calque déplacé par un glisser', () => {
+  const hit = { id: 'a', locked: false };
+  const selected = { id: 'b', editable: true };
+  it('sélection auto : le calque touché, s’il est modifiable', () => {
+    expect(pickDragLayer({ autoSelect: true, hit, selected })).toBe('a');
+    expect(pickDragLayer({ autoSelect: true, hit: { id: 'a', locked: true }, selected })).toBeNull();
+    expect(pickDragLayer({ autoSelect: true, hit: null, selected })).toBeNull();
+  });
+  it('sans sélection auto : le calque sélectionné, où que l’on touche', () => {
+    expect(pickDragLayer({ autoSelect: false, hit, selected })).toBe('b');
+    expect(pickDragLayer({ autoSelect: false, hit: null, selected })).toBe('b');
+    expect(pickDragLayer({ autoSelect: false, hit, selected: { id: 'b', editable: false } })).toBeNull();
+    expect(pickDragLayer({ autoSelect: false, hit, selected: null })).toBeNull();
+  });
+});
+
+describe('barre d’état', () => {
+  it('formate les mégaoctets et estime la taille aplatie et avec calques', () => {
+    expect(formatMegabytes(1048576)).toBe('1,00M');
+    expect(formatMegabytes(1500000)).toBe('1,43M');
+    expect(formatMegabytes(200 * 1048576)).toBe('200,0M');
+    const d = doc();
+    expect(documentSizes(d)).toEqual({ flattened: 1000 * 500 * 3, layered: 1000 * 500 * 3 + 200 * 100 * 4 });
   });
 });

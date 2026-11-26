@@ -5,6 +5,19 @@ versions selon [SemVer](https://semver.org/lang/fr/).
 
 ## [Non publié]
 
+### Module M1 (partie 2) — Interface fidèle aux références
+
+- Décision de l'utilisateur (26/11/2026) : l'interface peut reproduire celle des logiciels de retouche de référence ; ni logo ni icône Adobe, nom et identité ZENTECH DESIGN conservés.
+- Barre d'options : bouton Accueil, outil et menu de l'outil (réinitialiser), cases « Sélection auto : Calque » et « Afficher les options de transformation » (réelles : sans sélection auto, un tap ne change pas la sélection et un glisser déplace le calque sélectionné ; sans options de transformation, pas de poignées), à droite recherche (prévue M17), espace de travail (réinitialiser Essentiels), partage (prévu M4).
+- Barre d'outils : « >> » une ou deux colonnes, « … » (prévu), couleurs de premier plan / arrière-plan avec permuter et par défaut, mode Masque (prévu M6), mode plein écran avec barre de menus (réel, aussi dans Affichage).
+- Onglet du document : fermeture à gauche, « Affiche @ 38% (Texte 1, RVB/8) * ».
+- Colonne d'icônes à gauche du dock : Historique, Navigateur, Caractère, Paragraphe, ouverts en fenêtre flottante. **Navigateur réel** : vignette du document (même rendu que la toile), cadre rouge de la partie visible, toucher pour centrer, zoom.
+- Dock : « << / >> » réduit le dock en icônes ; menu « ≡ » par groupe (réduire, fermer l'onglet, fermer le groupe) ; toucher l'onglet actif réduit le groupe ; onglets renommés Réglages et Couches.
+- Panneau Calques : « Type » avec filtres image / texte / forme cumulables et interrupteur (réels ; réglage et objet dynamique prévus), mode de fusion et « Opacité : », « Verrou : » et « Fond : » (prévu M7), liste défilante.
+- Barre d'état : zoom saisissable, « Doc : 5,93M/7,81M » (estimation aplatie / avec calques), menu « › » pour afficher dimensions, nombre de calques ou outil actif.
+- Moteur : `pickDragLayer`, options `autoSelect` et `showTransformControls` de la toile, `centerOn`, taille de la vue dans les valeurs partagées.
+- Tests : 250 (241 avant).
+
 ### Module M1 (partie 1) — Espace studio tablette et grand écran
 
 - Nouvel espace de travail sur tablette et grand écran (hauteur ≥ 520 dp ; le téléphone, y compris en paysage, garde son espace) : barre de menus (Fichier, Édition, Image, Calque, Texte, Sélection, Filtre, Affichage, Fenêtre, Aide), barre d'options contextuelle, barre d'outils verticale par familles, onglet du document, règles, toile, dock de panneaux à onglets, barre d'état. Palette graphite dense, identité propre (aucune icône ni marque tierce).

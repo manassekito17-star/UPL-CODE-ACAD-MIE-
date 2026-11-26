@@ -52,13 +52,15 @@ import {
 } from '@/engine/transformations';
 import { colors } from '@/theme';
 
-import { oneFingerMovesView, resolveGestureTarget, type ToolId } from './gestures';
+import { oneFingerMovesView, pickDragLayer, type ToolId } from './gestures';
 
 /** Commandes de la vue, appelées par les boutons de zoom de l'interface. */
 export interface CanvasController {
   fitToScreen: () => void;
   zoomBy: (factor: number) => void;
   setZoomPercent: (percent: number) => void;
+  /** Centre la vue sur le point (x, y) du document, sans changer le zoom. */
+  centerOn: (x: number, y: number) => void;
 }
 
 export interface DocumentCanvasProps {
@@ -92,17 +94,33 @@ export interface DocumentCanvasProps {
   view?: ViewSharedValues;
   /** Couleur de la table de travail autour du document. */
   pasteboardColor?: string;
+  /**
+   * Outil Sélection : un tap sélectionne et un glisser déplace le calque
+   * touché (vrai par défaut). Faux : le tap ne change pas la sélection et le
+   * glisser déplace le calque sélectionné.
+   */
+  autoSelect?: boolean;
+  /** Poignées de redimensionnement et de rotation (vrai par défaut). */
+  showTransformControls?: boolean;
 }
 
 export interface ViewSharedValues {
   scale: SharedValue<number>;
   tx: SharedValue<number>;
   ty: SharedValue<number>;
+  /** Taille de la zone de travail en points (0 tant qu'elle est inconnue). */
+  width: SharedValue<number>;
+  height: SharedValue<number>;
 }
 
 /** Valeurs de vue partagées entre le canvas et les éléments qui le suivent. */
 export function useViewSharedValues(): ViewSharedValues {
-  return { scale: useSharedValue(1), tx: useSharedValue(0), ty: useSharedValue(0) };
+  const scale = useSharedValue(1);
+  const tx = useSharedValue(0);
+  const ty = useSharedValue(0);
+  const width = useSharedValue(0);
+  const height = useSharedValue(0);
+  return useMemo(() => ({ scale, tx, ty, width, height }), [scale, tx, ty, width, height]);
 }
 
 type Mode = 'none' | 'move' | 'rotate' | Corner;
@@ -249,19 +267,23 @@ export function DocumentCanvas({
   onLayerTransformed,
   view: externalView,
   pasteboardColor,
+  autoSelect = true,
+  showTransformControls = true,
 }: DocumentCanvasProps) {
   const pixelRatio = PixelRatio.get();
   const [viewSize, setViewSize] = useState<Size | null>(null);
 
   // État de la vue, partagé entre le thread JS et le thread UI.
   const ownView = useViewSharedValues();
-  const { scale, tx, ty } = externalView ?? ownView;
+  const { scale, tx, ty, width: viewWidth, height: viewHeight } = externalView ?? ownView;
   const limits = useSharedValue<ZoomLimits>({ min: 0.01, max: 32 });
   const view = useSharedValue<Size>({ width: 1, height: 1 });
   const docSize = useSharedValue<Size>({ width: document.width, height: document.height });
   const fitInsets = useSharedValue<Insets>(insets);
   const oneFingerPan = useSharedValue(oneFingerMovesView(tool));
   const selectTool = useSharedValue(tool === 'select');
+  const auto = useSharedValue(autoSelect);
+  const controls = useSharedValue(showTransformControls);
   const hitLayers = useSharedValue<HitCandidate[]>([]);
   const selected = useSharedValue<SelectedInfo | null>(null);
   const m: Manipulation = {
@@ -275,7 +297,9 @@ export function DocumentCanvas({
   useEffect(() => {
     oneFingerPan.set(oneFingerMovesView(tool));
     selectTool.set(tool === 'select');
-  }, [tool, oneFingerPan, selectTool]);
+    auto.set(autoSelect);
+    controls.set(showTransformControls);
+  }, [tool, oneFingerPan, selectTool, auto, autoSelect, controls, showTransformControls]);
 
   // Copies légères pour le thread UI : test d'atteinte et poignées.
   const selectedLayer = layers.find((l) => l.id === selectedLayerId && l.visible) ?? null;
@@ -383,11 +407,13 @@ export function DocumentCanvas({
     const wasFitted = view.get().width <= 1 || isFitted(current(), previousFit);
     const fit = fitToViewport(doc, viewSize, FIT_PADDING, insets);
     view.set(viewSize);
+    viewWidth.set(viewSize.width);
+    viewHeight.set(viewSize.height);
     docSize.set(doc);
     fitInsets.set(insets);
     limits.set(zoomLimits(fit.scale, pixelRatio));
     apply(wasFitted ? fit : clampPan(current(), doc, viewSize), false);
-  }, [viewSize, width, height, pixelRatio, apply, current, view, docSize, limits, fitInsets, insets]);
+  }, [viewSize, width, height, pixelRatio, apply, current, view, viewWidth, viewHeight, docSize, limits, fitInsets, insets]);
 
   useImperativeHandle(
     controllerRef,
@@ -399,6 +425,10 @@ export function DocumentCanvas({
         zoomBy: (factor) => apply(settle(zoomAt(current(), factor, center(), limits.get())), true),
         setZoomPercent: (percent) =>
           apply(settle(zoomTo(current(), scaleForPercent(percent, pixelRatio), center(), limits.get())), true),
+        centerOn: (x, y) => {
+          const now = current();
+          apply(settle({ scale: now.scale, x: view.get().width / 2 - x * now.scale, y: view.get().height / 2 - y * now.scale }), false);
+        },
       };
     },
     [apply, current, docSize, fitInsets, limits, pixelRatio, view],
@@ -474,7 +504,7 @@ export function DocumentCanvas({
       const py = (e.y - ty.get()) / s;
       m.mode.set('none');
       const sel = selected.get();
-      if (sel && sel.editable) {
+      if (sel && sel.editable && controls.get()) {
         const handle = hitHandle(sel, px, py, s);
         if (handle) {
           m.start.set(geometryOf(sel));
@@ -486,18 +516,16 @@ export function DocumentCanvas({
         }
       }
       const hit = hitTest(hitLayers.get(), px, py);
-      const target = resolveGestureTarget({
-        pointers: e.numberOfPointers,
-        tool: 'select',
-        hitEditableLayer: hit !== null && !hit.locked,
-      });
-      if (target === 'layer' && hit) {
-        m.start.set(geometryOf(hit));
-        m.preview.set(geometryOf(hit));
+      if (e.numberOfPointers > 1) return;
+      const id = pickDragLayer({ autoSelect: auto.get(), hit, selected: sel });
+      const target = id === null ? null : id === sel?.id ? sel : hit;
+      if (id !== null && target) {
+        m.start.set(geometryOf(target));
+        m.preview.set(geometryOf(target));
         m.origin.set({ x: px, y: py });
         m.mode.set('move');
-        m.id.set(hit.id);
-        scheduleOnRN(dragStart, hit.id);
+        m.id.set(id);
+        scheduleOnRN(dragStart, id);
       }
     },
     onUpdate: (e) => {
@@ -531,6 +559,7 @@ export function DocumentCanvas({
     enabled: selectTool,
     onActivate: (e) => {
       'worklet';
+      if (!auto.get()) return;
       const s = scale.get();
       scheduleOnRN(tapAt, (e.x - tx.get()) / s, (e.y - ty.get()) / s);
     },
@@ -566,7 +595,7 @@ export function DocumentCanvas({
               {layers.map((layer) => (layer.visible ? <LayerNode key={layer.id} layer={layer} m={m} resources={resources} /> : null))}
               <Rect x={0} y={0} width={width} height={height} style="stroke" strokeWidth={borderWidth} color={colors.border} />
               {selectedLayer ? (
-                <SelectionOutline layer={selectedLayer} m={m} scale={scale} handles={tool === 'select' && !selectedLayer.locked} />
+                <SelectionOutline layer={selectedLayer} m={m} scale={scale} handles={tool === 'select' && showTransformControls && !selectedLayer.locked} />
               ) : null}
             </Group>
           </Canvas>

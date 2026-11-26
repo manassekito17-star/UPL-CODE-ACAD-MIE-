@@ -18,7 +18,7 @@ export const ws = {
   /** Champs de saisie, menus déroulants fermés. */
   input: '#1E1E1E',
   /** Plan de travail autour du document. */
-  pasteboard: '#202020',
+  pasteboard: '#282828',
   /** Séparateurs entre zones. */
   border: '#161616',
   /** Séparateurs à l'intérieur d'un panneau. */
@@ -39,13 +39,13 @@ export const wsMetrics = {
   optionsBar: 36,
   toolRail: 40,
   toolButton: 34,
-  statusBar: 24,
+  statusBar: 28,
   docTabs: 28,
   ruler: 18,
   panelTabs: 28,
   row: 32,
   dockWidth: 300,
-  dockWidthMedium: 248,
+  dockWidthMedium: 272,
   fontSize: 12,
   smallFontSize: 11,
 } as const;

@@ -124,6 +124,11 @@ puis M5 mesuré sur appareil, puis les autres selon les priorités.
   utilisables : Déplacement, Main, Zoom (boutons et pincement), Texte
   horizontal, Rectangle, Ellipse, Ligne. Les 44 autres outils ouvrent leur
   famille et y sont désactivés avec leur module.
+- **M1, partie 2 (livrée)** : fidélité aux captures de référence (barre
+  d'options, barre d'outils à une ou deux colonnes, colonne d'icônes, dock
+  réductible, panneau Calques, Navigateur réel, barre d'état). Décision du
+  26/11/2026 : l'interface peut reproduire celle des logiciels de référence,
+  sans logo ni icône Adobe.
 - **M1, suite** : espaces de travail enregistrés, guide des outils.
 - Les raccourcis clavier ne sont affichés nulle part tant que M17 ne les
   rend pas réels.

@@ -143,9 +143,20 @@ téléphone dans `stores/editorUiStore`, séparé du document.
   rendu React.
 - `measure.ts` : ancrage des menus (`measureInWindow`), isolé pour être
   remplacé dans les tests (la doublure native de Jest ne répond jamais).
-- Les panneaux Ajustements, Canaux, Tracés et Historique sont en place mais
-  n'affichent aucune donnée inventée : leurs entrées sont désactivées et
-  nomment leur module (M9, M15, M12, M2).
+- Les panneaux Réglages, Couches, Tracés, Historique, Caractère et
+  Paragraphe sont en place mais n'affichent aucune donnée inventée : leurs
+  entrées sont désactivées et nomment leur module (M9, M15, M12, M2, M13).
+- `Dock.tsx` : colonne d'icônes (`STRIP_PANELS`, panneaux en fenêtre
+  flottante) puis dock à trois groupes (`PANEL_GROUPS`), réductible en
+  icônes ; `panelMeta.ts` donne nom et icône de chaque panneau.
+- Navigateur : vignette enregistrée avec `recordDocumentPicture` (le même
+  code que la toile et l'export) ; le cadre de la vue est calculé sur le
+  thread UI à partir de `ViewSharedValues` (échelle, décalage, taille).
+- Outil Déplacement : `pickDragLayer` (`engine/canvas/gestures.ts`) choisit
+  le calque déplacé selon l'option « Sélection auto ».
+- Référence visuelle : l'utilisateur a autorisé (26/11/2026) la reproduction
+  de l'interface des logiciels de retouche de référence, sans logo ni icône
+  Adobe. Les icônes viennent de Material Community Icons (licence Apache 2.0).
 
 ## Moteur graphique (phase 3)
 

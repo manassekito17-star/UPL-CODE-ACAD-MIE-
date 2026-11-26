@@ -37,3 +37,24 @@ export function oneFingerMovesView(tool: ToolId): boolean {
   'worklet';
   return resolveGestureTarget({ pointers: 1, tool, hitEditableLayer: false }) === 'view';
 }
+
+export interface DragPick {
+  /** Option « Sélection auto » de l'outil Déplacement. */
+  autoSelect: boolean;
+  /** Calque visible le plus haut sous le doigt, s'il y en a un. */
+  hit: { id: string; locked: boolean } | null;
+  /** Calque sélectionné, s'il y en a un. */
+  selected: { id: string; editable: boolean } | null;
+}
+
+/**
+ * Calque déplacé par un glisser à un doigt avec l'outil Déplacement :
+ * - sélection auto : le calque modifiable touché (sinon rien) ;
+ * - sans sélection auto : le calque sélectionné, où que l'on touche, comme
+ *   dans les logiciels de retouche (sinon rien).
+ */
+export function pickDragLayer({ autoSelect, hit, selected }: DragPick): string | null {
+  'worklet';
+  if (autoSelect) return hit && !hit.locked ? hit.id : null;
+  return selected && selected.editable ? selected.id : null;
+}
