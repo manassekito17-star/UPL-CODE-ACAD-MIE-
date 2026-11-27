@@ -34,7 +34,7 @@ describe('espace de travail', () => {
     const topBar = screen.getByTestId('editor-top-bar');
     expect(within(topBar).getByText('Bannière')).toBeTruthy();
     expect(within(topBar).getByRole('button', { name: 'Annuler' })).toBeDisabled(); // rien à annuler
-    expect(within(topBar).getByRole('button', { name: 'Exporter' })).toBeDisabled();
+    expect(within(topBar).getByRole('button', { name: 'Exporter' })).toBeEnabled();
     expect(screen.getByTestId('canvas-area')).toBeTruthy();
     expect(screen.getByLabelText('Document de 1920 × 1080 pixels, 0 calque')).toBeTruthy();
 

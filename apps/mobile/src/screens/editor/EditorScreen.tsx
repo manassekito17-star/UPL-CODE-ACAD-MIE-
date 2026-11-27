@@ -3,6 +3,8 @@ import { ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native'
 
 import { AppText, Button, Icon, IconButton, Screen } from '@/components/ui';
 import type { GraphicDocument } from '@/engine/documents';
+import { ExportDialog } from '@/features/export';
+import { useThumbnailWriter } from '@/features/projects/useThumbnailWriter';
 import { RenderResourcesProvider } from '@/features/rendering/RenderResourcesProvider';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useDocumentStore } from '@/stores/documentStore';
@@ -56,8 +58,16 @@ export function EditorScreen({ projectId }: EditorScreenProps) {
   return (
     <RenderResourcesProvider layers={document.layers}>
       {studio ? <DesktopWorkspace document={document} /> : <CompactWorkspace document={document} />}
+      <ExportDialog />
+      <ThumbnailWriter document={document} />
     </RenderResourcesProvider>
   );
+}
+
+/** Met à jour la miniature du projet (liste des projets récents). */
+function ThumbnailWriter({ document }: { document: GraphicDocument }) {
+  useThumbnailWriter(document);
+  return null;
 }
 
 /** Téléphone (portrait ou paysage) : canvas plein écran, un panneau à la fois en feuille. */

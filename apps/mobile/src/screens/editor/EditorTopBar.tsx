@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { AppText, IconButton } from '@/components/ui';
 import type { GraphicDocument } from '@/engine/documents';
+import { useExportStore } from '@/features/export';
 import { useHistory } from '@/features/history/useHistory';
 import { useSaveStatus } from '@/features/persistence';
 import { formatDimensions } from '@/features/projects/labels';
@@ -22,6 +23,7 @@ export function goHome(): void {
 export function EditorTopBar({ document, sidePanels }: EditorTopBarProps) {
   const history = useHistory(document.id);
   const save = useSaveStatus(document.id);
+  const openExport = useExportStore((s) => s.open);
   return (
     <View style={styles.bar} testID="editor-top-bar">
       <IconButton icon="arrow-left" label="Retour à l’accueil" onPress={goHome} />
@@ -55,7 +57,12 @@ export function EditorTopBar({ document, sidePanels }: EditorTopBarProps) {
           onPress={sidePanels.onToggle}
         />
       ) : null}
-      <IconButton icon="export-variant" label="Exporter" disabled accessibilityHint="Disponible en phase 8" />
+      <IconButton
+        icon="export-variant"
+        label="Exporter"
+        accessibilityHint="Image PNG ou JPEG, à partager ou enregistrer"
+        onPress={() => openExport(document.id)}
+      />
     </View>
   );
 }

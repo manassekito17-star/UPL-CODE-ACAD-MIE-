@@ -33,6 +33,7 @@ versions validées pour le SDK installé. Relevé du 26/11/2026.
 | `expo-sqlite` | ~58.0.18 | MIT | Base locale des projets (module M3) |
 | `expo-file-system` | ~58.0.15 | MIT | Fichiers des images importées (phase 5, M3) |
 | `expo-image-picker` | ~58.0.10 | MIT | Import depuis la galerie (phase 5) |
+| `expo-sharing` | ~58.0.24 | MIT | Feuille de partage du système pour les images exportées (M4). Partage sortant seulement : le plugin de réception n'est pas activé. |
 | `expo-image-manipulator` | ~58.0.16 | MIT | Copie de travail des images importées (décodage natif, réduction, JPEG/PNG) |
 | `@expo-google-fonts/inter` | ^0.4.2 | MIT (paquet), OFL-1.1 (police Inter) | Police embarquée des textes : rendu identique sur toutes les plateformes et à l'export. Seules les graisses 400 et 700 sont incluses (≈ 0,7 Mo). |
 | `react-dom`, `react-native-web`, `@expo/metro-runtime` | 19.3.0, ^0.21.4, ~58.0.17 | MIT | Exigés par Expo Router ; captures d'écran de vérification |

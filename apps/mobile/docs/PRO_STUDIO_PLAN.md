@@ -135,6 +135,8 @@ puis M5 mesuré sur appareil, puis les autres selon les priorités.
 - **M3 (livré)** : projets enregistrés sur l'appareil (SQLite), sauvegarde
   automatique, projets illisibles signalés et conservés, onglets, Enregistrer
   sous, Dupliquer, nouveau document à partir d'un état.
+- **M4 (livré)** : export PNG / JPEG fidèle (taille, qualité, fond), partage
+  ou dossier, miniatures réelles des projets.
 - Les raccourcis clavier ne sont affichés nulle part tant que M17 ne les
   rend pas réels.
 

@@ -6,8 +6,8 @@ import { NO_RESOURCES, TEXT_FONT_FAMILY, type RenderResources } from '@/engine/r
 
 /**
  * Ressources de rendu de l'éditeur : la police embarquée (Inter, licence
- * OFL) et les images du document décodées par Skia. Le canvas les utilise
- * aujourd'hui ; l'export (phase 8) utilisera exactement les mêmes.
+ * OFL) et les images du document décodées par Skia. Le canvas
+ * et l'export (M4) utilisent exactement les mêmes.
  */
 const RenderResourcesContext = createContext<RenderResources>(NO_RESOURCES);
 

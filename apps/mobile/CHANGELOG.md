@@ -5,6 +5,16 @@ versions selon [SemVer](https://semver.org/lang/fr/).
 
 ## [Non publié]
 
+### Module M4 — Export PNG et JPEG
+
+- Export par le même code de dessin que la toile (`drawDocument`) sur une surface hors écran, encodé par Skia : dimensions exactes, transparence conservée en PNG, calques visibles seulement, ordre de la pile, transformations et opacité ; le damier n'est jamais exporté.
+- Boîte « Exporter » (téléphone : bouton Exporter ; tablette : Fichier › Exporter sous…, icône d'export de la barre d'options) : PNG ou JPEG, taille 25 / 50 / 100 / 200 %, qualité JPEG 1–100, fond blanc ou noir des zones transparentes en JPEG (avec avertissement), taille finale en pixels. Fichier › Exportation rapide au format PNG.
+- Destinations : feuille de partage du système (Photos, Fichiers, applications) et « Enregistrer dans un dossier… » (sélecteur du système). Aucune autorisation demandée ; iOS déclare seulement la phrase d'ajout à Photos.
+- Garde-fous : taille au-delà des limites de l'appareil refusée avant tout calcul ; un texte sans police ou une image non décodée bloque l'export au lieu d'être omis ; échecs affichés.
+- Miniatures réelles des projets dans « Projets récents », rendues par le même code 1,5 s après la dernière modification ; supprimées avec le projet, orphelines nettoyées au démarrage.
+- Dépendance : `expo-sharing` (partage sortant uniquement : l'application ne reçoit aucun partage).
+- Tests : 301 (289 avant), dont l'export vérifié sur de vrais fichiers PNG et JPEG décodés (CanvasKit).
+
 ### Module M3 — Enregistrement des projets
 
 - Les projets sont enregistrés sur l'appareil (SQLite, mode WAL) et retrouvés au démarrage, triés du plus récent au plus ancien. Aucun compte, aucun envoi.

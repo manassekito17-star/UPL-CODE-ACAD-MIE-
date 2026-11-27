@@ -45,3 +45,11 @@ beforeEach(async () => {
   jest.requireMock('@/services/projects/repository').__reset();
   await persistence.startPersistence();
 });
+jest.mock('@/services/projects/thumbnails', () => ({
+  thumbnailFiles: { uri: jest.fn(() => null), write: jest.fn(async () => undefined), remove: jest.fn(), list: jest.fn(() => []) },
+}));
+jest.mock('@/services/export/exportFiles', () => ({
+  exportTargets: { share: true, folder: true },
+  shareExport: jest.fn(async () => undefined),
+  saveExportToFolder: jest.fn(async (r: { fileName: string }) => r.fileName),
+}));

@@ -31,7 +31,7 @@ export type DrawableDocument = Pick<GraphicDocument, 'width' | 'height' | 'backg
  * - la police embarquée des textes ;
  * - les images décodées, indexées par l'URI de leur copie de travail.
  * Une ressource absente (police ou image encore en chargement) n'est pas
- * dessinée : l'export (phase 8) vérifiera qu'elles sont toutes prêtes.
+ * dessinée : l'export (M4) vérifie qu'elles sont toutes prêtes (missingResources).
  */
 export interface RenderResources {
   fonts: SkTypefaceFontProvider | null;
@@ -166,7 +166,7 @@ export function drawLayer(canvas: SkCanvas, layer: Layer, resources: RenderResou
  * Dessine le document complet dans son repère (0, 0) → (width, height) : le
  * fond puis les calques du bas vers le haut.
  *
- * C'est la RÉFÉRENCE du rendu : l'export (phase 8) l'utilise telle quelle et
+ * C'est la RÉFÉRENCE du rendu : l'export (M4) l'utilise telle quelle et
  * l'écran en reprend les mêmes briques (drawBackground, drawLayerContent,
  * layerMatrix, opacité par composition) pour pouvoir déplacer un calque sans
  * tout réenregistrer. Le damier de transparence n'en fait pas partie.

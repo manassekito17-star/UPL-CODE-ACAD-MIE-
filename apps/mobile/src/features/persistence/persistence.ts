@@ -3,7 +3,7 @@ import { create } from 'zustand';
 
 import type { GraphicDocument } from '@/engine/documents';
 import { referencedFiles } from '@/engine/project';
-import { assetFiles, getProjectRepository, orphanFiles, relocateAssets, type UnreadableProject } from '@/services/projects';
+import { assetFiles, getProjectRepository, orphanFiles, relocateAssets, thumbnailFiles, type UnreadableProject } from '@/services/projects';
 import { useDocumentStore } from '@/stores/documentStore';
 
 import { Autosaver, type SaveStatus } from './autosave';
@@ -71,6 +71,8 @@ export function startPersistence(): Promise<void> {
     // Au démarrage seulement, avant toute importation : une image que plus
     // aucun projet ne référence est supprimée.
     assetFiles.remove(orphanFiles(assetFiles.list(), filesInUse()));
+    const known = useDocumentStore.getState().documents;
+    for (const id of thumbnailFiles.list()) if (!known[id] && !loaded.unreadable.some((u) => u.id === id)) thumbnailFiles.remove(id);
 
     if (autosaveDelayMs !== null) {
       const saver = new Autosaver({
@@ -83,6 +85,7 @@ export function startPersistence(): Promise<void> {
         onRemoved: (doc) => {
           const inUse = new Set(filesInUse());
           assetFiles.remove(referencedFiles(doc).filter((uri) => !inUse.has(uri)));
+          thumbnailFiles.remove(doc.id);
         },
       });
       // Les documents relocalisés diffèrent de ceux de l'appareil : ils seront réécrits.

@@ -9,6 +9,12 @@ export interface OffscreenOptions {
   scale?: number;
   /** Police et images décodées (les mêmes qu'à l'écran). */
   resources?: RenderResources;
+  /**
+   * Couleur posée sous le document (« #RRGGBB »). Sert aux formats sans
+   * transparence (JPEG) : sans elle, les zones transparentes deviendraient
+   * noires. Absente : l'image garde sa transparence.
+   */
+  matte?: string;
 }
 
 /**
@@ -20,7 +26,7 @@ export interface OffscreenOptions {
  */
 export function renderDocumentToImage(
   doc: DrawableDocument,
-  { scale = 1, resources = NO_RESOURCES }: OffscreenOptions = {},
+  { scale = 1, resources = NO_RESOURCES, matte }: OffscreenOptions = {},
 ): SkImage {
   const width = Math.max(1, Math.round(doc.width * scale));
   const height = Math.max(1, Math.round(doc.height * scale));
@@ -32,7 +38,7 @@ export function renderDocumentToImage(
     throw new Error(`Impossible de créer une surface de ${width} × ${height} px.`);
   }
   const canvas = surface.getCanvas();
-  canvas.clear(Skia.Color('transparent'));
+  canvas.clear(Skia.Color(matte ?? 'transparent'));
   canvas.save();
   canvas.scale(width / doc.width, height / doc.height);
   drawDocument(canvas, doc, resources);

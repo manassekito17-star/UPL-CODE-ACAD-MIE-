@@ -10,7 +10,10 @@
     "backgroundColor": "#101114",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "app.studiographic.dev"
+      "bundleIdentifier": "app.studiographic.dev",
+      "infoPlist": {
+        "NSPhotoLibraryAddUsageDescription": "ZENTECH DESIGN enregistre dans Photos uniquement les images que vous choisissez d’exporter."
+      }
     },
     "android": {
       "package": "app.studiographic.dev",

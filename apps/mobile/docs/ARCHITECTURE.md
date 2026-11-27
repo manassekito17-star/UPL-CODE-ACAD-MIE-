@@ -308,6 +308,24 @@ documentStore ──(chaque changement)──▶ Autosaver ──(600 ms sans mo
   l'espace studio ; « Enregistrer sous » crée une copie nommée qui remplace
   l'onglet, « Dupliquer » en ajoute une. L'historique n'est pas enregistré.
 
+## Export (M4)
+
+- `engine/renderer/export.ts` : `planExport` (taille, limites, perte de
+  transparence), `missingResources` (calques visibles pas encore
+  dessinables), `exportDocument` (rendu hors écran + encodage PNG/JPEG),
+  `exportFileName`. `renderDocumentToImage` accepte un fond (`matte`) pour
+  le JPEG.
+- `features/export` : réglages mémorisés (`exportStore`), `useExport` (rend,
+  encode, puis partage ou enregistre), `ExportDialog` (commune au téléphone
+  et à la tablette, rendue par `EditorScreen` dans le fournisseur de
+  ressources de rendu).
+- `services/export/exportFiles` : feuille de partage (`expo-sharing`,
+  fichier dans le cache) et dossier choisi par l'utilisateur
+  (`Directory.pickDirectoryAsync`) ; sur le web, téléchargement.
+- Miniatures : `useThumbnailWriter` (éditeur) rend une image de 256 px au
+  plus avec `exportDocument` ; `services/projects/thumbnails` les range dans
+  `Documents/thumbnails/<id>.png`.
+
 ## Fonctionnalités non encore développées
 
 Elles sont affichées avec le composant `PlannedFeature` et le numéro de la

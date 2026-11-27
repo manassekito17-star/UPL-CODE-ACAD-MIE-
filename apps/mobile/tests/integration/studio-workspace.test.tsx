@@ -99,9 +99,8 @@ describe('espace studio : menus', () => {
   it('les commandes prévues sont désactivées et portent leur module', async () => {
     await openStudio();
     await openMenu('Fichier');
-    expect(menuItem('Exporter en PNG ou JPEG…')).toBeDisabled();
-    expect(within(screen.getByTestId('menu-dropdown')).getByText('Prévu · M4')).toBeTruthy();
     expect(menuItem('Enregistrer')).toBeEnabled();
+    expect(menuItem('Exporter sous…')).toBeEnabled();
     expect(menuItem('Nouveau…')).toBeEnabled();
     // Le fond du menu est masqué aux lecteurs d'écran par la fenêtre modale.
     await fireEvent.press(screen.getByLabelText('Fermer le menu', { includeHiddenElements: true }));

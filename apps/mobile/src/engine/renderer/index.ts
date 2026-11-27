@@ -18,3 +18,14 @@ export {
   type RenderResources,
 } from './drawDocument';
 export { renderDocumentToImage, type OffscreenOptions } from './offscreen';
+export {
+  DEFAULT_EXPORT,
+  exportDocument,
+  exportFileName,
+  missingResources,
+  planExport,
+  type ExportFormat,
+  type ExportPlan,
+  type ExportResult,
+  type ExportSettings,
+} from './export';

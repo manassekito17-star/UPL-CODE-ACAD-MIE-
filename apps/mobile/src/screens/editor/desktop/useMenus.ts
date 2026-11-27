@@ -1,6 +1,8 @@
 import { router } from 'expo-router';
 
 import { findLayer } from '@/engine/layers';
+import { DEFAULT_EXPORT } from '@/engine/renderer';
+import { useExport, useExportStore } from '@/features/export';
 import { useHistory } from '@/features/history/useHistory';
 import { openImageAsNewDocument, useImageImport } from '@/features/image-import/useImageImport';
 import { useLayerActions } from '@/features/layers/useLayerActions';
@@ -35,6 +37,8 @@ export function useMenus(): MenuDef[] {
   const actions = useLayerActions(document.id);
   const insertMenu = useInsertMenu(document.id);
   const history = useHistory(document.id);
+  const quickExport = useExport();
+  const openExport = useExportStore((s) => s.open);
   const imageImport = useImageImport();
   const selectedId = useEditorUiStore((s) => s.selectedLayerId);
   const setTool = useEditorUiStore((s) => s.setTool);
@@ -69,7 +73,17 @@ export function useMenus(): MenuDef[] {
         sep,
         { type: 'item', label: 'Enregistrer', icon: 'content-save-outline', onPress: () => void saveNow() },
         { type: 'item', label: 'Enregistrer sous…', onPress: () => ws.requestSaveAs({ documentId: document.id, mode: 'saveAs' }) },
-        planned('Exporter en PNG ou JPEG…', 'M4'),
+        { type: 'header', label: 'Exporter' },
+        {
+          type: 'item',
+          label: 'Exportation rapide au format PNG',
+          icon: 'export-variant',
+          onPress: () =>
+            void quickExport.run(document, { ...DEFAULT_EXPORT, format: 'png', scale: 1 }, 'share').then((o) => {
+              if (o.ok === false) setNotice(`Export impossible : ${o.message}`);
+            }),
+        },
+        { type: 'item', label: 'Exporter sous…', onPress: () => openExport(document.id) },
       ],
     },
     {

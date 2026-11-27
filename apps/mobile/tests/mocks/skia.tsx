@@ -35,6 +35,7 @@ export const Line = Nothing;
 export const LinearGradient = Nothing;
 export const vec = (x: number, y: number) => ({ x, y });
 export const Skia = neutral;
+export const ImageFormat = { JPEG: 3, PNG: 4, WEBP: 6 };
 export const TileMode = { Clamp: 0, Repeat: 1, Mirror: 2, Decal: 3 };
 export const FilterMode = { Nearest: 0, Linear: 1 };
 export const MipmapMode = { None: 0, Nearest: 1, Linear: 2 };

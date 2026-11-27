@@ -2,6 +2,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Icon } from '@/components/ui';
 import { findLayer, type AlignEdge, type Layer } from '@/engine/layers';
+import { useExportStore } from '@/features/export';
 import { useLayerActions } from '@/features/layers/useLayerActions';
 import { useEditorUiStore } from '@/stores/editorUiStore';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
@@ -70,6 +71,7 @@ export function OptionsBar() {
   const showControls = useWorkspaceStore((s) => s.showTransformControls);
   const setShowControls = useWorkspaceStore((s) => s.setShowTransformControls);
   const resetWorkspace = useWorkspaceStore((s) => s.resetWorkspace);
+  const openExport = useExportStore((s) => s.open);
   const layer = selectedId ? findLayer(document, selectedId) : undefined;
   const update = (patch: Record<string, number>) => (layer ? actions.update(layer.id, patch) : null);
 
@@ -201,7 +203,7 @@ export function OptionsBar() {
             { type: 'item', label: 'Nouvel espace de travail…', planned: true, right: 'M1 (suite)' },
           ]}
         />
-        <WIconButton icon="export-variant" label="Partager ou exporter" hint="Prévu au module M4" size={17} disabled />
+        <WIconButton icon="export-variant" label="Exporter" size={17} onPress={() => openExport(document.id)} testID="opt-export" />
       </View>
     </View>
   );
