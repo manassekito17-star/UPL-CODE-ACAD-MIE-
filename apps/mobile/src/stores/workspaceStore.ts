@@ -85,6 +85,16 @@ export interface WorkspaceState {
   statusInfo: StatusInfo;
   setStatusInfo: (info: StatusInfo) => void;
 
+  /** Documents ouverts en onglets (espace studio), dans l'ordre des onglets. */
+  openDocuments: readonly string[];
+  openDocument: (id: string) => void;
+  /** Retire l'onglet ; renvoie le document à afficher ensuite (onglet voisin), ou null. */
+  closeDocument: (id: string) => string | null;
+  closeAllDocuments: () => void;
+  /** Boîte « Enregistrer sous » / « Dupliquer » ouverte depuis le menu Fichier. */
+  saveAsRequest: { documentId: string; mode: 'saveAs' | 'duplicate' } | null;
+  requestSaveAs: (request: { documentId: string; mode: 'saveAs' | 'duplicate' } | null) => void;
+
   /** Calque visé par une suppression ou un renommage demandé depuis un menu. */
   pendingDeleteLayerId: string | null;
   renameLayerId: string | null;
@@ -112,6 +122,8 @@ const initialState = {
   background: DEFAULT_BACKGROUND,
   ...layout,
   statusInfo: 'docSize' as StatusInfo,
+  openDocuments: [] as readonly string[],
+  saveAsRequest: null as { documentId: string; mode: 'saveAs' | 'duplicate' } | null,
   pendingDeleteLayerId: null as string | null,
   renameLayerId: null as string | null,
 };
@@ -121,7 +133,7 @@ export function groupOf(panel: PanelId): PanelGroupId | null {
   return (Object.keys(PANEL_GROUPS) as PanelGroupId[]).find((g) => PANEL_GROUPS[g].includes(panel)) ?? null;
 }
 
-export const useWorkspaceStore = create<WorkspaceState>()((set) => ({
+export const useWorkspaceStore = create<WorkspaceState>()((set, get) => ({
   ...initialState,
   setRailTool: (familyId, toolKey) =>
     set((s) => ({ railToolKey: toolKey, familyChoice: { ...s.familyChoice, [familyId]: toolKey } })),
@@ -185,6 +197,17 @@ export const useWorkspaceStore = create<WorkspaceState>()((set) => ({
   toggleRulers: () => set((s) => ({ rulersVisible: !s.rulersVisible })),
   togglePanelsHidden: () => set((s) => ({ panelsHidden: !s.panelsHidden, openStripPanel: null })),
   setStatusInfo: (statusInfo) => set({ statusInfo }),
+
+  openDocument: (id) => set((s) => (s.openDocuments.includes(id) ? s : { openDocuments: [...s.openDocuments, id] })),
+  closeDocument: (id) => {
+    const open = get().openDocuments;
+    const at = open.indexOf(id);
+    const rest = open.filter((d) => d !== id);
+    set({ openDocuments: rest });
+    return rest[Math.min(Math.max(at, 0), rest.length - 1)] ?? null;
+  },
+  closeAllDocuments: () => set({ openDocuments: [] }),
+  requestSaveAs: (saveAsRequest) => set({ saveAsRequest }),
 
   requestDeleteLayer: (id) => set({ pendingDeleteLayerId: id }),
   requestRenameLayer: (id) => set({ renameLayerId: id }),

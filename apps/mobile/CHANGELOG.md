@@ -5,6 +5,16 @@ versions selon [SemVer](https://semver.org/lang/fr/).
 
 ## [Non publié]
 
+### Module M3 — Enregistrement des projets
+
+- Les projets sont enregistrés sur l'appareil (SQLite, mode WAL) et retrouvés au démarrage, triés du plus récent au plus ancien. Aucun compte, aucun envoi.
+- Format de projet versionné (`zentech-design/project`, version 1), lecture stricte avec migrations ; un projet endommagé ou d'une version plus récente est signalé sur l'accueil, conservé, et supprimable sur demande.
+- Sauvegarde automatique 600 ms après la dernière modification, écriture immédiate à « Enregistrer » et au passage en arrière-plan ; écritures atomiques (une interruption laisse l'ancienne version intacte) ; état affiché (« Enregistré à 18:11 », « Enregistrement… », échec en clair) dans la barre d'état et la barre supérieure.
+- Images : chemins rattachés au dossier actuel au chargement (iOS change ce chemin à chaque mise à jour) ; images orphelines supprimées au démarrage ; celles d'un projet supprimé le sont si plus aucun document ni état d'historique ne les utilise.
+- Espace studio : documents ouverts en onglets (passer de l'un à l'autre, fermer, « * » tant qu'une modification n'est pas écrite) ; Fichier › Enregistrer, Enregistrer sous… (copie nommée qui remplace l'onglet), Fermer, Fermer tout, Projets récents ; Image › Dupliquer… ; Historique › Nouveau document à partir de l'état.
+- Écran de chargement des projets ; écran « Projets inaccessibles » avec « Réessayer » si la base ne peut pas être lue (rien n'est écrit ni effacé).
+- Tests : 289 (262 avant), dont la couche SQL sur une vraie base SQLite (sql.js) et un redémarrage simulé de l'application. Dépendance de développement : `sql.js`.
+
 ### Module M2 — Historique (Annuler / Rétablir)
 
 - Moteur (`engine/history`) : chaque action réussie devient un état nommé ; Annuler, Rétablir, aller à un état, supprimer un état et les suivants, effacer l'historique. 50 états par document ; une nouvelle action après un retour abandonne les états rétablissables. Les documents étant immuables, un état est le document lui-même : les calques inchangés sont partagés et les images ne sont jamais copiées.

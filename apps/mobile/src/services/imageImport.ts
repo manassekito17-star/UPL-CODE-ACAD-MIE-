@@ -128,7 +128,7 @@ export async function pickAndImportImage(deps: ImportDeps = nativeImportDeps): P
 // Implémentation native (expo-file-system, expo-image-manipulator)
 // ---------------------------------------------------------------------------
 
-/** Dossier des ressources graphiques importées (organisé par projet en phase 7). */
+/** Dossier des images importées (voir services/projects/assetPaths). */
 function assetsDirectory(): Directory {
   const dir = new Directory(Paths.document, 'assets');
   dir.create({ intermediates: true, idempotent: true });
@@ -160,7 +160,7 @@ export const nativeImportDeps: ImportDeps = {
       const file = new File(uri);
       if (file.exists) file.delete();
     } catch {
-      // Nettoyage au mieux : un fichier orphelin sera repris par la sauvegarde (phase 7).
+      // Nettoyage au mieux : un fichier orphelin est supprimé au prochain démarrage.
     }
   },
 };

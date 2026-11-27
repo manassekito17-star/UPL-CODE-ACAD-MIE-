@@ -11,10 +11,9 @@ import { LayerError } from "@/engine/layers";
 import { createLocalId } from "@/utils/id";
 
 /**
- * Documents ouverts pendant la session.
- *
- * ATTENTION : ils sont seulement en mémoire jusqu'à la phase 7 (sauvegarde
- * SQLite + fichiers). L'interface le signale à l'utilisateur.
+ * Documents de l'application. Ils sont chargés depuis l'appareil au démarrage
+ * et enregistrés automatiquement (features/persistence) ; l'historique, lui,
+ * reste en mémoire.
  */
 export interface DocumentState {
   documents: Record<string, GraphicDocument>;
@@ -23,6 +22,16 @@ export interface DocumentState {
   /** Identifiants, du plus récemment modifié au plus ancien. */
   order: string[];
   createDocument: (spec: DocumentSpec) => GraphicDocument;
+  /**
+   * Ajoute les documents chargés depuis l'appareil. Un document déjà présent
+   * en mémoire (plus récent, pas encore enregistré) est conservé.
+   */
+  hydrate: (documents: readonly GraphicDocument[]) => void;
+  /**
+   * Nouveau document, copie de `source` (ou d'un état de l'historique), sous
+   * un nouveau nom et un nouvel identifiant. Les images sont partagées.
+   */
+  duplicateDocument: (source: GraphicDocument, name: string) => GraphicDocument;
   /** Supprime exactement ce document. Renvoie faux s'il n'existe pas. */
   removeDocument: (id: string) => boolean;
   /**
@@ -82,7 +91,34 @@ export const useDocumentStore = create<DocumentState>()((set, get) => {
       return doc;
     },
 
-    removeDocument: (id) => {
+    hydrate: (loaded) => {
+    set((state) => {
+      const documents = { ...state.documents };
+      const histories = { ...state.histories };
+      for (const doc of loaded) {
+        if (documents[doc.id]) continue;
+        documents[doc.id] = doc;
+        histories[doc.id] = historyOps.createHistory(doc, 'Ouvrir');
+      }
+      const order = Object.values(documents)
+        .sort((a, b) => b.updatedAt - a.updatedAt)
+        .map((d) => d.id);
+      return { documents, histories, order };
+    });
+  },
+
+  duplicateDocument: (source, name) => {
+    const now = Date.now();
+    const doc: GraphicDocument = { ...source, id: createLocalId('doc', now), name, createdAt: now, updatedAt: now };
+    set((state) => ({
+      documents: { ...state.documents, [doc.id]: doc },
+      histories: { ...state.histories, [doc.id]: historyOps.createHistory(doc, 'Dupliquer') },
+      order: [doc.id, ...state.order],
+    }));
+    return doc;
+  },
+
+  removeDocument: (id) => {
       if (!(id in get().documents)) return false;
       set((state) => {
         const { [id]: _removed, ...documents } = state.documents;

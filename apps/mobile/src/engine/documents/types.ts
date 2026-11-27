@@ -15,13 +15,12 @@ export interface DocumentSpec {
 
 /**
  * Version du format natif de document. À incrémenter à chaque changement
- * incompatible du modèle ; les migrations arriveront avec la sauvegarde (phase 7).
+ * incompatible du modèle, avec une migration dans engine/project/serialization.ts.
  */
 export const DOCUMENT_FORMAT_VERSION = 1 as const;
 
 /**
- * Document graphique. Le format n'a encore jamais été enregistré (phase 7) :
- * il peut évoluer sans migration jusque-là.
+ * Document graphique, enregistré au format de engine/project (module M3).
  */
 export interface GraphicDocument {
   formatVersion: typeof DOCUMENT_FORMAT_VERSION;

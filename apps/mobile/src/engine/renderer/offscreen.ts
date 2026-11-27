@@ -13,7 +13,7 @@ export interface OffscreenOptions {
 
 /**
  * Rend le document sur une surface hors écran (CPU) et renvoie l'image.
- * Base de l'export PNG (phase 8) et des vignettes (phase 7).
+ * Base de l'export PNG (module M4).
  *
  * Lève une erreur si l'image dépasse le budget mémoire des documents : on ne
  * tente jamais une allocation que la validation aurait refusée.

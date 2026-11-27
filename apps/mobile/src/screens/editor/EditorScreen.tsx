@@ -7,6 +7,7 @@ import { RenderResourcesProvider } from '@/features/rendering/RenderResourcesPro
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useDocumentStore } from '@/stores/documentStore';
 import { useEditorUiStore, type EditorPanel } from '@/stores/editorUiStore';
+import { useWorkspaceStore } from '@/stores/workspaceStore';
 import { colors, radius, spacing } from '@/theme';
 
 import { CanvasArea } from './CanvasArea';
@@ -42,10 +43,14 @@ export function EditorScreen({ projectId }: EditorScreenProps) {
   const studio = breakpoint !== 'compact' && height >= STUDIO_MIN_HEIGHT;
   const resetForDocument = useEditorUiStore((s) => s.resetForDocument);
 
-  // Nouvelle ouverture : aucune sélection ni message hérités d'un autre document.
+  const openDocument = useWorkspaceStore((s) => s.openDocument);
+  const exists = !!document;
+  // Nouvelle ouverture : aucune sélection ni message hérités d'un autre
+  // document ; le document prend sa place dans les onglets.
   useEffect(() => {
     resetForDocument();
-  }, [projectId, resetForDocument]);
+    if (exists) openDocument(projectId);
+  }, [projectId, resetForDocument, openDocument, exists]);
 
   if (!document) return <MissingDocument />;
   return (
@@ -105,8 +110,7 @@ function MissingDocument() {
         Projet introuvable
       </AppText>
       <AppText tone="secondary">
-        Ce projet a été supprimé, ou l’application a été fermée depuis son ouverture : les projets ne sont pas
-        encore enregistrés sur l’appareil (phase 7).
+        Ce projet a été supprimé, ou son lien n’est plus valide.
       </AppText>
       <Button label="Retour à l’accueil" onPress={goHome} />
     </Screen>

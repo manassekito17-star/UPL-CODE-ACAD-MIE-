@@ -74,6 +74,14 @@ Toutes les commandes se lancent depuis `apps/mobile/`.
   du premier. S'abonner au store (`subscribe`) pour compter les modifications.
 - Les stores Zustand sont globaux : les réinitialiser dans `beforeEach`
   (`resetDocumentStore`, `resetEditorUiStore`).
+- Enregistrement (M3) : `tests/setup.ts` remplace le stockage par un
+  stockage en mémoire vide à chaque test, coupe la sauvegarde automatique et
+  démarre l'enregistrement avant le test (l'écran de chargement est donc
+  déjà passé). `tests/integration/persistence.test.tsx` la réactive.
+- `renderRouter` active les minuteurs simulés de Jest : un test qui attend
+  la sauvegarde automatique doit repasser aux vrais (`jest.useRealTimers()`).
+- La couche SQL est testée sur une vraie base SQLite avec sql.js
+  (`tests/helpers/sqljs.ts`), derrière la même interface qu'expo-sqlite.
 
 ## Gestes
 

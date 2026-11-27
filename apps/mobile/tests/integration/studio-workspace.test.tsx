@@ -47,7 +47,7 @@ describe('espace studio : disposition', () => {
     for (const title of ['Fichier', 'Édition', 'Image', 'Calque', 'Texte', 'Sélection', 'Filtre', 'Affichage', 'Fenêtre', 'Aide']) {
       expect(button(`Menu ${title}`)).toBeTruthy();
     }
-    expect(screen.getByLabelText('Document Affiche @ …% (Arrière-plan, RVB/8), non enregistré')).toBeTruthy();
+    expect(screen.getByLabelText('Document Affiche @ …% (Arrière-plan, RVB/8), modifications non enregistrées')).toBeTruthy();
     // 1000 × 500 × 3 octets aplatis = 1,43M ; un document sans calque.
     expect(screen.getByLabelText('Taille du document : Doc : 1,43M/1,43M')).toBeTruthy();
     for (const tab of ['Couleur', 'Nuancier', 'Propriétés', 'Réglages', 'Calques', 'Couches', 'Tracés']) {
@@ -99,8 +99,9 @@ describe('espace studio : menus', () => {
   it('les commandes prévues sont désactivées et portent leur module', async () => {
     await openStudio();
     await openMenu('Fichier');
-    expect(menuItem('Enregistrer')).toBeDisabled();
-    expect(within(screen.getByTestId('menu-dropdown')).getAllByText('Prévu · M3').length).toBeGreaterThan(0);
+    expect(menuItem('Exporter en PNG ou JPEG…')).toBeDisabled();
+    expect(within(screen.getByTestId('menu-dropdown')).getByText('Prévu · M4')).toBeTruthy();
+    expect(menuItem('Enregistrer')).toBeEnabled();
     expect(menuItem('Nouveau…')).toBeEnabled();
     // Le fond du menu est masqué aux lecteurs d'écran par la fenêtre modale.
     await fireEvent.press(screen.getByLabelText('Fermer le menu', { includeHiddenElements: true }));

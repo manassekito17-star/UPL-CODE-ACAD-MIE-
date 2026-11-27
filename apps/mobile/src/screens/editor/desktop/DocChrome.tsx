@@ -1,9 +1,12 @@
 import { useRef, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { router } from 'expo-router';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import type { GraphicDocument } from '@/engine/documents';
 import { findLayer } from '@/engine/layers';
 import { formatDimensions } from '@/features/projects/labels';
+import { useSaveStatus } from '@/features/persistence';
+import { useDocumentStore } from '@/stores/documentStore';
 import { useEditorUiStore } from '@/stores/editorUiStore';
 import { useWorkspaceStore, type StatusInfo } from '@/stores/workspaceStore';
 import { ws, wsMetrics } from '@/theme';
@@ -24,7 +27,7 @@ export function formatMegabytes(bytes: number): string {
  * Taille du document : aplatie (RVB 8 bits, 3 octets par pixel) / avec ses
  * calques (chaque calque compté à 4 octets par pixel de sa surface, bornée au
  * document). C'est une estimation de la mémoire de travail, pas la taille
- * d'un fichier (l'enregistrement arrive avec M3).
+ * d'un fichier.
  */
 export function documentSizes(doc: GraphicDocument): { flattened: number; layered: number } {
   const flattened = doc.width * doc.height * 3;
@@ -32,24 +35,79 @@ export function documentSizes(doc: GraphicDocument): { flattened: number; layere
   return { flattened, layered: flattened + layers };
 }
 
-/**
- * Onglet du document ouvert : nom, zoom, calque actif, mode colorimétrique.
- * Plusieurs documents ouverts en onglets arrivent avec M3.
- */
+/** Afficher un autre document ouvert (sans empiler d'écrans). */
+export function showDocument(id: string): void {
+  router.replace({ pathname: '/editor/[projectId]', params: { projectId: id } });
+}
+
+/** Ferme l'onglet `id` ; si c'était le document affiché, montre l'onglet voisin ou l'accueil. */
+export function closeDocumentTab(id: string, currentId: string): void {
+  // Les onglets de documents supprimés entre-temps sont oubliés au passage.
+  const { documents } = useDocumentStore.getState();
+  const ws = useWorkspaceStore.getState();
+  for (const stale of ws.openDocuments.filter((d) => !documents[d])) ws.closeDocument(stale);
+  const next = useWorkspaceStore.getState().closeDocument(id);
+  if (id !== currentId) return;
+  if (next) showDocument(next);
+  else goHome();
+}
+
+function InactiveTab({ id, currentId }: { id: string; currentId: string }) {
+  const doc = useDocumentStore((s) => s.documents[id]);
+  const save = useSaveStatus(id);
+  if (!doc) return null;
+  return (
+    <View style={[styles.tab, styles.tabInactive]}>
+      <WIconButton icon="close" label={`Fermer ${doc.name}`} size={13} style={styles.close} onPress={() => closeDocumentTab(id, currentId)} />
+      <Pressable
+        accessibilityRole="tab"
+        accessibilityState={{ selected: false }}
+        accessibilityLabel={`Document ${doc.name}${save.unsaved ? ', modifications non enregistrées' : ''}`}
+        onPress={() => showDocument(id)}
+        style={styles.tabPress}
+        testID={`doc-tab-${id}`}
+      >
+        <WText dim numberOfLines={1}>
+          {doc.name}
+          {save.unsaved ? ' *' : ''}
+        </WText>
+      </Pressable>
+    </View>
+  );
+}
+
+/** Onglets des documents ouverts ; l'onglet actif donne zoom, calque actif et mode colorimétrique. */
 export function DocTabs() {
   const { document, zoom } = useWorkspace();
+  const open = useWorkspaceStore((s) => s.openDocuments);
   const selectedId = useEditorUiStore((s) => s.selectedLayerId);
+  const save = useSaveStatus(document.id);
   const layer = selectedId ? findLayer(document, selectedId) : undefined;
   const title = `${document.name} @ ${zoom ?? '…'}% (${layer?.name ?? 'Arrière-plan'}, RVB/8)`;
+  const ids = open.includes(document.id) ? open : [...open, document.id];
   return (
-    <View style={styles.tabs} testID="doc-tabs">
-      <View style={styles.tab} accessible accessibilityRole="tab" accessibilityState={{ selected: true }} accessibilityLabel={`Document ${title}, non enregistré`}>
-        <WIconButton icon="close" label={`Fermer ${document.name}`} size={13} style={styles.close} onPress={goHome} testID="doc-tab-close" />
-        <WText numberOfLines={1} style={styles.tabText}>
-          {title} *
-        </WText>
-      </View>
-    </View>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabs} contentContainerStyle={styles.tabsContent} testID="doc-tabs">
+      {ids.map((id) =>
+        id === document.id ? (
+          <View
+            key={id}
+            style={styles.tab}
+            accessible
+            accessibilityRole="tab"
+            accessibilityState={{ selected: true }}
+            accessibilityLabel={`Document ${title}${save.unsaved ? ', modifications non enregistrées' : ', enregistré'}`}
+          >
+            <WIconButton icon="close" label={`Fermer ${document.name}`} size={13} style={styles.close} onPress={() => closeDocumentTab(id, document.id)} testID="doc-tab-close" />
+            <WText numberOfLines={1} style={styles.tabText}>
+              {title}
+              {save.unsaved ? ' *' : ''}
+            </WText>
+          </View>
+        ) : (
+          <InactiveTab key={id} id={id} currentId={document.id} />
+        ),
+      )}
+    </ScrollView>
   );
 }
 
@@ -66,6 +124,7 @@ export function StatusBar() {
   const info = useWorkspaceStore((s) => s.statusInfo);
   const setInfo = useWorkspaceStore((s) => s.setStatusInfo);
   const toolKey = useEffectiveToolKey();
+  const save = useSaveStatus(document.id);
   const ref = useRef<ViewRef | null>(null);
   const [anchor, setAnchor] = useState<Anchor | null>(null);
   const sizes = documentSizes(document);
@@ -113,7 +172,9 @@ export function StatusBar() {
         <WText dim>{'›'}</WText>
       </Pressable>
       <View style={styles.flex} />
-      <WText dim>Non enregistré · enregistrement prévu M3</WText>
+      <WText dim={!save.failed} style={save.failed ? styles.failed : undefined} numberOfLines={1}>
+        {save.text}
+      </WText>
       <Popover anchor={anchor} onClose={() => setAnchor(null)} width={240} testID="status-menu">
         <MenuList
           entries={(Object.keys(STATUS_LABELS) as StatusInfo[]).map((key) => ({ type: 'item', label: STATUS_LABELS[key], checked: key === info, onPress: () => setInfo(key) }))}
@@ -126,7 +187,11 @@ export function StatusBar() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  tabs: { height: wsMetrics.docTabs, flexDirection: 'row', backgroundColor: ws.header, borderBottomWidth: 1, borderBottomColor: ws.border },
+  tabs: { height: wsMetrics.docTabs, flexGrow: 0, backgroundColor: ws.header, borderBottomWidth: 1, borderBottomColor: ws.border },
+  tabsContent: { flexDirection: 'row' },
+  tabInactive: { backgroundColor: ws.header, paddingRight: 0 },
+  tabPress: { height: '100%', justifyContent: 'center', paddingRight: 12 },
+  failed: { color: '#FF7A7A' },
   tab: { maxWidth: 520, flexDirection: 'row', alignItems: 'center', gap: 2, paddingLeft: 2, paddingRight: 12, backgroundColor: ws.raised, borderRightWidth: 1, borderRightColor: ws.border },
   tabText: { flexShrink: 1, fontWeight: '600' },
   close: { minWidth: 24, width: 24, height: 24 },

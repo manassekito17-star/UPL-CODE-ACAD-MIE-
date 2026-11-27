@@ -97,8 +97,9 @@ gestes du canvas (phase 3).
   avertissement au-delà de 8 388 608 px.
 - Format « Écran » : fenêtre en pixels physiques (points × densité), en
   portrait, réduit proportionnellement s'il dépasse les limites.
-- `stores/documentStore` : documents de la session, **en mémoire seulement**
-  jusqu'à la phase 7. L'accueil et l'écran « Projet introuvable » le disent.
+- `stores/documentStore` : documents de l'application, chargés depuis
+  l'appareil au démarrage et enregistrés automatiquement (voir
+  « Enregistrement (M3) »).
 - Suppression : la boîte de confirmation mémorise le document complet et le
   nomme ; seule cette entrée est supprimée (testé avec trois projets).
 
@@ -236,8 +237,8 @@ DocumentCanvas (engine/canvas)
   d'historique) quand le texte, sa taille ou la largeur changent.
 - **Import d'image** (`services/imageImport.ts`) : décision pure
   (`planImageImport`) + accès natifs injectables (`ImportDeps`), testés
-  séparément. Fichiers dans `Documents/assets/` (réorganisés par projet en
-  phase 7).
+  séparément. Fichiers dans `Documents/assets/`, partagés entre les
+  projets (une copie de document réutilise les mêmes fichiers).
 - **Poignées** (`engine/layers/geometry.ts`) : `hitHandle`,
   `resizeFromCorner`, `rotateFromPointer`, fonctions pures « worklet ». Le
   canvas tient une seule « manipulation » (mode, géométrie de départ,
@@ -268,6 +269,44 @@ DocumentCanvas (engine/canvas)
 - Les libellés viennent de `useLayerActions` (`geometryLabel`,
   `transformLabel`) : une manipulation au doigt est « Déplacer » si seule la
   position change, sinon « Transformation manuelle ».
+
+## Enregistrement (M3)
+
+```
+documentStore ──(chaque changement)──▶ Autosaver ──(600 ms sans modification)──▶ ProjectRepository
+      ▲                                    │  file d'écriture par document               │
+      └── hydrate() au démarrage ◀─────────┴── PersistenceGate / startPersistence ◀──────┘
+```
+
+- **Format** (`engine/project`) : JSON versionné
+  `{ kind: "zentech-design/project", formatVersion, document }`. Lecture
+  stricte, champ par champ ; un champ inconnu est ignoré, un champ invalide
+  fait refuser le projet (« Projet endommagé — … ») ; les anciennes versions
+  sont migrées (`MIGRATIONS`) ; une version plus récente que l'application
+  est refusée. À chaque changement incompatible du modèle : incrémenter
+  `DOCUMENT_FORMAT_VERSION` ET écrire la migration.
+- **Stockage** (`services/projects`) : SQLite (`zentech-design.db`, mode
+  WAL) sur Android et iOS ; une ligne par projet ; écriture par une seule
+  instruction `INSERT … ON CONFLICT`, donc atomique (une interruption laisse
+  l'ancienne version intacte). Schéma versionné par `PRAGMA user_version`,
+  migrations transactionnelles. Sur le web (aperçu), stockage du navigateur
+  au même format.
+- **Images** : chemins rattachés au dossier actuel de l'application au
+  chargement (`relocateAssets` ; iOS change ce chemin à chaque mise à jour).
+  Au démarrage, les fichiers qu'aucun projet ne référence sont supprimés ;
+  à la suppression d'un projet, ses fichiers le sont s'ils ne servent plus à
+  aucun document ni à aucun état d'historique.
+- **Sauvegarde automatique** (`features/persistence/autosave.ts`) : compare
+  par identité d'objet (documents immuables), regroupe les modifications
+  rapprochées, une seule écriture à la fois par document, la plus récente
+  gagne ; écriture immédiate à « Enregistrer » et quand l'application passe
+  en arrière-plan. Les échecs sont affichés (barre d'état, barre supérieure).
+- **Projets illisibles** : signalés sur l'accueil, conservés tels quels,
+  supprimés seulement à la demande. **Base inaccessible** : écran « Projets
+  inaccessibles » avec « Réessayer », rien n'est écrit.
+- **Onglets** (`workspaceStore.openDocuments`) : documents ouverts dans
+  l'espace studio ; « Enregistrer sous » crée une copie nommée qui remplace
+  l'onglet, « Dupliquer » en ajoute une. L'historique n'est pas enregistré.
 
 ## Fonctionnalités non encore développées
 

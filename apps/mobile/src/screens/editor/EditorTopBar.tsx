@@ -4,6 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import { AppText, IconButton } from '@/components/ui';
 import type { GraphicDocument } from '@/engine/documents';
 import { useHistory } from '@/features/history/useHistory';
+import { useSaveStatus } from '@/features/persistence';
 import { formatDimensions } from '@/features/projects/labels';
 import { colors, spacing } from '@/theme';
 
@@ -20,6 +21,7 @@ export function goHome(): void {
 
 export function EditorTopBar({ document, sidePanels }: EditorTopBarProps) {
   const history = useHistory(document.id);
+  const save = useSaveStatus(document.id);
   return (
     <View style={styles.bar} testID="editor-top-bar">
       <IconButton icon="arrow-left" label="Retour à l’accueil" onPress={goHome} />
@@ -28,7 +30,7 @@ export function EditorTopBar({ document, sidePanels }: EditorTopBarProps) {
           {document.name}
         </AppText>
         <AppText variant="caption" tone="secondary" numberOfLines={1}>
-          {formatDimensions(document.width, document.height)}
+          {formatDimensions(document.width, document.height)} · {save.text}
         </AppText>
       </View>
       <IconButton

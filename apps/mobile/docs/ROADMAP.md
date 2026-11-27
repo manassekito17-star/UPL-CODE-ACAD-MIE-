@@ -9,8 +9,8 @@ Chaque phase se termine par un rapport et attend une validation avant la suivant
 | 3 | Moteur graphique : modèle de document, canvas Skia, coordonnées document/écran, zoom, déplacement, ajustement | Livrée et validée |
 | 4 | Calques : ajout, suppression confirmée, sélection, renommage, duplication, visibilité, opacité, ordre, déplacement | Livrée et validée (premier type de calque : rectangle) |
 | 5 | Import d'images (galerie, permissions, original préservé), outil texte éditable, formes (rectangle, cercle, ligne), transformations tactiles | Livrée et validée |
-| 6 | Historique Undo/Redo par commandes réversibles (module M2) | **Livré, en attente de validation** |
-| 7 | Sauvegarde : format de projet versionné, SQLite + fichiers, sauvegarde automatique, récupération après interruption, liste des projets récents | À faire |
+| 6 | Historique Undo/Redo par commandes réversibles (module M2) | Livrée et validée |
+| 7 | Sauvegarde : format de projet versionné, SQLite + fichiers, sauvegarde automatique, récupération après interruption, liste des projets récents (module M3) | **Livrée, en attente de validation** |
 | 8 | Export PNG fidèle (dimensions, transparence, visibilité, ordre, transformations) | À faire |
 | 9 | Tests, mesures de performance sur plusieurs appareils, optimisation, durcissement des permissions | À faire |
 
@@ -24,5 +24,6 @@ phases 6 à 9 ci-dessus correspondent aux modules M2 (historique), M3
 |---|---|---|
 | M1 | Espace studio tablette / grand écran : menus, barre d'options, 20 familles d'outils, règles, onglet, dock (Couleur, Nuancier, Propriétés, Réglages, Calques, Couches, Tracés), colonne d'icônes (Historique, Navigateur, Caractère, Paragraphe), barre d'état | Parties 1 et 2 livrées et validées |
 | M1 (suite) | Espaces de travail enregistrés, guide des outils | À faire |
-| M2 | Historique : Annuler, Rétablir, panneau Historique | **Livré, en attente de validation** |
-| M3 à M19 | Voir le plan | À faire |
+| M2 | Historique : Annuler, Rétablir, panneau Historique | Livré et validé |
+| M3 | Enregistrement des projets, onglets, Enregistrer sous, Dupliquer | **Livré, en attente de validation** |
+| M4 à M19 | Voir le plan | À faire |

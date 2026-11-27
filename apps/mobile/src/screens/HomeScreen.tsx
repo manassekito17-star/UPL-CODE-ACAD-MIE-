@@ -1,11 +1,14 @@
 import { router } from 'expo-router';
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Logo } from '@/components/brand/Logo';
-import { AppText, Button, Icon, IconButton, Panel, Screen } from '@/components/ui';
+import { AppText, Button, ConfirmDialog, Icon, IconButton, Panel, Screen } from '@/components/ui';
 import { openImageAsNewDocument, useImageImport } from '@/features/image-import/useImageImport';
+import { removeUnreadable, usePersistenceStore } from '@/features/persistence';
 import { RecentProjects } from '@/features/projects/RecentProjects';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
+import type { UnreadableProject } from '@/services/projects';
 import { colors, spacing } from '@/theme';
 
 export function HomeScreen() {
@@ -73,13 +76,7 @@ export function HomeScreen() {
       ) : null}
 
       <Panel title="Projets récents">
-        <View style={styles.notice} accessible>
-          <Icon name="information-outline" size={18} color={colors.warning} />
-          <AppText variant="caption" tone="secondary" style={styles.noticeText}>
-            Les projets restent en mémoire tant que l’application est ouverte. L’enregistrement sur l’appareil
-            arrive en phase 7.
-          </AppText>
-        </View>
+        <UnreadableProjects />
         <RecentProjects
           onOpen={(id) => router.push({ pathname: '/editor/[projectId]', params: { projectId: id } })}
         />
@@ -88,7 +85,40 @@ export function HomeScreen() {
   );
 }
 
+/** Projets présents sur l'appareil mais illisibles : signalés, conservés, supprimables sur demande. */
+function UnreadableProjects() {
+  const unreadable = usePersistenceStore((s) => s.unreadable);
+  const [pending, setPending] = useState<UnreadableProject | null>(null);
+  if (unreadable.length === 0) return null;
+  return (
+    <View style={styles.unreadable} testID="unreadable-projects">
+      {unreadable.map((p) => (
+        <View key={p.id} style={styles.notice} accessibilityRole="alert">
+          <Icon name="alert-circle-outline" size={18} color={colors.warning} />
+          <AppText variant="caption" tone="secondary" style={styles.noticeText}>
+            « {p.name} » n’a pas pu être ouvert : {p.message} Il est conservé tel quel sur l’appareil.
+          </AppText>
+          <IconButton icon="delete-outline" label={`Supprimer le projet illisible ${p.name}`} tone="danger" onPress={() => setPending(p)} />
+        </View>
+      ))}
+      <ConfirmDialog
+        visible={pending !== null}
+        title="Supprimer le projet illisible ?"
+        message={pending ? `« ${pending.name} » sera supprimé définitivement de l’appareil.` : ''}
+        confirmLabel="Supprimer"
+        destructive
+        onCancel={() => setPending(null)}
+        onConfirm={() => {
+          if (pending) void removeUnreadable(pending.id);
+          setPending(null);
+        }}
+      />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  unreadable: { gap: spacing.sm },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
   intro: { gap: spacing.sm },
   actions: { gap: spacing.md },

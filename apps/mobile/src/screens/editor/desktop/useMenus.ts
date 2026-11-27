@@ -7,7 +7,10 @@ import { useLayerActions } from '@/features/layers/useLayerActions';
 import { useEditorUiStore } from '@/stores/editorUiStore';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
 
+import { saveNow } from '@/features/persistence';
+
 import { goHome } from '../EditorTopBar';
+import { closeDocumentTab } from './DocChrome';
 import { useInsertMenu } from '../useInsertMenu';
 import { PANEL_LABELS } from './panelMeta';
 import type { MenuEntry } from './ui';
@@ -52,12 +55,21 @@ export function useMenus(): MenuDef[] {
       entries: [
         { type: 'item', label: 'Nouveau…', icon: 'file-plus-outline', onPress: () => router.push('/new-document') },
         { type: 'item', label: 'Ouvrir une image…', icon: 'image-plus', onPress: () => void openImage() },
+        { type: 'item', label: 'Projets récents…', icon: 'folder-open-outline', onPress: goHome },
         sep,
-        planned('Enregistrer', 'M3'),
-        planned('Enregistrer sous…', 'M3'),
+        { type: 'item', label: 'Fermer', onPress: () => closeDocumentTab(document.id, document.id) },
+        {
+          type: 'item',
+          label: 'Fermer tout',
+          onPress: () => {
+            ws.closeAllDocuments();
+            goHome();
+          },
+        },
+        sep,
+        { type: 'item', label: 'Enregistrer', icon: 'content-save-outline', onPress: () => void saveNow() },
+        { type: 'item', label: 'Enregistrer sous…', onPress: () => ws.requestSaveAs({ documentId: document.id, mode: 'saveAs' }) },
         planned('Exporter en PNG ou JPEG…', 'M4'),
-        sep,
-        { type: 'item', label: 'Fermer', onPress: goHome },
       ],
     },
     {
@@ -109,7 +121,7 @@ export function useMenus(): MenuDef[] {
         planned('Rotation de l’image', 'M14'),
         planned('Recadrer', 'M14'),
         sep,
-        planned('Dupliquer le document…', 'M3'),
+        { type: 'item', label: 'Dupliquer…', onPress: () => ws.requestSaveAs({ documentId: document.id, mode: 'duplicate' }) },
       ],
     },
     {

@@ -2,9 +2,14 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ConfirmDialog, Icon, type IconName } from '@/components/ui';
+import { DOCUMENT_LIMITS } from '@/engine/documents';
 import { HISTORY_LIMIT } from '@/engine/history';
 import { useHistory } from '@/features/history/useHistory';
+import { useDocumentStore } from '@/stores/documentStore';
+import { useWorkspaceStore } from '@/stores/workspaceStore';
 import { ws, wsMetrics } from '@/theme';
+
+import { showDocument } from '../DocChrome';
 
 import { Divider, WIconButton, WText } from '../ui';
 import { useWorkspace } from '../WorkspaceContext';
@@ -79,7 +84,19 @@ export function HistoryPanel() {
         </WText>
         <WIconButton icon="undo" label={h.undoLabel ? `Annuler : ${h.undoLabel}` : 'Annuler'} size={15} disabled={!h.canUndo} onPress={h.undo} testID="history-undo" />
         <WIconButton icon="redo" label={h.redoLabel ? `Rétablir : ${h.redoLabel}` : 'Rétablir'} size={15} disabled={!h.canRedo} onPress={h.redo} testID="history-redo" />
-        <WIconButton icon="file-plus-outline" label="Nouveau document à partir de l’état" hint="Prévu au module M3" size={15} disabled />
+        <WIconButton
+          icon="file-plus-outline"
+          label="Nouveau document à partir de l’état"
+          size={15}
+          disabled={!current}
+          onPress={() => {
+            if (!current) return;
+            const copy = useDocumentStore.getState().duplicateDocument(current.doc, `${document.name} — ${current.label}`.slice(0, DOCUMENT_LIMITS.maxNameLength));
+            useWorkspaceStore.getState().openDocument(copy.id);
+            showDocument(copy.id);
+          }}
+          testID="history-new-document"
+        />
         <WIconButton icon="broom" label="Effacer l’historique" size={15} disabled={states.length < 2} onPress={() => setPending({ kind: 'clear' })} testID="history-clear" />
         <WIconButton
           icon="delete-outline"

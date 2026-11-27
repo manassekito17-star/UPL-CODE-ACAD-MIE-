@@ -8,3 +8,9 @@ export function formatDateTime(timestamp: number): string {
   const d = new Date(timestamp);
   return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} à ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
+
+/** « 17:05 », dans le fuseau de l'appareil. */
+export function formatTime(timestamp: number): string {
+  const d = new Date(timestamp);
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}

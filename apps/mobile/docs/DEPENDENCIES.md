@@ -30,8 +30,8 @@ versions validées pour le SDK installé. Relevé du 26/11/2026.
 | `react-native-reanimated` + `react-native-worklets` | 4.7.1 + 0.13.0 | MIT | Animations et gestes sur le thread UI |
 | `zustand` | ^5.1.0 | MIT | États partagés |
 | `@expo/vector-icons` + `expo-font` + `expo-asset` | ^15.0.2 + ~58.0.12 + ~58.0.21 | MIT (glyphes Material Design Icons : Apache-2.0) | Icônes de l'interface (phase 2). `expo-asset` est requis par `expo-font` : sans lui, le bundle échoue. Seule la police MaterialCommunityIcons est incluse. |
-| `expo-sqlite` | ~58.0.18 | MIT | Métadonnées locales des projets (phase 7) |
-| `expo-file-system` | ~58.0.15 | MIT | Fichiers des ressources (phases 5, 7, 8) |
+| `expo-sqlite` | ~58.0.18 | MIT | Base locale des projets (module M3) |
+| `expo-file-system` | ~58.0.15 | MIT | Fichiers des images importées (phase 5, M3) |
 | `expo-image-picker` | ~58.0.10 | MIT | Import depuis la galerie (phase 5) |
 | `expo-image-manipulator` | ~58.0.16 | MIT | Copie de travail des images importées (décodage natif, réduction, JPEG/PNG) |
 | `@expo-google-fonts/inter` | ^0.4.2 | MIT (paquet), OFL-1.1 (police Inter) | Police embarquée des textes : rendu identique sur toutes les plateformes et à l'export. Seules les graisses 400 et 700 sont incluses (≈ 0,7 Mo). |
@@ -50,6 +50,7 @@ l'installation échoue (`ERESOLVE`).
 | `@testing-library/react-native` + `test-renderer` | 14.1.0 + ^1.3.1 | MIT | Tests d'interface |
 | `@types/jest`, `@types/react`, `@types/node` | 30.0.0, ~19.3.0, ^22 | MIT | Types (`@types/node` : lecture des polices dans les tests de rendu ; aligné sur Node 22) |
 | `eslint` + `eslint-config-expo` | ^9.39.5 + ~58.0.4 | MIT | Analyse statique |
+| `sql.js` + `@types/sql.js` | 1.13.0 | MIT | Vraie base SQLite (WebAssembly) pour tester la couche de stockage sous Node |
 
 ## Audit de sécurité
 

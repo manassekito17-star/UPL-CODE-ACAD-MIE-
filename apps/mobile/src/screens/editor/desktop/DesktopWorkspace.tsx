@@ -4,22 +4,50 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ConfirmDialog, PromptDialog } from '@/components/ui';
 import { DocumentCanvasHost, useViewSharedValues, type CanvasController } from '@/engine/canvas';
-import type { GraphicDocument } from '@/engine/documents';
+import { DOCUMENT_LIMITS, normalizeDocumentName, type GraphicDocument } from '@/engine/documents';
 import { LAYER_NAME_MAX, findLayer } from '@/engine/layers';
 import { useLayerActions } from '@/features/layers/useLayerActions';
 import { useRenderResources } from '@/features/rendering/RenderResourcesProvider';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { useDocumentStore } from '@/stores/documentStore';
 import { useEditorUiStore } from '@/stores/editorUiStore';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
 import { ws, wsMetrics } from '@/theme';
 
-import { DocTabs, StatusBar } from './DocChrome';
+import { DocTabs, StatusBar, showDocument } from './DocChrome';
 import { Dock } from './Dock';
 import { MenuBar } from './MenuBar';
 import { OptionsBar } from './OptionsBar';
 import { RulersFrame } from './Rulers';
 import { ToolRail } from './ToolRail';
 import { WorkspaceContext, type WorkspaceContextValue } from './WorkspaceContext';
+
+/** « Enregistrer sous » (copie sous un nouveau nom, qui remplace l'onglet) et « Dupliquer » (copie en plus). */
+function SaveAsDialog({ document }: { document: GraphicDocument }) {
+  const request = useWorkspaceStore((s) => s.saveAsRequest);
+  const requestSaveAs = useWorkspaceStore((s) => s.requestSaveAs);
+  const visible = request?.documentId === document.id;
+  const saveAs = request?.mode === 'saveAs';
+  return (
+    <PromptDialog
+      visible={visible}
+      title={saveAs ? 'Enregistrer sous' : 'Dupliquer le document'}
+      label="Nom du document"
+      initialValue={saveAs ? document.name : `${document.name} copie`}
+      confirmLabel={saveAs ? 'Enregistrer' : 'Dupliquer'}
+      maxLength={DOCUMENT_LIMITS.maxNameLength}
+      onCancel={() => requestSaveAs(null)}
+      onSubmit={(raw) => {
+        const copy = useDocumentStore.getState().duplicateDocument(document, normalizeDocumentName(raw));
+        requestSaveAs(null);
+        if (saveAs) useWorkspaceStore.getState().closeDocument(document.id);
+        useWorkspaceStore.getState().openDocument(copy.id);
+        showDocument(copy.id);
+        return null;
+      }}
+    />
+  );
+}
 
 /** Confirmations demandées depuis les menus ou le panneau Calques. */
 function LayerDialogs({ document }: { document: GraphicDocument }) {
@@ -119,6 +147,7 @@ export function DesktopWorkspace({ document }: { document: GraphicDocument }) {
           <StatusBar />
         </View>
         <LayerDialogs document={document} />
+        <SaveAsDialog document={document} />
       </SafeAreaView>
     </WorkspaceContext.Provider>
   );
