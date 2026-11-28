@@ -12,9 +12,27 @@ import { measureAnchor, type Anchor, type ViewRef } from './measure';
  * encore utilisables au doigt sur tablette.
  */
 
-export function WText({ children, dim, disabled, style, numberOfLines }: { children: ReactNode; dim?: boolean; disabled?: boolean; style?: StyleProp<TextStyle>; numberOfLines?: number }) {
+export function WText({
+  children,
+  dim,
+  disabled,
+  style,
+  numberOfLines,
+  testID,
+  accessibilityRole,
+}: {
+  children: ReactNode;
+  dim?: boolean;
+  disabled?: boolean;
+  style?: StyleProp<TextStyle>;
+  numberOfLines?: number;
+  testID?: string;
+  accessibilityRole?: 'header' | 'alert' | 'text';
+}) {
   return (
     <Text
+      testID={testID}
+      accessibilityRole={accessibilityRole}
       maxFontSizeMultiplier={1.3}
       numberOfLines={numberOfLines}
       style={[styles.text, dim && { color: ws.textDim }, disabled && { color: ws.textDisabled }, style]}

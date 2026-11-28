@@ -1,14 +1,10 @@
-import { create } from "zustand";
+import { create } from 'zustand';
 
-import {
-  createDocument,
-  type DocumentSpec,
-  type GraphicDocument,
-} from "@/engine/documents";
-import * as historyOps from "@/engine/history";
-import type { History } from "@/engine/history";
-import { LayerError } from "@/engine/layers";
-import { createLocalId } from "@/utils/id";
+import { DOCUMENT_LIMITS, createDocument, normalizeDocumentName, type DocumentSpec, type GraphicDocument } from '@/engine/documents';
+import * as historyOps from '@/engine/history';
+import type { History } from '@/engine/history';
+import { LayerError } from '@/engine/layers';
+import { createLocalId } from '@/utils/id';
 
 /**
  * Documents de l'application. Ils sont chargés depuis l'appareil au démarrage
@@ -32,6 +28,11 @@ export interface DocumentState {
    * un nouveau nom et un nouvel identifiant. Les images sont partagées.
    */
   duplicateDocument: (source: GraphicDocument, name: string) => GraphicDocument;
+  /**
+   * Renomme un projet (comme renommer un fichier : hors de l'historique).
+   * Renvoie un message d'erreur ou null.
+   */
+  renameDocument: (id: string, name: string) => string | null;
   /** Supprime exactement ce document. Renvoie faux s'il n'existe pas. */
   removeDocument: (id: string) => boolean;
   /**
@@ -39,11 +40,7 @@ export interface DocumentState {
    * la date de modification seulement si le document a changé. Une
    * LayerError est renvoyée sous forme de message, jamais avalée.
    */
-  mutateDocument: (
-    id: string,
-    operation: (doc: GraphicDocument) => GraphicDocument,
-    label?: string,
-  ) => MutationResult;
+  mutateDocument: (id: string, operation: (doc: GraphicDocument) => GraphicDocument, label?: string) => MutationResult;
   /** Affiche l'état `index` de l'historique (Annuler, Rétablir, clic dans le panneau Historique). */
   goToHistoryState: (id: string, index: number) => boolean;
   undo: (id: string) => boolean;
@@ -79,12 +76,12 @@ export const useDocumentStore = create<DocumentState>()((set, get) => {
 
     createDocument: (spec) => {
       const now = Date.now();
-      const doc = createDocument(spec, { id: createLocalId("doc", now), now });
+      const doc = createDocument(spec, { id: createLocalId('doc', now), now });
       set((state) => ({
         documents: { ...state.documents, [doc.id]: doc },
         histories: {
           ...state.histories,
-          [doc.id]: historyOps.createHistory(doc, "Nouveau document"),
+          [doc.id]: historyOps.createHistory(doc, 'Nouveau document'),
         },
         order: [doc.id, ...state.order],
       }));
@@ -92,33 +89,52 @@ export const useDocumentStore = create<DocumentState>()((set, get) => {
     },
 
     hydrate: (loaded) => {
-    set((state) => {
-      const documents = { ...state.documents };
-      const histories = { ...state.histories };
-      for (const doc of loaded) {
-        if (documents[doc.id]) continue;
-        documents[doc.id] = doc;
-        histories[doc.id] = historyOps.createHistory(doc, 'Ouvrir');
-      }
-      const order = Object.values(documents)
-        .sort((a, b) => b.updatedAt - a.updatedAt)
-        .map((d) => d.id);
-      return { documents, histories, order };
-    });
-  },
+      set((state) => {
+        const documents = { ...state.documents };
+        const histories = { ...state.histories };
+        for (const doc of loaded) {
+          if (documents[doc.id]) continue;
+          documents[doc.id] = doc;
+          histories[doc.id] = historyOps.createHistory(doc, 'Ouvrir');
+        }
+        const order = Object.values(documents)
+          .sort((a, b) => b.updatedAt - a.updatedAt)
+          .map((d) => d.id);
+        return { documents, histories, order };
+      });
+    },
 
-  duplicateDocument: (source, name) => {
-    const now = Date.now();
-    const doc: GraphicDocument = { ...source, id: createLocalId('doc', now), name, createdAt: now, updatedAt: now };
-    set((state) => ({
-      documents: { ...state.documents, [doc.id]: doc },
-      histories: { ...state.histories, [doc.id]: historyOps.createHistory(doc, 'Dupliquer') },
-      order: [doc.id, ...state.order],
-    }));
-    return doc;
-  },
+    duplicateDocument: (source, name) => {
+      const now = Date.now();
+      const doc: GraphicDocument = { ...source, id: createLocalId('doc', now), name, createdAt: now, updatedAt: now };
+      set((state) => ({
+        documents: { ...state.documents, [doc.id]: doc },
+        histories: { ...state.histories, [doc.id]: historyOps.createHistory(doc, 'Dupliquer') },
+        order: [doc.id, ...state.order],
+      }));
+      return doc;
+    },
 
-  removeDocument: (id) => {
+    renameDocument: (id, raw) => {
+      const doc = get().documents[id];
+      if (!doc) return 'Projet introuvable.';
+      const name = normalizeDocumentName(raw);
+      if (name.length > DOCUMENT_LIMITS.maxNameLength) return `Le nom ne doit pas dépasser ${DOCUMENT_LIMITS.maxNameLength} caractères.`;
+      if (name === doc.name) return null;
+      // Le nouveau nom vaut aussi pour les états d'historique : Annuler ne le défait pas.
+      set((s) => {
+        const history = s.histories[id];
+        return {
+          documents: { ...s.documents, [id]: { ...doc, name, updatedAt: Date.now() } },
+          histories: history
+            ? { ...s.histories, [id]: { ...history, states: history.states.map((st) => ({ ...st, doc: { ...st.doc, name } })) } }
+            : s.histories,
+        };
+      });
+      return null;
+    },
+
+    removeDocument: (id) => {
       if (!(id in get().documents)) return false;
       set((state) => {
         const { [id]: _removed, ...documents } = state.documents;
@@ -132,23 +148,20 @@ export const useDocumentStore = create<DocumentState>()((set, get) => {
       return true;
     },
 
-    mutateDocument: (id, operation, label = "Modification") => {
+    mutateDocument: (id, operation, label = 'Modification') => {
       const current = get().documents[id];
-      if (!current) return { ok: false, message: "Projet introuvable." };
+      if (!current) return { ok: false, message: 'Projet introuvable.' };
       let next: GraphicDocument;
       try {
         next = operation(current);
       } catch (error) {
-        if (error instanceof LayerError)
-          return { ok: false, message: error.message };
+        if (error instanceof LayerError) return { ok: false, message: error.message };
         throw error;
       }
       if (next !== current) {
         const saved = { ...next, updatedAt: Date.now() };
         set((state) => {
-          const history =
-            state.histories[id] ??
-            historyOps.createHistory(current, "Nouveau document");
+          const history = state.histories[id] ?? historyOps.createHistory(current, 'Nouveau document');
           return {
             documents: { ...state.documents, [id]: saved },
             histories: {

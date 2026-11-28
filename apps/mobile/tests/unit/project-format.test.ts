@@ -31,9 +31,27 @@ describe('format de projet', () => {
   it('relit exactement ce qu’il a écrit (forme, texte, image, propriétés)', () => {
     const doc = sample();
     const json = serializeDocument(doc);
-    expect(JSON.parse(json)).toMatchObject({ kind: PROJECT_KIND, formatVersion: 1 });
+    expect(JSON.parse(json)).toMatchObject({ kind: PROJECT_KIND, formatVersion: 2 });
     const parsed = parseProject(json);
     expect(parsed).toEqual({ ok: true, document: doc, migratedFrom: null });
+  });
+
+  it('migre un projet de la version 1 (avant la résolution et la couleur de fond)', () => {
+    const v1 = JSON.parse(serializeDocument(sample()));
+    v1.formatVersion = 1;
+    delete v1.document.resolution;
+    delete v1.document.backgroundColor;
+    v1.document.background = 'black';
+    const parsed = parseProject(JSON.stringify(v1));
+    expect(parsed).toMatchObject({ ok: true, migratedFrom: 1, document: { formatVersion: 2, resolution: 72, backgroundColor: '#000000', background: 'black' } });
+  });
+
+  it('lit un fond de couleur personnalisée et refuse une résolution hors limites', () => {
+    expect(parseProject(withDoc((d) => Object.assign(d, { background: 'color', backgroundColor: '#12ab34' })))).toMatchObject({
+      ok: true,
+      document: { background: 'color', backgroundColor: '#12AB34' },
+    });
+    expect(parseProject(withDoc((d) => (d.resolution = 0))).ok).toBe(false);
   });
 
   it('refuse un fichier illisible, étranger ou d’une version plus récente', () => {

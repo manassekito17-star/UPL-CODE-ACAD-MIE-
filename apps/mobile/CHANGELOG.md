@@ -5,6 +5,15 @@ versions selon [SemVer](https://semver.org/lang/fr/).
 
 ## [Non publié]
 
+### Expérience « bureau », lot A — Accueil et Nouveau document
+
+- Audit et plan : `docs/PS_EXPERIENCE_PLAN.md`.
+- Accueil refait : Nouveau projet, Ouvrir, Importer ; Accueil / Fichiers ; création rapide de formats courants ; projets récents en grille ou en liste, tri, filtre ; menu par projet (Ouvrir, Renommer, Dupliquer, Informations, Supprimer) ; fiche d'informations. Renommer un projet n'entre pas dans l'historique.
+- Fenêtre Nouveau document : 8 catégories (Récent, Enregistré, Photo, Impression, Illustration, Web, Mobile, Film et vidéo), préréglages en px, cm, mm ou pouces, résolution (px/pouce ou px/cm), orientation, fond blanc / noir / transparent / couleur personnalisée, aperçu (pixels, taille d'impression, mémoire), préréglages personnels enregistrés. Seuls RVB et 8 bits/couche sont proposés : CMJN, niveaux de gris, 16 et 32 bits sont affichés désactivés (« non pris en charge par le moteur »).
+- Format de projet v2 : résolution et couleur de fond ; les projets v1 sont migrés à la lecture. Base de données : schéma v2 (table des réglages), migration transactionnelle.
+- Contrôles denses déplacés dans `components/workspace` (partagés par l'éditeur, l'accueil et le Nouveau document).
+- Tests : 316 (301 avant).
+
 ### Module M4 — Export PNG et JPEG
 
 - Export par le même code de dessin que la toile (`drawDocument`) sur une surface hors écran, encodé par Skia : dimensions exactes, transparence conservée en PNG, calques visibles seulement, ordre de la pile, transformations et opacité ; le damier n'est jamais exporté.

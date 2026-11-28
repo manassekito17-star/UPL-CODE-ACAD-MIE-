@@ -72,9 +72,9 @@ describe('navigation', () => {
     expect(await screen.findByTestId('new-document-screen')).toBeTruthy();
     expect(screen).toHavePathname('/new-document');
 
-    await fireEvent.press(screen.getByTestId('preset-square'));
+    await fireEvent.press(screen.getByTestId('preset-web-1080'));
     await fireEvent.changeText(screen.getByTestId('input-name'), 'Affiche');
-    await fireEvent.press(screen.getByRole('button', { name: 'Créer le document' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Créer' }));
 
     expect(await screen.findByTestId('editor-screen')).toBeTruthy();
     // Écran de test de 750 points de large : espace studio, document en onglet.

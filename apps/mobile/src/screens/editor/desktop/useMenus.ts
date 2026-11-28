@@ -15,7 +15,7 @@ import { goHome } from '../EditorTopBar';
 import { closeDocumentTab } from './DocChrome';
 import { useInsertMenu } from '../useInsertMenu';
 import { PANEL_LABELS } from './panelMeta';
-import type { MenuEntry } from './ui';
+import type { MenuEntry } from '@/components/workspace/ui';
 import { ZOOM_STEP, useWorkspace } from './WorkspaceContext';
 
 export interface MenuDef {

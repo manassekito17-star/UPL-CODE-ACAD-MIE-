@@ -3,8 +3,8 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ws, wsMetrics } from '@/theme';
 
-import { MenuList, Popover, WText, type Anchor, type ViewRef } from './ui';
-import { measureAnchor } from './measure';
+import { MenuList, Popover, WText, type Anchor, type ViewRef } from '@/components/workspace/ui';
+import { measureAnchor } from '@/components/workspace/measure';
 import { useMenus } from './useMenus';
 
 /** Barre de menus : Fichier, Édition, Image, Calque, Texte, Sélection, Filtre, Affichage, Fenêtre, Aide. */

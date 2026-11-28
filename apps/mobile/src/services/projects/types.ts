@@ -13,6 +13,12 @@ export interface LoadedProjects {
   unreadable: UnreadableProject[];
 }
 
+/** Réglages de l'application (préréglages personnalisés, préférences), en texte. */
+export interface SettingsRepository {
+  get(key: string): Promise<string | null>;
+  set(key: string, value: string): Promise<void>;
+}
+
 /** Stockage des projets sur l'appareil. Chaque écriture est atomique. */
 export interface ProjectRepository {
   loadAll(): Promise<LoadedProjects>;

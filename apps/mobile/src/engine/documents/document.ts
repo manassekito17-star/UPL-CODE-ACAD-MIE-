@@ -1,4 +1,13 @@
-import { DOCUMENT_FORMAT_VERSION, type DocumentSpec, type GraphicDocument } from './types';
+import { DOCUMENT_FORMAT_VERSION, type DocumentBackground, type DocumentSpec, type GraphicDocument } from './types';
+
+export const DEFAULT_RESOLUTION = 72;
+
+/** Couleur effective d'un fond (celle de `color`, sinon blanc ou noir). */
+export function backgroundColorOf(background: DocumentBackground, custom?: string): string {
+  if (background === 'black') return '#000000';
+  if (background === 'color' && custom) return custom.toUpperCase();
+  return '#FFFFFF';
+}
 
 export interface CreateDocumentDeps {
   id: string;
@@ -18,6 +27,8 @@ export function createDocument(spec: DocumentSpec, { id, now }: CreateDocumentDe
     width: spec.width,
     height: spec.height,
     background: spec.background,
+    backgroundColor: backgroundColorOf(spec.background, spec.backgroundColor),
+    resolution: spec.resolution ?? DEFAULT_RESOLUTION,
     layers: [],
     createdAt: now,
     updatedAt: now,

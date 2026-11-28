@@ -1,7 +1,7 @@
 import type { GraphicDocument } from '@/engine/documents';
 import { parseProject, serializeDocument } from '@/engine/project';
 
-import type { ProjectRepository } from './types';
+import type { ProjectRepository, SettingsRepository } from './types';
 
 /** Stockage clé → texte (localStorage sur le web, Map dans les tests). */
 export interface TextStorage {
@@ -12,6 +12,14 @@ export interface TextStorage {
 }
 
 const PREFIX = 'zentech-design/project/';
+const SETTING = 'zentech-design/setting/';
+
+export function createTextSettingsRepository(storage: TextStorage): SettingsRepository {
+  return {
+    get: async (key) => storage.getItem(SETTING + key),
+    set: async (key, value) => storage.setItem(SETTING + key, value),
+  };
+}
 
 export function mapStorage(map = new Map<string, string>()): TextStorage {
   return {

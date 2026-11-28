@@ -7,7 +7,7 @@ import { recordDocumentPicture } from '@/engine/renderer';
 import { useRenderResources } from '@/features/rendering/RenderResourcesProvider';
 import { ws, wsMetrics } from '@/theme';
 
-import { Divider, WIconButton, WText } from '../ui';
+import { Divider, WIconButton, WText } from '@/components/workspace/ui';
 import { ZOOM_STEP, useWorkspace } from '../WorkspaceContext';
 
 const BOX = { width: 228, height: 150 };

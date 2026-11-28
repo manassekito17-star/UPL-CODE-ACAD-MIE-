@@ -26,5 +26,7 @@ phases 6 à 9 ci-dessus correspondent aux modules M2 (historique), M3
 | M1 (suite) | Espaces de travail enregistrés, guide des outils | À faire |
 | M2 | Historique : Annuler, Rétablir, panneau Historique | Livré et validé |
 | M3 | Enregistrement des projets, onglets, Enregistrer sous, Dupliquer | Livré et validé |
-| M4 | Export PNG et JPEG, partage, dossier, miniatures des projets | **Livré, en attente de validation** |
+| M4 | Export PNG et JPEG, partage, dossier, miniatures des projets | Livré |
+| Bureau A | Accueil professionnel, fenêtre Nouveau document (voir PS_EXPERIENCE_PLAN.md) | **Livré, en attente de validation** |
+| Bureau B à F | Enregistrer sous et fichier `.zdesign`, Exporter sous, raccourcis, téléphone, validation | À faire |
 | M5 à M19 | Voir le plan | À faire |

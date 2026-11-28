@@ -13,9 +13,9 @@ import { ws, wsMetrics } from '@/theme';
 
 import { goHome } from '../EditorTopBar';
 import { findTool } from '../toolFamilies';
-import { measureAnchor, type Anchor, type ViewRef } from './measure';
+import { measureAnchor, type Anchor, type ViewRef } from '@/components/workspace/measure';
 import { useEffectiveToolKey } from './ToolRail';
-import { MenuList, Popover, WIconButton, WNumberField, WText } from './ui';
+import { MenuList, Popover, WIconButton, WNumberField, WText } from '@/components/workspace/ui';
 import { useWorkspace } from './WorkspaceContext';
 
 /** « 5,93M » : mégaoctets (2²⁰ octets) à deux décimales, comme les barres d'état des logiciels de retouche. */

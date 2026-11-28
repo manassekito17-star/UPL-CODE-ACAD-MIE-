@@ -1,7 +1,7 @@
 import { createDocument, type GraphicDocument } from '@/engine/documents';
 import { addLayer, createShapeLayer } from '@/engine/layers';
 import { serializeDocument } from '@/engine/project';
-import { SCHEMA_VERSION, createSqlProjectRepository, migrateSchema } from '@/services/projects/sqlRepository';
+import { SCHEMA_VERSION, createSqlProjectRepository, createSqlStores, migrateSchema } from '@/services/projects/sqlRepository';
 
 import { openSqlJs } from '../helpers/sqljs';
 
@@ -75,10 +75,25 @@ describe('projets dans SQLite', () => {
     await expect(repo.loadAll()).resolves.toMatchObject({ documents: [] });
   });
 
+  it('migre une base de la version 1 et conserve ses projets ; réglages lus et écrits', async () => {
+    const { db, raw } = await openSqlJs();
+    raw.exec(`CREATE TABLE projects (id TEXT PRIMARY KEY NOT NULL, name TEXT NOT NULL, width INTEGER NOT NULL, height INTEGER NOT NULL,
+      created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, format_version INTEGER NOT NULL, data TEXT NOT NULL);
+      CREATE INDEX projects_updated_at ON projects (updated_at DESC); PRAGMA user_version = 1;`);
+    raw.run('INSERT INTO projects VALUES (?, ?, 800, 600, 0, 9, 2, ?)', ['old', 'Ancien', serializeDocument(doc('old', 9))]);
+    const stores = createSqlStores(async () => db);
+    expect((await stores.projects.loadAll()).documents.map((d) => d.id)).toEqual(['old']);
+    expect(raw.exec('PRAGMA user_version')[0]?.values[0]?.[0]).toBe(2);
+    expect(await stores.settings.get('presets')).toBeNull();
+    await stores.settings.set('presets', '[1]');
+    await stores.settings.set('presets', '[2]');
+    expect(await stores.settings.get('presets')).toBe('[2]');
+  });
+
   it('le contenu enregistré est le format versionné', async () => {
     const { db, raw } = await openSqlJs();
     const d = doc('v', 1);
     await createSqlProjectRepository(async () => db).save(d);
-    expect(raw.exec('SELECT data, format_version FROM projects')[0]?.values[0]).toEqual([serializeDocument(d), 1]);
+    expect(raw.exec('SELECT data, format_version FROM projects')[0]?.values[0]).toEqual([serializeDocument(d), 2]);
   });
 });

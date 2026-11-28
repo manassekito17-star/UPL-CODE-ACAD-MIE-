@@ -10,7 +10,7 @@ import { useWorkspaceStore } from '@/stores/workspaceStore';
 import { ws, wsMetrics } from '@/theme';
 
 import { layerTypeLabel } from '../../panels';
-import { Divider, WIconButton, WNumberField, WText } from '../ui';
+import { Divider, WIconButton, WNumberField, WText } from '@/components/workspace/ui';
 import { useWorkspace } from '../WorkspaceContext';
 
 function Section({ title, children }: { title: string; children: ReactNode }) {

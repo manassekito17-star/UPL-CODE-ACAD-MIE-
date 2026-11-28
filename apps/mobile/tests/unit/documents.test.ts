@@ -1,4 +1,13 @@
 import {
+  PRESET_CATALOG,
+  PRESET_CATEGORIES,
+  formatNumber,
+  fromPixels,
+  fromPpi,
+  parsePositive,
+  presetFits,
+  presetPixels,
+  toPpi,
   DOCUMENT_FORMAT_VERSION,
   DOCUMENT_LIMITS,
   FIXED_PRESETS,
@@ -26,9 +35,33 @@ describe('validateDocumentInput', () => {
     const result = validateDocumentInput(input());
     expect(result).toEqual({
       ok: true,
-      spec: { width: 1080, height: 1920, background: 'white', name: 'Sans titre' },
+      spec: { width: 1080, height: 1920, background: 'white', name: 'Sans titre', resolution: 72 },
       warnings: [],
     });
+  });
+
+  it('convertit centimètres, millimètres et pouces avec la résolution', () => {
+    const a4 = validateDocumentInput({ ...input(), width: '210', height: '297', unit: 'mm', resolution: '300' });
+    expect(a4).toMatchObject({ ok: true, spec: { width: 2480, height: 3508, resolution: 300 } });
+    const photo = validateDocumentInput({ ...input(), width: '10', height: '15', unit: 'cm', resolution: '118,11', resolutionUnit: 'ppcm' });
+    expect(photo).toMatchObject({ ok: true, spec: { width: 1181, height: 1772 } });
+    const letter = validateDocumentInput({ ...input(), width: '8,5', height: '11', unit: 'in', resolution: '300' });
+    expect(letter).toMatchObject({ ok: true, spec: { width: 2550, height: 3300 } });
+    expect(letter.warnings).toContainEqual(expect.stringMatching(/^Taille en pixels : 2.550 × 3.300 px à 300 pixels\/pouce\.$/));
+  });
+
+  it('refuse une résolution invalide et une taille physique trop grande en pixels', () => {
+    expect(validateDocumentInput({ ...input(), resolution: '0' })).toMatchObject({ ok: false, errors: [{ field: 'resolution' }] });
+    const big = validateDocumentInput({ ...input(), width: '100', height: '10', unit: 'cm', resolution: '300' });
+    expect(big).toMatchObject({ ok: false, errors: [{ field: 'width', message: expect.stringMatching(/11.811 px/) }] });
+  });
+
+  it('fond de couleur personnalisée : code obligatoire', () => {
+    expect(validateDocumentInput({ ...input(), background: 'color', backgroundColor: '#12ab34' })).toMatchObject({
+      ok: true,
+      spec: { background: 'color', backgroundColor: '#12AB34' },
+    });
+    expect(validateDocumentInput({ ...input(), background: 'color', backgroundColor: 'vert' })).toMatchObject({ ok: false, errors: [{ field: 'background' }] });
   });
 
   it.each([
@@ -156,9 +189,31 @@ describe('createDocument', () => {
       width: 100,
       height: 50,
       background: 'transparent',
+      backgroundColor: '#FFFFFF',
+      resolution: 72,
       layers: [],
       createdAt: 1_700_000_000_000,
       updatedAt: 1_700_000_000_000,
     });
+  });
+});
+
+describe('préréglages par catégorie', () => {
+  it('chaque préréglage tient dans les limites de l’appareil, aux tailles attendues', () => {
+    for (const presets of Object.values(PRESET_CATALOG)) for (const preset of presets) expect([preset.id, presetFits(preset)]).toEqual([preset.id, true]);
+    const find = (id: string) => Object.values(PRESET_CATALOG).flat().find((p) => p.id === id)!;
+    expect(presetPixels(find('print-a4'))).toEqual({ width: 2480, height: 3508 });
+    expect(presetPixels(find('photo-10x15'))).toEqual({ width: 1181, height: 1772 });
+    expect(presetPixels(find('print-letter'))).toEqual({ width: 2550, height: 3300 });
+    expect(PRESET_CATEGORIES.map((c) => c.label)).toEqual(['Récent', 'Enregistré', 'Photo', 'Impression', 'Illustration', 'Web', 'Mobile', 'Film et vidéo']);
+  });
+
+  it('convertit les unités dans les deux sens', () => {
+    expect(fromPixels(2480, 'mm', 300)).toBeCloseTo(209.97, 1);
+    expect(formatNumber(fromPixels(300, 'in', 300))).toBe('1');
+    expect(toPpi(118.11, 'ppcm')).toBeCloseTo(300, 0);
+    expect(fromPpi(300, 'ppcm')).toBeCloseTo(118.11, 2);
+    expect(parsePositive('29,7')).toBe(29.7);
+    expect(parsePositive('-1')).toBeNull();
   });
 });

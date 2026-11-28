@@ -11,7 +11,7 @@ import { ws, wsMetrics } from '@/theme';
 
 import { layerTypeLabel } from '../../panels';
 import { useInsertMenu } from '../../useInsertMenu';
-import { Divider, WIconButton, WNumberField, WSelect, WText } from '../ui';
+import { Divider, WIconButton, WNumberField, WSelect, WText } from '@/components/workspace/ui';
 import { useWorkspace } from '../WorkspaceContext';
 
 /** Filtres par type, dans l'ordre habituel : pixels, réglages, textes, formes, objets dynamiques. */

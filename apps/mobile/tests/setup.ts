@@ -11,8 +11,8 @@ jest.mock('react-native-reanimated', () => require('./mocks/reanimated'));
 
 // Ancrage des menus : la doublure native de Jest ne rappelle jamais
 // measureInWindow ; on répond tout de suite avec une position nulle.
-jest.mock('@/screens/editor/desktop/measure', () => ({
-  ...jest.requireActual('@/screens/editor/desktop/measure'),
+jest.mock('@/components/workspace/measure', () => ({
+  ...jest.requireActual('@/components/workspace/measure'),
   measureAnchor: (_node: unknown, done: (a: { x: number; y: number; width: number; height: number }) => void) =>
     done({ x: 0, y: 0, width: 0, height: 0 }),
 }));
@@ -23,13 +23,16 @@ jest.mock('@/screens/editor/desktop/measure', () => ({
 jest.mock('@/services/projects/repository', () => {
   const memory = jest.requireActual('@/services/projects/memoryRepository');
   let repo = memory.createTextProjectRepository(memory.mapStorage());
+  let settings = memory.createTextSettingsRepository(memory.mapStorage());
   return {
     getProjectRepository: () => repo,
+    getSettingsRepository: () => settings,
     __setRepository: (next: unknown) => {
       repo = next;
     },
     __reset: () => {
       repo = memory.createTextProjectRepository(memory.mapStorage());
+      settings = memory.createTextSettingsRepository(memory.mapStorage());
     },
   };
 });

@@ -11,7 +11,7 @@ import { ws, wsMetrics } from '@/theme';
 
 import { showDocument } from '../DocChrome';
 
-import { Divider, WIconButton, WText } from '../ui';
+import { Divider, WIconButton, WText } from '@/components/workspace/ui';
 import { useWorkspace } from '../WorkspaceContext';
 
 const ICONS: Record<string, IconName> = {

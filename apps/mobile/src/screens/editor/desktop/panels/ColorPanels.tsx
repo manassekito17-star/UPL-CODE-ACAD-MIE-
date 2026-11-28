@@ -8,7 +8,7 @@ import { useWorkspaceStore } from '@/stores/workspaceStore';
 import { ws, wsMetrics } from '@/theme';
 import { hexToHsv, hexToRgb, hsvToHex, type Hsv } from '@/utils/color';
 
-import { WText } from '../ui';
+import { WText } from '@/components/workspace/ui';
 
 const HUES = ['#FF0000', '#FFFF00', '#00FF00', '#00FFFF', '#0000FF', '#FF00FF', '#FF0000'];
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n));

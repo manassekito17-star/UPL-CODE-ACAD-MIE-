@@ -5,11 +5,13 @@ import { colors } from '@/theme';
 
 export interface BackgroundSwatchProps {
   background: DocumentBackground;
+  /** Couleur du fond `color`. */
+  color?: string;
   style?: ViewStyle;
   testID?: string;
 }
 
-const FILL: Record<Exclude<DocumentBackground, 'transparent'>, string> = {
+const FILL: Record<Exclude<DocumentBackground, 'transparent' | 'color'>, string> = {
   white: '#FFFFFF',
   black: '#000000',
 };
@@ -18,9 +20,10 @@ const FILL: Record<Exclude<DocumentBackground, 'transparent'>, string> = {
  * Aperçu d'un fond de document. La transparence est représentée par un
  * damier, convention des logiciels graphiques.
  */
-export function BackgroundSwatch({ background, style, testID }: BackgroundSwatchProps) {
+export function BackgroundSwatch({ background, color, style, testID }: BackgroundSwatchProps) {
   if (background !== 'transparent') {
-    return <View testID={testID} style={[styles.base, { backgroundColor: FILL[background] }, style]} />;
+    const fill = background === 'color' ? (color ?? '#FFFFFF') : FILL[background];
+    return <View testID={testID} style={[styles.base, { backgroundColor: fill }, style]} />;
   }
   // React Native n'a pas de motif répété : le damier est une grille fixe de
   // 8 × 8 cases qui s'étire avec la vignette (64 vues, coût négligeable).

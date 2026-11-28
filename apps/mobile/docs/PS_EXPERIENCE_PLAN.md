@@ -1,0 +1,60 @@
+# Expérience « logiciel de retouche de bureau » — audit et plan
+
+Demande du 27/11/2026 : retrouver les parcours de Photoshop Desktop (accueil,
+Nouveau document, éditeur, Enregistrer sous, Exporter sous, raccourcis),
+sous la marque ZENTECH DESIGN, sans ressource ni code d'Adobe.
+
+## Audit (état au 28/11/2026, avant le lot A)
+
+| Demande | État avant | Remarque |
+|---|---|---|
+| Accueil : nouveau, ouvrir, importer, projets récents | Partiel | Liste simple, pas de menu par projet, pas de « Fichiers » |
+| Menu de projet : ouvrir, renommer, dupliquer, supprimer, infos | Partiel | Ouvrir et supprimer seulement |
+| Documents partagés, profil, découvrir | Absent | Pas de compte ni de partage en ligne : **non proposés** (aucune rubrique vide) |
+| Nouveau document : catégories, préréglages | Partiel | 6 préréglages en pixels |
+| Unités px / po / cm / mm, résolution | Absent | — |
+| Mode colorimétrique, profondeur | RVB 8 bits | Le moteur (Skia RGBA 8888) ne gère **ni CMJN, ni niveaux de gris, ni 16/32 bits** : affichés désactivés avec la raison |
+| Fond blanc / noir / transparent / couleur | Partiel | Couleur personnalisée absente |
+| Préréglages personnels enregistrés | Absent | — |
+| Éditeur : menus, outils, toile, onglets, règles, panneaux, barre d'état | Fait (M1–M4) | Repères et grille : absents (M16) ; réarrangement des panneaux : absent |
+| Enregistrement : automatique, indicateur, récupération | Fait (M3) | Dans la base de l'application |
+| Fichier natif `.zdesign` dans un dossier, Ouvrir un fichier | Absent | Faisable : sélecteurs du système (expo-file-system), archive zip (fflate, MIT) |
+| Premier enregistrement → Enregistrer sous ; confirmation à la fermeture ; sauvegarde automatique réglable | Absent | Change le modèle « tout est enregistré automatiquement » |
+| Exporter sous : PNG, JPEG | Fait (M4) | Aperçu, largeur/hauteur libres, taille estimée : absents |
+| WebP | Absent | **Encodage WebP vérifié** dans le moteur |
+| PDF | Absent | **Non disponible** : Skia contient un module PDF mais il n'est pas exposé à l'application ; ne sera pas proposé sans développement natif |
+| Profil colorimétrique | sRGB | Pas de conversion : affiché « sRGB » sans option |
+| Raccourcis clavier | Absent (M17) | React Native ne transmet pas le clavier matériel : web faisable, Android et iOS demandent un petit module natif |
+| Téléphone : menus accessibles, panneaux en tiroirs | Partiel | Pas de menus sur téléphone |
+
+## Plan par lots
+
+| Lot | Contenu | État |
+|---|---|---|
+| A | Accueil professionnel ; fenêtre Nouveau document (8 catégories, préréglages en unités physiques, résolution, fond personnalisé, préréglages personnels) ; format de projet v2 | **Livré** |
+| B | Parcours d'enregistrement : document « non enregistré » jusqu'au premier Enregistrer ; Enregistrer sous (nom + emplacement : application ou dossier `.zdesign`) ; Enregistrer une copie ; Ouvrir / Ouvrir récent ; Importer ; Informations du document ; confirmation à la fermeture ; sauvegarde automatique réglable ; récupération | À faire |
+| C | Exporter sous : aperçu, largeur / hauteur / %, résolution écrite dans le fichier, WebP, taille estimée, emplacement affiché, partage | À faire |
+| D | Raccourcis clavier (web, puis module natif Android / iOS) et commandes tactiles équivalentes | À faire |
+| E | Téléphone : menus complets en tiroir, panneaux en tiroirs ; grille et repères ; réarrangement des panneaux | À faire |
+| F | Les 6 parcours de validation demandés, automatisés (Jest + navigateur) | Au fil des lots |
+
+## Lot A — livré
+
+- Accueil : barre supérieure (logo, Paramètres), colonne de gauche (Nouveau
+  projet, Ouvrir, Importer une image ; Accueil, Fichiers), création rapide
+  (document personnalisé, publication carrée, story, grand écran, A4),
+  « Récent » en grille ou en liste, tri (récent, nom, taille), filtre par
+  nom ; menu de chaque projet (Ouvrir, Renommer, Dupliquer, Informations,
+  Supprimer avec confirmation) ; fiche d'informations (dimensions, taille
+  d'impression, résolution, mode, fond, calques, dates).
+- Nouveau document : catégories Récent, Enregistré, Photo, Impression,
+  Illustration, Web, Mobile, Film et vidéo ; préréglages en pixels,
+  centimètres, millimètres ou pouces convertis avec la résolution ; tous
+  dans les limites de l'appareil (A3 proposé à 250 ppp, la raison est
+  écrite) ; détails : nom, largeur, hauteur, unité, orientation, résolution
+  (px/pouce ou px/cm, raccourcis 72 / 150 / 300), mode RVB 8 bits, fond
+  blanc / noir / transparent / couleur personnalisée ; aperçu (pixels,
+  taille d'impression, mémoire) ; préréglages personnels enregistrés sur
+  l'appareil.
+- Format de projet v2 (résolution, couleur de fond) avec migration des
+  projets v1 ; base de données schéma v2 (table des réglages).

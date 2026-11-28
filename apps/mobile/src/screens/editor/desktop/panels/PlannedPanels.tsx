@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { Icon, type IconName } from '@/components/ui';
 import { ws } from '@/theme';
 
-import { WText } from '../ui';
+import { WText } from '@/components/workspace/ui';
 
 /**
  * Panneaux dont le contenu arrive avec un module ultérieur. Ils sont présents

@@ -122,6 +122,15 @@ describe('historique (store des documents)', () => {
     expect(st().documents[doc.id]?.layers).toHaveLength(1);
   });
 
+  it('renommer un projet n’entre pas dans l’historique : Annuler ne le défait pas', () => {
+    const doc = st().createDocument({ width: 100, height: 100, background: 'white', name: 'D' });
+    st().mutateDocument(doc.id, withLayer, 'Nouveau calque de forme');
+    expect(st().renameDocument(doc.id, '  Affiche  ')).toBeNull();
+    expect(st().undo(doc.id)).toBe(true);
+    expect(st().documents[doc.id]).toMatchObject({ name: 'Affiche', layers: [] });
+    expect(st().renameDocument(doc.id, 'x'.repeat(200))).toMatch(/ne doit pas dépasser/);
+  });
+
   it('supprimer le document supprime son historique', () => {
     const doc = st().createDocument({ width: 100, height: 100, background: 'white', name: 'D' });
     st().removeDocument(doc.id);

@@ -9,7 +9,7 @@ import { useThumbnailStore } from './thumbnailStore';
 
 export interface DocumentThumbnailProps {
   /** Sans identifiant (aperçu d'un document pas encore créé) : vignette du fond seulement. */
-  document: Pick<GraphicDocument, 'width' | 'height' | 'background'> & { id?: string };
+  document: Pick<GraphicDocument, 'width' | 'height' | 'background'> & { backgroundColor?: string } & { id?: string };
   /** Côté de la case carrée dans laquelle la vignette est inscrite. */
   size?: number;
 }

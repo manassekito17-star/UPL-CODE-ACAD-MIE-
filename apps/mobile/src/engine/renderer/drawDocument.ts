@@ -16,12 +16,12 @@ import type { DocumentBackground, GraphicDocument } from '@/engine/documents';
 import { layerMatrix, type ImageLayer, type Layer, type ShapeLayer, type TextLayer } from '@/engine/layers';
 
 /** Couleurs de fond exactes écrites dans le document (et donc dans l'export). */
-export const BACKGROUND_FILL: Record<Exclude<DocumentBackground, 'transparent'>, string> = {
+export const BACKGROUND_FILL: Record<Exclude<DocumentBackground, 'transparent' | 'color'>, string> = {
   white: '#FFFFFF',
   black: '#000000',
 };
 
-export type DrawableDocument = Pick<GraphicDocument, 'width' | 'height' | 'background'> & {
+export type DrawableDocument = Pick<GraphicDocument, 'width' | 'height' | 'background'> & { backgroundColor?: string } & {
   layers?: readonly Layer[];
 };
 
@@ -116,10 +116,10 @@ function drawImage(canvas: SkCanvas, layer: ImageLayer, resources: RenderResourc
 }
 
 /** Fond seul (sans calques). Un fond transparent n'écrit aucun pixel. */
-export function drawBackground(canvas: SkCanvas, doc: Pick<GraphicDocument, 'width' | 'height' | 'background'>): void {
+export function drawBackground(canvas: SkCanvas, doc: Pick<GraphicDocument, 'width' | 'height' | 'background'> & { backgroundColor?: string }): void {
   if (doc.background === 'transparent') return;
   const paint = Skia.Paint();
-  paint.setColor(Skia.Color(BACKGROUND_FILL[doc.background]));
+  paint.setColor(Skia.Color(doc.background === 'color' ? (doc.backgroundColor ?? '#FFFFFF') : BACKGROUND_FILL[doc.background]));
   canvas.drawRect(Skia.XYWHRect(0, 0, doc.width, doc.height), paint);
 }
 
@@ -192,7 +192,7 @@ export function recordDocumentPicture(doc: DrawableDocument, resources: RenderRe
 }
 
 /** Fond seul, en Picture (cache de l'écran). */
-export function recordBackgroundPicture(doc: Pick<GraphicDocument, 'width' | 'height' | 'background'>): SkPicture {
+export function recordBackgroundPicture(doc: Pick<GraphicDocument, 'width' | 'height' | 'background'> & { backgroundColor?: string }): SkPicture {
   return record(doc.width, doc.height, (canvas) => drawBackground(canvas, doc));
 }
 

@@ -363,7 +363,11 @@ export function DocumentCanvas({
 
   // Cache du rendu : recalculé seulement quand le contenu change.
   const { width, height, background } = document;
-  const backgroundPicture = useMemo(() => recordBackgroundPicture({ width, height, background }), [width, height, background]);
+  const backgroundColor = document.backgroundColor;
+  const backgroundPicture = useMemo(
+    () => recordBackgroundPicture({ width, height, background, backgroundColor }),
+    [width, height, background, backgroundColor],
+  );
   const checkerPicture = useMemo(() => {
     if (background !== 'transparent') return null;
     const recorder = Skia.PictureRecorder();

@@ -19,7 +19,13 @@ export const PROJECT_KIND = 'zentech-design/project';
 export type ParseResult = { ok: true; document: GraphicDocument; migratedFrom: number | null } | { ok: false; message: string };
 
 /** Migrations : MIGRATIONS[v] transforme un document de la version v en version v + 1. */
-const MIGRATIONS: Record<number, (raw: Record<string, unknown>) => Record<string, unknown>> = {};
+const MIGRATIONS: Record<number, (raw: Record<string, unknown>) => Record<string, unknown>> = {
+  // Version 2 : résolution (72 ppp jusque-là) et couleur de fond explicite.
+  1: (raw) => ({ ...raw, resolution: 72, backgroundColor: raw.background === 'black' ? '#000000' : '#FFFFFF' }),
+};
+
+/** Résolution acceptée, en pixels par pouce. */
+export const RESOLUTION_RANGE = { min: 1, max: 9999 } as const;
 
 export function serializeDocument(doc: GraphicDocument): string {
   return JSON.stringify({ kind: PROJECT_KIND, formatVersion: DOCUMENT_FORMAT_VERSION, document: doc });
@@ -107,6 +113,12 @@ function parseLayer(raw: unknown, index: number): Layer {
   return { ...base, type, asset: parseAsset(raw.asset, where) };
 }
 
+function resolution(raw: Record<string, unknown>): number {
+  const v = num(raw, 'resolution', 'Document');
+  if (v < RESOLUTION_RANGE.min || v > RESOLUTION_RANGE.max) throw new InvalidProject('Document : résolution invalide.');
+  return v;
+}
+
 function parseDocumentObject(raw: Record<string, unknown>): GraphicDocument {
   const where = 'Document';
   const width = num(raw, 'width', where);
@@ -124,7 +136,9 @@ function parseDocumentObject(raw: Record<string, unknown>): GraphicDocument {
     name: str(raw, 'name', where, 500),
     width,
     height,
-    background: oneOf<DocumentBackground>(raw, 'background', ['white', 'black', 'transparent'], where),
+    background: oneOf<DocumentBackground>(raw, 'background', ['white', 'black', 'transparent', 'color'], where),
+    backgroundColor: color(raw, 'backgroundColor', where),
+    resolution: resolution(raw),
     layers,
     createdAt: num(raw, 'createdAt', where),
     updatedAt: num(raw, 'updatedAt', where),

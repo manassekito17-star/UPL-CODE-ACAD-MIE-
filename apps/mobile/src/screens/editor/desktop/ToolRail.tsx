@@ -8,8 +8,8 @@ import { ws, wsMetrics } from '@/theme';
 
 import { TOOL_FAMILIES, findTool, isUsable, type ToolFamily, type ToolItem } from '../toolFamilies';
 import { useInsertMenu } from '../useInsertMenu';
-import { Popover, WIconButton, WText, type Anchor, type ViewRef } from './ui';
-import { measureAnchor } from './measure';
+import { Popover, WIconButton, WText, type Anchor, type ViewRef } from '@/components/workspace/ui';
+import { measureAnchor } from '@/components/workspace/measure';
 import { useWorkspace } from './WorkspaceContext';
 
 /** Séparateurs entre groupes de familles, comme dans les logiciels de retouche. */

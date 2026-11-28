@@ -4,6 +4,7 @@ export const BACKGROUND_LABELS: Record<DocumentBackground, string> = {
   white: 'Blanc',
   black: 'Noir',
   transparent: 'Transparent',
+  color: 'Couleur personnalisée',
 };
 
 export const ORIENTATION_LABELS: Record<Orientation, string> = {

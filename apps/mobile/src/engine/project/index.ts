@@ -1,1 +1,1 @@
-export { PROJECT_KIND, parseProject, referencedFiles, serializeDocument, type ParseResult } from './serialization';
+export { PROJECT_KIND, RESOLUTION_RANGE, parseProject, referencedFiles, serializeDocument, type ParseResult } from './serialization';

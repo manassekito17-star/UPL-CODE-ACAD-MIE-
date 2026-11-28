@@ -1,12 +1,12 @@
-import { Stack, ThemeProvider } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import { StyleSheet } from "react-native";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { Stack, ThemeProvider } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import { StyleSheet } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
-import { SkiaGate } from "@/components/SkiaGate";
-import { PersistenceGate } from "@/features/persistence";
-import { colors } from "@/theme";
-import { navigationTheme } from "@/theme/navigationTheme";
+import { SkiaGate } from '@/components/SkiaGate';
+import { PersistenceGate } from '@/features/persistence';
+import { colors } from '@/theme';
+import { navigationTheme } from '@/theme/navigationTheme';
 
 /**
  * Racine de l'application.
@@ -33,19 +33,10 @@ export default function RootLayout() {
                 contentStyle: { backgroundColor: colors.background },
               }}
             >
-              <Stack.Screen
-                name="index"
-                options={{ headerShown: false, title: "Accueil" }}
-              />
-              <Stack.Screen
-                name="new-document"
-                options={{ title: "Nouveau projet" }}
-              />
-              <Stack.Screen
-                name="editor/[projectId]"
-                options={{ headerShown: false, title: "Éditeur" }}
-              />
-              <Stack.Screen name="settings" options={{ title: "Paramètres" }} />
+              <Stack.Screen name="index" options={{ headerShown: false, title: 'Accueil' }} />
+              <Stack.Screen name="new-document" options={{ headerShown: false, title: 'Nouveau document' }} />
+              <Stack.Screen name="editor/[projectId]" options={{ headerShown: false, title: 'Éditeur' }} />
+              <Stack.Screen name="settings" options={{ title: 'Paramètres' }} />
             </Stack>
           </ThemeProvider>
         </PersistenceGate>

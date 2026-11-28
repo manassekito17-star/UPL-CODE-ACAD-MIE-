@@ -4,7 +4,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { PANEL_GROUPS, STRIP_PANELS, useWorkspaceStore, type PanelGroupId, type PanelId } from '@/stores/workspaceStore';
 import { ws, wsMetrics } from '@/theme';
 
-import { measureAnchor, type Anchor, type ViewRef } from './measure';
+import { measureAnchor, type Anchor, type ViewRef } from '@/components/workspace/measure';
 import { PANEL_META } from './panelMeta';
 import { ColorPanel, SwatchesPanel } from './panels/ColorPanels';
 import { LayersPanel } from './panels/LayersPanel';
@@ -12,7 +12,7 @@ import { NavigatorPanel } from './panels/NavigatorPanel';
 import { HistoryPanel } from './panels/HistoryPanel';
 import { AdjustmentsPanel, ChannelsPanel, CharacterPanel, ParagraphPanel, PathsPanel } from './panels/PlannedPanels';
 import { PropertiesPanel } from './panels/PropertiesPanel';
-import { MenuList, Popover, WIconButton, WText, type MenuEntry } from './ui';
+import { MenuList, Popover, WIconButton, WText, type MenuEntry } from '@/components/workspace/ui';
 
 function PanelBody({ panel }: { panel: PanelId }) {
   switch (panel) {

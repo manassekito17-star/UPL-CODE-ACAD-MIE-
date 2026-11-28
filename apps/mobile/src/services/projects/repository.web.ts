@@ -1,5 +1,5 @@
-import { createTextProjectRepository, mapStorage, type TextStorage } from './memoryRepository';
-import type { ProjectRepository } from './types';
+import { createTextProjectRepository, createTextSettingsRepository, mapStorage, type TextStorage } from './memoryRepository';
+import type { ProjectRepository, SettingsRepository } from './types';
 
 function browserStorage(): TextStorage {
   try {
@@ -17,6 +17,12 @@ function browserStorage(): TextStorage {
 }
 
 let repository: ProjectRepository | null = null;
+let settings: SettingsRepository | null = null;
+
+export function getSettingsRepository(): SettingsRepository {
+  settings ??= createTextSettingsRepository(browserStorage());
+  return settings;
+}
 
 /**
  * Sur le web (aperçu de développement, pas une plateforme cible), les projets

@@ -11,7 +11,7 @@ import { ws, wsMetrics } from '@/theme';
 import { findTool } from '../toolFamilies';
 import { goHome } from '../EditorTopBar';
 import { useEffectiveToolKey } from './ToolRail';
-import { Divider, WCheckbox, WIconButton, WNumberField, WSelect, WText } from './ui';
+import { Divider, WCheckbox, WIconButton, WNumberField, WSelect, WText } from '@/components/workspace/ui';
 import { ZOOM_STEP, useWorkspace } from './WorkspaceContext';
 
 const ALIGN: { edge: AlignEdge; icon: 'align-horizontal-left' | 'align-horizontal-center' | 'align-horizontal-right' | 'align-vertical-top' | 'align-vertical-center' | 'align-vertical-bottom'; label: string }[] = [
