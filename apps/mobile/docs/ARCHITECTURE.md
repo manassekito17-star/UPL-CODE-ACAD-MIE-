@@ -342,6 +342,10 @@ documentStore ──(chaque changement)──▶ Autosaver ──(600 ms sans mo
 - `services/export/exportFiles` : feuille de partage (`expo-sharing`,
   fichier dans le cache) et dossier choisi par l'utilisateur
   (`Directory.pickDirectoryAsync`) ; sur le web, téléchargement.
+- Lot C : `exportDocument` gère PNG, JPEG et WebP, la transparence au
+  choix et la résolution (`imageMetadata.ts` écrit pHYs / JFIF, testé en
+  relisant les fichiers). La fenêtre « Exporter sous » encode réellement
+  le fichier pour afficher sa taille et réutilise ces octets à l'export.
 - Miniatures : `useThumbnailWriter` (éditeur) rend une image de 256 px au
   plus avec `exportDocument` ; `services/projects/thumbnails` les range dans
   `Documents/thumbnails/<id>.png`.

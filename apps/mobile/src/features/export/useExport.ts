@@ -17,11 +17,15 @@ export function useExport() {
   const resources = useRenderResources();
   const [busy, setBusy] = useState(false);
 
-  const run = async (doc: GraphicDocument, settings: ExportSettings, destination: ExportDestination): Promise<ExportOutcome> => {
+  /**
+   * `ready` : fichier déjà calculé (estimation de la fenêtre « Exporter sous »)
+   * pour ces mêmes réglages ; il est réutilisé tel quel.
+   */
+  const run = async (doc: GraphicDocument, settings: ExportSettings, destination: ExportDestination, ready?: ExportResult | null): Promise<ExportOutcome> => {
     setBusy(true);
     try {
       await nextFrame();
-      const result = exportDocument(doc, settings, resources);
+      const result = ready ?? exportDocument(doc, settings, resources);
       if (destination === 'share') {
         await shareExport(result);
         return { ok: true, result, savedAs: null };

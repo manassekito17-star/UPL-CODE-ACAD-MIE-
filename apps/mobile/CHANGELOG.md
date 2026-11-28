@@ -5,6 +5,15 @@ versions selon [SemVer](https://semver.org/lang/fr/).
 
 ## [Non publié]
 
+### Expérience « bureau », lot C — Exporter sous
+
+- Fenêtre « Exporter sous » : aperçu (même rendu que la toile, damier si la transparence est gardée), format PNG / JPEG / **WebP**, qualité (JPEG, WebP), case Transparence (PNG, WebP), couleur des zones transparentes sinon, largeur / hauteur / échelle liées (proportions conservées), résolution (par défaut celle du document), espace sRGB, aucune métadonnée personnelle.
+- Taille du fichier exacte : l'image est réellement encodée pour l'estimation, et ce même fichier est celui exporté (pas de second calcul).
+- Résolution écrite dans le fichier : bloc pHYs du PNG, en-tête JFIF du JPEG (le WebP n'a pas de champ standard : la fenêtre le dit).
+- Après l'export : confirmation, dimensions, poids, emplacement (dossier choisi et nom du fichier, ou feuille de partage), et « Partager » du fichier enregistré.
+- Parcours TEST 4 et TEST 5 exécutés : fichiers PNG, JPEG et WebP produits dans le navigateur et vérifiés par Pillow (format, dimensions, transparence, 300 ppp, couleurs).
+- Tests : 332 (328 avant).
+
 ### Expérience « bureau », lot B — Parcours d'enregistrement
 
 - Modèle des logiciels de bureau : un nouveau document est « Jamais enregistré » ; le premier Fichier › Enregistrer ouvre « Enregistrer sous » (nom, emplacement) ; ensuite Enregistrer met à jour la version enregistrée. Indicateur dans l'onglet (« * »), la barre d'état et la barre du téléphone (« Modifications non enregistrées », « Enregistré à 14:27 · Affiche.zdesign »).

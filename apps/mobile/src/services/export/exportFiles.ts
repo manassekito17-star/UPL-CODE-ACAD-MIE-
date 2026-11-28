@@ -24,7 +24,7 @@ export async function shareExport(result: ExportResult): Promise<void> {
   await file.write(result.bytes);
   await Sharing.shareAsync(file.uri, {
     mimeType: result.mimeType,
-    UTI: result.mimeType === 'image/png' ? 'public.png' : 'public.jpeg',
+    UTI: result.mimeType === 'image/png' ? 'public.png' : result.mimeType === 'image/webp' ? 'org.webmproject.webp' : 'public.jpeg',
     dialogTitle: `Exporter ${result.fileName}`,
   });
 }

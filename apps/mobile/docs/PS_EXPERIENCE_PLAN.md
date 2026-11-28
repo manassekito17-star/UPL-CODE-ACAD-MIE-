@@ -33,7 +33,7 @@ sous la marque ZENTECH DESIGN, sans ressource ni code d'Adobe.
 |---|---|---|
 | A | Accueil professionnel ; fenêtre Nouveau document (8 catégories, préréglages en unités physiques, résolution, fond personnalisé, préréglages personnels) ; format de projet v2 | **Livré** |
 | B | Parcours d'enregistrement : document « non enregistré » jusqu'au premier Enregistrer ; Enregistrer sous (nom + emplacement : application ou dossier `.zdesign`) ; Enregistrer une copie ; Ouvrir / Ouvrir récent ; Importer ; Informations du document ; confirmation à la fermeture ; sauvegarde automatique réglable ; récupération | **Livré** |
-| C | Exporter sous : aperçu, largeur / hauteur / %, résolution écrite dans le fichier, WebP, taille estimée, emplacement affiché, partage | À faire |
+| C | Exporter sous : aperçu, largeur / hauteur / %, résolution écrite dans le fichier, WebP, taille estimée, emplacement affiché, partage | **Livré** |
 | D | Raccourcis clavier (web, puis module natif Android / iOS) et commandes tactiles équivalentes | À faire |
 | E | Téléphone : menus complets en tiroir, panneaux en tiroirs ; grille et repères ; réarrangement des panneaux | À faire |
 | F | Les 6 parcours de validation demandés, automatisés (Jest + navigateur) | Au fil des lots |

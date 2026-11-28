@@ -3,6 +3,7 @@ import { ImageFormat } from '@shopify/react-native-skia';
 import { DOCUMENT_LIMITS, type GraphicDocument } from '@/engine/documents';
 
 import type { RenderResources } from './drawDocument';
+import { setJpegResolution, setPngResolution } from './imageMetadata';
 import { renderDocumentToImage } from './offscreen';
 
 /**
@@ -13,19 +14,32 @@ import { renderDocumentToImage } from './offscreen';
  * exporté.
  */
 
-export type ExportFormat = 'png' | 'jpeg';
+export type ExportFormat = 'png' | 'jpeg' | 'webp';
+
+export const FORMAT_LABELS: Record<ExportFormat, string> = { png: 'PNG', jpeg: 'JPEG', webp: 'WebP' };
+const EXTENSIONS: Record<ExportFormat, string> = { png: 'png', jpeg: 'jpg', webp: 'webp' };
+const MIME: Record<ExportFormat, ExportResult['mimeType']> = { png: 'image/png', jpeg: 'image/jpeg', webp: 'image/webp' };
+
+/** Le format garde-t-il la transparence ? */
+export const supportsTransparency = (format: ExportFormat): boolean => format !== 'jpeg';
+/** Le format a-t-il une qualité réglable (compression avec perte) ? */
+export const hasQuality = (format: ExportFormat): boolean => format !== 'png';
 
 export interface ExportSettings {
   format: ExportFormat;
   /** Échelle appliquée aux dimensions du document (1 = taille réelle). */
   scale: number;
-  /** Qualité JPEG, 1 à 100 (ignorée en PNG, format sans perte). */
+  /** Qualité JPEG ou WebP, 1 à 100 (ignorée en PNG, format sans perte). */
   quality: number;
-  /** Couleur de fond d'un JPEG là où le document est transparent. */
+  /** Couleur posée sous les zones transparentes quand elles ne sont pas conservées. */
   matte: string;
+  /** Conserver la transparence (PNG, WebP). Toujours faux en JPEG. */
+  transparency?: boolean;
+  /** Résolution écrite dans le fichier (pixels par pouce) ; absente : aucune. */
+  resolution?: number;
 }
 
-export const DEFAULT_EXPORT: ExportSettings = { format: 'png', scale: 1, quality: 90, matte: '#FFFFFF' };
+export const DEFAULT_EXPORT: ExportSettings = { format: 'png', scale: 1, quality: 90, matte: '#FFFFFF', transparency: true };
 
 export interface ExportPlan {
   width: number;
@@ -39,13 +53,16 @@ export interface ExportPlan {
 export function planExport(doc: Pick<GraphicDocument, 'width' | 'height' | 'background'>, settings: ExportSettings): ExportPlan {
   const width = Math.max(1, Math.round(doc.width * settings.scale));
   const height = Math.max(1, Math.round(doc.height * settings.scale));
-  const losesTransparency = settings.format === 'jpeg' && doc.background === 'transparent';
+  const keepsAlpha = supportsTransparency(settings.format) && settings.transparency !== false;
+  const losesTransparency = doc.background === 'transparent' && !keepsAlpha;
   let error: string | null = null;
   if (!Number.isFinite(settings.scale) || settings.scale <= 0) error = 'Échelle invalide.';
   else if (width > DOCUMENT_LIMITS.maxDimension || height > DOCUMENT_LIMITS.maxDimension || width * height > DOCUMENT_LIMITS.maxPixels) {
     error = `${width} × ${height} px dépasse la limite de l’appareil (${DOCUMENT_LIMITS.maxDimension} px par côté, 16,7 millions de pixels).`;
-  } else if (settings.format === 'jpeg' && (!Number.isInteger(settings.quality) || settings.quality < 1 || settings.quality > 100)) {
-    error = 'La qualité JPEG va de 1 à 100.';
+  } else if (hasQuality(settings.format) && (!Number.isInteger(settings.quality) || settings.quality < 1 || settings.quality > 100)) {
+    error = `La qualité ${FORMAT_LABELS[settings.format]} va de 1 à 100.`;
+  } else if (settings.resolution !== undefined && (!Number.isFinite(settings.resolution) || settings.resolution < 1 || settings.resolution > 9999)) {
+    error = 'La résolution va de 1 à 9999 pixels/pouce.';
   }
   return { width, height, error, losesTransparency };
 }
@@ -64,14 +81,15 @@ export function missingResources(doc: GraphicDocument, resources: RenderResource
 /** « Affiche d'été » → « Affiche d'été.png » ; caractères interdits par les systèmes de fichiers remplacés. */
 export function exportFileName(name: string, format: ExportFormat): string {
   const base = name.replace(/[\\/:*?"<>|\u0000-\u001F]/g, '-').replace(/\s+/g, ' ').trim().replace(/^\.+/, '').slice(0, 80) || 'Sans titre';
-  return `${base}.${format === 'png' ? 'png' : 'jpg'}`;
+  return `${base}.${EXTENSIONS[format]}`;
 }
 
 export interface ExportResult {
   bytes: Uint8Array;
   width: number;
   height: number;
-  mimeType: 'image/png' | 'image/jpeg';
+  mimeType: 'image/png' | 'image/jpeg' | 'image/webp';
+  format: ExportFormat;
   fileName: string;
 }
 
@@ -80,9 +98,15 @@ export function exportDocument(doc: GraphicDocument, settings: ExportSettings, r
   if (plan.error) throw new Error(plan.error);
   const missing = missingResources(doc, resources);
   if (missing.length > 0) throw new Error(`Calques pas encore prêts : ${missing.join(', ')}. Réessayez dans un instant.`);
-  const jpeg = settings.format === 'jpeg';
-  const image = renderDocumentToImage(doc, { scale: settings.scale, resources, matte: jpeg ? settings.matte : undefined });
-  const bytes = image.encodeToBytes(jpeg ? ImageFormat.JPEG : ImageFormat.PNG, jpeg ? settings.quality : 100);
+  const { format } = settings;
+  const keepsAlpha = supportsTransparency(format) && settings.transparency !== false;
+  const image = renderDocumentToImage(doc, { scale: settings.scale, resources, matte: keepsAlpha ? undefined : settings.matte });
+  const skiaFormat = format === 'jpeg' ? ImageFormat.JPEG : format === 'webp' ? ImageFormat.WEBP : ImageFormat.PNG;
+  let bytes = image.encodeToBytes(skiaFormat, hasQuality(format) ? settings.quality : 100);
   if (!bytes || bytes.length === 0) throw new Error('L’encodage de l’image a échoué.');
-  return { bytes, width: image.width(), height: image.height(), mimeType: jpeg ? 'image/jpeg' : 'image/png', fileName: exportFileName(doc.name, settings.format) };
+  if (settings.resolution !== undefined) {
+    if (format === 'png') bytes = setPngResolution(bytes, settings.resolution);
+    else if (format === 'jpeg') bytes = setJpegResolution(bytes, settings.resolution);
+  }
+  return { bytes, width: image.width(), height: image.height(), mimeType: MIME[format], format, fileName: exportFileName(doc.name, format) };
 }

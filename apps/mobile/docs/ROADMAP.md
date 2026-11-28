@@ -28,6 +28,7 @@ phases 6 à 9 ci-dessus correspondent aux modules M2 (historique), M3
 | M3 | Enregistrement des projets, onglets, Enregistrer sous, Dupliquer | Livré et validé |
 | M4 | Export PNG et JPEG, partage, dossier, miniatures des projets | Livré |
 | Bureau A | Accueil professionnel, fenêtre Nouveau document (voir PS_EXPERIENCE_PLAN.md) | Livré et validé |
-| Bureau B | Enregistrer / Enregistrer sous / copie, fichier `.zdesign`, Ouvrir, fermeture avec confirmation, récupération, sauvegarde automatique réglable | **Livré, en attente de validation** |
-| Bureau C à F | Exporter sous, raccourcis, téléphone, validation | À faire |
+| Bureau B | Enregistrer / Enregistrer sous / copie, fichier `.zdesign`, Ouvrir, fermeture avec confirmation, récupération, sauvegarde automatique réglable | Livré et validé |
+| Bureau C | Exporter sous : PNG, JPEG, WebP, aperçu, taille, résolution écrite, taille du fichier, emplacement | **Livré, en attente de validation** |
+| Bureau D à F | Raccourcis clavier, téléphone (menus et tiroirs), validation | À faire |
 | M5 à M19 | Voir le plan | À faire |

@@ -18,8 +18,12 @@ export {
   type RenderResources,
 } from './drawDocument';
 export { renderDocumentToImage, type OffscreenOptions } from './offscreen';
+export { readJpegResolution, readPngResolution, setJpegResolution, setPngResolution } from './imageMetadata';
 export {
   DEFAULT_EXPORT,
+  FORMAT_LABELS,
+  hasQuality,
+  supportsTransparency,
   exportDocument,
   exportFileName,
   missingResources,

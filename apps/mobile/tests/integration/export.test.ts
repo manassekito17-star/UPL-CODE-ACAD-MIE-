@@ -19,7 +19,7 @@ const { Skia, AlphaType, ColorType } = require('@shopify/react-native-skia') as 
 const renderer = require('@/engine/renderer') as typeof import('@/engine/renderer');
 /* eslint-enable @typescript-eslint/no-require-imports */
 
-const { DEFAULT_EXPORT, NO_RESOURCES, exportDocument, exportFileName, missingResources, planExport } = renderer;
+const { DEFAULT_EXPORT, NO_RESOURCES, exportDocument, exportFileName, missingResources, planExport, readJpegResolution, readPngResolution, setPngResolution } = renderer;
 
 const rect = (id: string, x: number, fill: string, extra: Partial<ShapeLayer> = {}): ShapeLayer => ({
   id,
@@ -41,7 +41,7 @@ const rect = (id: string, x: number, fill: string, extra: Partial<ShapeLayer> = 
 const doc = (layers: Layer[], background: GraphicDocument['background'] = 'transparent'): GraphicDocument => ({
   formatVersion: 2,
   backgroundColor: '#FFFFFF',
-  resolution: 72,
+  resolution: 300,
   id: 'd',
   name: 'Affiche: été/2026',
   width: 40,
@@ -109,12 +109,49 @@ describe('export JPEG', () => {
   });
 });
 
+describe('export WebP et réglages du lot C', () => {
+  it('TEST 5 : WebP réel, transparence conservée ; transparence désactivée : fond choisi', () => {
+    const d = doc([rect('rouge', 0, '#FF0000')]);
+    const webp = exportDocument(d, { ...DEFAULT_EXPORT, format: 'webp', quality: 100 }, NO_RESOURCES);
+    expect(String.fromCharCode(...webp.bytes.slice(0, 4), ...webp.bytes.slice(8, 12))).toBe('RIFFWEBP');
+    expect(webp).toMatchObject({ mimeType: 'image/webp', fileName: 'Affiche- été-2026.webp', width: 40, height: 20 });
+    const image = decode(webp.bytes);
+    expect(pixel(image, 30, 10)[3]).toBe(0);
+    expect(near(pixel(image, 5, 10), [255, 0, 0, 255], 8)).toBe(true);
+
+    const opaque = decode(exportDocument(d, { ...DEFAULT_EXPORT, format: 'png', transparency: false, matte: '#000000' }, NO_RESOURCES).bytes);
+    expect(pixel(opaque, 30, 10)).toEqual([0, 0, 0, 255]);
+    expect(planExport(d, { ...DEFAULT_EXPORT, transparency: false }).losesTransparency).toBe(true);
+    expect(planExport(d, { ...DEFAULT_EXPORT, format: 'webp' }).losesTransparency).toBe(false);
+  });
+
+  it('TEST 4 : la résolution est écrite dans le PNG et le JPEG, l’image reste lisible', () => {
+    const d = doc([rect('rouge', 0, '#FF0000')], 'white');
+    const png = exportDocument(d, { ...DEFAULT_EXPORT, resolution: 300 }, NO_RESOURCES).bytes;
+    expect(readPngResolution(png)).toBeCloseTo(300, 0);
+    expect(decode(png).width()).toBe(40);
+    // Réécrire la résolution remplace le bloc au lieu d'en ajouter un.
+    expect(readPngResolution(setPngResolution(png, 150))).toBeCloseTo(150, 0);
+
+    const jpeg = exportDocument(d, { ...DEFAULT_EXPORT, format: 'jpeg', resolution: 300 }, NO_RESOURCES).bytes;
+    expect(readJpegResolution(jpeg)).toBe(300);
+    expect(decode(jpeg).width()).toBe(40);
+    expect(readPngResolution(exportDocument(d, DEFAULT_EXPORT, NO_RESOURCES).bytes)).toBeNull();
+  });
+
+  it('refuse une qualité WebP ou une résolution invalides', () => {
+    const d = { width: 100, height: 100, background: 'white' as const };
+    expect(planExport(d, { ...DEFAULT_EXPORT, format: 'webp', quality: 101 }).error).toMatch(/qualité WebP/);
+    expect(planExport(d, { ...DEFAULT_EXPORT, resolution: 0 }).error).toMatch(/résolution/);
+  });
+});
+
 describe('garde-fous', () => {
   it('refuse une taille au-delà des limites de l’appareil, et une qualité invalide', () => {
     const big = { width: 4096, height: 4096, background: 'white' as const };
     expect(planExport(big, DEFAULT_EXPORT).error).toBeNull();
     expect(planExport(big, { ...DEFAULT_EXPORT, scale: 2 }).error).toMatch(/dépasse la limite/);
-    expect(planExport(big, { ...DEFAULT_EXPORT, format: 'jpeg', quality: 0 }).error).toMatch(/qualité/);
+    expect(planExport(big, { ...DEFAULT_EXPORT, format: 'jpeg', quality: 0 }).error).toMatch(/qualité JPEG/);
     expect(planExport({ ...big, background: 'transparent' }, { ...DEFAULT_EXPORT, format: 'jpeg' }).losesTransparency).toBe(true);
     expect(() => exportDocument({ ...doc([]), width: 4096, height: 4096 }, { ...DEFAULT_EXPORT, scale: 3 }, NO_RESOURCES)).toThrow(/dépasse/);
   });

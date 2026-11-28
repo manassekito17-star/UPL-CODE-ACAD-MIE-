@@ -30,6 +30,7 @@ export const Canvas = ({ children: _children, ...rest }: { children?: ReactNode 
 );
 export const Group = Nothing;
 export const Picture = Nothing;
+export const Image = Nothing;
 export const Rect = Nothing;
 export const Fill = Nothing;
 export const Path = Nothing;

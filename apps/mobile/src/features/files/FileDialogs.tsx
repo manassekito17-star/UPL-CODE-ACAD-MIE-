@@ -111,7 +111,7 @@ function SaveAsDialog() {
         ))}
       </View>
       <WText dim style={styles.small}>
-        Format : ZENTECH DESIGN (.{PACKAGE_EXTENSION}) — calques, textes éditables, transformations, propriétés, images d’origine. Pour une image PNG ou JPEG : Fichier › Exporter.
+        Format : ZENTECH DESIGN (.{PACKAGE_EXTENSION}) — calques, textes éditables, transformations, propriétés, images d’origine. Pour une image PNG, JPEG ou WebP : Fichier › Exporter.
       </WText>
       {error ? (
         <WText style={styles.error} accessibilityRole="alert" testID="save-as-error">
