@@ -270,7 +270,7 @@ export async function autoPrepareOffline(loggedIn: boolean, opts: { force?: bool
       workerFiles = stopTracking();
     }
     // Pages des éditeurs comprises : gardées même si leur cadre n'a pas fini de charger.
-    await sendPrecache([...loadedResources(), ...workerFiles]);
+    await sendPrecache([...loadedResources(), ...workerFiles, "/reprendre"]);
     ready = await editorsOnDevice();
     const complete = ready.length === OFFLINE_EDITORS.length;
     if (complete || interrupted) sessionStorage.removeItem(RETRY_KEY);

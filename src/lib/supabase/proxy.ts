@@ -26,6 +26,7 @@ const PUBLIC_PATHS = new Set([
   "/manifest.webmanifest",
   "/ide.webmanifest",
   "/editeur.webmanifest",
+  "/reprendre",
   "/sw.js",
 ]);
 const PUBLIC_PREFIXES = ["/auth/", "/api/", "/certificats/", "/workers/", "/icons/", "/opengraph-image", "/twitter-image"];

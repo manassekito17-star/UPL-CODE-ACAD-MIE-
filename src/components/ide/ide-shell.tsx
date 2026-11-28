@@ -197,6 +197,13 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
   const [problems, setProblems] = useState<Problem[]>([]);
   const [stdin, setStdin] = useState("");
   const [running, setRunning] = useState(false);
+  /**
+   * Session gardée sur l'appareil pour chaque projet : onglets ouverts, fichier actif, position du
+   * curseur et entrées du programme. On retrouve son travail en rouvrant l'application.
+   */
+  const sessionKey = `zentech:ide:session:${projectKey}`;
+  const cursors = useRef<Record<string, { line: number; column: number }>>({});
+  const [sessionReady, setSessionReady] = useState(false);
   const [runStatus, setRunStatus] = useState<string | null>(null);
   const [result, setResult] = useState<ExecutionResult | null>(null);
   const [runError, setRunError] = useState<string | null>(null);
@@ -619,6 +626,58 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
   useEffect(() => {
     goToRef.current = goTo;
   });
+
+  // Session du projet : restaurée à l'ouverture (onglets, fichier actif, curseur, entrées)…
+  useEffect(() => {
+    try {
+      const d = JSON.parse(localStorage.getItem(sessionKey) ?? "null") as { groups?: Group[]; focused?: number; stdin?: string; cursors?: Record<string, { line: number; column: number }> } | null;
+      const exists = (p: string | null) => Boolean(p && project.files.some((f) => f.path === p));
+      /* eslint-disable react-hooks/set-state-in-effect -- lecture du stockage local après le montage */
+      if (d?.groups?.length) {
+        const gs = d.groups.slice(0, 2).map((g) => {
+          const tabs = (g.tabs ?? []).filter(exists);
+          return { tabs, active: exists(g.active) ? g.active : (tabs[0] ?? null) };
+        });
+        if (gs.some((g) => g.tabs.length)) {
+          setGroups(gs);
+          setFocusedGroup(Math.min(d.focused ?? 0, gs.length - 1));
+        }
+      }
+      if (typeof d?.stdin === "string") setStdin(d.stdin);
+      /* eslint-enable react-hooks/set-state-in-effect */
+      cursors.current = d?.cursors ?? {};
+      // Curseur replacé là où on écrivait (sans ouvrir le clavier du téléphone).
+      const g = d?.groups?.[d.focused ?? 0];
+      const pos = g?.active ? cursors.current[g.active] : undefined;
+      if (g?.active && pos) {
+        let tries = 0;
+        const place = () => {
+          const ed = focusedEditor();
+          const uri = ed?.getModel() ? decodeURIComponent(ed.getModel()!.uri.toString()) : "";
+          if (!uri.endsWith(`/${g.active}`)) return void (tries++ < 40 && setTimeout(place, 100));
+          ed!.setPosition({ lineNumber: pos.line, column: pos.column });
+          ed!.revealLineInCenter(pos.line);
+        };
+        setTimeout(place, 100);
+      }
+    } catch {
+      /* session illisible : on garde l'ouverture par défaut */
+    }
+    setSessionReady(true);
+    // Une seule fois par projet.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionKey]);
+  // … et gardée à chaque changement.
+  useEffect(() => {
+    if (!sessionReady) return;
+    const active = groups[focusedGroup]?.active;
+    if (active) cursors.current[active] = cursor;
+    try {
+      localStorage.setItem(sessionKey, JSON.stringify({ groups, focused: focusedGroup, stdin, cursors: cursors.current }));
+    } catch {
+      /* stockage plein ou indisponible */
+    }
+  }, [sessionReady, sessionKey, groups, focusedGroup, stdin, cursor]);
 
   const format = () => void focusedEditor()?.getAction("editor.action.formatDocument")?.run();
   /** Zoom du texte de l'éditeur (Ctrl+= / Ctrl+- / Ctrl+0), comme VS Code. */

@@ -10,7 +10,7 @@ export function GET() {
     short_name: "ZENTECH IDE",
     description: "Éditeur de code de ZENTECH : HTML, CSS, JavaScript, Python, pseudocode, utilisable sans Internet.",
     lang: "fr",
-    start_url: "/ide",
+    start_url: "/reprendre?app=ide",
     scope: "/",
     display: "standalone",
     orientation: "any",

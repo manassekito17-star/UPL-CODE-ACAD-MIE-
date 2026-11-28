@@ -10,7 +10,7 @@ export function GET() {
     short_name: "ZENTECH Algo",
     description: "Interpréteur d'algorithmes de ZENTECH : écrire, exécuter et comprendre ses algorithmes, même sans Internet.",
     lang: "fr",
-    start_url: "/editeur?langage=pseudocode",
+    start_url: "/reprendre?app=editeur",
     scope: "/",
     display: "standalone",
     display_override: ["standalone", "minimal-ui"],

@@ -33,6 +33,7 @@ const SPEEDS = [
   { label: "Normal", ms: 700 },
   { label: "Rapide", ms: 250 },
 ];
+const LAB_DRAFT = "zentech:labo:brouillon";
 const MISSING_INPUT = /^Aucune donnée disponible pour LIRE\((.+)\)\.$/;
 
 type LabResult = TraceResult & { timeMs: number };
@@ -90,6 +91,36 @@ export function AlgorithmLab({ presets, initial, loggedIn }: { presets: LabPrese
   const [historyOpen, setHistoryOpen] = useState(false);
   const historyKey = `labo:${presetId || "mon-algorithme"}`;
   const flowRef = useRef<HTMLDivElement>(null);
+
+  // Brouillon gardé sur l'appareil : on retrouve son algorithme en revenant (sauf ouverture d'un exemple précis).
+  const [draftReady, setDraftReady] = useState(false);
+  useEffect(() => {
+    if (!initial && !new URLSearchParams(location.search).has("depuis")) {
+      try {
+        const d = JSON.parse(localStorage.getItem(LAB_DRAFT) ?? "null") as { code?: string; stdin?: string; presetId?: string } | null;
+        /* eslint-disable react-hooks/set-state-in-effect -- lecture du stockage local après le montage */
+        if (typeof d?.code === "string" && d.code.trim()) {
+          setCode(d.code);
+          setStdin(typeof d.stdin === "string" ? d.stdin : "");
+          setPresetId(typeof d.presetId === "string" ? d.presetId : "");
+        }
+        /* eslint-enable react-hooks/set-state-in-effect */
+      } catch {
+        /* brouillon illisible */
+      }
+    }
+    setDraftReady(true);
+    // Une seule fois à l'ouverture.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    if (!draftReady || initial) return;
+    try {
+      localStorage.setItem(LAB_DRAFT, JSON.stringify({ code, stdin, presetId }));
+    } catch {
+      /* stockage indisponible */
+    }
+  }, [draftReady, initial, code, stdin, presetId]);
 
   // Ouverture depuis la page Éditeur (bouton « pas à pas ») : le code et les entrées sont transmis par la session.
   useEffect(() => {
