@@ -55,7 +55,8 @@ const EDITORS = [
   { path: "/flow", name: "ZENTECH Flow Studio", info: "Organigrammes" },
   { path: "/laboratoire", name: "Laboratoire d'algorithmique", info: "Exécution pas à pas" },
 ];
-const OFFLINE_PAGES = EDITORS.map((e) => e.path);
+// « /reprendre » : page d'ouverture de l'application, qui renvoie à la dernière page de travail.
+const OFFLINE_PAGES = [...EDITORS.map((e) => e.path), "/reprendre"];
 const CDN_PREFIXES = [
   "https://cdn.jsdelivr.net/npm/monaco-editor@",
   "https://cdn.jsdelivr.net/npm/pyodide@",

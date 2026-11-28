@@ -71,6 +71,7 @@ export default async function EditorPage({ searchParams }: PageProps<"/editeur">
       programTitle={title}
       back={back}
       initialNotice={notice}
+      draftId={programId ? undefined : typeof sp.exemple === "string" ? `exemple:${sp.exemple}` : typeof sp.algorithme === "string" ? `algorithme:${sp.algorithme}` : undefined}
     />
   );
 }

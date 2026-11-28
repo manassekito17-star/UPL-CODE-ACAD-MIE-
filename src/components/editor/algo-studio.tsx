@@ -196,6 +196,29 @@ interface LocalPrograms {
   at: string;
 }
 
+interface AlgoDraft {
+  files: SourceFile[];
+  stdin: string;
+  active: number;
+  base?: string;
+  at: number;
+}
+function readDraft(key: string): AlgoDraft | null {
+  try {
+    const d = JSON.parse(localStorage.getItem(key) ?? "null") as AlgoDraft | null;
+    return d && Array.isArray(d.files) && d.files.every((f) => typeof f?.name === "string" && typeof f?.content === "string") ? { ...d, stdin: typeof d.stdin === "string" ? d.stdin : "", active: Number(d.active) || 0 } : null;
+  } catch {
+    return null;
+  }
+}
+function writeDraft(key: string, d: AlgoDraft) {
+  try {
+    localStorage.setItem(key, JSON.stringify(d));
+  } catch {
+    /* stockage plein ou indisponible */
+  }
+}
+
 export function AlgoStudio({
   initialLanguage = "pseudocode",
   initialFiles,
@@ -206,6 +229,7 @@ export function AlgoStudio({
   back,
   initialNotice,
   userId,
+  draftId,
 }: {
   initialLanguage?: LanguageId;
   initialFiles?: SourceFile[];
@@ -218,6 +242,8 @@ export function AlgoStudio({
   initialNotice?: string | null;
   /** Compte connecté : clé de la copie locale de « Mes programmes » (consultation sans Internet). */
   userId?: string;
+  /** Exemple ou algorithme d'un chapitre ouvert : son brouillon est gardé à part. */
+  draftId?: string;
 }) {
   const defaultFiles = useCallback(
     // Page blanche : chacun écrit son propre code (les modèles restent dans le menu « Exemples »).
@@ -226,6 +252,13 @@ export function AlgoStudio({
   );
   const [language, setLanguage] = useState<LanguageId>(initialLanguage);
   const [files, setFiles] = useState<SourceFile[]>(initialFiles?.length ? initialFiles : defaultFiles(initialLanguage));
+  /**
+   * Brouillon gardé sur l'appareil à chaque frappe (par langage, par programme, par exemple) :
+   * quitter l'application par erreur ne fait rien perdre, on retrouve son code en revenant.
+   */
+  const [exampleId, setExampleId] = useState(draftId);
+  const [draftReady, setDraftReady] = useState(false);
+  const draftBase = useRef(JSON.stringify(initialFiles ?? null));
   const [active, setActive] = useState(0);
   const [stdin, setStdin] = useState(initialStdin);
   const [result, setResult] = useState<ExecutionResult | null>(null);
@@ -234,6 +267,25 @@ export function AlgoStudio({
   const [status, setStatus] = useState<string | null>(null);
   const [markers, setMarkers] = useState<Array<{ line: number; message: string }>>([]);
   const [programId, setProgramId] = useState(initialProgramId);
+  const draftKey = `zentech:algo:brouillon:${programId ? `programme:${programId}` : (exampleId ?? `langage:${language}`)}`;
+  useEffect(() => {
+    const d = readDraft(draftKey);
+    // Programme ou exemple : le brouillon n'est repris que s'il part de la même version (pas d'une version plus ancienne).
+    // Lecture du stockage local après le montage (indisponible au rendu serveur).
+    /* eslint-disable react-hooks/set-state-in-effect */
+    if (d && (!(programId || exampleId) || d.base === draftBase.current)) {
+      setFiles(d.files);
+      setStdin(d.stdin);
+      setActive(Math.min(d.active, d.files.length - 1));
+    }
+    setDraftReady(true);
+    /* eslint-enable react-hooks/set-state-in-effect */
+    // Une seule fois à l'ouverture de la page.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    if (draftReady) writeDraft(draftKey, { files, stdin, active, base: programId || exampleId ? draftBase.current : undefined, at: Date.now() });
+  }, [draftReady, draftKey, files, stdin, active, programId, exampleId]);
   const [title, setTitle] = useState(programTitle);
   const [toast, setToast] = useState<ReactNode>(initialNotice ?? null);
   const [panel, setPanel] = useState(Boolean(LANGUAGES[initialLanguage].preview));
@@ -424,11 +476,16 @@ export function AlgoStudio({
   const changeLanguage = (next: LanguageId) => {
     setDrawer(false);
     if (next === language) return;
-    const modified = files.some((f) => f.content.trim() !== "" && f.content !== LANGUAGES[language].template);
-    if (modified && !confirm("Changer de langage remplacera le code actuel par un modèle. Continuer ?")) return;
+    // Chaque langage garde son propre brouillon : le code actuel reste là quand on revient à ce langage.
+    const d = readDraft(`zentech:algo:brouillon:langage:${next}`);
     setLanguage(next);
-    setFiles(defaultFiles(next));
+    setProgramId(undefined);
+    setTitle("");
+    setExampleId(undefined);
+    setFiles(d?.files.length ? d.files : defaultFiles(next));
+    setStdin(d?.stdin ?? "");
     setActive(0);
+    window.history.replaceState(null, "", `/editeur?langage=${next}`);
     setResult(null);
     setError(null);
     setMarkers([]);
@@ -541,6 +598,7 @@ export function AlgoStudio({
     setResult(null);
     setError(null);
     setMarkers([]);
+    draftBase.current = JSON.stringify(p.files?.length ? p.files : null);
     setProgramId(id);
     setTitle(p.title);
     setDialog(null);
@@ -586,6 +644,7 @@ export function AlgoStudio({
     setMarkers([]);
     setProgramId(undefined);
     setTitle("");
+    setExampleId(undefined);
     window.history.replaceState(null, "", `/editeur?langage=${language}`);
   };
 
@@ -616,6 +675,8 @@ export function AlgoStudio({
     });
     const data = await res.json().catch(() => ({}));
     if (res.ok) {
+      // La version enregistrée devient la base du brouillon de ce programme.
+      draftBase.current = JSON.stringify(files);
       setProgramId(data.id);
       recordVersion(`algo:${data.id}:${language}:${files[active]?.name ?? "main"}`, files[active]?.content ?? "", "Enregistrement");
       notify("Programme enregistré ✓ — retrouvez-le dans ⋮ → Mes programmes");

@@ -9,8 +9,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: BRAND.description,
     lang: "fr",
     id: "/",
-    // Installée sur le téléphone, l'application s'ouvre sur l'espace de l'étudiant (connexion d'abord si besoin).
-    start_url: "/tableau-de-bord",
+    // Installée sur le téléphone, l'application rouvre la dernière page de travail (sinon l'espace de l'étudiant).
+    start_url: "/reprendre",
     scope: "/",
     display: "standalone",
     background_color: "#020817",

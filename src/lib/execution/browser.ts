@@ -6,6 +6,9 @@ import { runKPlus, runKPlusTest } from "@/lib/kplus";
 import type { ExecutionResult, SourceFile } from "./types";
 
 const TIMEOUT_MS: Record<string, number> = { pseudocode: 8000, javascript: 5000, python: 10000, php: 10000, sql: 8000 };
+/** Chargement d'un moteur lourd (Python ≈ 12 Mo, PHP…) la première fois : au-delà, on arrête et on explique. */
+export const LOAD_TIMEOUT_MS = 120_000;
+const ENGINE_NAMES: Partial<Record<LanguageId, string>> = { python: "Python", php: "PHP", sql: "SQLite" };
 
 /** Moteurs chargés une fois puis réutilisés (Pyodide, PHP, SQLite). */
 const PERSISTENT: Partial<Record<LanguageId, Worker | null>> = {};
@@ -67,13 +70,33 @@ export function runInBrowser(
     const worker = createWorker(language);
     const persistent = isPersistent(language);
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let loadTimer: ReturnType<typeof setTimeout> | undefined;
+    let slowTimer: ReturnType<typeof setTimeout> | undefined;
+    const engine = ENGINE_NAMES[language];
 
     const finish = (r: ExecutionResult) => {
       if (timer) clearTimeout(timer);
+      clearTimeout(loadTimer);
+      clearTimeout(slowTimer);
       worker.onmessage = null;
+      worker.onerror = null;
       if (!persistent) worker.terminate();
       resolve(r);
     };
+    /** Moteur perdu (chargement trop long, plantage) : on l'arrête et le prochain essai repart de zéro. */
+    const fail = (stderr: string) => {
+      worker.terminate();
+      if (persistent) PERSISTENT[language] = null;
+      finish({ status: "erreur_execution", stdout: "", stderr, compileOutput: "", timeMs: null, memoryKb: null, engine: "navigateur" });
+    };
+    // Chargement : jamais d'attente sans fin (connexion lente ou coupée pendant le téléchargement).
+    if (engine) {
+      slowTimer = setTimeout(() => onStatus?.(`Chargement de ${engine}… connexion lente : patientez (la première fois seulement, ensuite ${engine} reste sur l'appareil).`), 15_000);
+      loadTimer = setTimeout(
+        () => fail(`${engine} n'a pas pu se charger en ${LOAD_TIMEOUT_MS / 60_000} minutes : la connexion est trop lente ou a été coupée. Réessayez avec une meilleure connexion (Wi-Fi) : une fois chargé, ${engine} reste sur l'appareil et fonctionne même sans Internet.`),
+        LOAD_TIMEOUT_MS,
+      );
+    }
     const arm = () => {
       timer = setTimeout(() => {
         worker.terminate();
@@ -97,6 +120,8 @@ export function runInBrowser(
         return;
       }
       if (d?.type === "debut") {
+        clearTimeout(loadTimer);
+        clearTimeout(slowTimer);
         arm();
         return;
       }
@@ -136,6 +161,9 @@ export function runInBrowser(
       });
     };
     worker.onerror = (e) => {
+      e.preventDefault?.();
+      // Moteur lourd planté (mémoire du téléphone insuffisante…) : il est relancé au prochain essai.
+      if (engine) return fail(`Le moteur ${engine} s'est arrêté (mémoire de l'appareil insuffisante ?). Fermez d'autres applications puis réessayez.${e.message ? `\n(${e.message})` : ""}`);
       finish({ status: "erreur_interne", stdout: "", stderr: e.message || "Erreur du moteur d'exécution.", compileOutput: "", timeMs: null, memoryKb: null, engine: "navigateur" });
     };
 
