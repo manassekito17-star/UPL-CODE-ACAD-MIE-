@@ -328,6 +328,21 @@ documentStore ──(chaque changement)──▶ Autosaver ──(600 ms sans mo
   sous, confirmation de fermeture, informations, messages), rendues une
   fois à la racine (`app/_layout.tsx`).
 
+## Raccourcis clavier (lot D)
+
+- `utils/keyChords.ts` : forme unique « mod+alt+shift+touche » (mod = Ctrl
+  ou Cmd), partagée par le web et le module natif ; affichage Windows ou Apple.
+- `features/shortcuts/catalog.ts` : raccourcis et lettres d'outils ;
+  `dispatcher.ts` : l'écran au premier plan reçoit les combinaisons (pile
+  de gestionnaires : l'éditeur au-dessus de l'accueil), toile active pour
+  le zoom, message bref, aide.
+- `services/keyboard` : `keyboard.web.ts` écoute la page ; `keyboard.ts`
+  parle au module natif `modules/zentech-keyboard` (Android : intercepteur
+  de Window.Callback qui ne retient que les combinaisons déclarées et ignore
+  une lettre seule pendant une saisie ; iOS : module sans capture).
+- `screens/editor/useEditorShortcuts.ts` : exécute les commandes (mêmes
+  fonctions que les menus).
+
 ## Export (M4)
 
 - `engine/renderer/export.ts` : `planExport` (taille, limites, perte de

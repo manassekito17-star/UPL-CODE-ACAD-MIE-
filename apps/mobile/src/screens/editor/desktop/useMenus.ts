@@ -10,7 +10,11 @@ import { useEditorUiStore } from '@/stores/editorUiStore';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
 
 import { commandClose, commandInfo, commandOpenFile, commandSave, commandSaveAs, commandSaveCopy } from '@/features/files/fileCommands';
+import { chordFor, type CommandId } from '@/features/shortcuts/catalog';
+import { useShortcutHelp } from '@/features/shortcuts/dispatcher';
+import { isApple } from '@/features/shortcuts/ShortcutsRoot';
 import { useDocumentStore } from '@/stores/documentStore';
+import { formatChord } from '@/utils/keyChords';
 
 import { goHome } from '../EditorTopBar';
 import { requestCloseTab, showDocument } from './DocChrome';
@@ -26,6 +30,11 @@ export interface MenuDef {
 
 const planned = (label: string, module: string): MenuEntry => ({ type: 'item', label, planned: true, right: module });
 const sep: MenuEntry = { type: 'separator' };
+/** Raccourci affiché à droite d'une commande. */
+const k = (command: CommandId): string | undefined => {
+  const chord = chordFor(command);
+  return chord ? formatChord(chord, isApple) : undefined;
+};
 
 
 /**
@@ -64,14 +73,14 @@ export function useMenus(): MenuDef[] {
     {
       title: 'Fichier',
       entries: [
-        { type: 'item', label: 'Nouveau…', icon: 'file-plus-outline', onPress: () => router.push('/new-document') },
-        { type: 'item', label: 'Ouvrir…', icon: 'folder-open-outline', onPress: () => void commandOpenFile() },
+        { type: 'item', label: 'Nouveau…', icon: 'file-plus-outline', right: k('file.new'), onPress: () => router.push('/new-document') },
+        { type: 'item', label: 'Ouvrir…', icon: 'folder-open-outline', right: k('file.open'), onPress: () => void commandOpenFile() },
         { type: 'header', label: 'Ouvrir récent' },
         ...recent.map(
           (d): MenuEntry => ({ type: 'item', label: d.name, icon: 'file-outline', checked: d.id === document.id, onPress: () => showDocument(d.id) }),
         ),
         sep,
-        { type: 'item', label: 'Fermer', onPress: () => requestCloseTab(document.id, document.id) },
+        { type: 'item', label: 'Fermer', right: k('file.close'), onPress: () => requestCloseTab(document.id, document.id) },
         {
           type: 'item',
           label: 'Fermer tout',
@@ -82,9 +91,9 @@ export function useMenus(): MenuDef[] {
             }),
         },
         sep,
-        { type: 'item', label: 'Enregistrer', icon: 'content-save-outline', onPress: () => void commandSave(document.id) },
-        { type: 'item', label: 'Enregistrer sous…', onPress: () => commandSaveAs(document.id, (id) => (id !== document.id ? showDocument(id) : undefined)) },
-        { type: 'item', label: 'Enregistrer une copie…', onPress: () => commandSaveCopy(document.id) },
+        { type: 'item', label: 'Enregistrer', icon: 'content-save-outline', right: k('file.save'), onPress: () => void commandSave(document.id) },
+        { type: 'item', label: 'Enregistrer sous…', right: k('file.saveAs'), onPress: () => commandSaveAs(document.id, (id) => (id !== document.id ? showDocument(id) : undefined)) },
+        { type: 'item', label: 'Enregistrer une copie…', right: k('file.saveCopy'), onPress: () => commandSaveCopy(document.id) },
         { type: 'header', label: 'Exporter' },
         {
           type: 'item',
@@ -95,7 +104,7 @@ export function useMenus(): MenuDef[] {
               if (o.ok === false) setNotice(`Export impossible : ${o.message}`);
             }),
         },
-        { type: 'item', label: 'Exporter sous…', onPress: () => openExport(document.id) },
+        { type: 'item', label: 'Exporter sous…', right: k('file.exportAs'), onPress: () => openExport(document.id) },
         { type: 'header', label: 'Importer' },
         { type: 'item', label: 'Image comme nouveau calque…', icon: 'image-plus', onPress: () => void insertMenu.insert('image') },
         { type: 'item', label: 'Image comme nouveau document…', onPress: () => void openImage() },
@@ -110,6 +119,7 @@ export function useMenus(): MenuDef[] {
           type: 'item',
           label: history.undoLabel ? `Annuler : ${history.undoLabel}` : 'Annuler',
           icon: 'undo',
+          right: k('edit.undo'),
           disabled: !history.canUndo,
           onPress: history.undo,
         },
@@ -117,6 +127,7 @@ export function useMenus(): MenuDef[] {
           type: 'item',
           label: history.redoLabel ? `Rétablir : ${history.redoLabel}` : 'Rétablir',
           icon: 'redo',
+          right: k('edit.redo'),
           disabled: !history.canRedo,
           onPress: history.redo,
         },
@@ -166,10 +177,11 @@ export function useMenus(): MenuDef[] {
         { type: 'item', label: 'Image de la galerie…', icon: 'image-plus', onPress: () => void insertMenu.insert('image') },
         planned('Calque de pixels', 'M5'),
         sep,
-        { type: 'item', label: 'Dupliquer le calque', disabled: !layer, onPress: () => layer && actions.duplicate(layer.id) },
+        { type: 'item', label: 'Dupliquer le calque', right: k('layer.duplicate'), disabled: !layer, onPress: () => layer && actions.duplicate(layer.id) },
         {
           type: 'item',
           label: 'Supprimer le calque…',
+          right: k('layer.delete'),
           disabled: !layer || layer.locked,
           onPress: () => layer && ws.requestDeleteLayer(layer.id),
         },
@@ -258,13 +270,13 @@ export function useMenus(): MenuDef[] {
     {
       title: 'Affichage',
       entries: [
-        { type: 'item', label: 'Zoom avant', icon: 'magnify-plus-outline', onPress: () => controller.current?.zoomBy(ZOOM_STEP) },
-        { type: 'item', label: 'Zoom arrière', icon: 'magnify-minus-outline', onPress: () => controller.current?.zoomBy(1 / ZOOM_STEP) },
-        { type: 'item', label: 'Ajuster à l’écran', icon: 'fit-to-screen-outline', onPress: () => controller.current?.fitToScreen() },
-        { type: 'item', label: '100 %', onPress: () => controller.current?.setZoomPercent(100) },
+        { type: 'item', label: 'Zoom avant', icon: 'magnify-plus-outline', right: k('view.zoomIn'), onPress: () => controller.current?.zoomBy(ZOOM_STEP) },
+        { type: 'item', label: 'Zoom arrière', icon: 'magnify-minus-outline', right: k('view.zoomOut'), onPress: () => controller.current?.zoomBy(1 / ZOOM_STEP) },
+        { type: 'item', label: 'Ajuster à l’écran', icon: 'fit-to-screen-outline', right: k('view.fit'), onPress: () => controller.current?.fitToScreen() },
+        { type: 'item', label: '100 %', right: k('view.actual'), onPress: () => controller.current?.setZoomPercent(100) },
         sep,
-        { type: 'item', label: 'Règles', checked: ws.rulersVisible, onPress: ws.toggleRulers },
-        { type: 'item', label: 'Mode plein écran avec barre de menus', checked: ws.panelsHidden, onPress: ws.togglePanelsHidden },
+        { type: 'item', label: 'Règles', right: k('view.rulers'), checked: ws.rulersVisible, onPress: ws.toggleRulers },
+        { type: 'item', label: 'Mode plein écran avec barre de menus', right: 'F', checked: ws.panelsHidden, onPress: ws.togglePanelsHidden },
         planned('Repères', 'M16'),
         planned('Grille', 'M16'),
         planned('Magnétisme', 'M16'),
@@ -292,7 +304,7 @@ export function useMenus(): MenuDef[] {
       title: 'Aide',
       entries: [
         { type: 'item', label: 'À propos de ZENTECH DESIGN', onPress: () => router.push('/settings') },
-        planned('Raccourcis clavier', 'M17'),
+        { type: 'item', label: 'Raccourcis clavier…', icon: 'keyboard-outline', right: k('help.shortcuts'), onPress: () => useShortcutHelp.getState().setOpen(true) },
         planned('Guide des outils', 'M1 (suite)'),
       ],
     },

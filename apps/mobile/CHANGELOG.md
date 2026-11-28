@@ -5,6 +5,14 @@ versions selon [SemVer](https://semver.org/lang/fr/).
 
 ## [Non publié]
 
+### Expérience « bureau », lot D — Raccourcis clavier
+
+- Raccourcis : Ctrl/Cmd+N, O, S, Maj+S, Alt+S (copie), W (fermer), Alt+Maj+W (exporter sous), Z, Maj+Z (et Y), J (dupliquer le calque), Suppr / Retour arrière (supprimer le calque, avec confirmation), 0 (ajuster), 1 (100 %), + / − (zoom), R (règles), / (aide) ; Tab et F (panneaux), D (couleurs par défaut), X (permuter) ; une lettre par famille d'outils (V, M, L, W, C, I, J, S, B, Y, E, G, R, O, P, T, A, U, H, Z) et Maj + lettre pour l'outil suivant disponible de la famille. Un outil pas encore disponible l'annonce dans un message bref, sans rien simuler.
+- Une lettre seule n'agit jamais pendant une saisie de texte ; Ctrl/Cmd + touche oui.
+- Menus : raccourcis affichés à droite des commandes (« Ctrl+Maj+S » ou « ⌘⇧S » selon le système) ; Aide › Raccourcis clavier (liste complète).
+- Navigateur : écoute du clavier de la page. Android : module natif local `modules/zentech-keyboard` (Kotlin) qui intercepte les combinaisons déclarées au niveau de la fenêtre et les envoie au JavaScript (clavier Bluetooth, USB, Chromebook) ; compilé dans l'APK. iOS : le module existe mais ne capte encore rien (il faut un Mac et un iPad pour développer et tester la capture) ; l'aide le dit.
+- Tests : 342 (332 avant).
+
 ### Expérience « bureau », lot C — Exporter sous
 
 - Fenêtre « Exporter sous » : aperçu (même rendu que la toile, damier si la transparence est gardée), format PNG / JPEG / **WebP**, qualité (JPEG, WebP), case Transparence (PNG, WebP), couleur des zones transparentes sinon, largeur / hauteur / échelle liées (proportions conservées), résolution (par défaut celle du document), espace sRGB, aucune métadonnée personnelle.

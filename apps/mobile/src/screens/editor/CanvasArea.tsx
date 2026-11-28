@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText, IconButton } from '@/components/ui';
@@ -6,6 +6,7 @@ import { DocumentCanvasHost, type CanvasController } from '@/engine/canvas';
 import type { GraphicDocument } from '@/engine/documents';
 import { useLayerActions } from '@/features/layers/useLayerActions';
 import { useRenderResources } from '@/features/rendering/RenderResourcesProvider';
+import { registerCanvas } from '@/features/shortcuts/dispatcher';
 import { useEditorUiStore } from '@/stores/editorUiStore';
 import { colors, radius, spacing, touchTarget } from '@/theme';
 
@@ -26,6 +27,7 @@ export function CanvasArea({ document }: CanvasAreaProps) {
   const actions = useLayerActions(document.id);
   const resources = useRenderResources();
   const controller = useRef<CanvasController>(null);
+  useEffect(() => registerCanvas(controller), []);
   const [zoom, setZoom] = useState<number | null>(null);
 
   return (

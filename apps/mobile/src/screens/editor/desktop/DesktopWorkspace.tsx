@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -8,6 +8,7 @@ import { DOCUMENT_LIMITS, normalizeDocumentName, type GraphicDocument } from '@/
 import { LAYER_NAME_MAX, findLayer } from '@/engine/layers';
 import { useLayerActions } from '@/features/layers/useLayerActions';
 import { useRenderResources } from '@/features/rendering/RenderResourcesProvider';
+import { registerCanvas } from '@/features/shortcuts/dispatcher';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useDocumentStore } from '@/stores/documentStore';
 import { useEditorUiStore } from '@/stores/editorUiStore';
@@ -50,7 +51,7 @@ function SaveAsDialog({ document }: { document: GraphicDocument }) {
 }
 
 /** Confirmations demandées depuis les menus ou le panneau Calques. */
-function LayerDialogs({ document }: { document: GraphicDocument }) {
+export function LayerDialogs({ document }: { document: GraphicDocument }) {
   const actions = useLayerActions(document.id);
   const pendingDeleteId = useWorkspaceStore((s) => s.pendingDeleteLayerId);
   const renameId = useWorkspaceStore((s) => s.renameLayerId);
@@ -109,6 +110,7 @@ export function DesktopWorkspace({ document }: { document: GraphicDocument }) {
   const resources = useRenderResources();
   const controller = useRef<CanvasController>(null);
   const view = useViewSharedValues();
+  useEffect(() => registerCanvas(controller), []);
   const [zoom, setZoom] = useState<number | null>(null);
 
   const context = useMemo<WorkspaceContextValue>(() => ({ document, controller, view, zoom, setZoom }), [document, view, zoom]);
@@ -146,7 +148,6 @@ export function DesktopWorkspace({ document }: { document: GraphicDocument }) {
           </View>
           <StatusBar />
         </View>
-        <LayerDialogs document={document} />
         <SaveAsDialog document={document} />
       </SafeAreaView>
     </WorkspaceContext.Provider>

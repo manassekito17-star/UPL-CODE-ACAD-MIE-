@@ -40,3 +40,12 @@ npx eas-cli@latest build --profile development --platform ios
   un conteneur Linux, sans Xcode. À faire sur un Mac ou via EAS Build.
 - Identifiant de bundle provisoire : `app.studiographic.dev`. À remplacer par
   l'identifiant définitif de ZENTECH DESIGN avant la première publication.
+
+## Module local `zentech-keyboard` (lot D)
+
+Le dossier `modules/zentech-keyboard` contient un module natif Expo. Côté
+iOS, il ne fait rien encore (il expose seulement la même interface que sur
+Android) ; son code Swift suit le modèle des modules Expo mais **n'a pas été
+compilé ici** (pas de Mac). À la première compilation sur Mac ou EAS, vérifier
+qu'il compile ; la capture des touches (UIKeyCommand) reste à développer et à
+tester sur un iPad avec clavier.

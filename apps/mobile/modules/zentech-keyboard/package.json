@@ -1,0 +1,7 @@
+{
+  "name": "zentech-keyboard",
+  "version": "0.1.0",
+  "description": "Raccourcis du clavier matériel pour ZENTECH DESIGN (module local)",
+  "license": "UNLICENSED",
+  "private": true
+}

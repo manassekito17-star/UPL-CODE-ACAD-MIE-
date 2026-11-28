@@ -43,7 +43,7 @@ function FamilyFlyout({ family, onChoose }: { family: ToolFamily; onChoose: (too
   return (
     <View testID="tool-flyout">
       <WText dim style={styles.flyoutTitle}>
-        {family.label}
+        {family.label} ({family.shortcut})
       </WText>
       {family.items.map((tool) => {
         const usable = isUsable(tool);
@@ -124,7 +124,7 @@ export function ToolRail() {
                 }}
                 icon={shown.icon}
                 label={family.items.length > 1 ? `${family.label} : ${shown.label}` : shown.label}
-                hint={usable ? (family.items.length > 1 ? 'Appui long : autres outils de la famille' : shown.note) : `Prévu au module ${shown.note ?? ''}`}
+                hint={`${usable ? (family.items.length > 1 ? 'Appui long : autres outils de la famille' : (shown.note ?? '')) : `Prévu au module ${shown.note ?? ''}`} · Raccourci : ${family.shortcut}`}
                 active={active}
                 family={family.items.length > 1}
                 style={[styles.tool, !usable && styles.toolPlanned]}

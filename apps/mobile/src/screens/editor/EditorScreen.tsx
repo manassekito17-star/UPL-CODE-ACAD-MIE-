@@ -14,7 +14,8 @@ import { useWorkspaceStore } from '@/stores/workspaceStore';
 import { colors, radius, spacing } from '@/theme';
 
 import { CanvasArea } from './CanvasArea';
-import { DesktopWorkspace } from './desktop/DesktopWorkspace';
+import { DesktopWorkspace, LayerDialogs } from './desktop/DesktopWorkspace';
+import { useEditorShortcuts } from './useEditorShortcuts';
 import { EditorToolbar } from './EditorToolbar';
 import { EditorTopBar, goHome } from './EditorTopBar';
 import { LayersPanelContent, PropertiesPanelContent } from './panels';
@@ -60,9 +61,17 @@ export function EditorScreen({ projectId }: EditorScreenProps) {
     <RenderResourcesProvider layers={document.layers}>
       {studio ? <DesktopWorkspace document={document} /> : <CompactWorkspace document={document} />}
       <ExportDialog />
+      <LayerDialogs document={document} />
+      <EditorShortcuts documentId={document.id} studio={studio} />
       <ThumbnailWriter document={document} />
     </RenderResourcesProvider>
   );
+}
+
+/** Raccourcis clavier de l'éditeur (dans le fournisseur de ressources de rendu). */
+function EditorShortcuts({ documentId, studio }: { documentId: string; studio: boolean }) {
+  useEditorShortcuts(documentId, studio);
+  return null;
 }
 
 /** Met à jour la miniature du projet (liste des projets récents). */

@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -10,6 +10,7 @@ import { PRESET_CATALOG, presetPixels, type SizePreset } from '@/engine/document
 import { openImageAsNewDocument, useImageImport } from '@/features/image-import/useImageImport';
 import { commandOpenFile } from '@/features/files/fileCommands';
 import { removeUnreadable, usePersistenceStore } from '@/features/persistence';
+import { pushShortcutHandler, useShortcutHelp } from '@/features/shortcuts/dispatcher';
 import { RecentProjects } from '@/features/projects/RecentProjects';
 import type { UnreadableProject } from '@/services/projects';
 import { useDocumentStore } from '@/stores/documentStore';
@@ -54,6 +55,18 @@ export function HomeScreen() {
   const [section, setSection] = useState<Section>('home');
   const imageImport = useImageImport();
   const createDocument = useDocumentStore((s) => s.createDocument);
+  // Raccourcis de l'accueil : nouveau, ouvrir, aide.
+  useEffect(
+    () =>
+      pushShortcutHandler((chord) => {
+        if (chord === 'mod+n') router.push('/new-document');
+        else if (chord === 'mod+o') void commandOpenFile();
+        else if (chord === 'mod+/') useShortcutHelp.getState().setOpen(true);
+        else return false;
+        return true;
+      }),
+    [],
+  );
 
   const importImage = async () => {
     const { asset } = await imageImport.pick();

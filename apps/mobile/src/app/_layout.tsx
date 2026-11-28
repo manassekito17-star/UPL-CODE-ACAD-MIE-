@@ -6,6 +6,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SkiaGate } from '@/components/SkiaGate';
 import { FileDialogs } from '@/features/files/FileDialogs';
 import { PersistenceGate } from '@/features/persistence';
+import { ShortcutsRoot } from '@/features/shortcuts/ShortcutsRoot';
 import { colors } from '@/theme';
 import { navigationTheme } from '@/theme/navigationTheme';
 
@@ -40,6 +41,7 @@ export default function RootLayout() {
               <Stack.Screen name="settings" options={{ title: 'Paramètres' }} />
             </Stack>
             <FileDialogs />
+            <ShortcutsRoot />
           </ThemeProvider>
         </PersistenceGate>
       </SkiaGate>
