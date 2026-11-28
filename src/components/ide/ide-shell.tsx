@@ -1597,7 +1597,25 @@ export function IdeShell({ initial, loggedIn, userName }: { initial: IdeProject;
       )}
       {shortcutsOpen && <ShortcutsDialog onClose={() => setShortcutsOpen(false)} />}
       {consoleScreen && (
-        <ConsoleScreen onBack={() => setConsoleScreen(false)} running={running} finished={!running && Boolean(result || runError)}>
+        <ConsoleScreen
+          onBack={() => setConsoleScreen(false)}
+          running={running}
+          finished={!running && Boolean(result || runError)}
+          footer={
+            <form
+              className="flex items-end gap-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void run();
+              }}
+            >
+              <textarea value={stdin} onChange={(e) => setStdin(e.target.value)} rows={2} placeholder="Entrées du programme (input…), une par ligne" aria-label="Entrées du programme (console)" className="min-h-10 flex-1 resize-none rounded border border-white/15 bg-black/30 p-2 font-mono text-base text-white outline-none" />
+              <button type="submit" disabled={running} className="shrink-0 rounded bg-[#0e7490] px-3 py-2 text-sm font-semibold text-white disabled:opacity-50" data-testid="console-relancer">
+                ▶ Relancer
+              </button>
+            </form>
+          }
+        >
           {running && runStatus && <div className="text-cyan-accent">{runStatus}</div>}
           {programOutput}
         </ConsoleScreen>
