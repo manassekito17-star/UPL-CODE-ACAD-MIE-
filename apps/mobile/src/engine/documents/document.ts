@@ -30,6 +30,7 @@ export function createDocument(spec: DocumentSpec, { id, now }: CreateDocumentDe
     backgroundColor: backgroundColorOf(spec.background, spec.backgroundColor),
     resolution: spec.resolution ?? DEFAULT_RESOLUTION,
     layers: [],
+    guides: [],
     createdAt: now,
     updatedAt: now,
   };

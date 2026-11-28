@@ -35,8 +35,28 @@ sous la marque ZENTECH DESIGN, sans ressource ni code d'Adobe.
 | B | Parcours d'enregistrement : document « non enregistré » jusqu'au premier Enregistrer ; Enregistrer sous (nom + emplacement : application ou dossier `.zdesign`) ; Enregistrer une copie ; Ouvrir / Ouvrir récent ; Importer ; Informations du document ; confirmation à la fermeture ; sauvegarde automatique réglable ; récupération | **Livré** |
 | C | Exporter sous : aperçu, largeur / hauteur / %, résolution écrite dans le fichier, WebP, taille estimée, emplacement affiché, partage | **Livré** |
 | D | Raccourcis clavier (web, puis module natif Android / iOS) et commandes tactiles équivalentes | **Livré** (web et Android ; iOS : module présent, capture à faire sur Mac) |
-| E | Téléphone : menus complets en tiroir, panneaux en tiroirs ; grille et repères ; réarrangement des panneaux | À faire |
+| E | Téléphone : menus complets en tiroir, panneaux en tiroirs ; grille et repères ; réarrangement des panneaux | **Livré** (réarrangement par menu, sans glisser-déposer) |
 | F | Les 6 parcours de validation demandés, automatisés (Jest + navigateur) | Au fil des lots |
+
+## Lot E — livré
+
+- Téléphone : tiroir « Menus » (mêmes menus que la tablette, sans les
+  commandes propres à la tablette) ; Fenêtre ouvre six panneaux en feuille.
+- Repères (dans le document, format 3), grille (réglage d'affichage),
+  magnétisme (document, repères, calques, grille).
+- Réarrangement des panneaux par le menu ≡ (vers un groupe, un nouveau
+  groupe, la colonne d'icônes ; monter / descendre un groupe) et espaces de
+  travail enregistrés sur l'appareil.
+- Limites : pas de glisser-déposer des onglets entre groupes ; le
+  magnétisme s'applique au déplacement, pas encore au redimensionnement ;
+  les repères ne sont pas exportés (comme dans les logiciels de bureau) ;
+  sur le téléphone, pas de règles, donc les repères se créent par
+  Affichage › Nouveau repère….
+- Vérifié dans le navigateur : repère créé en glissant depuis chaque règle,
+  déplacé puis retiré à l'outil Déplacement, rectangle aimanté au centre du
+  document (et non aimanté une fois le magnétisme coupé), grille, tiroir et
+  feuilles du téléphone, disposition et espace « Retouche » retrouvés après
+  rechargement de la page.
 
 ## Lot B — livré
 

@@ -152,9 +152,103 @@ describe('espace studio : menus', () => {
     expect(screen.getByRole('tab', { name: 'Couches' })).toBeSelected();
 
     await openMenu('Fenêtre');
-    await fireEvent.press(menuItem('Réinitialiser l’espace de travail'));
+    await fireEvent.press(menuItem('Réinitialiser Essentiels'));
     expect(screen.getByRole('tab', { name: 'Calques' })).toBeSelected();
     expect(screen.getByTestId('rulers')).toBeTruthy();
+  });
+});
+
+describe('espace studio : grille, repères et magnétisme', () => {
+  const guides = () => doc()?.guides ?? [];
+
+  it('Affichage › Nouveau repère… crée un repère enregistré dans le document et l’historique', async () => {
+    await openStudio();
+    await openMenu('Affichage');
+    expect(menuItem('Effacer les repères')).toBeDisabled(); // aucun repère
+    await fireEvent.press(menuItem('Nouveau repère…'));
+    const dialog = within(screen.getByTestId('new-guide-dialog'));
+    expect(dialog.getByText('Distance depuis le bord haut (le document mesure 500 px de haut).')).toBeTruthy();
+    await fireEvent.changeText(dialog.getByTestId('guide-position'), 'abc');
+    await fireEvent.press(dialog.getByRole('button', { name: 'OK' }));
+    expect(dialog.getByText('Saisissez un nombre.')).toBeTruthy();
+    expect(guides()).toEqual([]);
+
+    await fireEvent.changeText(dialog.getByTestId('guide-position'), '120,4');
+    await fireEvent.press(dialog.getByRole('button', { name: 'OK' }));
+    expect(screen.queryByTestId('new-guide-dialog')).toBeNull();
+    expect(guides()).toMatchObject([{ orientation: 'horizontal', position: 120 }]);
+
+    await openMenu('Affichage');
+    await fireEvent.press(menuItem('Nouveau repère…'));
+    const second = within(screen.getByTestId('new-guide-dialog'));
+    await fireEvent.press(second.getByRole('radio', { name: 'Verticale' }));
+    expect(second.getByText('Distance depuis le bord gauche (le document mesure 1000 px de large).')).toBeTruthy();
+    await fireEvent.changeText(second.getByTestId('guide-position'), '300');
+    await fireEvent.press(second.getByRole('button', { name: 'OK' }));
+    expect(guides().map((g) => [g.orientation, g.position])).toEqual([
+      ['horizontal', 120],
+      ['vertical', 300],
+    ]);
+
+    // Chaque repère est une étape de l'historique, annulable.
+    await openMenu('Édition');
+    expect(menuItem('Annuler : Nouveau repère')).toBeEnabled();
+    await fireEvent.press(menuItem('Annuler : Nouveau repère'));
+    expect(guides()).toHaveLength(1);
+
+    await openMenu('Affichage');
+    await fireEvent.press(menuItem('Effacer les repères'));
+    expect(guides()).toEqual([]);
+    expect(useDocumentStore.getState().histories[docId]?.states.at(-1)?.label).toBe('Effacer les repères');
+  });
+
+  it('Grille, Repères, Magnétisme et Verrouiller sont des bascules cochées', async () => {
+    await openStudio();
+    const checked = (label: string) => menuItem(label).props.accessibilityState?.checked;
+    await openMenu('Affichage');
+    expect(checked('Grille')).toBeFalsy();
+    expect(checked('Repères')).toBe(true);
+    expect(checked('Magnétisme')).toBe(true);
+    expect(checked('Verrouiller les repères')).toBeFalsy();
+    await fireEvent.press(menuItem('Grille'));
+    expect(useWorkspaceStore.getState().gridVisible).toBe(true);
+    for (const label of ['Repères', 'Magnétisme', 'Verrouiller les repères']) {
+      await openMenu('Affichage');
+      await fireEvent.press(menuItem(label));
+    }
+    expect(useWorkspaceStore.getState()).toMatchObject({ gridVisible: true, guidesVisible: false, snapEnabled: false, guidesLocked: true });
+    await openMenu('Affichage');
+    expect(checked('Grille')).toBe(true);
+    expect(checked('Repères')).toBeFalsy();
+  });
+
+  it('Paramètres de la grille… valide le pas et les subdivisions puis affiche la grille', async () => {
+    await openStudio();
+    await openMenu('Affichage');
+    await fireEvent.press(menuItem('Paramètres de la grille…'));
+    const dialog = within(screen.getByTestId('grid-dialog'));
+    expect(dialog.getByTestId('grid-spacing').props.value).toBe('100');
+    expect(dialog.getByTestId('grid-subdivisions').props.value).toBe('4');
+    await fireEvent.changeText(dialog.getByTestId('grid-subdivisions'), '0');
+    await fireEvent.press(dialog.getByRole('button', { name: 'OK' }));
+    expect(dialog.getByText('Les subdivisions doivent être un entier entre 1 et 20.')).toBeTruthy();
+    await fireEvent.changeText(dialog.getByTestId('grid-spacing'), '50');
+    await fireEvent.changeText(dialog.getByTestId('grid-subdivisions'), '5');
+    await fireEvent.press(dialog.getByRole('button', { name: 'OK' }));
+    expect(screen.queryByTestId('grid-dialog')).toBeNull();
+    expect(useWorkspaceStore.getState()).toMatchObject({ grid: { spacing: 50, subdivisions: 5 }, gridVisible: true });
+  });
+
+  it('créer un repère alors qu’ils sont masqués les réaffiche ; les règles invitent à glisser', async () => {
+    await openStudio();
+    expect(screen.getByTestId('ruler-horizontal').props.accessibilityHint).toBe('Glisser vers le document pour créer un repère horizontal');
+    expect(screen.getByTestId('ruler-vertical').props.accessibilityHint).toBe('Glisser vers le document pour créer un repère vertical');
+    await act(async () => useWorkspaceStore.getState().toggleGuides());
+    await openMenu('Affichage');
+    await fireEvent.press(menuItem('Nouveau repère…'));
+    await fireEvent.press(within(screen.getByTestId('new-guide-dialog')).getByRole('button', { name: 'OK' }));
+    expect(guides()).toMatchObject([{ position: 0 }]);
+    expect(useWorkspaceStore.getState().guidesVisible).toBe(true);
   });
 });
 
@@ -367,6 +461,124 @@ describe('espace studio : dock', () => {
     await fireEvent.press(nav.getByRole('button', { name: 'Zoom avant' }));
     expect(nav.getByText('156 %')).toBeTruthy();
     expect(nav.getByLabelText('Vignette du document : toucher pour centrer la vue')).toBeTruthy();
+  });
+});
+
+describe('espace studio : réarrangement des panneaux et espaces de travail', () => {
+  const panelMenuItem = (name: string) => within(screen.getByTestId('panel-menu')).getByRole('menuitem', { name });
+  const tabsOf = (group: string) => within(screen.getByTestId(`dock-group-${group}`)).getAllByRole('tab').map((t) => t.props.accessibilityLabel as string);
+
+  it('le menu d’un panneau le déplace vers un autre groupe, un nouveau groupe ou la colonne d’icônes', async () => {
+    await openStudio();
+    // Nuancier → groupe des Calques : il y devient l'onglet actif.
+    await fireEvent.press(screen.getByRole('tab', { name: 'Nuancier' }));
+    await fireEvent.press(screen.getByTestId('panel-menu-color'));
+    await fireEvent.press(panelMenuItem('Vers le groupe Calques, Couches, Tracés'));
+    expect(tabsOf('color')).toEqual(['Couleur']);
+    expect(tabsOf('layers')).toEqual(['Calques', 'Couches', 'Tracés', 'Nuancier']);
+    expect(screen.getByRole('tab', { name: 'Nuancier' })).toBeSelected();
+
+    // Réglages → nouveau groupe, sous Propriétés.
+    await fireEvent.press(screen.getByRole('tab', { name: 'Réglages' }));
+    await fireEvent.press(screen.getByTestId('panel-menu-properties'));
+    await fireEvent.press(panelMenuItem('Vers un nouveau groupe'));
+    expect(useWorkspaceStore.getState().groups.map((g) => g.id)).toEqual(['color', 'properties', 'group-1', 'layers']);
+    expect(tabsOf('group-1')).toEqual(['Réglages']);
+
+    // Calques → colonne d'icônes : il s'ouvre en panneau flottant.
+    await fireEvent.press(screen.getByRole('tab', { name: 'Calques' }));
+    await fireEvent.press(screen.getByTestId('panel-menu-layers'));
+    await fireEvent.press(panelMenuItem('Vers la colonne d’icônes'));
+    expect(screen.queryByRole('tab', { name: 'Calques' })).toBeNull();
+    await fireEvent.press(screen.getByTestId('strip-layers'));
+    expect(within(screen.getByTestId('strip-popover')).getByTestId('layers-panel')).toBeTruthy();
+
+    // Et retour dans le dock depuis le menu du panneau flottant.
+    await fireEvent.press(screen.getByTestId('strip-panel-menu'));
+    await fireEvent.press(panelMenuItem('Vers le groupe Couleur'));
+    expect(tabsOf('color')).toEqual(['Couleur', 'Calques']);
+    expect(screen.queryByTestId('strip-layers')).toBeNull();
+  });
+
+  it('monte et descend un groupe ; les commandes impossibles sont désactivées', async () => {
+    await openStudio();
+    await fireEvent.press(screen.getByTestId('panel-menu-color'));
+    expect(panelMenuItem('Monter le groupe')).toBeDisabled();
+    await fireEvent.press(panelMenuItem('Descendre le groupe'));
+    expect(useWorkspaceStore.getState().groups.map((g) => g.id)).toEqual(['properties', 'color', 'layers']);
+    await fireEvent.press(screen.getByTestId('panel-menu-layers'));
+    expect(panelMenuItem('Descendre le groupe')).toBeDisabled();
+    await fireEvent.press(panelMenuItem('Monter le groupe'));
+    expect(useWorkspaceStore.getState().groups.map((g) => g.id)).toEqual(['properties', 'layers', 'color']);
+  });
+
+  it('Fenêtre › Nouvel espace de travail… enregistre la disposition ; changer d’espace la restaure', async () => {
+    await openStudio();
+    await fireEvent.press(screen.getByTestId('panel-menu-layers'));
+    await fireEvent.press(panelMenuItem('Vers la colonne d’icônes'));
+
+    await openMenu('Fenêtre');
+    expect(menuItem('Essentiels (par défaut)').props.accessibilityState?.checked).toBe(true);
+    expect(menuItem('Supprimer l’espace de travail…')).toBeDisabled();
+    await fireEvent.press(menuItem('Nouvel espace de travail…'));
+    await fireEvent.changeText(screen.getByTestId('prompt-input'), 'Essentiels');
+    await fireEvent.press(within(screen.getByTestId('prompt-dialog')).getByRole('button', { name: 'Enregistrer' }));
+    expect(screen.getByText('« Essentiels » est l’espace fourni par l’application : choisissez un autre nom.')).toBeTruthy();
+    await fireEvent.changeText(screen.getByTestId('prompt-input'), 'Retouche');
+    await fireEvent.press(within(screen.getByTestId('prompt-dialog')).getByRole('button', { name: 'Enregistrer' }));
+    expect(screen.queryByTestId('prompt-dialog')).toBeNull();
+
+    await openMenu('Fenêtre');
+    expect(menuItem('Retouche').props.accessibilityState?.checked).toBe(true);
+    await fireEvent.press(menuItem('Essentiels (par défaut)'));
+    expect(screen.getByRole('tab', { name: 'Calques' })).toBeTruthy();
+    expect(screen.queryByTestId('strip-layers')).toBeNull();
+
+    await openMenu('Fenêtre');
+    await fireEvent.press(menuItem('Retouche'));
+    expect(screen.queryByRole('tab', { name: 'Calques' })).toBeNull();
+    expect(screen.getByTestId('strip-layers')).toBeTruthy();
+
+    // Réinitialiser revient à la version enregistrée de l'espace actuel.
+    await fireEvent.press(screen.getByTestId('panel-menu-color'));
+    await fireEvent.press(panelMenuItem('Descendre le groupe'));
+    await openMenu('Fenêtre');
+    await fireEvent.press(menuItem('Réinitialiser Retouche'));
+    expect(useWorkspaceStore.getState().groups.map((g) => g.id)).toEqual(['color', 'properties', 'layers']);
+    expect(screen.getByTestId('strip-layers')).toBeTruthy();
+
+    await openMenu('Fenêtre');
+    await fireEvent.press(menuItem('Supprimer l’espace de travail…'));
+    await fireEvent.press(screen.getByRole('button', { name: 'Supprimer' }));
+    expect(useWorkspaceStore.getState()).toMatchObject({ workspaceName: 'Essentiels', savedWorkspaces: [] });
+  });
+
+  it('la disposition et les espaces enregistrés sont conservés sur l’appareil', async () => {
+    const { getSettingsRepository } = jest.requireMock('@/services/projects/repository');
+    const { resetWorkspacePersistence } = jest.requireActual('@/features/workspace/workspacePersistence');
+    await openStudio();
+    await act(async () => {
+      useWorkspaceStore.getState().movePanel('history', { group: 'color' });
+      useWorkspaceStore.getState().saveWorkspace('Retouche');
+      useWorkspaceStore.getState().moveGroup('layers', -1);
+      jest.advanceTimersByTime(400);
+    });
+    const stored = JSON.parse((await getSettingsRepository().get('workspaces')) as string);
+    expect(stored).toMatchObject({ format: 1, current: 'Retouche', saved: [{ name: 'Retouche' }] });
+    expect(stored.live.groups.map((g: { id: string }) => g.id)).toEqual(['color', 'layers', 'properties']);
+
+    // Nouveau lancement : magasin remis à zéro, puis relu depuis les réglages.
+    await act(async () => {
+      resetWorkspacePersistence();
+      resetWorkspaceStore();
+    });
+    expect(useWorkspaceStore.getState().workspaceName).toBe('Essentiels');
+    await act(async () => {
+      await jest.requireActual('@/features/workspace/workspacePersistence').loadWorkspaces();
+    });
+    expect(useWorkspaceStore.getState()).toMatchObject({ workspaceName: 'Retouche', savedWorkspaces: [{ name: 'Retouche' }] });
+    expect(useWorkspaceStore.getState().groups.map((g) => g.id)).toEqual(['color', 'layers', 'properties']);
+    expect(tabsOf('color')).toEqual(['Couleur', 'Nuancier', 'Historique']);
   });
 });
 

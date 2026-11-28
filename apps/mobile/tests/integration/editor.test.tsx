@@ -134,6 +134,73 @@ describe('espace de travail', () => {
     });
   });
 
+  describe('menus du téléphone', () => {
+    it('ouvre les menus complets dans un tiroir, sans les commandes propres à la tablette', async () => {
+      await openEditor('compact');
+      expect(screen.queryByTestId('menu-drawer')).toBeNull();
+      await fireEvent.press(within(screen.getByTestId('editor-top-bar')).getByRole('button', { name: 'Menus' }));
+      const drawer = within(screen.getByTestId('menu-drawer'));
+      for (const title of ['Fichier', 'Édition', 'Image', 'Calque', 'Texte', 'Sélection', 'Filtre', 'Affichage', 'Fenêtre', 'Aide']) {
+        expect(drawer.getByRole('button', { name: `Menu ${title}` })).toBeTruthy();
+      }
+      // Fichier est déplié par défaut.
+      expect(drawer.getByRole('menuitem', { name: 'Enregistrer' })).toBeTruthy();
+      expect(drawer.getByRole('menuitem', { name: 'Exporter sous…' })).toBeTruthy();
+
+      await fireEvent.press(drawer.getByRole('button', { name: 'Menu Affichage' }));
+      expect(drawer.queryByRole('menuitem', { name: 'Enregistrer' })).toBeNull(); // un seul menu déplié
+      expect(drawer.getByRole('menuitem', { name: 'Zoom avant' })).toBeEnabled();
+      expect(drawer.queryByRole('menuitem', { name: 'Règles' })).toBeNull();
+      expect(drawer.queryByRole('menuitem', { name: 'Mode plein écran avec barre de menus' })).toBeNull();
+
+      await fireEvent.press(drawer.getByRole('button', { name: 'Fermer les menus' }));
+      expect(screen.queryByTestId('menu-drawer')).toBeNull();
+    });
+
+    it('exécute les commandes du menu : Calque › Nouveau calque de texte', async () => {
+      const doc = await openEditor('compact');
+      await fireEvent.press(screen.getByRole('button', { name: 'Menus' }));
+      const drawer = within(screen.getByTestId('menu-drawer'));
+      await fireEvent.press(drawer.getByRole('button', { name: 'Menu Calque' }));
+      const entries = drawer.getAllByRole('menuitem').map((e) => e.props.accessibilityLabel as string);
+      const textEntry = entries.find((l) => /texte/i.test(l));
+      expect(textEntry).toBeDefined();
+      await fireEvent.press(drawer.getByRole('menuitem', { name: textEntry! }));
+      expect(screen.queryByTestId('menu-drawer')).toBeNull(); // le tiroir se referme
+      expect(useDocumentStore.getState().documents[doc.id]?.layers.map((l) => l.type)).toEqual(['text']);
+    });
+
+    it('Fenêtre ouvre chaque panneau du téléphone en feuille', async () => {
+      await openEditor('compact');
+      const panels = [
+        ['Couleur', 'color'],
+        ['Nuancier', 'swatches'],
+        ['Historique', 'history'],
+        ['Navigateur', 'navigator'],
+        ['Calques', 'layers'],
+        ['Propriétés', 'properties'],
+      ] as const;
+      for (const [title, id] of panels) {
+        await fireEvent.press(screen.getByRole('button', { name: 'Menus' }));
+        const drawer = within(screen.getByTestId('menu-drawer'));
+        // Le tiroir rouvre le dernier menu déplié.
+        const section = drawer.getByRole('button', { name: 'Menu Fenêtre' });
+        if (!section.props.accessibilityState?.expanded) await fireEvent.press(section);
+        await fireEvent.press(drawer.getByRole('menuitem', { name: title }));
+        expect(screen.getByTestId(`sheet-${id}`)).toBeTruthy();
+        expect(within(screen.getByTestId(`sheet-${id}`)).getByRole('header', { name: title })).toBeTruthy();
+      }
+      // L'entrée du panneau ouvert est cochée ; la choisir de nouveau ne le referme pas.
+      await fireEvent.press(screen.getByRole('button', { name: 'Menus' }));
+      const drawer = within(screen.getByTestId('menu-drawer'));
+      expect(drawer.getByRole('button', { name: 'Menu Fenêtre' })).toBeExpanded();
+      const item = drawer.getByRole('menuitem', { name: 'Propriétés' });
+      expect(item.props.accessibilityState).toMatchObject({ checked: true });
+      await fireEvent.press(item);
+      expect(screen.getByTestId('sheet-properties')).toBeTruthy();
+    });
+  });
+
   describe('grand écran', () => {
     it('affiche l’espace studio (détaillé dans studio-workspace.test.tsx)', async () => {
       await openEditor('expanded');

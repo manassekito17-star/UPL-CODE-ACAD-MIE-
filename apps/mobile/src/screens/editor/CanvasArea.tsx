@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText, IconButton } from '@/components/ui';
-import { DocumentCanvasHost, type CanvasController } from '@/engine/canvas';
+import { DocumentCanvasHost, type CanvasController, type ViewSharedValues } from '@/engine/canvas';
 import type { GraphicDocument } from '@/engine/documents';
+import { useGuideCanvasProps } from '@/features/guides/useGuideCanvasProps';
 import { useLayerActions } from '@/features/layers/useLayerActions';
 import { useRenderResources } from '@/features/rendering/RenderResourcesProvider';
 import { registerCanvas } from '@/features/shortcuts/dispatcher';
@@ -12,6 +13,10 @@ import { colors, radius, spacing, touchTarget } from '@/theme';
 
 export interface CanvasAreaProps {
   document: GraphicDocument;
+  /** Contrôleur, vue et zoom partagés avec le reste de l'écran (menus, Navigateur). */
+  controllerRef?: RefObject<CanvasController | null>;
+  view?: ViewSharedValues;
+  onZoomChange?: (percent: number) => void;
 }
 
 /** Facteur d'un clic sur les boutons de zoom (√2 : deux clics doublent le zoom). */
@@ -21,14 +26,20 @@ const ZOOM_STEP = Math.SQRT2;
 const CANVAS_INSETS = { top: touchTarget + spacing.sm, right: 0, bottom: 0, left: 0 } as const;
 
 /** Zone centrale de travail : canvas Skia et commandes de zoom. */
-export function CanvasArea({ document }: CanvasAreaProps) {
+export function CanvasArea({ document, controllerRef, view, onZoomChange }: CanvasAreaProps) {
   const tool = useEditorUiStore((s) => s.activeTool);
   const selectedLayerId = useEditorUiStore((s) => s.selectedLayerId);
   const actions = useLayerActions(document.id);
   const resources = useRenderResources();
-  const controller = useRef<CanvasController>(null);
-  useEffect(() => registerCanvas(controller), []);
-  const [zoom, setZoom] = useState<number | null>(null);
+  const guideProps = useGuideCanvasProps(document);
+  const ownController = useRef<CanvasController>(null);
+  const controller = controllerRef ?? ownController;
+  useEffect(() => registerCanvas(controller), [controller]);
+  const [zoom, setZoomState] = useState<number | null>(null);
+  const setZoom = (percent: number) => {
+    setZoomState(percent);
+    onZoomChange?.(percent);
+  };
 
   return (
     <View style={styles.area} testID="canvas-area">
@@ -44,6 +55,8 @@ export function CanvasArea({ document }: CanvasAreaProps) {
         onLayerDragStart={actions.select}
         resources={resources}
         onLayerTransformed={actions.transform}
+        view={view}
+        {...guideProps}
       />
 
       <View style={styles.zoomBar} accessibilityRole="toolbar" accessibilityLabel="Zoom">

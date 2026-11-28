@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Modal, Pressable, StyleSheet, View } from 'react-native';
 
 import { colors, radius, spacing } from '@/theme';
@@ -38,32 +38,59 @@ function PromptBody({ title, label, initialValue, confirmLabel, maxLength, onSub
   };
 
   return (
+    <DialogFrame title={title} confirmLabel={confirmLabel} onConfirm={submit} onCancel={onCancel} testID="prompt-dialog">
+      <View style={styles.field}>
+        <TextField
+          label={label}
+          value={value}
+          onChangeText={setValue}
+          error={error}
+          maxLength={maxLength}
+          autoFocus
+          selectTextOnFocus
+          returnKeyType="done"
+          onSubmitEditing={submit}
+          testID="prompt-input"
+        />
+      </View>
+    </DialogFrame>
+  );
+}
+
+/**
+ * Cadre d'une boîte de dialogue modale à formulaire : titre, contenu,
+ * boutons Annuler et de validation. À placer dans un `Modal` dont le
+ * contenu est remonté à chaque ouverture.
+ */
+export function DialogFrame({
+  title,
+  confirmLabel,
+  onConfirm,
+  onCancel,
+  children,
+  testID,
+}: {
+  title: string;
+  confirmLabel: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+  children: ReactNode;
+  testID?: string;
+}) {
+  return (
     <View style={styles.backdrop}>
       <Pressable style={StyleSheet.absoluteFill} onPress={onCancel} accessibilityElementsHidden importantForAccessibility="no" />
-      <View style={styles.dialog} accessibilityViewIsModal testID="prompt-dialog">
+      <View style={styles.dialog} accessibilityViewIsModal testID={testID}>
         <AppText variant="title" accessibilityRole="header">
           {title}
         </AppText>
-        <View style={styles.field}>
-          <TextField
-            label={label}
-            value={value}
-            onChangeText={setValue}
-            error={error}
-            maxLength={maxLength}
-            autoFocus
-            selectTextOnFocus
-            returnKeyType="done"
-            onSubmitEditing={submit}
-            testID="prompt-input"
-          />
-        </View>
+        {children}
         <View style={styles.actions}>
           <View style={styles.action}>
             <Button label="Annuler" variant="secondary" fullWidth onPress={onCancel} />
           </View>
           <View style={styles.action}>
-            <Button label={confirmLabel} fullWidth onPress={submit} />
+            <Button label={confirmLabel} fullWidth onPress={onConfirm} />
           </View>
         </View>
       </View>

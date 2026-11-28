@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
-import { PANEL_GROUPS, STRIP_PANELS, useWorkspaceStore, type PanelGroupId, type PanelId } from '@/stores/workspaceStore';
+import { useWorkspaceStore, type DockGroup, type PanelGroupId, type PanelId } from '@/stores/workspaceStore';
 import { ws, wsMetrics } from '@/theme';
 
 import { measureAnchor, type Anchor, type ViewRef } from '@/components/workspace/measure';
@@ -44,26 +44,59 @@ function PanelBody({ panel }: { panel: PanelId }) {
 /** Les panneaux qui gèrent eux-mêmes leur défilement (listes, formulaires longs). */
 const SELF_SCROLLING: readonly PanelId[] = ['properties', 'layers'];
 
-const GROUP_STYLE: Record<PanelGroupId, { flex?: number }> = {
-  color: {},
-  properties: { flex: 1 },
-  layers: { flex: 1.4 },
-};
+/** Panneaux de hauteur fixe : leur groupe prend la hauteur de son contenu. */
+const AUTO_HEIGHT: readonly PanelId[] = ['color', 'swatches'];
 
-/** Bouton « ≡ » d'un groupe : menu du panneau (réduire, fermer, fermer le groupe). */
+/** Hauteur relative d'un groupe : contenu (Couleur, Nuancier), sinon partage de la hauteur, plus pour les Calques. */
+function groupFlex(panels: readonly PanelId[]): { flex?: number } {
+  if (panels.every((p) => AUTO_HEIGHT.includes(p))) return {};
+  return { flex: panels.includes('layers') ? 1.4 : 1 };
+}
+
+/** Nom d'un groupe dans les menus : ses onglets (« Couleur, Nuancier »). */
+export function groupLabel(group: DockGroup): string {
+  return group.panels.map((p) => PANEL_META[p].label).join(', ');
+}
+
+/** Commandes de déplacement d'un panneau : vers un autre groupe, un nouveau groupe ou la colonne d'icônes. */
+function moveEntries(panel: PanelId, from: PanelGroupId | null): MenuEntry[] {
+  const { groups, movePanel } = useWorkspaceStore.getState();
+  const label = PANEL_META[panel].label;
+  const alone = from !== null && groups.find((g) => g.id === from)?.panels.length === 1;
+  return [
+    { type: 'header', label: `Déplacer ${label}` },
+    ...groups
+      .filter((g) => g.id !== from)
+      .map((g): MenuEntry => ({ type: 'item', label: `Vers le groupe ${groupLabel(g)}`, onPress: () => movePanel(panel, { group: g.id }) })),
+    { type: 'item', label: 'Vers un nouveau groupe', disabled: alone, onPress: () => movePanel(panel, { newGroup: true }) },
+    ...(from === null ? [] : [{ type: 'item', label: 'Vers la colonne d’icônes', onPress: () => movePanel(panel, { strip: true }) } as MenuEntry]),
+  ];
+}
+
+/** Bouton « ≡ » d'un groupe : menu du panneau (réduire, déplacer, réordonner, fermer). */
 function PanelMenu({ group, current, collapsed }: { group: PanelGroupId; current: PanelId; collapsed: boolean }) {
   const ref = useRef<ViewRef | null>(null);
   const [anchor, setAnchor] = useState<Anchor | null>(null);
   const toggleCollapsed = useWorkspaceStore((s) => s.toggleGroupCollapsed);
   const togglePanelVisible = useWorkspaceStore((s) => s.togglePanelVisible);
   const closeGroup = useWorkspaceStore((s) => s.closeGroup);
+  const moveGroup = useWorkspaceStore((s) => s.moveGroup);
+  const groups = useWorkspaceStore((s) => s.groups);
+  const index = groups.findIndex((g) => g.id === group);
   const label = PANEL_META[current].label;
-  const entries: MenuEntry[] = [
-    { type: 'item', label: collapsed ? 'Développer le groupe' : 'Réduire le groupe', onPress: () => toggleCollapsed(group) },
-    { type: 'separator' },
-    { type: 'item', label: `Fermer ${label}`, onPress: () => togglePanelVisible(current) },
-    { type: 'item', label: 'Fermer le groupe d’onglets', onPress: () => closeGroup(group) },
-  ];
+  const entries: MenuEntry[] = anchor
+    ? [
+        { type: 'item', label: collapsed ? 'Développer le groupe' : 'Réduire le groupe', onPress: () => toggleCollapsed(group) },
+        { type: 'separator' },
+        ...moveEntries(current, group),
+        { type: 'separator' },
+        { type: 'item', label: 'Monter le groupe', disabled: index <= 0, onPress: () => moveGroup(group, -1) },
+        { type: 'item', label: 'Descendre le groupe', disabled: index < 0 || index >= groups.length - 1, onPress: () => moveGroup(group, 1) },
+        { type: 'separator' },
+        { type: 'item', label: `Fermer ${label}`, onPress: () => togglePanelVisible(current) },
+        { type: 'item', label: 'Fermer le groupe d’onglets', onPress: () => closeGroup(group) },
+      ]
+    : [];
   return (
     <>
       <WIconButton
@@ -77,25 +110,27 @@ function PanelMenu({ group, current, collapsed }: { group: PanelGroupId; current
         onPress={() => measureAnchor(ref.current, setAnchor)}
         testID={`panel-menu-${group}`}
       />
-      <Popover anchor={anchor} onClose={() => setAnchor(null)} width={230} testID="panel-menu">
+      <Popover anchor={anchor} onClose={() => setAnchor(null)} width={260} testID="panel-menu">
         <MenuList entries={entries} onClose={() => setAnchor(null)} />
       </Popover>
     </>
   );
 }
 
-function PanelGroup({ group }: { group: PanelGroupId }) {
+function PanelGroup({ group: { id: group, panels: all } }: { group: DockGroup }) {
   const hidden = useWorkspaceStore((s) => s.hiddenPanels);
   const active = useWorkspaceStore((s) => s.activeTab[group]);
   const collapsed = useWorkspaceStore((s) => s.collapsedGroups.includes(group));
   const showPanel = useWorkspaceStore((s) => s.showPanel);
   const toggleCollapsed = useWorkspaceStore((s) => s.toggleGroupCollapsed);
-  const panels = PANEL_GROUPS[group].filter((p) => !hidden.includes(p));
-  if (panels.length === 0) return null;
-  const current = panels.includes(active) ? active : (panels[0] as PanelId);
+  const panels = all.filter((p) => !hidden.includes(p));
+  const first = panels[0];
+  if (first === undefined) return null;
+  const current = active !== undefined && panels.includes(active) ? active : first;
+  const autoHeight = panels.every((p) => AUTO_HEIGHT.includes(p));
 
   return (
-    <View style={[styles.group, !collapsed && GROUP_STYLE[group]]} testID={`dock-group-${group}`}>
+    <View style={[styles.group, !collapsed && groupFlex(panels)]} testID={`dock-group-${group}`}>
       <View style={styles.tabs}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.flex} contentContainerStyle={styles.tabStrip} accessibilityRole="tablist">
           {panels.map((panel) => {
@@ -125,7 +160,7 @@ function PanelGroup({ group }: { group: PanelGroupId }) {
           <PanelBody panel={current} />
         </View>
       ) : (
-        <ScrollView style={group === 'color' ? undefined : styles.body}>
+        <ScrollView style={autoHeight ? undefined : styles.body}>
           <PanelBody panel={current} />
         </ScrollView>
       )}
@@ -140,7 +175,8 @@ function PanelStrip() {
   const setOpen = useWorkspaceStore((s) => s.setOpenStripPanel);
   const refs = useRef<Partial<Record<PanelId, ViewRef | null>>>({});
   const [anchor, setAnchor] = useState<Anchor | null>(null);
-  const panels = STRIP_PANELS.filter((p) => !hidden.includes(p));
+  const strip = useWorkspaceStore((s) => s.strip);
+  const panels = strip.filter((p) => !hidden.includes(p));
   if (panels.length === 0) return null;
 
   const toggle = (panel: PanelId) => {
@@ -176,7 +212,8 @@ function PanelStrip() {
         {shown ? (
           <View>
             <View style={styles.floatingHeader}>
-              <WText style={styles.tabTextActive}>{PANEL_META[shown].label}</WText>
+              <WText style={[styles.tabTextActive, styles.flex]}>{PANEL_META[shown].label}</WText>
+              <StripPanelMenu panel={shown} />
               <WIconButton icon="chevron-double-right" label={`Réduire ${PANEL_META[shown].label}`} size={14} style={styles.headerButton} onPress={() => setOpen(null)} />
             </View>
             <PanelBody panel={shown} />
@@ -187,14 +224,42 @@ function PanelStrip() {
   );
 }
 
+/** Menu « ≡ » d'un panneau flottant de la colonne d'icônes : l'ancrer dans le dock, le fermer. */
+function StripPanelMenu({ panel }: { panel: PanelId }) {
+  const ref = useRef<ViewRef | null>(null);
+  const [anchor, setAnchor] = useState<Anchor | null>(null);
+  const togglePanelVisible = useWorkspaceStore((s) => s.togglePanelVisible);
+  const label = PANEL_META[panel].label;
+  const entries: MenuEntry[] = anchor ? [...moveEntries(panel, null), { type: 'separator' }, { type: 'item', label: `Fermer ${label}`, onPress: () => togglePanelVisible(panel) }] : [];
+  return (
+    <>
+      <WIconButton
+        innerRef={(node) => {
+          ref.current = node;
+        }}
+        icon="menu"
+        label={`Menu du panneau ${label}`}
+        size={14}
+        style={styles.headerButton}
+        onPress={() => measureAnchor(ref.current, setAnchor)}
+        testID="strip-panel-menu"
+      />
+      <Popover anchor={anchor} onClose={() => setAnchor(null)} width={260} testID="panel-menu">
+        <MenuList entries={entries} onClose={() => setAnchor(null)} />
+      </Popover>
+    </>
+  );
+}
+
 /** Dock réduit : une icône par panneau visible ; toucher développe le dock sur ce panneau. */
 function CollapsedDock() {
   const hidden = useWorkspaceStore((s) => s.hiddenPanels);
   const showPanel = useWorkspaceStore((s) => s.showPanel);
+  const groups = useWorkspaceStore((s) => s.groups);
   return (
     <View style={styles.collapsedDock} testID="dock-collapsed">
-      {(Object.keys(PANEL_GROUPS) as PanelGroupId[]).map((group) => {
-        const panels = PANEL_GROUPS[group].filter((p) => !hidden.includes(p));
+      {groups.map(({ id: group, panels: all }) => {
+        const panels = all.filter((p) => !hidden.includes(p));
         if (panels.length === 0) return null;
         return (
           <View key={group} style={styles.collapsedGroup}>
@@ -209,12 +274,15 @@ function CollapsedDock() {
 }
 
 /**
- * Zone des panneaux à droite : colonne d'icônes (Historique, Navigateur,
- * Caractère, Paragraphe) puis dock à trois groupes d'onglets, réductible en
- * icônes avec « << / >> ».
+ * Zone des panneaux à droite : colonne d'icônes (au départ Historique,
+ * Navigateur, Caractère, Paragraphe) puis dock de groupes d'onglets,
+ * réductible en icônes avec « << / >> ». Le menu « ≡ » de chaque panneau le
+ * déplace vers un autre groupe, un nouveau groupe ou la colonne d'icônes, et
+ * réordonne les groupes.
  */
 export function Dock({ width }: { width: number }) {
   const collapsed = useWorkspaceStore((s) => s.dockCollapsed);
+  const groups = useWorkspaceStore((s) => s.groups);
   const toggleDock = useWorkspaceStore((s) => s.toggleDockCollapsed);
   return (
     <View style={styles.area} testID="dock-area">
@@ -233,7 +301,7 @@ export function Dock({ width }: { width: number }) {
         {collapsed ? (
           <CollapsedDock />
         ) : (
-          (Object.keys(PANEL_GROUPS) as PanelGroupId[]).map((group) => <PanelGroup key={group} group={group} />)
+          groups.map((group) => <PanelGroup key={group.id} group={group} />)
         )}
       </View>
     </View>

@@ -1,9 +1,0 @@
-app.zentech.keyboard.zentech-keyboard-pngs-0 /home/user/UPL-CODE-ACAD-MIE-/apps/mobile/modules/zentech-keyboard/android/build/generated/res/pngs/debug
-app.zentech.keyboard.zentech-keyboard-updated_navigation_xml-1 /home/user/UPL-CODE-ACAD-MIE-/apps/mobile/modules/zentech-keyboard/android/build/generated/updated_navigation_xml/debug
-app.zentech.keyboard.zentech-keyboard-mergeDebugResources-2 /home/user/UPL-CODE-ACAD-MIE-/apps/mobile/modules/zentech-keyboard/android/build/intermediates/incremental/debug/mergeDebugResources/merged.dir
-app.zentech.keyboard.zentech-keyboard-mergeDebugResources-3 /home/user/UPL-CODE-ACAD-MIE-/apps/mobile/modules/zentech-keyboard/android/build/intermediates/incremental/debug/mergeDebugResources/stripped.dir
-app.zentech.keyboard.zentech-keyboard-debug-4 /home/user/UPL-CODE-ACAD-MIE-/apps/mobile/modules/zentech-keyboard/android/build/intermediates/merged_res/debug/mergeDebugResources
-app.zentech.keyboard.zentech-keyboard-debug-5 /home/user/UPL-CODE-ACAD-MIE-/apps/mobile/modules/zentech-keyboard/android/build/intermediates/packaged_res/debug/packageDebugResources
-app.zentech.keyboard.zentech-keyboard-debug-6 /home/user/UPL-CODE-ACAD-MIE-/apps/mobile/modules/zentech-keyboard/android/src/debug/res
-app.zentech.keyboard.zentech-keyboard-main-7 /home/user/UPL-CODE-ACAD-MIE-/apps/mobile/modules/zentech-keyboard/android/src/main/res
-gradleHome-0 /root/.gradle

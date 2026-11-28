@@ -123,6 +123,18 @@ export function useEditorShortcuts(documentId: string, studio: boolean): void {
         case 'view.rulers':
           if (isStudio) ws().toggleRulers();
           return isStudio;
+        case 'view.grid':
+          ws().toggleGrid();
+          return true;
+        case 'view.guides':
+          ws().toggleGuides();
+          return true;
+        case 'view.snap':
+          ws().toggleSnap();
+          return true;
+        case 'view.lockGuides':
+          ws().toggleGuidesLocked();
+          return true;
         case 'view.panels':
           if (isStudio) ws().togglePanelsHidden();
           return isStudio;

@@ -1,3 +1,4 @@
+import type { Guide } from '@/engine/guides';
 import type { Layer } from '@/engine/layers/types';
 
 /**
@@ -24,7 +25,7 @@ export interface DocumentSpec {
  * Version du format natif de document. À incrémenter à chaque changement
  * incompatible du modèle, avec une migration dans engine/project/serialization.ts.
  */
-export const DOCUMENT_FORMAT_VERSION = 2 as const;
+export const DOCUMENT_FORMAT_VERSION = 3 as const;
 
 /**
  * Document graphique, enregistré au format de engine/project (module M3).
@@ -46,6 +47,8 @@ export interface GraphicDocument {
   resolution: number;
   /** Pile de calques, du bas (index 0) vers le haut. */
   layers: Layer[];
+  /** Repères (format 3), dans l'ordre de création. */
+  guides: Guide[];
   /** Horodatages en millisecondes depuis l'époque Unix. */
   createdAt: number;
   updatedAt: number;

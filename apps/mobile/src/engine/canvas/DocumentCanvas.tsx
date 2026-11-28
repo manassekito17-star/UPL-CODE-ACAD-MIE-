@@ -1,4 +1,4 @@
-import { Canvas, Circle, Group, Line, Picture, Rect, Skia, vec } from '@shopify/react-native-skia';
+import { Canvas, Circle, Group, Line, Path, Picture, Rect, Skia, vec } from '@shopify/react-native-skia';
 import { useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type Ref } from 'react';
 import { PixelRatio, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import {
@@ -11,6 +11,17 @@ import {
 import { useDerivedValue, useSharedValue, withTiming, type SharedValue } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 
+import {
+  boundsOf,
+  gridLines,
+  hitGuide,
+  isGuideDroppedOutside,
+  snapGuidePosition,
+  snapMove,
+  type GridSettings,
+  type Guide,
+  type GuideOrientation,
+} from '@/engine/guides';
 import {
   handlePositions,
   hitHandle,
@@ -102,7 +113,24 @@ export interface DocumentCanvasProps {
   autoSelect?: boolean;
   /** Poignées de redimensionnement et de rotation (vrai par défaut). */
   showTransformControls?: boolean;
+  /** Repères du document ; affichés si `guidesVisible` (vrai par défaut). */
+  guides?: readonly Guide[];
+  guidesVisible?: boolean;
+  /** Repères verrouillés : l'outil Sélection ne les déplace pas. */
+  guidesLocked?: boolean;
+  /** Grille affichée (null : masquée). */
+  grid?: GridSettings | null;
+  /** Magnétisme : bords du document, repères, autres calques et grille affichée. */
+  snap?: boolean;
+  /**
+   * Fin du glisser d'un repère à l'outil Sélection : position (non arrondie)
+   * où il a été relâché, éventuellement hors du document.
+   */
+  onGuideDropped?: (id: string, position: number) => void;
 }
+
+/** Repère en cours de glisser (depuis une règle : id vide), affiché à la place du repère. */
+export type GuideDraft = { id: string; orientation: GuideOrientation; position: number } | null;
 
 export interface ViewSharedValues {
   scale: SharedValue<number>;
@@ -111,6 +139,8 @@ export interface ViewSharedValues {
   /** Taille de la zone de travail en points (0 tant qu'elle est inconnue). */
   width: SharedValue<number>;
   height: SharedValue<number>;
+  /** Repère glissé depuis une règle ou à l'outil Sélection. */
+  guideDraft: SharedValue<GuideDraft>;
 }
 
 /** Valeurs de vue partagées entre le canvas et les éléments qui le suivent. */
@@ -120,10 +150,11 @@ export function useViewSharedValues(): ViewSharedValues {
   const ty = useSharedValue(0);
   const width = useSharedValue(0);
   const height = useSharedValue(0);
-  return useMemo(() => ({ scale, tx, ty, width, height }), [scale, tx, ty, width, height]);
+  const guideDraft = useSharedValue<GuideDraft>(null);
+  return useMemo(() => ({ scale, tx, ty, width, height, guideDraft }), [scale, tx, ty, width, height, guideDraft]);
 }
 
-type Mode = 'none' | 'move' | 'rotate' | Corner;
+type Mode = 'none' | 'move' | 'rotate' | 'guide' | Corner;
 
 /**
  * Manipulation en cours, tenue sur le thread UI : la géométrie d'aperçu est
@@ -186,6 +217,114 @@ function LayerNode({ layer, m, resources }: { layer: Layer; m: Manipulation; res
 }
 
 const HANDLE_RADIUS = 7;
+/** Couleurs des repères et des repères commentés (alignement en cours). */
+const GUIDE_COLOR = '#00B8F0';
+const SMART_GUIDE_COLOR = '#FF2FD0';
+const GRID_MAJOR = 'rgba(140, 140, 140, 0.75)';
+const GRID_MINOR = 'rgba(140, 140, 140, 0.35)';
+const NO_GUIDES: readonly Guide[] = [];
+
+/** Bords et centre d'un calque, pour le magnétisme entre calques. */
+interface LayerSnapLines {
+  id: string;
+  xs: number[];
+  ys: number[];
+}
+
+/** Grille du document : lignes principales et subdivisions, d'un point écran d'épaisseur. */
+function GridOverlay({ width, height, grid, scale }: { width: number; height: number; grid: GridSettings; scale: SharedValue<number> }) {
+  const paths = useMemo(() => {
+    const build = (vertical: number[], horizontal: number[]) => {
+      const b = Skia.PathBuilder.Make();
+      for (const x of vertical) {
+        b.moveTo(x, 0);
+        b.lineTo(x, height);
+      }
+      for (const y of horizontal) {
+        b.moveTo(0, y);
+        b.lineTo(width, y);
+      }
+      return b.build();
+    };
+    const xs = gridLines(width, grid);
+    const ys = gridLines(height, grid);
+    return { major: build(xs.major, ys.major), minor: build(xs.minor, ys.minor) };
+  }, [width, height, grid]);
+  const stroke = useDerivedValue(() => 1 / scale.get());
+  return (
+    <>
+      <Path path={paths.minor} style="stroke" strokeWidth={stroke} color={GRID_MINOR} />
+      <Path path={paths.major} style="stroke" strokeWidth={stroke} color={GRID_MAJOR} />
+    </>
+  );
+}
+
+/**
+ * Repères (lignes d'un point écran sur toute la zone visible), le repère en
+ * cours de glisser et les lignes d'alignement du magnétisme.
+ */
+function GuidesOverlay({
+  guides,
+  visible,
+  view,
+  snapLines,
+  docSize,
+}: {
+  guides: SharedValue<readonly Guide[]>;
+  visible: SharedValue<boolean>;
+  view: ViewSharedValues;
+  snapLines: SharedValue<{ x: number | null; y: number | null }>;
+  docSize: SharedValue<Size>;
+}) {
+  const stroke = useDerivedValue(() => 1 / view.scale.get());
+  const area = () => {
+    'worklet';
+    const s = Math.max(view.scale.get(), 1e-6);
+    return {
+      left: -view.tx.get() / s,
+      top: -view.ty.get() / s,
+      right: (view.width.get() - view.tx.get()) / s,
+      bottom: (view.height.get() - view.ty.get()) / s,
+    };
+  };
+  const guidePath = useDerivedValue(() => {
+    const a = area();
+    const draft = view.guideDraft.get();
+    const b = Skia.PathBuilder.Make();
+    const add = (o: GuideOrientation, p: number) => {
+      if (o === 'horizontal') {
+        b.moveTo(a.left, p);
+        b.lineTo(a.right, p);
+      } else {
+        b.moveTo(p, a.top);
+        b.lineTo(p, a.bottom);
+      }
+    };
+    if (visible.get()) for (const g of guides.get()) if (!draft || draft.id !== g.id) add(g.orientation, g.position);
+    if (draft) add(draft.orientation, draft.position);
+    return b.build();
+  });
+  const smartPath = useDerivedValue(() => {
+    const l = snapLines.get();
+    const d = docSize.get();
+    const b = Skia.PathBuilder.Make();
+    if (l.x !== null) {
+      b.moveTo(l.x, Math.min(0, area().top));
+      b.lineTo(l.x, Math.max(d.height, area().bottom));
+    }
+    if (l.y !== null) {
+      b.moveTo(Math.min(0, area().left), l.y);
+      b.lineTo(Math.max(d.width, area().right), l.y);
+    }
+    return b.build();
+  });
+  return (
+    <>
+      <Path path={guidePath} style="stroke" strokeWidth={stroke} color={GUIDE_COLOR} />
+      <Path path={smartPath} style="stroke" strokeWidth={stroke} color={SMART_GUIDE_COLOR} />
+    </>
+  );
+}
 
 /**
  * Cadre de sélection d'épaisseur constante à l'écran. Deux tons (bordure
@@ -269,13 +408,20 @@ export function DocumentCanvas({
   pasteboardColor,
   autoSelect = true,
   showTransformControls = true,
+  guides = NO_GUIDES,
+  guidesVisible = true,
+  guidesLocked = false,
+  grid = null,
+  snap = false,
+  onGuideDropped,
 }: DocumentCanvasProps) {
   const pixelRatio = PixelRatio.get();
   const [viewSize, setViewSize] = useState<Size | null>(null);
 
   // État de la vue, partagé entre le thread JS et le thread UI.
   const ownView = useViewSharedValues();
-  const { scale, tx, ty, width: viewWidth, height: viewHeight } = externalView ?? ownView;
+  const viewValues = externalView ?? ownView;
+  const { scale, tx, ty, width: viewWidth, height: viewHeight, guideDraft } = viewValues;
   const limits = useSharedValue<ZoomLimits>({ min: 0.01, max: 32 });
   const view = useSharedValue<Size>({ width: 1, height: 1 });
   const docSize = useSharedValue<Size>({ width: document.width, height: document.height });
@@ -286,6 +432,17 @@ export function DocumentCanvas({
   const controls = useSharedValue(showTransformControls);
   const hitLayers = useSharedValue<HitCandidate[]>([]);
   const selected = useSharedValue<SelectedInfo | null>(null);
+  // Repères et magnétisme, copiés pour le thread UI.
+  const guidesSV = useSharedValue<readonly Guide[]>(guides);
+  const guidesShown = useSharedValue(guidesVisible);
+  const guidesMovable = useSharedValue(guidesVisible && !guidesLocked);
+  const snapOn = useSharedValue(snap);
+  const gridSV = useSharedValue<GridSettings | null>(grid);
+  const layerLines = useSharedValue<LayerSnapLines[]>([]);
+  /** Lignes d'attraction du déplacement en cours (fixées au début du geste). */
+  const moveTargets = useSharedValue<{ xs: number[]; ys: number[] }>({ xs: [], ys: [] });
+  const snapLines = useSharedValue<{ x: number | null; y: number | null }>({ x: null, y: null });
+  const guideStart = useSharedValue(0);
   const m: Manipulation = {
     id: useSharedValue(''),
     mode: useSharedValue<Mode>('none'),
@@ -301,10 +458,52 @@ export function DocumentCanvas({
     controls.set(showTransformControls);
   }, [tool, oneFingerPan, selectTool, auto, autoSelect, controls, showTransformControls]);
 
+  useEffect(() => {
+    guidesSV.set(guides);
+    guidesShown.set(guidesVisible);
+    guidesMovable.set(guidesVisible && !guidesLocked);
+    snapOn.set(snap);
+    gridSV.set(grid);
+  }, [guides, guidesVisible, guidesLocked, snap, grid, guidesSV, guidesShown, guidesMovable, snapOn, gridSV]);
+
+  // Fin du glisser d'un repère : le repère glissé reste affiché à sa
+  // nouvelle place jusqu'à ce que le document modifié soit rendu.
+  const pendingGuide = useRef(false);
+  useLayoutEffect(() => {
+    if (pendingGuide.current) {
+      pendingGuide.current = false;
+      guideDraft.set(null);
+    }
+  }, [guides, guideDraft]);
+  const guideDrop = useCallback(
+    (id: string, position: number) => {
+      const guide = guides.find((g) => g.id === id);
+      const changed =
+        guide !== undefined &&
+        onGuideDropped !== undefined &&
+        (Math.round(position) !== guide.position || isGuideDroppedOutside(guide.orientation, position, document));
+      if (!changed) {
+        guideDraft.set(null);
+        return;
+      }
+      pendingGuide.current = true;
+      onGuideDropped(id, position);
+    },
+    [guides, onGuideDropped, guideDraft, document],
+  );
+
   // Copies légères pour le thread UI : test d'atteinte et poignées.
   const selectedLayer = layers.find((l) => l.id === selectedLayerId && l.visible) ?? null;
   useEffect(() => {
     hitLayers.set(layers.map((l) => ({ id: l.id, ...geometryOf(l), visible: l.visible, locked: l.locked })));
+    layerLines.set(
+      layers
+        .filter((l) => l.visible)
+        .map((l) => {
+          const b = boundsOf(l);
+          return { id: l.id, xs: [b.left, (b.left + b.right) / 2, b.right], ys: [b.top, (b.top + b.bottom) / 2, b.bottom] };
+        }),
+    );
     selected.set(
       selectedLayer
         ? {
@@ -315,7 +514,7 @@ export function DocumentCanvas({
           }
         : null,
     );
-  }, [layers, selectedLayer, hitLayers, selected]);
+  }, [layers, selectedLayer, hitLayers, selected, layerLines]);
 
   // Fin d'une manipulation : l'aperçu reste affiché jusqu'à ce que la nouvelle
   // géométrie du calque soit rendue, puis il est retiré (pas de retour visuel
@@ -519,6 +718,15 @@ export function DocumentCanvas({
           return;
         }
       }
+      if (guidesMovable.get()) {
+        const g = hitGuide(guidesSV.get(), px, py, s);
+        if (g) {
+          guideStart.set(g.position);
+          guideDraft.set({ id: g.id, orientation: g.orientation, position: g.position });
+          m.mode.set('guide');
+          return;
+        }
+      }
       const hit = hitTest(hitLayers.get(), px, py);
       if (e.numberOfPointers > 1) return;
       const id = pickDragLayer({ autoSelect: auto.get(), hit, selected: sel });
@@ -529,6 +737,17 @@ export function DocumentCanvas({
         m.origin.set({ x: px, y: py });
         m.mode.set('move');
         m.id.set(id);
+        // Cibles du magnétisme : document, repères visibles, autres calques.
+        const d = docSize.get();
+        const xs = [0, d.width / 2, d.width];
+        const ys = [0, d.height / 2, d.height];
+        if (guidesShown.get()) for (const g of guidesSV.get()) (g.orientation === 'vertical' ? xs : ys).push(g.position);
+        for (const l of layerLines.get()) {
+          if (l.id === id) continue;
+          for (const v of l.xs) xs.push(v);
+          for (const v of l.ys) ys.push(v);
+        }
+        moveTargets.set({ xs, ys });
         scheduleOnRN(dragStart, id);
       }
     },
@@ -539,9 +758,25 @@ export function DocumentCanvas({
       const s = scale.get();
       const dx = e.translationX / s;
       const dy = e.translationY / s;
+      if (mode === 'guide') {
+        const draft = guideDraft.get();
+        if (!draft) return;
+        const raw = guideStart.get() + (draft.orientation === 'horizontal' ? dy : dx);
+        const position = snapOn.get() ? snapGuidePosition(draft.orientation, raw, docSize.get(), gridSV.get(), s) : raw;
+        guideDraft.set({ ...draft, position });
+        return;
+      }
       const start = m.start.get();
       if (mode === 'move') {
-        m.preview.set({ ...start, x: start.x + dx, y: start.y + dy });
+        const moved = { ...start, x: start.x + dx, y: start.y + dy };
+        if (snapOn.get()) {
+          const t = moveTargets.get();
+          const r = snapMove(moved, { xs: t.xs, ys: t.ys, grid: gridSV.get() }, s);
+          m.preview.set({ ...moved, x: moved.x + r.dx, y: moved.y + r.dy });
+          snapLines.set({ x: r.lineX, y: r.lineY });
+        } else {
+          m.preview.set(moved);
+        }
       } else if (mode === 'rotate') {
         const o = m.origin.get();
         m.preview.set(rotateFromPointer(start, o.x, o.y, o.x + dx, o.y + dy));
@@ -551,6 +786,13 @@ export function DocumentCanvas({
     },
     onFinalize: () => {
       'worklet';
+      snapLines.set({ x: null, y: null });
+      if (m.mode.get() === 'guide') {
+        m.mode.set('none');
+        const draft = guideDraft.get();
+        if (draft) scheduleOnRN(guideDrop, draft.id, draft.position);
+        return;
+      }
       if (m.mode.get() !== 'none' && m.id.get() !== '') scheduleOnRN(dragEnd, m.id.get(), m.preview.get());
     },
   });
@@ -598,6 +840,8 @@ export function DocumentCanvas({
               <Picture picture={backgroundPicture} />
               {layers.map((layer) => (layer.visible ? <LayerNode key={layer.id} layer={layer} m={m} resources={resources} /> : null))}
               <Rect x={0} y={0} width={width} height={height} style="stroke" strokeWidth={borderWidth} color={colors.border} />
+              {grid ? <GridOverlay width={width} height={height} grid={grid} scale={scale} /> : null}
+              <GuidesOverlay guides={guidesSV} visible={guidesShown} view={viewValues} snapLines={snapLines} docSize={docSize} />
               {selectedLayer ? (
                 <SelectionOutline layer={selectedLayer} m={m} scale={scale} handles={tool === 'select' && showTransformControls && !selectedLayer.locked} />
               ) : null}

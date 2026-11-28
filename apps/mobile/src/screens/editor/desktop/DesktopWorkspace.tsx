@@ -6,7 +6,12 @@ import { ConfirmDialog, PromptDialog } from '@/components/ui';
 import { DocumentCanvasHost, useViewSharedValues, type CanvasController } from '@/engine/canvas';
 import { DOCUMENT_LIMITS, normalizeDocumentName, type GraphicDocument } from '@/engine/documents';
 import { LAYER_NAME_MAX, findLayer } from '@/engine/layers';
+import type { GuideOrientation } from '@/engine/guides';
+import { guideActions } from '@/features/guides/guideActions';
+import { useGuideCanvasProps } from '@/features/guides/useGuideCanvasProps';
 import { useLayerActions } from '@/features/layers/useLayerActions';
+import { WorkspaceDialogs } from '@/features/workspace/WorkspaceDialogs';
+import { loadWorkspaces } from '@/features/workspace/workspacePersistence';
 import { useRenderResources } from '@/features/rendering/RenderResourcesProvider';
 import { registerCanvas } from '@/features/shortcuts/dispatcher';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
@@ -24,7 +29,7 @@ import { ToolRail } from './ToolRail';
 import { WorkspaceContext, type WorkspaceContextValue } from './WorkspaceContext';
 
 /** « Enregistrer sous » (copie sous un nouveau nom, qui remplace l'onglet) et « Dupliquer » (copie en plus). */
-function SaveAsDialog({ document }: { document: GraphicDocument }) {
+export function SaveAsDialog({ document }: { document: GraphicDocument }) {
   const request = useWorkspaceStore((s) => s.saveAsRequest);
   const requestSaveAs = useWorkspaceStore((s) => s.requestSaveAs);
   const visible = request?.documentId === document.id;
@@ -108,9 +113,23 @@ export function DesktopWorkspace({ document }: { document: GraphicDocument }) {
   const showTransformControls = useWorkspaceStore((s) => s.showTransformControls);
   const actions = useLayerActions(document.id);
   const resources = useRenderResources();
+  const guideProps = useGuideCanvasProps(document);
+  const rulerGuides = useMemo(
+    () => ({
+      docWidth: document.width,
+      docHeight: document.height,
+      grid: guideProps.grid,
+      snap: guideProps.snap,
+      onCreate: (orientation: GuideOrientation, position: number) => guideActions.add(document.id, orientation, position),
+    }),
+    [document.width, document.height, document.id, guideProps.grid, guideProps.snap],
+  );
   const controller = useRef<CanvasController>(null);
   const view = useViewSharedValues();
   useEffect(() => registerCanvas(controller), []);
+  useEffect(() => {
+    void loadWorkspaces();
+  }, []);
   const [zoom, setZoom] = useState<number | null>(null);
 
   const context = useMemo<WorkspaceContextValue>(() => ({ document, controller, view, zoom, setZoom }), [document, view, zoom]);
@@ -125,7 +144,7 @@ export function DesktopWorkspace({ document }: { document: GraphicDocument }) {
             {panelsHidden ? null : <ToolRail />}
             <View style={styles.center}>
               <DocTabs />
-              <RulersFrame view={view} visible={rulersVisible}>
+              <RulersFrame view={view} visible={rulersVisible} guides={rulerGuides}>
                 <DocumentCanvasHost
                   document={document}
                   tool={tool}
@@ -141,6 +160,7 @@ export function DesktopWorkspace({ document }: { document: GraphicDocument }) {
                   pasteboardColor={ws.pasteboard}
                   autoSelect={autoSelect}
                   showTransformControls={showTransformControls}
+                  {...guideProps}
                 />
               </RulersFrame>
             </View>
@@ -148,7 +168,7 @@ export function DesktopWorkspace({ document }: { document: GraphicDocument }) {
           </View>
           <StatusBar />
         </View>
-        <SaveAsDialog document={document} />
+        <WorkspaceDialogs />
       </SafeAreaView>
     </WorkspaceContext.Provider>
   );

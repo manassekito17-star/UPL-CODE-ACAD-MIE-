@@ -5,6 +5,18 @@ versions selon [SemVer](https://semver.org/lang/fr/).
 
 ## [Non publié]
 
+### Expérience « bureau », lot E — Téléphone, repères et grille, espaces de travail
+
+- **Téléphone** : bouton « Menus » dans la barre supérieure ; tiroir à gauche avec les mêmes menus que la tablette (Fichier, Édition, Image, Calque, Texte, Sélection, Filtre, Affichage, Aide) en sections dépliables, entrées de 48 points ; les commandes propres à la tablette (Règles, mode plein écran, colonnes de panneaux) n'y figurent pas. « Fenêtre » ouvre en feuille les panneaux Calques, Propriétés, Couleur, Nuancier, Historique et Navigateur (les quatre derniers sont ceux du dock de la tablette, maintenant accessibles au téléphone).
+- **Repères** (enregistrés dans le document, format de projet 3 avec migration des projets 2) : glisser depuis la règle du haut (repère horizontal) ou de gauche (vertical) ; Affichage › Nouveau repère… (orientation, position en px, contrôlée) ; déplacer à l'outil Déplacement, retirer en le relâchant hors du document ; Effacer les repères ; Verrouiller les repères. Chaque changement est une étape de l'historique (« Nouveau repère », « Déplacer le repère », « Supprimer le repère », « Effacer les repères ») et marque le document modifié.
+- **Grille** : Affichage › Afficher › Grille, lignes principales et subdivisions d'un point écran quel que soit le zoom ; Paramètres de la grille… (pas en px, subdivisions), validés.
+- **Magnétisme** (Affichage › Magnétisme, actif par défaut) : un calque déplacé aligne ses bords ou son centre sur les bords et le centre du document, les repères, les autres calques et, si elle est affichée, la grille, à moins de 8 points écran ; la ligne atteinte s'affiche pendant le geste. Un repère glissé est attiré par les bords, le centre et la grille.
+- Raccourcis : Ctrl+' (grille), Ctrl+; (repères), Ctrl+Maj+; (magnétisme), Ctrl+Alt+; (verrouiller les repères) ; le module Android reconnaît ces touches.
+- **Réarrangement des panneaux** (tablette) : le menu ≡ de chaque groupe déplace l'onglet actif vers un autre groupe, un nouveau groupe ou la colonne d'icônes, monte ou descend le groupe ; un panneau de la colonne d'icônes a le même menu pour revenir dans le dock. Pas de glisser-déposer des onglets.
+- **Espaces de travail** : Fenêtre › Espace de travail › Nouvel espace de travail… (disposition des panneaux et de la barre d'outils), choisir un espace, Réinitialiser l'espace actuel (version enregistrée), Supprimer l'espace de travail… ; « Essentiels » est l'espace fourni. Disposition en cours et espaces enregistrés conservés sur l'appareil (réglages), relus au lancement.
+- Menus déroulants : restent dans l'écran (alignés à gauche près du bord droit, ouverts au-dessus quand la place manque en bas) ; panneaux du menu Fenêtre triés par nom.
+- Tests : 376 (342 avant).
+
 ### Expérience « bureau », lot D — Raccourcis clavier
 
 - Raccourcis : Ctrl/Cmd+N, O, S, Maj+S, Alt+S (copie), W (fermer), Alt+Maj+W (exporter sous), Z, Maj+Z (et Y), J (dupliquer le calque), Suppr / Retour arrière (supprimer le calque, avec confirmation), 0 (ajuster), 1 (100 %), + / − (zoom), R (règles), / (aide) ; Tab et F (panneaux), D (couleurs par défaut), X (permuter) ; une lettre par famille d'outils (V, M, L, W, C, I, J, S, B, Y, E, G, R, O, P, T, A, U, H, Z) et Maj + lettre pour l'outil suivant disponible de la famille. Un outil pas encore disponible l'annonce dans un message bref, sans rien simuler.

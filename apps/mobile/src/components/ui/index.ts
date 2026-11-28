@@ -11,7 +11,7 @@ export { IconButton, type IconButtonProps } from './IconButton';
 export { NumberField, type NumberFieldProps } from './NumberField';
 export { Panel, type PanelProps } from './Panel';
 export { PlannedFeature, type PlannedFeatureProps } from './PlannedFeature';
-export { PromptDialog, type PromptDialogProps } from './PromptDialog';
+export { DialogFrame, PromptDialog, type PromptDialogProps } from './PromptDialog';
 export { Screen, type ScreenProps } from './Screen';
 export { SegmentedControl, type SegmentedControlProps, type SegmentOption } from './SegmentedControl';
 export { TextField, type TextFieldProps } from './TextField';

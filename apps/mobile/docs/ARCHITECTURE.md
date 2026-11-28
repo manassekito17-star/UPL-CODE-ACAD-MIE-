@@ -129,9 +129,27 @@ téléphone dans `stores/editorUiStore`, séparé du document.
 - `theme/workspace.ts` : palette graphite (`ws`) et métriques denses
   (`wsMetrics`) ; contrastes vérifiés par `tests/unit/theme.test.ts`.
 - `stores/workspaceStore.ts` : outil choisi par famille, couleurs de premier
-  plan et d'arrière-plan, onglets, panneaux masqués, groupes repliés, règles,
-  demandes de suppression / renommage venues des menus. Rien de cet état
-  n'est dans le document.
+  plan et d'arrière-plan, onglets, disposition des panneaux, règles, grille,
+  affichage et verrou des repères, magnétisme, espaces de travail, demandes
+  venues des menus. Rien de cet état n'est dans le document (les repères,
+  eux, le sont).
+- `stores/workspaceLayout.ts` : disposition du dock en données (groupes
+  d'onglets ordonnés, colonne d'icônes, onglet actif, panneaux masqués,
+  groupes repliés) et fonctions pures `movePanel`, `moveGroup`,
+  `normalizeLayout` (relecture : chaque panneau une seule fois).
+  `features/workspace/workspacePersistence.ts` la conserve dans la table des
+  réglages (clé `workspaces` : disposition en cours, espace actuel, espaces
+  enregistrés), lue une fois par lancement puis réécrite 300 ms après chaque
+  changement.
+- `engine/guides` : repères (`addGuide`, `moveGuide`, `removeGuide`,
+  `clearGuides`), grille (`gridLines`) et magnétisme (`snapMove`,
+  `snapGuidePosition`, worklets exécutés sur le thread UI pendant le geste).
+  `DocumentCanvas` dessine grille, repères et lignes d'alignement d'un point
+  écran ; le repère glissé (depuis une règle ou à l'outil Déplacement) passe
+  par `view.guideDraft`, valeur partagée entre les règles et la toile.
+- Téléphone : `screens/editor/MenuDrawer.tsx` (mêmes `useMenus` que la
+  tablette, entrées `studioOnly` retirées) et `phonePanels.tsx` (panneaux en
+  feuille) ; l'espace téléphone fournit le même `WorkspaceContext`.
 - `screens/editor/toolFamilies.ts` : catalogue des 51 outils. Statut `ok`,
   `partial` (avec la limite écrite) ou `todo` (avec son module). Un outil
   `todo` n'a aucun comportement : la barre ouvre sa famille, où il est
@@ -279,7 +297,8 @@ documentStore ──(chaque changement)──▶ Autosaver ──(600 ms sans mo
 ```
 
 - **Format** (`engine/project`) : JSON versionné
-  `{ kind: "zentech-design/project", formatVersion, document }`. Lecture
+  `{ kind: "zentech-design/project", formatVersion, document }` (version 3 :
+  repères ; 2 : résolution et couleur de fond). Lecture
   stricte, champ par champ ; un champ inconnu est ignoré, un champ invalide
   fait refuser le projet (« Projet endommagé — … ») ; les anciennes versions
   sont migrées (`MIGRATIONS`) ; une version plus récente que l'application

@@ -68,6 +68,8 @@ class ZentechKeyboardModule : Module() {
       code == KeyEvent.KEYCODE_EQUALS || code == KeyEvent.KEYCODE_PLUS || code == KeyEvent.KEYCODE_NUMPAD_ADD -> "="
       code == KeyEvent.KEYCODE_MINUS || code == KeyEvent.KEYCODE_NUMPAD_SUBTRACT -> "-"
       code == KeyEvent.KEYCODE_SLASH -> "/"
+      code == KeyEvent.KEYCODE_SEMICOLON -> ";"
+      code == KeyEvent.KEYCODE_APOSTROPHE -> "'"
       else -> null
     }
   }

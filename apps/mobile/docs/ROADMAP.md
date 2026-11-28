@@ -23,13 +23,14 @@ phases 6 à 9 ci-dessus correspondent aux modules M2 (historique), M3
 | Module | Contenu | État |
 |---|---|---|
 | M1 | Espace studio tablette / grand écran : menus, barre d'options, 20 familles d'outils, règles, onglet, dock (Couleur, Nuancier, Propriétés, Réglages, Calques, Couches, Tracés), colonne d'icônes (Historique, Navigateur, Caractère, Paragraphe), barre d'état | Parties 1 et 2 livrées et validées |
-| M1 (suite) | Espaces de travail enregistrés, guide des outils | À faire |
+| M1 (suite) | Espaces de travail enregistrés (livrés au lot E), guide des outils | Guide des outils à faire |
 | M2 | Historique : Annuler, Rétablir, panneau Historique | Livré et validé |
 | M3 | Enregistrement des projets, onglets, Enregistrer sous, Dupliquer | Livré et validé |
 | M4 | Export PNG et JPEG, partage, dossier, miniatures des projets | Livré |
 | Bureau A | Accueil professionnel, fenêtre Nouveau document (voir PS_EXPERIENCE_PLAN.md) | Livré et validé |
 | Bureau B | Enregistrer / Enregistrer sous / copie, fichier `.zdesign`, Ouvrir, fermeture avec confirmation, récupération, sauvegarde automatique réglable | Livré et validé |
 | Bureau C | Exporter sous : PNG, JPEG, WebP, aperçu, taille, résolution écrite, taille du fichier, emplacement | Livré et validé |
-| Bureau D | Raccourcis clavier (web, Android ; iOS à faire sur Mac), aide, raccourcis dans les menus | **Livré, en attente de validation** |
-| Bureau E et F | Téléphone (menus et tiroirs), grille, repères, panneaux réarrangeables, validation | À faire |
+| Bureau D | Raccourcis clavier (web, Android ; iOS à faire sur Mac), aide, raccourcis dans les menus | Livré et validé |
+| Bureau E | Téléphone (menus en tiroir, panneaux en feuilles), grille, repères, magnétisme, panneaux réarrangeables, espaces de travail | **Livré, en attente de validation** |
+| Bureau F | Validation finale des 6 parcours | À faire |
 | M5 à M19 | Voir le plan | À faire |

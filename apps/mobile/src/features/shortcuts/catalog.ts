@@ -24,6 +24,10 @@ export type CommandId =
   | 'view.zoomOut'
   | 'view.rulers'
   | 'view.panels'
+  | 'view.grid'
+  | 'view.guides'
+  | 'view.snap'
+  | 'view.lockGuides'
   | 'color.default'
   | 'color.swap'
   | 'help.shortcuts';
@@ -54,6 +58,10 @@ export const SHORTCUTS: readonly ShortcutDef[] = [
   { chord: 'mod+=', command: 'view.zoomIn', label: 'Zoom avant', group: 'Affichage' },
   { chord: 'mod+-', command: 'view.zoomOut', label: 'Zoom arrière', group: 'Affichage' },
   { chord: 'mod+r', command: 'view.rulers', label: 'Règles', group: 'Affichage' },
+  { chord: "mod+'", command: 'view.grid', label: 'Grille', group: 'Affichage' },
+  { chord: 'mod+;', command: 'view.guides', label: 'Repères', group: 'Affichage' },
+  { chord: 'mod+shift+;', command: 'view.snap', label: 'Magnétisme', group: 'Affichage' },
+  { chord: 'mod+alt+;', command: 'view.lockGuides', label: 'Verrouiller les repères', group: 'Affichage' },
   { chord: 'tab', command: 'view.panels', label: 'Afficher / masquer les panneaux', group: 'Affichage' },
   { chord: 'f', command: 'view.panels', label: 'Mode plein écran', group: 'Affichage' },
   { chord: 'd', command: 'color.default', label: 'Couleurs par défaut', group: 'Couleurs' },

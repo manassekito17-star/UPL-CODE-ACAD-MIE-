@@ -27,6 +27,11 @@ const NAMED: Record<string, string> = {
   _: '-',
   '/': '/',
   '?': '/',
+  // Grille (Ctrl+') et repères (Ctrl+;) : la touche Maj change le caractère sur un clavier QWERTY.
+  ';': ';',
+  ':': ';',
+  "'": "'",
+  '"': "'",
 };
 
 /** Normalise une touche ; null pour les touches sans raccourci (flèches, modificateurs seuls…). */

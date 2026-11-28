@@ -14,6 +14,8 @@ export interface EditorTopBarProps {
   document: GraphicDocument;
   /** Bouton d'affichage de la colonne de panneaux (écrans larges seulement). */
   sidePanels?: { visible: boolean; onToggle: () => void };
+  /** Ouvre le tiroir des menus (téléphone). */
+  onOpenMenu?: () => void;
 }
 
 export function goHome(): void {
@@ -21,7 +23,7 @@ export function goHome(): void {
   else router.replace('/');
 }
 
-export function EditorTopBar({ document, sidePanels }: EditorTopBarProps) {
+export function EditorTopBar({ document, sidePanels, onOpenMenu }: EditorTopBarProps) {
   const history = useHistory(document.id);
   const save = useSaveStatus(document.id);
   const openExport = useExportStore((s) => s.open);
@@ -33,6 +35,7 @@ export function EditorTopBar({ document, sidePanels }: EditorTopBarProps) {
         accessibilityHint="Revient à l’accueil ; propose d’enregistrer les modifications"
         onPress={() => commandClose([document.id], goHome)}
       />
+      {onOpenMenu ? <IconButton icon="menu" label="Menus" accessibilityHint="Fichier, Édition, Image, Calque, Texte, Affichage, Fenêtre, Aide" onPress={onOpenMenu} /> : null}
       <View style={styles.title}>
         <AppText variant="subtitle" numberOfLines={1} accessibilityRole="header">
           {document.name}

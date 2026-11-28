@@ -41,6 +41,7 @@ jest.mock('@/services/projects/assetFiles', () => ({
 }));
 
 beforeEach(async () => {
+  require('@/features/workspace/workspacePersistence').resetWorkspacePersistence();
   require('@/stores/workspaceStore').resetWorkspaceStore();
   require('@/features/files/fileCommands').resetFileDialogs();
   const persistence = require('@/features/persistence/persistence');

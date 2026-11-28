@@ -95,6 +95,6 @@ describe('projets dans SQLite', () => {
     const { db, raw } = await openSqlJs();
     const d = doc('v', 1);
     await createSqlProjectRepository(async () => db).save(d);
-    expect(raw.exec('SELECT data, format_version FROM projects')[0]?.values[0]).toEqual([serializeDocument(d), 2]);
+    expect(raw.exec('SELECT data, format_version FROM projects')[0]?.values[0]).toEqual([serializeDocument(d), 3]);
   });
 });

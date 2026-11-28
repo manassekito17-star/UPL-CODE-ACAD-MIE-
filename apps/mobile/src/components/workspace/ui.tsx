@@ -1,5 +1,5 @@
 import { useRef, useState, type ReactNode, type Ref } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 
 import { Icon, type IconName } from '@/components/ui';
 import { ws, wsMetrics } from '@/theme';
@@ -88,12 +88,23 @@ export function useAnchor() {
 }
 
 /** Fenêtre flottante ancrée (menus, familles d'outils, listes). Toucher à côté la ferme. */
+/** Sous le bouton, ou au-dessus quand la place manque en bas de l'écran ; hauteur limitée à la place disponible. */
+function belowOrAbove(anchor: Anchor, windowHeight: number, left: number): ViewStyle {
+  const below = windowHeight - (anchor.y + anchor.height + 2) - 4;
+  const above = anchor.y - 6;
+  if (below < 360 && above > below) return { left, bottom: windowHeight - anchor.y + 2, maxHeight: above };
+  return { left, top: anchor.y + anchor.height + 2, maxHeight: Math.max(120, below) };
+}
+
 export function Popover({ anchor, placement = 'below', onClose, children, testID, width = 280 }: { anchor: Anchor | null; placement?: 'below' | 'right' | 'left'; onClose: () => void; children: ReactNode; testID?: string; width?: number }) {
+  const window = useWindowDimensions();
+  // Le menu reste dans l'écran : sous un bouton près du bord droit, il s'aligne à gauche.
+  const maxLeft = Math.max(4, window.width - width - 4);
   const position: ViewStyle =
     anchor === null
       ? {}
       : placement === 'below'
-        ? { left: Math.max(4, anchor.x), top: anchor.y + anchor.height + 2 }
+        ? belowOrAbove(anchor, window.height, Math.min(Math.max(4, anchor.x), maxLeft))
         : placement === 'right'
           ? { left: anchor.x + anchor.width + 4, top: Math.max(4, anchor.y) }
           : { left: Math.max(4, anchor.x - width - 4), top: Math.max(4, anchor.y) };
@@ -120,11 +131,14 @@ export type MenuEntry =
       disabled?: boolean;
       checked?: boolean;
       icon?: IconName;
+      /** Commande propre à l'espace tablette (règles, panneaux…) : absente du menu du téléphone. */
+      studioOnly?: boolean;
     }
   | { type: 'separator' }
   | { type: 'header'; label: string };
 
-export function MenuList({ entries, onClose }: { entries: readonly MenuEntry[]; onClose: () => void }) {
+/** `touch` : entrées de 48 points (tiroir du téléphone) au lieu de 32 (menus de la tablette). */
+export function MenuList({ entries, onClose, touch }: { entries: readonly MenuEntry[]; onClose: () => void; touch?: boolean }) {
   return (
     <View style={styles.menuList} accessibilityRole="menu">
       {entries.map((entry, i) => {
@@ -148,7 +162,7 @@ export function MenuList({ entries, onClose }: { entries: readonly MenuEntry[]; 
               onClose();
               entry.onPress?.();
             }}
-            style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
+            style={({ pressed }) => [styles.menuItem, touch && styles.menuItemTouch, pressed && styles.menuItemPressed]}
           >
             <View style={styles.menuCheck}>
               {entry.checked ? <Icon name="check" size={14} color={ws.text} /> : entry.icon ? <Icon name={entry.icon} size={15} color={off ? ws.textDisabled : ws.textDim} /> : null}
@@ -305,6 +319,7 @@ const styles = StyleSheet.create({
   popoverScroll: { flexGrow: 0 },
   menuList: { paddingHorizontal: 4 },
   menuHeader: { paddingHorizontal: 10, paddingTop: 8, paddingBottom: 4, fontSize: wsMetrics.smallFontSize, textTransform: 'uppercase', letterSpacing: 0.6 },
+  menuItemTouch: { minHeight: 48, paddingHorizontal: 12 },
   menuItem: { minHeight: 32, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 6, borderRadius: 4 },
   menuItemPressed: { backgroundColor: ws.accent },
   menuCheck: { width: 18, alignItems: 'center' },

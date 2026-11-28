@@ -1,5 +1,6 @@
 import { DOCUMENT_LIMITS } from '@/engine/documents/limits';
 import { DOCUMENT_FORMAT_VERSION, type DocumentBackground, type GraphicDocument } from '@/engine/documents/types';
+import { GUIDE_POSITION_LIMIT, MAX_GUIDES, type Guide } from '@/engine/guides';
 import type { ImageAsset, Layer, ShapeKind, TextAlignment } from '@/engine/layers/types';
 
 /**
@@ -22,6 +23,8 @@ export type ParseResult = { ok: true; document: GraphicDocument; migratedFrom: n
 const MIGRATIONS: Record<number, (raw: Record<string, unknown>) => Record<string, unknown>> = {
   // Version 2 : résolution (72 ppp jusque-là) et couleur de fond explicite.
   1: (raw) => ({ ...raw, resolution: 72, backgroundColor: raw.background === 'black' ? '#000000' : '#FFFFFF' }),
+  // Version 3 : repères.
+  2: (raw) => ({ ...raw, guides: [] }),
 };
 
 /** Résolution acceptée, en pixels par pouce. */
@@ -113,6 +116,19 @@ function parseLayer(raw: unknown, index: number): Layer {
   return { ...base, type, asset: parseAsset(raw.asset, where) };
 }
 
+function parseGuides(raw: unknown): Guide[] {
+  if (!Array.isArray(raw) || raw.length > MAX_GUIDES) throw new InvalidProject('Document : liste des repères invalide.');
+  const guides = raw.map((g, i): Guide => {
+    const where = `Repère ${i + 1}`;
+    if (!isObject(g)) throw new InvalidProject(`${where} : format invalide.`);
+    const position = num(g, 'position', where);
+    if (Math.abs(position) > GUIDE_POSITION_LIMIT) throw new InvalidProject(`${where} : position invalide.`);
+    return { id: str(g, 'id', where, 200), orientation: oneOf(g, 'orientation', ['horizontal', 'vertical'] as const, where), position };
+  });
+  if (new Set(guides.map((g) => g.id)).size !== guides.length) throw new InvalidProject('Document : deux repères portent le même identifiant.');
+  return guides;
+}
+
 function resolution(raw: Record<string, unknown>): number {
   const v = num(raw, 'resolution', 'Document');
   if (v < RESOLUTION_RANGE.min || v > RESOLUTION_RANGE.max) throw new InvalidProject('Document : résolution invalide.');
@@ -140,6 +156,7 @@ function parseDocumentObject(raw: Record<string, unknown>): GraphicDocument {
     backgroundColor: color(raw, 'backgroundColor', where),
     resolution: resolution(raw),
     layers,
+    guides: parseGuides(raw.guides),
     createdAt: num(raw, 'createdAt', where),
     updatedAt: num(raw, 'updatedAt', where),
   };

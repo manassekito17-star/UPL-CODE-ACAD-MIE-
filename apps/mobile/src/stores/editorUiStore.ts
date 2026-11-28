@@ -2,7 +2,8 @@ import { create } from 'zustand';
 
 import type { ToolId } from '@/engine/canvas/gestures';
 
-export type EditorPanel = 'layers' | 'properties';
+/** Panneaux du téléphone (feuille du bas). */
+export type EditorPanel = 'layers' | 'properties' | 'color' | 'swatches' | 'history' | 'navigator';
 
 /**
  * État d'affichage de l'espace de travail (indépendant du document).
@@ -24,7 +25,7 @@ export interface EditorUiState {
   /** Réinitialise la sélection et le message à l'ouverture d'un document. */
   resetForDocument: () => void;
   sidePanelsVisible: boolean;
-  expandedPanels: Record<EditorPanel, boolean>;
+  expandedPanels: Partial<Record<EditorPanel, boolean>>;
   compactSheet: EditorPanel | null;
   toggleSidePanels: () => void;
   togglePanelExpanded: (panel: EditorPanel) => void;

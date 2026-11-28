@@ -1,9 +1,12 @@
 import { Canvas, Group, Path, Skia, Text, useFont, type SkFont } from '@shopify/react-native-skia';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
-import { useDerivedValue, type SharedValue } from 'react-native-reanimated';
+import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
+import { useDerivedValue, useSharedValue, type SharedValue } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 
 import type { ViewSharedValues } from '@/engine/canvas';
+import { snapGuidePosition, type GridSettings, type GuideOrientation } from '@/engine/guides';
 import { ws, wsMetrics } from '@/theme';
 
 /** Nombre maximal de graduations numérotées affichées sur une règle. */
@@ -100,12 +103,72 @@ function Ruler({ orientation, view, length, font }: RulerProps) {
   );
 }
 
+/** Création de repères en glissant depuis les règles. */
+export interface RulerGuideOptions {
+  docWidth: number;
+  docHeight: number;
+  grid: GridSettings | null;
+  snap: boolean;
+  onCreate: (orientation: GuideOrientation, position: number) => void;
+}
+
+/**
+ * Glisser depuis une règle vers la zone de travail crée un repère : la règle
+ * du haut un repère horizontal, celle de gauche un repère vertical. Relâché
+ * sur la règle, il est abandonné.
+ */
+function useRulerGuidePan(orientation: GuideOrientation, view: ViewSharedValues, options: RulerGuideOptions | undefined) {
+  const size = wsMetrics.ruler;
+  const doc = useSharedValue({ width: options?.docWidth ?? 1, height: options?.docHeight ?? 1 });
+  const grid = useSharedValue<GridSettings | null>(options?.grid ?? null);
+  const snap = useSharedValue(options?.snap ?? false);
+  const inside = useSharedValue(false);
+  const docWidth = options?.docWidth ?? 1;
+  const docHeight = options?.docHeight ?? 1;
+  const gridValue = options?.grid ?? null;
+  const snapValue = options?.snap ?? false;
+  useEffect(() => {
+    doc.set({ width: docWidth, height: docHeight });
+    grid.set(gridValue);
+    snap.set(snapValue);
+  }, [doc, grid, snap, docWidth, docHeight, gridValue, snapValue]);
+  const create = options?.onCreate;
+  const finish = (position: number) => {
+    create?.(orientation, position);
+    view.guideDraft.set(null);
+  };
+  return usePanGesture({
+    maxPointers: 1,
+    enabled: !!create,
+    onUpdate: (e) => {
+      'worklet';
+      const horizontal = orientation === 'horizontal';
+      // Position dans la zone de travail (sous la règle du haut, à droite de celle de gauche).
+      const local = horizontal ? e.y - size : e.x - size;
+      const s = Math.max(view.scale.get(), 1e-6);
+      const raw = (local - (horizontal ? view.ty.get() : view.tx.get())) / s;
+      const position = snap.get() ? snapGuidePosition(orientation, raw, doc.get(), grid.get(), s) : raw;
+      inside.set(local > 0);
+      view.guideDraft.set(local > 0 ? { id: '', orientation, position } : null);
+    },
+    onFinalize: () => {
+      'worklet';
+      const draft = view.guideDraft.get();
+      if (inside.get() && draft && draft.id === '') scheduleOnRN(finish, draft.position);
+      else view.guideDraft.set(null);
+      inside.set(false);
+    },
+  });
+}
+
 /**
  * Règles horizontale et verticale (en pixels du document), qui suivent le
  * zoom et le déplacement de la vue sur le thread UI. `children` est la zone
  * de travail, placée sous la règle horizontale et à droite de la verticale.
  */
-export function RulersFrame({ view, visible, children }: { view: ViewSharedValues; visible: boolean; children: React.ReactNode }) {
+export function RulersFrame({ view, visible, guides, children }: { view: ViewSharedValues; visible: boolean; guides?: RulerGuideOptions; children: React.ReactNode }) {
+  const hPan = useRulerGuidePan('horizontal', view, guides);
+  const vPan = useRulerGuidePan('vertical', view, guides);
   const font = useFont(require('@expo-google-fonts/inter/400Regular/Inter_400Regular.ttf'), 9);
   const [area, setArea] = useState({ width: 0, height: 0 });
   const onLayout = (e: LayoutChangeEvent) => setArea(e.nativeEvent.layout);
@@ -115,10 +178,18 @@ export function RulersFrame({ view, visible, children }: { view: ViewSharedValue
     <View style={styles.fill} testID={visible ? 'rulers' : undefined}>
       <View style={[styles.topRow, !visible && styles.hidden]}>
         <View style={styles.corner} />
-        <View style={styles.hRuler}>{visible && area.width > 0 ? <Ruler orientation="horizontal" view={view} length={area.width} font={font} /> : null}</View>
+        <GestureDetector gesture={hPan}>
+          <View style={styles.hRuler} testID="ruler-horizontal" accessibilityHint={guides ? 'Glisser vers le document pour créer un repère horizontal' : undefined}>
+            {visible && area.width > 0 ? <Ruler orientation="horizontal" view={view} length={area.width} font={font} /> : null}
+          </View>
+        </GestureDetector>
       </View>
       <View style={styles.bottomRow}>
-        <View style={[styles.vRuler, !visible && styles.hidden]}>{visible && area.height > 0 ? <Ruler orientation="vertical" view={view} length={area.height} font={font} /> : null}</View>
+        <GestureDetector gesture={vPan}>
+          <View style={[styles.vRuler, !visible && styles.hidden]} testID="ruler-vertical" accessibilityHint={guides ? 'Glisser vers le document pour créer un repère vertical' : undefined}>
+            {visible && area.height > 0 ? <Ruler orientation="vertical" view={view} length={area.height} font={font} /> : null}
+          </View>
+        </GestureDetector>
         <View style={styles.fill} onLayout={onLayout}>
           {children}
         </View>

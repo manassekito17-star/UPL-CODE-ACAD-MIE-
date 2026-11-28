@@ -1,7 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { BackHandler, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { AppText, Button, Icon, IconButton, Screen } from '@/components/ui';
+import { useViewSharedValues, type CanvasController } from '@/engine/canvas';
 import type { GraphicDocument } from '@/engine/documents';
 import { ExportDialog } from '@/features/export';
 import { commandClose } from '@/features/files/fileCommands';
@@ -9,25 +10,20 @@ import { useThumbnailWriter } from '@/features/projects/useThumbnailWriter';
 import { RenderResourcesProvider } from '@/features/rendering/RenderResourcesProvider';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useDocumentStore } from '@/stores/documentStore';
-import { useEditorUiStore, type EditorPanel } from '@/stores/editorUiStore';
+import { useEditorUiStore } from '@/stores/editorUiStore';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
 import { colors, radius, spacing } from '@/theme';
 
 import { CanvasArea } from './CanvasArea';
-import { DesktopWorkspace, LayerDialogs } from './desktop/DesktopWorkspace';
+import { DesktopWorkspace, LayerDialogs, SaveAsDialog } from './desktop/DesktopWorkspace';
+import { WorkspaceContext, type WorkspaceContextValue } from './desktop/WorkspaceContext';
 import { useEditorShortcuts } from './useEditorShortcuts';
 import { EditorToolbar } from './EditorToolbar';
 import { EditorTopBar, goHome } from './EditorTopBar';
-import { LayersPanelContent, PropertiesPanelContent } from './panels';
+import { ViewDialogs } from '@/features/guides/ViewDialogs';
 
-const PANEL_META: Record<EditorPanel, { title: string; icon: 'layers-outline' | 'tune-variant' }> = {
-  layers: { title: 'Calques', icon: 'layers-outline' },
-  properties: { title: 'Propriétés', icon: 'tune-variant' },
-};
-
-function PanelContent({ panel, document }: { panel: EditorPanel; document: GraphicDocument }) {
-  return panel === 'layers' ? <LayersPanelContent document={document} /> : <PropertiesPanelContent document={document} />;
-}
+import { MenuDrawer } from './MenuDrawer';
+import { BOTTOM_BAR_PANELS, PHONE_PANELS, PhonePanelContent } from './phonePanels';
 
 /**
  * Hauteur minimale de l'espace studio (menus, options, règles, dock) : en
@@ -62,6 +58,8 @@ export function EditorScreen({ projectId }: EditorScreenProps) {
       {studio ? <DesktopWorkspace document={document} /> : <CompactWorkspace document={document} />}
       <ExportDialog />
       <LayerDialogs document={document} />
+      <SaveAsDialog document={document} />
+      <ViewDialogs document={document} />
       <EditorShortcuts documentId={document.id} studio={studio} />
       <ThumbnailWriter document={document} />
     </RenderResourcesProvider>
@@ -91,46 +89,59 @@ function useHardwareBack(documentId: string) {
   }, [documentId]);
 }
 
-/** Téléphone (portrait ou paysage) : canvas plein écran, un panneau à la fois en feuille. */
+/**
+ * Téléphone (portrait ou paysage) : toile plein écran, menus complets dans
+ * un tiroir, un panneau à la fois dans la feuille du bas. Le contexte de
+ * l'espace de travail (document, toile, vue, zoom) est le même que sur
+ * tablette : menus et panneaux sont partagés.
+ */
 function CompactWorkspace({ document }: { document: GraphicDocument }) {
   useHardwareBack(document.id);
   const sheet = useEditorUiStore((s) => s.compactSheet);
   const toggleSheet = useEditorUiStore((s) => s.toggleCompactSheet);
   const closeSheet = useEditorUiStore((s) => s.closeCompactSheet);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const controller = useRef<CanvasController>(null);
+  const view = useViewSharedValues();
+  const [zoom, setZoom] = useState<number | null>(null);
+  const context = useMemo<WorkspaceContextValue>(() => ({ document, controller, view, zoom, setZoom }), [document, view, zoom]);
 
   return (
-    <Screen scroll={false} edges={['top', 'bottom', 'left', 'right']} testID="editor-screen">
-      <EditorTopBar document={document} />
-      <CanvasArea document={document} />
-      {sheet ? (
-        <View style={styles.sheet} testID={`sheet-${sheet}`}>
-          <View style={styles.sheetHeader}>
-            <Icon name={PANEL_META[sheet].icon} size={20} color={colors.textSecondary} />
-            <AppText variant="label" style={styles.flex} accessibilityRole="header">
-              {PANEL_META[sheet].title}
-            </AppText>
-            <IconButton icon="close" label={`Fermer le panneau ${PANEL_META[sheet].title}`} onPress={closeSheet} />
+    <WorkspaceContext.Provider value={context}>
+      <Screen scroll={false} edges={['top', 'bottom', 'left', 'right']} testID="editor-screen">
+        <EditorTopBar document={document} onOpenMenu={() => setMenuOpen(true)} />
+        <CanvasArea document={document} controllerRef={controller} view={view} onZoomChange={setZoom} />
+        {sheet ? (
+          <View style={styles.sheet} testID={`sheet-${sheet}`}>
+            <View style={styles.sheetHeader}>
+              <Icon name={PHONE_PANELS[sheet].icon} size={20} color={colors.textSecondary} />
+              <AppText variant="label" style={styles.flex} accessibilityRole="header">
+                {PHONE_PANELS[sheet].title}
+              </AppText>
+              <IconButton icon="close" label={`Fermer le panneau ${PHONE_PANELS[sheet].title}`} onPress={closeSheet} />
+            </View>
+            <ScrollView contentContainerStyle={styles.sheetBody}>
+              <PhonePanelContent panel={sheet} document={document} />
+            </ScrollView>
           </View>
-          <ScrollView contentContainerStyle={styles.sheetBody}>
-            <PanelContent panel={sheet} document={document} />
-          </ScrollView>
+        ) : null}
+        <View style={styles.bottomBar}>
+          <EditorToolbar orientation="horizontal" documentId={document.id} />
+          <View style={styles.divider} />
+          {BOTTOM_BAR_PANELS.map((panel) => (
+            <IconButton
+              key={panel}
+              icon={PHONE_PANELS[panel].icon}
+              label={PHONE_PANELS[panel].title}
+              showLabel
+              active={sheet === panel}
+              onPress={() => toggleSheet(panel)}
+            />
+          ))}
         </View>
-      ) : null}
-      <View style={styles.bottomBar}>
-        <EditorToolbar orientation="horizontal" documentId={document.id} />
-        <View style={styles.divider} />
-        {(Object.keys(PANEL_META) as EditorPanel[]).map((panel) => (
-          <IconButton
-            key={panel}
-            icon={PANEL_META[panel].icon}
-            label={PANEL_META[panel].title}
-            showLabel
-            active={sheet === panel}
-            onPress={() => toggleSheet(panel)}
-          />
-        ))}
-      </View>
-    </Screen>
+        <MenuDrawer visible={menuOpen} onClose={() => setMenuOpen(false)} />
+      </Screen>
+    </WorkspaceContext.Provider>
   );
 }
 

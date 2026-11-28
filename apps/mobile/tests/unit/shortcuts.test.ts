@@ -13,6 +13,10 @@ describe('combinaisons de touches', () => {
     expect(chordOf(key('+', { ctrl: true, shift: true }))).toBe('mod+='); // Maj fait partie du « + »
     expect(chordOf(key('Delete'))).toBe('delete');
     expect(chordOf(key('Tab'))).toBe('tab');
+    // Grille et repères : Maj change le caractère (« : », « " ») sur un clavier QWERTY.
+    expect(chordOf(key(';', { ctrl: true }))).toBe('mod+;');
+    expect(chordOf(key(':', { ctrl: true, shift: true }))).toBe('mod+shift+;');
+    expect(chordOf(key("'", { meta: true }))).toBe("mod+'");
     expect(chordOf(key('ArrowLeft'))).toBeNull();
     expect(normalizeKey('Shift')).toBeNull();
   });

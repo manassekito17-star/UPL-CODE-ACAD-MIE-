@@ -3,11 +3,12 @@ import { router } from 'expo-router';
 import { findLayer } from '@/engine/layers';
 import { DEFAULT_EXPORT } from '@/engine/renderer';
 import { useExport, useExportStore } from '@/features/export';
+import { guideActions } from '@/features/guides/guideActions';
 import { useHistory } from '@/features/history/useHistory';
 import { openImageAsNewDocument, useImageImport } from '@/features/image-import/useImageImport';
 import { useLayerActions } from '@/features/layers/useLayerActions';
 import { useEditorUiStore } from '@/stores/editorUiStore';
-import { useWorkspaceStore } from '@/stores/workspaceStore';
+import { ALL_PANELS, DEFAULT_WORKSPACE, useWorkspaceStore } from '@/stores/workspaceStore';
 
 import { commandClose, commandInfo, commandOpenFile, commandSave, commandSaveAs, commandSaveCopy } from '@/features/files/fileCommands';
 import { chordFor, type CommandId } from '@/features/shortcuts/catalog';
@@ -26,6 +27,8 @@ import { ZOOM_STEP, useWorkspace } from './WorkspaceContext';
 export interface MenuDef {
   title: string;
   entries: MenuEntry[];
+  /** Menu propre à l'espace tablette (Fenêtre : colonnes de panneaux). */
+  studioOnly?: boolean;
 }
 
 const planned = (label: string, module: string): MenuEntry => ({ type: 'item', label, planned: true, right: module });
@@ -275,17 +278,27 @@ export function useMenus(): MenuDef[] {
         { type: 'item', label: 'Ajuster à l’écran', icon: 'fit-to-screen-outline', right: k('view.fit'), onPress: () => controller.current?.fitToScreen() },
         { type: 'item', label: '100 %', right: k('view.actual'), onPress: () => controller.current?.setZoomPercent(100) },
         sep,
-        { type: 'item', label: 'Règles', right: k('view.rulers'), checked: ws.rulersVisible, onPress: ws.toggleRulers },
-        { type: 'item', label: 'Mode plein écran avec barre de menus', right: 'F', checked: ws.panelsHidden, onPress: ws.togglePanelsHidden },
-        planned('Repères', 'M16'),
-        planned('Grille', 'M16'),
-        planned('Magnétisme', 'M16'),
+        { type: 'item', label: 'Règles', studioOnly: true, right: k('view.rulers'), checked: ws.rulersVisible, onPress: ws.toggleRulers },
+        { type: 'item', label: 'Mode plein écran avec barre de menus', studioOnly: true, right: 'F', checked: ws.panelsHidden, onPress: ws.togglePanelsHidden },
+        sep,
+        { type: 'header', label: 'Afficher' },
+        { type: 'item', label: 'Grille', icon: 'grid', right: k('view.grid'), checked: ws.gridVisible, onPress: ws.toggleGrid },
+        { type: 'item', label: 'Repères', right: k('view.guides'), checked: ws.guidesVisible, onPress: ws.toggleGuides },
+        sep,
+        { type: 'item', label: 'Magnétisme', icon: 'magnet', right: k('view.snap'), checked: ws.snapEnabled, onPress: ws.toggleSnap },
+        sep,
+        { type: 'item', label: 'Verrouiller les repères', right: k('view.lockGuides'), checked: ws.guidesLocked, onPress: ws.toggleGuidesLocked },
+        { type: 'item', label: 'Effacer les repères', disabled: document.guides.length === 0, onPress: () => guideActions.clear(document.id) },
+        { type: 'item', label: 'Nouveau repère…', onPress: () => ws.setViewDialog('newGuide') },
+        { type: 'item', label: 'Paramètres de la grille…', onPress: () => ws.setViewDialog('grid') },
       ],
     },
     {
       title: 'Fenêtre',
+      studioOnly: true,
       entries: [
-        ...(['adjustments', 'paragraph', 'character', 'color', 'channels', 'layers', 'history', 'navigator', 'swatches', 'properties', 'paths'] as const).map(
+        // Panneaux par ordre alphabétique de leur nom.
+        ...[...ALL_PANELS].sort((a, b) => PANEL_LABELS[a].localeCompare(PANEL_LABELS[b], 'fr')).map(
           (panel): MenuEntry => ({
             type: 'item',
             label: PANEL_LABELS[panel],
@@ -295,9 +308,24 @@ export function useMenus(): MenuDef[] {
         ),
         sep,
         { type: 'header', label: 'Espace de travail' },
-        { type: 'item', label: 'Essentiels (par défaut)', checked: true, disabled: true },
-        { type: 'item', label: 'Réinitialiser l’espace de travail', onPress: ws.resetWorkspace },
-        planned('Nouvel espace de travail…', 'M1 (suite)'),
+        {
+          type: 'item',
+          label: `${DEFAULT_WORKSPACE} (par défaut)`,
+          checked: ws.workspaceName === DEFAULT_WORKSPACE,
+          onPress: () => ws.applyWorkspace(DEFAULT_WORKSPACE),
+        },
+        ...ws.savedWorkspaces.map(
+          (w): MenuEntry => ({ type: 'item', label: w.name, checked: ws.workspaceName === w.name, onPress: () => ws.applyWorkspace(w.name) }),
+        ),
+        sep,
+        { type: 'item', label: `Réinitialiser ${ws.workspaceName}`, onPress: ws.resetWorkspace },
+        { type: 'item', label: 'Nouvel espace de travail…', onPress: () => ws.setWorkspaceDialog('new') },
+        {
+          type: 'item',
+          label: 'Supprimer l’espace de travail…',
+          disabled: ws.workspaceName === DEFAULT_WORKSPACE,
+          onPress: () => ws.setWorkspaceDialog('delete'),
+        },
       ],
     },
     {

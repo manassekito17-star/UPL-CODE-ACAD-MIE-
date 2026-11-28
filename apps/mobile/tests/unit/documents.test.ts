@@ -192,6 +192,7 @@ describe('createDocument', () => {
       backgroundColor: '#FFFFFF',
       resolution: 72,
       layers: [],
+      guides: [],
       createdAt: 1_700_000_000_000,
       updatedAt: 1_700_000_000_000,
     });

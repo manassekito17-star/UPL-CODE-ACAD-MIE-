@@ -98,6 +98,17 @@ describe('raccourcis clavier (lot D)', () => {
     expect(within(screen.getByTestId('shortcut-help')).getByLabelText(/^Enregistrer sous : (Ctrl\+Maj\+S|⌘⇧S)$/)).toBeTruthy();
   });
 
+  it("grille et repères : Ctrl+', Ctrl+;, Ctrl+Maj+;, Ctrl+Alt+;", async () => {
+    await openStudio();
+    const ws = () => useWorkspaceStore.getState();
+    const before = { grid: ws().gridVisible, guides: ws().guidesVisible, snap: ws().snapEnabled, locked: ws().guidesLocked };
+    expect(await press("mod+'")).toBe(true);
+    expect(await press('mod+;')).toBe(true);
+    expect(await press('mod+shift+;')).toBe(true);
+    expect(await press('mod+alt+;')).toBe(true);
+    expect(ws()).toMatchObject({ gridVisible: !before.grid, guidesVisible: !before.guides, snapEnabled: !before.snap, guidesLocked: !before.locked });
+  });
+
   it('les menus affichent les raccourcis', async () => {
     await openStudio();
     await fireEvent.press(screen.getByRole('button', { name: 'Menu Fichier' }));

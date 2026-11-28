@@ -48,3 +48,6 @@ local.properties
 
 # Skia web (CanvasKit), copié par `npm run web:setup`
 public/canvaskit.wasm
+
+# Sorties de compilation des modules natifs locaux
+modules/*/android/build/

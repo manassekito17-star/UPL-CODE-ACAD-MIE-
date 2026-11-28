@@ -39,7 +39,7 @@ const rect = (id: string, x: number, fill: string, extra: Partial<ShapeLayer> = 
 });
 
 const doc = (layers: Layer[], background: GraphicDocument['background'] = 'transparent'): GraphicDocument => ({
-  formatVersion: 2,
+  formatVersion: 3,
   backgroundColor: '#FFFFFF',
   resolution: 300,
   id: 'd',
@@ -48,6 +48,7 @@ const doc = (layers: Layer[], background: GraphicDocument['background'] = 'trans
   height: 20,
   background,
   layers,
+  guides: [],
   createdAt: 0,
   updatedAt: 0,
 });

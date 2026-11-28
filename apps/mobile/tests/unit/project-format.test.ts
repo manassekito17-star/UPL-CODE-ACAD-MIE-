@@ -31,7 +31,7 @@ describe('format de projet', () => {
   it('relit exactement ce qu’il a écrit (forme, texte, image, propriétés)', () => {
     const doc = sample();
     const json = serializeDocument(doc);
-    expect(JSON.parse(json)).toMatchObject({ kind: PROJECT_KIND, formatVersion: 2 });
+    expect(JSON.parse(json)).toMatchObject({ kind: PROJECT_KIND, formatVersion: 3 });
     const parsed = parseProject(json);
     expect(parsed).toEqual({ ok: true, document: doc, migratedFrom: null });
   });
@@ -39,11 +39,29 @@ describe('format de projet', () => {
   it('migre un projet de la version 1 (avant la résolution et la couleur de fond)', () => {
     const v1 = JSON.parse(serializeDocument(sample()));
     v1.formatVersion = 1;
+    delete v1.document.guides;
     delete v1.document.resolution;
     delete v1.document.backgroundColor;
     v1.document.background = 'black';
     const parsed = parseProject(JSON.stringify(v1));
-    expect(parsed).toMatchObject({ ok: true, migratedFrom: 1, document: { formatVersion: 2, resolution: 72, backgroundColor: '#000000', background: 'black' } });
+    expect(parsed).toMatchObject({ ok: true, migratedFrom: 1, document: { formatVersion: 3, resolution: 72, backgroundColor: '#000000', background: 'black', guides: [] } });
+  });
+
+  it('migre un projet de la version 2 (sans repères) et relit les repères', () => {
+    const v2 = JSON.parse(serializeDocument(sample()));
+    v2.formatVersion = 2;
+    delete v2.document.guides;
+    expect(parseProject(JSON.stringify(v2))).toMatchObject({ ok: true, migratedFrom: 2, document: { formatVersion: 3, guides: [] } });
+
+    const guides = [
+      { id: 'g1', orientation: 'horizontal', position: 120 },
+      { id: 'g2', orientation: 'vertical', position: -40 },
+    ];
+    expect(parseProject(withDoc((d) => (d.guides = guides)))).toMatchObject({ ok: true, document: { guides } });
+    expect(parseProject(withDoc((d) => (d.guides = [{ id: 'g', orientation: 'diagonal', position: 1 }]))).ok).toBe(false);
+    expect(parseProject(withDoc((d) => (d.guides = [{ id: 'g', orientation: 'vertical', position: 1e9 }]))).ok).toBe(false);
+    expect(parseProject(withDoc((d) => (d.guides = [guides[0], guides[0]]))).ok).toBe(false);
+    expect(parseProject(withDoc((d) => delete d.guides)).ok).toBe(false); // obligatoire en version 3
   });
 
   it('lit un fond de couleur personnalisée et refuse une résolution hors limites', () => {
