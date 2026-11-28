@@ -28,6 +28,8 @@ export function PersistenceGate({ children }: { children: ReactNode }) {
       </View>
     );
   }
+  // Avant le premier démarrage : rien (l'effet ci-dessus le lance aussitôt).
+  if (phase === 'idle') return null;
   return (
     <View style={styles.center} testID="persistence-loading" accessibilityLabel="Chargement des projets">
       <ActivityIndicator color={colors.accent} />

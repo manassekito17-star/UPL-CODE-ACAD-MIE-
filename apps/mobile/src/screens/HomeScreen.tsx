@@ -8,6 +8,7 @@ import { ConfirmDialog, Icon, IconButton, type IconName } from '@/components/ui'
 import { WText } from '@/components/workspace/ui';
 import { PRESET_CATALOG, presetPixels, type SizePreset } from '@/engine/documents';
 import { openImageAsNewDocument, useImageImport } from '@/features/image-import/useImageImport';
+import { commandOpenFile } from '@/features/files/fileCommands';
 import { removeUnreadable, usePersistenceStore } from '@/features/persistence';
 import { RecentProjects } from '@/features/projects/RecentProjects';
 import type { UnreadableProject } from '@/services/projects';
@@ -79,8 +80,8 @@ export function HomeScreen() {
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Ouvrir"
-        accessibilityHint="Affiche tous les projets enregistrés sur l’appareil"
-        onPress={() => setSection('files')}
+        accessibilityHint="Ouvre un fichier .zdesign choisi dans un dossier"
+        onPress={() => void commandOpenFile()}
         style={({ pressed }) => [styles.secondary, pressed && styles.navItemOn]}
       >
         <Icon name="folder-open-outline" size={20} color={ws.text} />
@@ -117,6 +118,7 @@ export function HomeScreen() {
         </View>
       ) : null}
       <UnreadableProjects />
+      <RecoveredNotice />
       {section === 'home' ? (
         <>
           <WText style={styles.h1} accessibilityRole="header">
@@ -164,7 +166,7 @@ export function HomeScreen() {
             Fichiers
           </WText>
           <WText dim style={styles.small}>
-            Projets enregistrés sur cet appareil, automatiquement à chaque modification.
+            Projets de cet appareil. Pour un fichier .zdesign rangé dans un dossier : Ouvrir…
           </WText>
           <RecentProjects onOpen={openProject} initialView="list" />
         </>
@@ -197,6 +199,21 @@ export function HomeScreen() {
         </ScrollView>
       )}
     </SafeAreaView>
+  );
+}
+
+/** Documents retrouvés dans une copie de récupération au démarrage. */
+function RecoveredNotice() {
+  const count = usePersistenceStore((s) => Object.values(s.files).filter((f) => f.recovered).length);
+  if (count === 0) return null;
+  return (
+    <View style={styles.notice} accessibilityRole="alert" testID="recovered-notice">
+      <Icon name="lifebuoy" size={18} color="#F5B342" />
+      <WText dim style={styles.noticeText}>
+        {count === 1 ? '1 document a été récupéré' : `${count} documents ont été récupérés`} après une interruption : ses modifications sont
+        rétablies mais pas encore enregistrées. Ouvrez-le puis Fichier › Enregistrer, ou fermez-le sans enregistrer.
+      </WText>
+    </View>
   );
 }
 

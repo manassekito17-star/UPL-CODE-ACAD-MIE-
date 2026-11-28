@@ -1,17 +1,19 @@
 import { useMemo, useRef, useState } from 'react';
-import { Modal, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { ConfirmDialog, Icon, PromptDialog } from '@/components/ui';
-import { DOCUMENT_LIMITS, formatBytes, formatNumber, fromPixels, type GraphicDocument } from '@/engine/documents';
+import { DOCUMENT_LIMITS, type GraphicDocument } from '@/engine/documents';
+import { useSaveStatus } from '@/features/persistence/useSaveStatus';
 import { useDocumentStore } from '@/stores/documentStore';
 import { ws, wsMetrics } from '@/theme';
-import { formatDateTime, formatRelative } from '@/utils/date';
+import { formatRelative } from '@/utils/date';
 
 import { MenuList, Popover, WText, type Anchor } from '@/components/workspace/ui';
 import { measureAnchor, type ViewRef } from '@/components/workspace/measure';
 
 import { DocumentThumbnail } from './DocumentThumbnail';
-import { BACKGROUND_LABELS, formatDimensions } from './labels';
+import { PROJECT_FORMAT_LABEL, ProjectInfo } from './ProjectInfo';
+import { formatDimensions } from './labels';
 
 export interface RecentProjectsProps {
   onOpen: (id: string) => void;
@@ -24,46 +26,15 @@ export interface RecentProjectsProps {
 type Sort = 'recent' | 'name' | 'size';
 const SORT_LABELS: Record<Sort, string> = { recent: 'Récent', name: 'Nom', size: 'Taille' };
 
-/** Format du projet tel qu'il est enregistré (format natif de l'application). */
-export const PROJECT_FORMAT_LABEL = 'Projet ZENTECH';
 
-function ProjectInfo({ doc, onClose }: { doc: GraphicDocument; onClose: () => void }) {
-  const rows: [string, string][] = [
-    ['Nom', doc.name],
-    ['Format', PROJECT_FORMAT_LABEL],
-    ['Dimensions', formatDimensions(doc.width, doc.height)],
-    ['Taille d’impression', `${formatNumber(fromPixels(doc.width, 'cm', doc.resolution))} × ${formatNumber(fromPixels(doc.height, 'cm', doc.resolution))} cm`],
-    ['Résolution', `${formatNumber(doc.resolution)} pixels/pouce`],
-    ['Mode', 'Couleurs RVB, 8 bits/couche'],
-    ['Arrière-plan', doc.background === 'color' ? `${BACKGROUND_LABELS.color} ${doc.backgroundColor}` : BACKGROUND_LABELS[doc.background]],
-    ['Calques', String(doc.layers.length)],
-    ['Mémoire par calque', formatBytes(doc.width * doc.height * 4)],
-    ['Créé le', formatDateTime(doc.createdAt)],
-    ['Modifié le', formatDateTime(doc.updatedAt)],
-  ];
+/** « Jamais enregistré » ou « Non enregistré » sous un projet qui a des modifications en attente. */
+function UnsavedBadge({ id }: { id: string }) {
+  const status = useSaveStatus(id);
+  if (!status.unsaved) return null;
   return (
-    <Modal visible transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
-      <View style={styles.backdrop}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityElementsHidden importantForAccessibility="no" />
-        <View style={styles.infoDialog} accessibilityViewIsModal testID="project-info">
-          <WText style={styles.infoTitle} accessibilityRole="header">
-            Informations du document
-          </WText>
-          <View style={styles.infoHead}>
-            <DocumentThumbnail document={doc} size={96} />
-          </View>
-          {rows.map(([label, value]) => (
-            <View key={label} style={styles.infoRow} accessible accessibilityLabel={`${label} : ${value}`}>
-              <WText dim>{label}</WText>
-              <WText style={styles.infoValue}>{value}</WText>
-            </View>
-          ))}
-          <Pressable accessibilityRole="button" accessibilityLabel="Fermer" onPress={onClose} style={styles.closeButton}>
-            <WText>Fermer</WText>
-          </Pressable>
-        </View>
-      </View>
-    </Modal>
+    <WText style={styles.badge} numberOfLines={1}>
+      ● {status.neverSaved ? 'Jamais enregistré' : 'Modifications non enregistrées'}
+    </WText>
   );
 }
 
@@ -152,6 +123,7 @@ export function RecentProjects({ onOpen, limit, initialView = 'grid' }: RecentPr
           <WText dim numberOfLines={1} style={styles.small}>
             Modifié {formatRelative(doc.updatedAt)}
           </WText>
+          <UnsavedBadge id={doc.id} />
         </View>
       </Pressable>
     );
@@ -301,13 +273,7 @@ const styles = StyleSheet.create({
   more: { position: 'absolute', right: 4, top: 4, width: 36, height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 18, backgroundColor: 'rgba(0,0,0,0.35)' },
   name: { fontWeight: '600', fontSize: 13 },
   small: { fontSize: wsMetrics.smallFontSize },
+  badge: { fontSize: wsMetrics.smallFontSize, color: '#F5B342' },
   empty: { alignItems: 'center', gap: 10, paddingVertical: 32 },
   center: { textAlign: 'center' },
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', padding: 20 },
-  infoDialog: { width: '100%', maxWidth: 420, gap: 8, padding: 20, borderRadius: 8, backgroundColor: ws.panel, borderWidth: 1, borderColor: ws.border },
-  infoTitle: { fontSize: 16, fontWeight: '600' },
-  infoHead: { alignItems: 'center', paddingVertical: 6 },
-  infoRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
-  infoValue: { flexShrink: 1, textAlign: 'right' },
-  closeButton: { alignSelf: 'flex-end', height: 40, paddingHorizontal: 20, justifyContent: 'center', borderRadius: 20, borderWidth: 1, borderColor: ws.textDim, marginTop: 8 },
 });

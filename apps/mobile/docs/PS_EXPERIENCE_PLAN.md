@@ -32,11 +32,21 @@ sous la marque ZENTECH DESIGN, sans ressource ni code d'Adobe.
 | Lot | Contenu | État |
 |---|---|---|
 | A | Accueil professionnel ; fenêtre Nouveau document (8 catégories, préréglages en unités physiques, résolution, fond personnalisé, préréglages personnels) ; format de projet v2 | **Livré** |
-| B | Parcours d'enregistrement : document « non enregistré » jusqu'au premier Enregistrer ; Enregistrer sous (nom + emplacement : application ou dossier `.zdesign`) ; Enregistrer une copie ; Ouvrir / Ouvrir récent ; Importer ; Informations du document ; confirmation à la fermeture ; sauvegarde automatique réglable ; récupération | À faire |
+| B | Parcours d'enregistrement : document « non enregistré » jusqu'au premier Enregistrer ; Enregistrer sous (nom + emplacement : application ou dossier `.zdesign`) ; Enregistrer une copie ; Ouvrir / Ouvrir récent ; Importer ; Informations du document ; confirmation à la fermeture ; sauvegarde automatique réglable ; récupération | **Livré** |
 | C | Exporter sous : aperçu, largeur / hauteur / %, résolution écrite dans le fichier, WebP, taille estimée, emplacement affiché, partage | À faire |
 | D | Raccourcis clavier (web, puis module natif Android / iOS) et commandes tactiles équivalentes | À faire |
 | E | Téléphone : menus complets en tiroir, panneaux en tiroirs ; grille et repères ; réarrangement des panneaux | À faire |
 | F | Les 6 parcours de validation demandés, automatisés (Jest + navigateur) | Au fil des lots |
+
+## Lot B — livré
+
+- Voir CHANGELOG. Limite connue : sur iOS, l'accès à un dossier choisi ne
+  dure que la session ; après un redémarrage, « Enregistrer » vers ce
+  fichier peut échouer : l'application le dit et propose « Enregistrer
+  sous ». La version enregistrée dans l'application, elle, reste à jour.
+- Parcours vérifiés : TEST 2 (image, texte, forme, enregistrer), TEST 3
+  (redémarrage, réouverture, calques présents), TEST 6 (avertissement à la
+  fermeture), en tests automatisés et dans le navigateur.
 
 ## Lot A — livré
 

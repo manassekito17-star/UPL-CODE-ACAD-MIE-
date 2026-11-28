@@ -308,6 +308,26 @@ documentStore ──(chaque changement)──▶ Autosaver ──(600 ms sans mo
   l'espace studio ; « Enregistrer sous » crée une copie nommée qui remplace
   l'onglet, « Dupliquer » en ajoute une. L'historique n'est pas enregistré.
 
+## Enregistrement façon bureau (lot B)
+
+- `features/persistence/persistence.ts` : état de chaque document
+  (`files[id]` : enregistré au moins une fois, fichier `.zdesign` associé,
+  état d'écriture, récupéré) et sa version enregistrée (`clean[id]`) ;
+  « modifié » = document différent de cette version (identité d'objet,
+  les documents étant immuables). Commandes : `saveDocument`,
+  `saveDocumentAs`, `saveCopy`, `discardChanges`, `openPackageFile`,
+  `setAutoSave`.
+- Copies de récupération : l'écriture différée (`Autosaver`) écrit chaque
+  document modifié dans la table `drafts` et retire la copie quand il est
+  enregistré. Au démarrage, une copie remplace la version enregistrée et le
+  document est marqué « récupéré ».
+- `engine/project/package.ts` : format `.zdesign` (zip). `services/projects/
+  packageFiles` : sélecteurs du système (dossier, fichier), lecture et
+  écriture des octets ; sur le web, téléchargement et sélecteur de fichier.
+- `features/files` : commandes du menu Fichier et fenêtres (Enregistrer
+  sous, confirmation de fermeture, informations, messages), rendues une
+  fois à la racine (`app/_layout.tsx`).
+
 ## Export (M4)
 
 - `engine/renderer/export.ts` : `planExport` (taille, limites, perte de

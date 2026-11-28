@@ -14,8 +14,12 @@ import { View } from 'react-native';
 
 type Neutral = ((...args: unknown[]) => Neutral) & { [key: string]: Neutral };
 
+// Propriétés qu'inspectent Jest (affichage des objets) et les promesses : sans
+// elles, afficher un objet neutre dans un message d'échec bouclerait sans fin.
+const INSPECTED = new Set<PropertyKey>(['then', 'toJSON', 'asymmetricMatch', '$$typeof', 'nodeType', 'tagName', 'constructor', '@@__IMMUTABLE_ITERABLE__@@', '@@__IMMUTABLE_RECORD__@@', 'length']);
+
 const neutral: Neutral = new Proxy(function neutralFn() {} as unknown as Neutral, {
-  get: (_target, prop) => (prop === 'then' || prop === Symbol.toPrimitive ? undefined : neutral),
+  get: (_target, prop) => (typeof prop === 'symbol' || INSPECTED.has(prop) ? undefined : neutral),
   apply: () => neutral,
 });
 

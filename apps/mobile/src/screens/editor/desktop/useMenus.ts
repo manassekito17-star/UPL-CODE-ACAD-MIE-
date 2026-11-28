@@ -9,10 +9,11 @@ import { useLayerActions } from '@/features/layers/useLayerActions';
 import { useEditorUiStore } from '@/stores/editorUiStore';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
 
-import { saveNow } from '@/features/persistence';
+import { commandClose, commandInfo, commandOpenFile, commandSave, commandSaveAs, commandSaveCopy } from '@/features/files/fileCommands';
+import { useDocumentStore } from '@/stores/documentStore';
 
 import { goHome } from '../EditorTopBar';
-import { closeDocumentTab } from './DocChrome';
+import { requestCloseTab, showDocument } from './DocChrome';
 import { useInsertMenu } from '../useInsertMenu';
 import { PANEL_LABELS } from './panelMeta';
 import type { MenuEntry } from '@/components/workspace/ui';
@@ -44,6 +45,12 @@ export function useMenus(): MenuDef[] {
   const setTool = useEditorUiStore((s) => s.setTool);
   const setNotice = useEditorUiStore((s) => s.setNotice);
   const ws = useWorkspaceStore();
+  const documents = useDocumentStore((s) => s.documents);
+  const order = useDocumentStore((s) => s.order);
+  const recent = order
+    .slice(0, 8)
+    .map((id) => documents[id])
+    .filter((d): d is NonNullable<typeof d> => !!d);
   const layer = selectedId ? findLayer(document, selectedId) : undefined;
   const text = layer?.type === 'text' ? layer : undefined;
 
@@ -58,21 +65,26 @@ export function useMenus(): MenuDef[] {
       title: 'Fichier',
       entries: [
         { type: 'item', label: 'Nouveau…', icon: 'file-plus-outline', onPress: () => router.push('/new-document') },
-        { type: 'item', label: 'Ouvrir une image…', icon: 'image-plus', onPress: () => void openImage() },
-        { type: 'item', label: 'Projets récents…', icon: 'folder-open-outline', onPress: goHome },
+        { type: 'item', label: 'Ouvrir…', icon: 'folder-open-outline', onPress: () => void commandOpenFile() },
+        { type: 'header', label: 'Ouvrir récent' },
+        ...recent.map(
+          (d): MenuEntry => ({ type: 'item', label: d.name, icon: 'file-outline', checked: d.id === document.id, onPress: () => showDocument(d.id) }),
+        ),
         sep,
-        { type: 'item', label: 'Fermer', onPress: () => closeDocumentTab(document.id, document.id) },
+        { type: 'item', label: 'Fermer', onPress: () => requestCloseTab(document.id, document.id) },
         {
           type: 'item',
           label: 'Fermer tout',
-          onPress: () => {
-            ws.closeAllDocuments();
-            goHome();
-          },
+          onPress: () =>
+            commandClose(ws.openDocuments.includes(document.id) ? ws.openDocuments : [...ws.openDocuments, document.id], () => {
+              ws.closeAllDocuments();
+              goHome();
+            }),
         },
         sep,
-        { type: 'item', label: 'Enregistrer', icon: 'content-save-outline', onPress: () => void saveNow() },
-        { type: 'item', label: 'Enregistrer sous…', onPress: () => ws.requestSaveAs({ documentId: document.id, mode: 'saveAs' }) },
+        { type: 'item', label: 'Enregistrer', icon: 'content-save-outline', onPress: () => void commandSave(document.id) },
+        { type: 'item', label: 'Enregistrer sous…', onPress: () => commandSaveAs(document.id, (id) => (id !== document.id ? showDocument(id) : undefined)) },
+        { type: 'item', label: 'Enregistrer une copie…', onPress: () => commandSaveCopy(document.id) },
         { type: 'header', label: 'Exporter' },
         {
           type: 'item',
@@ -84,6 +96,11 @@ export function useMenus(): MenuDef[] {
             }),
         },
         { type: 'item', label: 'Exporter sous…', onPress: () => openExport(document.id) },
+        { type: 'header', label: 'Importer' },
+        { type: 'item', label: 'Image comme nouveau calque…', icon: 'image-plus', onPress: () => void insertMenu.insert('image') },
+        { type: 'item', label: 'Image comme nouveau document…', onPress: () => void openImage() },
+        sep,
+        { type: 'item', label: 'Informations du document…', icon: 'information-outline', onPress: () => commandInfo(document.id) },
       ],
     },
     {

@@ -5,6 +5,18 @@ versions selon [SemVer](https://semver.org/lang/fr/).
 
 ## [Non publié]
 
+### Expérience « bureau », lot B — Parcours d'enregistrement
+
+- Modèle des logiciels de bureau : un nouveau document est « Jamais enregistré » ; le premier Fichier › Enregistrer ouvre « Enregistrer sous » (nom, emplacement) ; ensuite Enregistrer met à jour la version enregistrée. Indicateur dans l'onglet (« * »), la barre d'état et la barre du téléphone (« Modifications non enregistrées », « Enregistré à 14:27 · Affiche.zdesign »).
+- Format natif `.zdesign` : archive zip (manifeste, document au format versionné, images de travail ET originales, miniature) ; lecture stricte (fichier étranger, version plus récente, chemin d'image hostile, image manquante, archive démesurée : refusés avec un message). Bibliothèque `fflate` (MIT, JavaScript pur).
+- Fichier › Nouveau, Ouvrir… (fichier `.zdesign` choisi par le sélecteur du système), Ouvrir récent, Fermer, Fermer tout, Enregistrer, Enregistrer sous… (sur cet appareil ou dans un dossier), Enregistrer une copie…, Exporter, Importer (image comme calque ou comme document), Informations du document…
+- Confirmation avant fermeture si des modifications seraient perdues : Enregistrer / Ne pas enregistrer / Annuler (onglet, Fermer, Fermer tout, bouton retour du téléphone et d'Android). « Ne pas enregistrer » rétablit la version enregistrée, ou abandonne un document jamais enregistré.
+- Récupération après interruption : chaque modification non enregistrée est copiée en continu (copie de récupération) ; au démarrage, les documents concernés sont rétablis et signalés sur l'accueil.
+- Préférences › Enregistrement : sauvegarde automatique des projets déjà enregistrés (désactivée, 30 s, 1 min, 5 min).
+- Accueil : « Ouvrir… » ouvre un fichier `.zdesign` ; projets non enregistrés signalés.
+- Stockage : schéma v3 (copies de récupération, fichier associé à chaque projet) ; enregistrement et retrait de la copie de récupération dans une même transaction.
+- Tests : 328 (316 avant), dont les parcours TEST 2, 3 et 6 de la demande.
+
 ### Expérience « bureau », lot A — Accueil et Nouveau document
 
 - Audit et plan : `docs/PS_EXPERIENCE_PLAN.md`.

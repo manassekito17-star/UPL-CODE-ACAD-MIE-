@@ -4,6 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import { AppText, IconButton } from '@/components/ui';
 import type { GraphicDocument } from '@/engine/documents';
 import { useExportStore } from '@/features/export';
+import { commandClose, commandSave } from '@/features/files/fileCommands';
 import { useHistory } from '@/features/history/useHistory';
 import { useSaveStatus } from '@/features/persistence';
 import { formatDimensions } from '@/features/projects/labels';
@@ -26,7 +27,12 @@ export function EditorTopBar({ document, sidePanels }: EditorTopBarProps) {
   const openExport = useExportStore((s) => s.open);
   return (
     <View style={styles.bar} testID="editor-top-bar">
-      <IconButton icon="arrow-left" label="Retour à l’accueil" onPress={goHome} />
+      <IconButton
+        icon="arrow-left"
+        label="Fermer le document"
+        accessibilityHint="Revient à l’accueil ; propose d’enregistrer les modifications"
+        onPress={() => commandClose([document.id], goHome)}
+      />
       <View style={styles.title}>
         <AppText variant="subtitle" numberOfLines={1} accessibilityRole="header">
           {document.name}
@@ -57,6 +63,12 @@ export function EditorTopBar({ document, sidePanels }: EditorTopBarProps) {
           onPress={sidePanels.onToggle}
         />
       ) : null}
+      <IconButton
+        icon="content-save-outline"
+        label="Enregistrer"
+        accessibilityHint={save.neverSaved ? 'Premier enregistrement : choisir le nom et l’emplacement' : save.text}
+        onPress={() => void commandSave(document.id)}
+      />
       <IconButton
         icon="export-variant"
         label="Exporter"

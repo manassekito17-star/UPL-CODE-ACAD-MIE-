@@ -42,6 +42,7 @@ jest.mock('@/services/projects/assetFiles', () => ({
 
 beforeEach(async () => {
   require('@/stores/workspaceStore').resetWorkspaceStore();
+  require('@/features/files/fileCommands').resetFileDialogs();
   const persistence = require('@/features/persistence/persistence');
   persistence.stopPersistence();
   persistence.configurePersistence({ autosaveDelayMs: null });
@@ -56,3 +57,33 @@ jest.mock('@/services/export/exportFiles', () => ({
   shareExport: jest.fn(async () => undefined),
   saveExportToFolder: jest.fn(async (r: { fileName: string }) => r.fileName),
 }));
+// Fichiers « .zdesign » : un dossier simulé en mémoire.
+jest.mock('@/services/projects/packageFiles', () => {
+  const folder = new Map<string, Uint8Array>();
+  const assets = new Map<string, Uint8Array>();
+  let nextPick: string | null = null;
+  return {
+    packageFiles: {
+      readAsset: (uri: string) => assets.get(uri) ?? new Uint8Array([1]),
+      writeAsset: (path: string, bytes: Uint8Array) => {
+        const uri = `file:///app/Documents/assets/opened_${assets.size}_${path.slice(7)}`;
+        assets.set(uri, bytes);
+        return uri;
+      },
+      saveToFolder: jest.fn(async (name: string, bytes: Uint8Array) => {
+        const uri = `content://dossier/${encodeURIComponent(name)}`;
+        folder.set(uri, bytes);
+        return { uri, name };
+      }),
+      overwrite: jest.fn(async (uri: string, bytes: Uint8Array) => {
+        folder.set(uri, bytes);
+      }),
+      pick: jest.fn(async () => (nextPick && folder.has(nextPick) ? { uri: nextPick, name: decodeURIComponent(nextPick.split('/').pop() ?? ''), bytes: folder.get(nextPick) } : null)),
+    },
+    __folder: folder,
+    __assets: assets,
+    __setNextPick: (uri: string | null) => {
+      nextPick = uri;
+    },
+  };
+});

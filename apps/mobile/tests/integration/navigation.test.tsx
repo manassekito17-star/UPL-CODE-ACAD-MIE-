@@ -1,4 +1,4 @@
-import { fireEvent, renderRouter, screen } from 'expo-router/testing-library';
+import { fireEvent, renderRouter, screen, within } from 'expo-router/testing-library';
 
 import type { ImageAsset } from '@/engine/layers';
 import { pickAndImportImage } from '@/services/imageImport';
@@ -82,7 +82,11 @@ describe('navigation', () => {
     expect(screen.getByLabelText(/^Document Affiche @/)).toBeTruthy();
     expect(screen.getAllByText('1080 × 1080 px').length).toBeGreaterThan(0);
 
+    // Document jamais enregistré : la fermeture propose d'enregistrer, puis « Enregistrer sous ».
     await fireEvent.press(screen.getByRole('button', { name: 'Fermer Affiche' }));
+    await fireEvent.press(within(screen.getByTestId('close-dialog')).getByRole('button', { name: 'Enregistrer' }));
+    expect(screen.getByTestId('save-as-name').props.value).toBe('Affiche');
+    await fireEvent.press(screen.getByTestId('save-as-confirm'));
     expect(await screen.findByTestId('home-screen')).toBeTruthy();
     expect(screen).toHavePathname('/');
     expect(screen.getByRole('button', { name: 'Ouvrir Affiche' })).toBeTruthy();

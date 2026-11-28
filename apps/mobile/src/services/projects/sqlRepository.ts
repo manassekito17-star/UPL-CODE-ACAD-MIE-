@@ -13,7 +13,7 @@ export interface SqlDatabase {
 }
 
 /** Version du schéma de la base (PRAGMA user_version). */
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 /**
  * Migrations du schéma : SCHEMA_MIGRATIONS[v] fait passer la base de la
@@ -32,6 +32,8 @@ const SCHEMA_MIGRATIONS: Record<number, string> = {
       );
       CREATE INDEX IF NOT EXISTS projects_updated_at ON projects (updated_at DESC);`,
   1: `CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL);`,
+  2: `CREATE TABLE IF NOT EXISTS drafts (id TEXT PRIMARY KEY NOT NULL, updated_at INTEGER NOT NULL, data TEXT NOT NULL);
+      ALTER TABLE projects ADD COLUMN file_uri TEXT;`,
 };
 
 export async function migrateSchema(db: SqlDatabase): Promise<number> {
@@ -98,26 +100,59 @@ export function createSqlStores(open: () => Promise<SqlDatabase>): { projects: P
 
   const projects: ProjectRepository = {
     async loadAll(): Promise<LoadedProjects> {
-      const rows = await (await db()).getAllAsync<Row>('SELECT id, name, data FROM projects ORDER BY updated_at DESC', []);
-      const result: LoadedProjects = { documents: [], unreadable: [] };
+      const database = await db();
+      const rows = await database.getAllAsync<Row & { file_uri: string | null }>('SELECT id, name, data, file_uri FROM projects ORDER BY updated_at DESC', []);
+      const result: LoadedProjects = { documents: [], unreadable: [], drafts: [], locations: {} };
       for (const row of rows) {
         const parsed = parseProject(row.data);
-        if (parsed.ok && parsed.document.id === row.id) result.documents.push(parsed.document);
-        else result.unreadable.push({ id: row.id, name: row.name, message: parsed.ok ? 'Identifiant incohérent.' : parsed.message });
+        if (parsed.ok && parsed.document.id === row.id) {
+          result.documents.push(parsed.document);
+          if (row.file_uri) result.locations[row.id] = row.file_uri;
+        } else result.unreadable.push({ id: row.id, name: row.name, message: parsed.ok ? 'Identifiant incohérent.' : parsed.message });
+      }
+      const drafts = await database.getAllAsync<{ id: string; data: string }>('SELECT id, data FROM drafts ORDER BY updated_at DESC', []);
+      for (const row of drafts) {
+        const parsed = parseProject(row.data);
+        if (parsed.ok && parsed.document.id === row.id) result.drafts.push(parsed.document);
+        else result.unreadable.push({ id: row.id, name: `Copie de récupération ${row.id}`, message: parsed.ok ? 'Identifiant incohérent.' : parsed.message });
       }
       return result;
     },
     async save(doc: GraphicDocument) {
-      await (await db()).runAsync(
-        `INSERT INTO projects (id, name, width, height, created_at, updated_at, format_version, data)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-         ON CONFLICT(id) DO UPDATE SET name = excluded.name, width = excluded.width, height = excluded.height,
-           updated_at = excluded.updated_at, format_version = excluded.format_version, data = excluded.data`,
-        [doc.id, doc.name, doc.width, doc.height, doc.createdAt, doc.updatedAt, doc.formatVersion, serializeDocument(doc)],
-      );
+      const database = await db();
+      // Version enregistrée et retrait de la copie de récupération : une seule transaction.
+      await database.execAsync('BEGIN;');
+      try {
+        await database.runAsync(
+          `INSERT INTO projects (id, name, width, height, created_at, updated_at, format_version, data)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+           ON CONFLICT(id) DO UPDATE SET name = excluded.name, width = excluded.width, height = excluded.height,
+             updated_at = excluded.updated_at, format_version = excluded.format_version, data = excluded.data`,
+          [doc.id, doc.name, doc.width, doc.height, doc.createdAt, doc.updatedAt, doc.formatVersion, serializeDocument(doc)],
+        );
+        await database.runAsync('DELETE FROM drafts WHERE id = ?', [doc.id]);
+        await database.execAsync('COMMIT;');
+      } catch (error) {
+        await database.execAsync('ROLLBACK;').catch(() => undefined);
+        throw error;
+      }
     },
     async remove(id: string) {
-      await (await db()).runAsync('DELETE FROM projects WHERE id = ?', [id]);
+      const database = await db();
+      await database.runAsync('DELETE FROM projects WHERE id = ?', [id]);
+      await database.runAsync('DELETE FROM drafts WHERE id = ?', [id]);
+    },
+    async saveDraft(doc: GraphicDocument) {
+      await (await db()).runAsync(
+        'INSERT INTO drafts (id, updated_at, data) VALUES (?, ?, ?) ON CONFLICT(id) DO UPDATE SET updated_at = excluded.updated_at, data = excluded.data',
+        [doc.id, doc.updatedAt, serializeDocument(doc)],
+      );
+    },
+    async removeDraft(id: string) {
+      await (await db()).runAsync('DELETE FROM drafts WHERE id = ?', [id]);
+    },
+    async setLocation(id: string, uri: string | null) {
+      await (await db()).runAsync('UPDATE projects SET file_uri = ? WHERE id = ?', [uri, id]);
     },
   };
   return { projects, settings };

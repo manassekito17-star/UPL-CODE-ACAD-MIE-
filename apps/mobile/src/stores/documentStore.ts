@@ -33,6 +33,11 @@ export interface DocumentState {
    * Renvoie un message d'erreur ou null.
    */
   renameDocument: (id: string, name: string) => string | null;
+  /**
+   * Remplace le contenu d'un document (retour à la version enregistrée,
+   * récupération après interruption) ; l'historique repart de cet état.
+   */
+  replaceDocument: (doc: GraphicDocument, label: string) => void;
   /** Supprime exactement ce document. Renvoie faux s'il n'existe pas. */
   removeDocument: (id: string) => boolean;
   /**
@@ -113,6 +118,14 @@ export const useDocumentStore = create<DocumentState>()((set, get) => {
         order: [doc.id, ...state.order],
       }));
       return doc;
+    },
+
+    replaceDocument: (doc, label) => {
+      set((s) => ({
+        documents: { ...s.documents, [doc.id]: doc },
+        histories: { ...s.histories, [doc.id]: historyOps.createHistory(doc, label) },
+        order: s.order.includes(doc.id) ? s.order : [doc.id, ...s.order],
+      }));
     },
 
     renameDocument: (id, raw) => {

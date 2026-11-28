@@ -1,6 +1,5 @@
 import { createDocument, type GraphicDocument } from '@/engine/documents';
 import { Autosaver, type SaveStatus } from '@/features/persistence/autosave';
-import type { ProjectRepository } from '@/services/projects';
 
 const doc = (id: string, name = id): GraphicDocument =>
   createDocument({ width: 10, height: 10, background: 'white', name }, { id, now: 0 });
@@ -10,21 +9,20 @@ function setup(options: { failSave?: boolean } = {}) {
   const removed: string[] = [];
   let release: (() => void) | null = null;
   let hold = false;
-  const repo: ProjectRepository = {
-    loadAll: async () => ({ documents: [], unreadable: [] }),
-    save: async (d) => {
+  const repo = {
+    write: async (d: GraphicDocument) => {
       if (hold) await new Promise<void>((r) => (release = r));
       if (options.failSave) throw new Error('disque plein');
       saved.push(`${d.id}:${d.name}`);
     },
-    remove: async (id) => {
+    remove: async (id: string) => {
       removed.push(id);
     },
   };
   const statuses: Record<string, SaveStatus | null> = {};
   const gone: string[] = [];
   const saver = new Autosaver({
-    repo,
+    ...repo,
     delayMs: 500,
     now: () => 42,
     setTimer: (fn, ms) => setTimeout(fn, ms),

@@ -1,5 +1,4 @@
 import type { GraphicDocument } from '@/engine/documents';
-import type { ProjectRepository } from '@/services/projects';
 
 export type SaveStatus =
   | { state: 'saved'; at: number }
@@ -8,7 +7,10 @@ export type SaveStatus =
   | { state: 'error'; message: string };
 
 export interface AutosaverDeps {
-  repo: ProjectRepository;
+  /** Écrit la version courante d'un document. */
+  write: (doc: GraphicDocument) => Promise<void>;
+  /** Le document a disparu du store : le retirer de l'appareil. */
+  remove: (id: string) => Promise<void>;
   /** Délai après la dernière modification avant d'écrire (regroupe les modifications rapprochées). */
   delayMs: number;
   now: () => number;
@@ -20,7 +22,7 @@ export interface AutosaverDeps {
 }
 
 /**
- * Sauvegarde automatique : compare les documents du store à la dernière
+ * Écriture différée : compare les documents du store à la dernière
  * version écrite (par identité d'objet : les documents sont immuables) et
  * écrit chaque document modifié après `delayMs` sans nouvelle modification.
  * Les écritures d'un même document sont mises en file : jamais deux en même
@@ -60,7 +62,7 @@ export class Autosaver {
       this.latest.delete(id);
       this.cancel(id);
       void this.enqueue(id, async () => {
-        await this.deps.repo.remove(id);
+        await this.deps.remove(id);
         this.written.delete(id);
         this.deps.onStatus(id, null);
         this.deps.onRemoved(doc);
@@ -110,7 +112,7 @@ export class Autosaver {
       if (!doc || this.written.get(id) === doc) return;
       this.deps.onStatus(id, { state: 'saving' });
       try {
-        await this.deps.repo.save(doc);
+        await this.deps.write(doc);
         this.written.set(id, doc);
         // Une modification arrivée pendant l'écriture reste « en attente ».
         if (this.latest.get(id) === doc) this.deps.onStatus(id, { state: 'saved', at: this.deps.now() });

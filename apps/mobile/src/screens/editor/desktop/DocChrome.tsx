@@ -5,6 +5,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import type { GraphicDocument } from '@/engine/documents';
 import { findLayer } from '@/engine/layers';
 import { formatDimensions } from '@/features/projects/labels';
+import { commandClose } from '@/features/files/fileCommands';
 import { useSaveStatus } from '@/features/persistence';
 import { useDocumentStore } from '@/stores/documentStore';
 import { useEditorUiStore } from '@/stores/editorUiStore';
@@ -52,13 +53,18 @@ export function closeDocumentTab(id: string, currentId: string): void {
   else goHome();
 }
 
+/** Fermer un onglet : demande d'abord quoi faire des modifications non enregistrées. */
+export function requestCloseTab(id: string, currentId: string): void {
+  commandClose([id], () => closeDocumentTab(id, currentId));
+}
+
 function InactiveTab({ id, currentId }: { id: string; currentId: string }) {
   const doc = useDocumentStore((s) => s.documents[id]);
   const save = useSaveStatus(id);
   if (!doc) return null;
   return (
     <View style={[styles.tab, styles.tabInactive]}>
-      <WIconButton icon="close" label={`Fermer ${doc.name}`} size={13} style={styles.close} onPress={() => closeDocumentTab(id, currentId)} />
+      <WIconButton icon="close" label={`Fermer ${doc.name}`} size={13} style={styles.close} onPress={() => requestCloseTab(id, currentId)} />
       <Pressable
         accessibilityRole="tab"
         accessibilityState={{ selected: false }}
@@ -97,7 +103,7 @@ export function DocTabs() {
             accessibilityState={{ selected: true }}
             accessibilityLabel={`Document ${title}${save.unsaved ? ', modifications non enregistrées' : ', enregistré'}`}
           >
-            <WIconButton icon="close" label={`Fermer ${document.name}`} size={13} style={styles.close} onPress={() => closeDocumentTab(id, document.id)} testID="doc-tab-close" />
+            <WIconButton icon="close" label={`Fermer ${document.name}`} size={13} style={styles.close} onPress={() => requestCloseTab(id, document.id)} testID="doc-tab-close" />
             <WText numberOfLines={1} style={styles.tabText}>
               {title}
               {save.unsaved ? ' *' : ''}

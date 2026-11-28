@@ -44,8 +44,9 @@ describe('projets dans SQLite', () => {
     const { db, raw } = await openSqlJs();
     const repo = createSqlProjectRepository(async () => db);
     await repo.save(doc('ok', 2));
-    raw.run('INSERT INTO projects VALUES (?, ?, 1, 1, 0, 1, 1, ?)', ['bad', 'Abîmé', '{"kind":"zentech-design/project","formatVersion":1,"document":{"id":"bad"}}']);
-    raw.run('INSERT INTO projects VALUES (?, ?, 1, 1, 0, 0, 9, ?)', ['future', 'Futur', JSON.stringify({ kind: 'zentech-design/project', formatVersion: 9, document: {} })]);
+    const cols = '(id, name, width, height, created_at, updated_at, format_version, data)';
+    raw.run(`INSERT INTO projects ${cols} VALUES (?, ?, 1, 1, 0, 1, 1, ?)`, ['bad', 'Abîmé', '{"kind":"zentech-design/project","formatVersion":1,"document":{"id":"bad"}}']);
+    raw.run(`INSERT INTO projects ${cols} VALUES (?, ?, 1, 1, 0, 0, 9, ?)`, ['future', 'Futur', JSON.stringify({ kind: 'zentech-design/project', formatVersion: 9, document: {} })]);
     const loaded = await repo.loadAll();
     expect(loaded.documents.map((d) => d.id)).toEqual(['ok']);
     expect(loaded.unreadable.map((u) => u.name)).toEqual(['Abîmé', 'Futur']);
@@ -83,7 +84,7 @@ describe('projets dans SQLite', () => {
     raw.run('INSERT INTO projects VALUES (?, ?, 800, 600, 0, 9, 2, ?)', ['old', 'Ancien', serializeDocument(doc('old', 9))]);
     const stores = createSqlStores(async () => db);
     expect((await stores.projects.loadAll()).documents.map((d) => d.id)).toEqual(['old']);
-    expect(raw.exec('PRAGMA user_version')[0]?.values[0]?.[0]).toBe(2);
+    expect(raw.exec('PRAGMA user_version')[0]?.values[0]?.[0]).toBe(3);
     expect(await stores.settings.get('presets')).toBeNull();
     await stores.settings.set('presets', '[1]');
     await stores.settings.set('presets', '[2]');

@@ -1,9 +1,10 @@
 import { useEffect } from 'react';
-import { ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { BackHandler, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { AppText, Button, Icon, IconButton, Screen } from '@/components/ui';
 import type { GraphicDocument } from '@/engine/documents';
 import { ExportDialog } from '@/features/export';
+import { commandClose } from '@/features/files/fileCommands';
 import { useThumbnailWriter } from '@/features/projects/useThumbnailWriter';
 import { RenderResourcesProvider } from '@/features/rendering/RenderResourcesProvider';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
@@ -70,8 +71,20 @@ function ThumbnailWriter({ document }: { document: GraphicDocument }) {
   return null;
 }
 
+/** Bouton retour d'Android : même chose que « Fermer le document » (proposition d'enregistrer). */
+function useHardwareBack(documentId: string) {
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      commandClose([documentId], goHome);
+      return true;
+    });
+    return () => sub.remove();
+  }, [documentId]);
+}
+
 /** Téléphone (portrait ou paysage) : canvas plein écran, un panneau à la fois en feuille. */
 function CompactWorkspace({ document }: { document: GraphicDocument }) {
+  useHardwareBack(document.id);
   const sheet = useEditorUiStore((s) => s.compactSheet);
   const toggleSheet = useEditorUiStore((s) => s.toggleCompactSheet);
   const closeSheet = useEditorUiStore((s) => s.closeCompactSheet);

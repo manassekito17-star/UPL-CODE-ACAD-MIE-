@@ -101,7 +101,7 @@ describe('accueil', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Affichage en liste' }));
     expect(screen.getByRole('button', { name: 'Affichage en liste' })).toBeSelected();
 
-    await fireEvent.press(screen.getByRole('button', { name: 'Ouvrir' }));
+    await fireEvent.press(screen.getByRole('tab', { name: 'Fichiers' }));
     expect(screen.getByRole('tab', { name: 'Fichiers' })).toBeSelected();
     expect(names()).toHaveLength(3);
   });
